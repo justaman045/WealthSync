@@ -79,7 +79,7 @@ jobs:
         run: chmod +x android/gradlew
 
       # ------------------------------------------------------------
-      # BUILD APK (signed)
+      # BUILD AAB + APK (signed)
       # ------------------------------------------------------------
       - name: Build AAB with signing
         env:
@@ -88,8 +88,15 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build appbundle --release
 
+      - name: Build APK with signing
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: flutter build apk --release
+
       # ------------------------------------------------------------
-      # UPLOAD ARTIFACT
+      # UPLOAD ARTIFACTS
       # ------------------------------------------------------------
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
@@ -97,13 +104,21 @@ jobs:
           name: app-release.aab
           path: build/app/outputs/bundle/release/app-release.aab
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
       # ------------------------------------------------------------
       # CREATE RELEASE (AUTO-GENERATED RELEASE NOTES)
       # ------------------------------------------------------------
-      - name: Create GitHub Release & Upload AAB
+      - name: Create GitHub Release & Upload AAB + APK
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/bundle/release/app-release.aab
+          files: |
+            build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/flutter-apk/app-release.apk
           tag_name: v2.0.${{ github.run_number }}
           generate_release_notes: true
         env:
@@ -112,10 +127,10 @@ jobs:
       # ------------------------------------------------------------
       # UPDATE README WITH LATEST APK DOWNLOAD LINK
       # ------------------------------------------------------------
-      - name: Update README with latest AAB link
+      - name: Update README with latest APK download link
         run: |
           TAG="v2.0.${{ github.run_number }}"
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/app-release.aab"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/app-release.apk"
 
           echo "Updating README with: $DOWNLOAD_URL"
 
