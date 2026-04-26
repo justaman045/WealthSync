@@ -1844,33 +1844,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final sym = CurrencyController.to.currencySymbol.value;
 
-    final credits = _filtered
-        .where((tx) => tx.recipientId == uid)
-        .map((tx) => tx.amount.abs())
-        .toList();
+    // Pre-filter: exclude obvious non-salary credits by recipient name only
+    final nonSalaryPattern = RegExp(
+      r'emi|loan|payoff|pay off|installment|settlement|disburs',
+      caseSensitive: false,
+    );
+    final candidateCredits = _filtered.where((tx) {
+      if (tx.recipientId != uid) return false;
+      return !nonSalaryPattern.hasMatch(tx.recipientName);
+    }).toList();
 
-    if (credits.length < 2) return const SizedBox.shrink();
+    if (candidateCredits.length < 2) return const SizedBox.shrink();
 
-    credits.sort();
-    final median = credits[credits.length ~/ 2];
-    final maxCredit = credits.last;
+    final amounts = candidateCredits.map((tx) => tx.amount.abs()).toList()..sort();
+    final median = amounts[amounts.length ~/ 2];
+    final maxCredit = amounts.last;
 
     // Likely salary: largest credit is > 3× median
     if (maxCredit <= median * 3) return const SizedBox.shrink();
 
-    final salaryTx = _filtered.firstWhere(
-      (tx) => tx.recipientId == uid && tx.amount.abs() == maxCredit,
+    final salaryTx = candidateCredits.firstWhere(
+      (tx) => tx.amount.abs() == maxCredit,
     );
-
-    // Exclude EMI, loan, transfer credits from being shown as salary
-    const nonSalaryKeywords = [
-      'emi', 'loan', 'payoff', 'pay off', 'transfer', 'neft', 'imps',
-      'rtgs', 'refund', 'disburs', 'installment', 'settlement',
-    ];
-    final txLabel = '${salaryTx.recipientName} ${salaryTx.note ?? ''} ${salaryTx.category ?? ''}'.toLowerCase();
-    for (final kw in nonSalaryKeywords) {
-      if (txLabel.contains(kw)) return const SizedBox.shrink();
-    }
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -2024,7 +2019,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final p = _spendingPersonality;
     final income = totalIncome;
     final expense = totalExpense;
-    final savingRate = income > 0 ? ((income - expense) / income).clamp(0.0, 1.0) : 0.0;
+    final rawRate = income > 0 ? (income - expense) / income : 0.0;
+    final isDeficit = rawRate < 0;
+    final savingRate = rawRate.clamp(0.0, 1.0);
+    final rateColor = isDeficit ? Colors.redAccent : p.color;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -2082,8 +2080,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               children: [
                 Text('Saving rate', style: TextStyle(fontSize: 12.sp, color: theme.textTheme.bodyMedium?.color)),
                 Text(
-                  '${(savingRate * 100).toStringAsFixed(1)}%',
-                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: p.color),
+                  '${(rawRate * 100).toStringAsFixed(1)}%',
+                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: rateColor),
                 ),
               ],
             ),
@@ -2094,9 +2092,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 value: savingRate,
                 minHeight: 6.h,
                 backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation(p.color),
+                valueColor: AlwaysStoppedAnimation(rateColor),
               ),
             ),
+            if (isDeficit) ...[
+              SizedBox(height: 4.h),
+              Text(
+                'Spending exceeds income by ${((-rawRate) * 100).toStringAsFixed(1)}%',
+                style: TextStyle(fontSize: 11.sp, color: Colors.redAccent),
+              ),
+            ],
           ],
         ],
       ),
