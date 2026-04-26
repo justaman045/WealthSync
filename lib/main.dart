@@ -300,6 +300,7 @@ class AuthChecker extends StatefulWidget {
 
 class _AuthCheckerState extends State<AuthChecker> {
   bool _didInitialBackup = false;
+  StreamSubscription<User?>? _authSub;
 
   @override
   void initState() {
@@ -307,6 +308,40 @@ class _AuthCheckerState extends State<AuthChecker> {
     if (!widget.isTest) {
       UpdateChecker.checkForUpdate(context);
     }
+    _handleAuthChange(FirebaseAuth.instance.currentUser);
+    _authSub = FirebaseAuth.instance.authStateChanges().skip(1).listen(_handleAuthChange);
+  }
+
+  void _handleAuthChange(User? user) {
+    if (user != null && user.emailVerified) {
+      if (!Get.isRegistered<TransactionController>()) {
+        Get.put(TransactionController());
+      }
+      if (!Get.isRegistered<ProfileController>()) {
+        Get.put(ProfileController());
+      }
+      if (!_didInitialBackup && user.email != null) {
+        _didInitialBackup = true;
+        LocalBackupService.backupUserTransactions(user.email!);
+      }
+    } else {
+      if (Get.isRegistered<TransactionController>()) {
+        Get.delete<TransactionController>(force: true);
+      }
+      if (Get.isRegistered<ProfileController>()) {
+        Get.delete<ProfileController>(force: true);
+      }
+      _didInitialBackup = false;
+      if (user != null && !user.emailVerified) {
+        FirebaseAuth.instance.signOut();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -322,55 +357,26 @@ class _AuthCheckerState extends State<AuthChecker> {
 
         final user = snapshot.data;
 
-        if (user != null) {
-          if (user.emailVerified) {
-            // Register session-level controllers once per login.
-            // These must survive tab navigation (Get.offAll) so they live here,
-            // not inside BankingHomeScreen which gets destroyed on tab switch.
-            if (!Get.isRegistered<TransactionController>()) {
-              Get.put(TransactionController());
-            }
-            if (!Get.isRegistered<ProfileController>()) {
-              Get.put(ProfileController());
-            }
+        if (user != null && user.emailVerified) {
+          return FutureBuilder<SharedPreferences>(
+            future: SharedPreferences.getInstance(),
+            builder: (context, prefsSnapshot) {
+              if (prefsSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              final isOnboarded =
+                  prefsSnapshot.data?.getBool('is_onboarded') ?? false;
 
-            // Trigger one-time backup when logged in
-            if (!_didInitialBackup && user.email != null) {
-              _didInitialBackup = true;
-              LocalBackupService.backupUserTransactions(user.email!);
-            }
-
-            // Check Onboarding Status
-            return FutureBuilder<SharedPreferences>(
-              future: SharedPreferences.getInstance(),
-              builder: (context, prefsSnapshot) {
-                if (prefsSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-                }
-                final isOnboarded =
-                    prefsSnapshot.data?.getBool('is_onboarded') ?? false;
-
-                if (isOnboarded) {
-                  return const BankingHomeScreen();
-                } else {
-                  return const OnboardingScreen();
-                }
-              },
-            );
-          }
-          FirebaseAuth.instance.signOut();
+              if (isOnboarded) {
+                return const BankingHomeScreen();
+              } else {
+                return const OnboardingScreen();
+              }
+            },
+          );
         }
-
-        // Logged out — clean up session-level controllers
-        if (Get.isRegistered<TransactionController>()) {
-          Get.delete<TransactionController>(force: true);
-        }
-        if (Get.isRegistered<ProfileController>()) {
-          Get.delete<ProfileController>(force: true);
-        }
-        _didInitialBackup = false;
 
         return const AnimatedSplashScreen();
       },

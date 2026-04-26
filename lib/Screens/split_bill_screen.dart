@@ -38,16 +38,16 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
 
   // Called only on USER input to participant amount field
   void _onParticipantAmountChanged(int idx, String val) {
-    final total = double.tryParse(_totalCtrl.text) ?? 0;
     final mine = double.tryParse(val) ?? 0;
 
     if (_evenSplit) {
-      if (total > 0 && _participants.length > 1) {
-        final remainder = total - mine;
-        final perOther = remainder / (_participants.length - 1);
+      if (mine > 0) {
+        // Mirror the same amount to all other participants and sync total
+        final newTotal = mine * _participants.length;
+        _totalCtrl.text = newTotal.toStringAsFixed(2);
         for (int j = 0; j < _participants.length; j++) {
           if (j != idx) {
-            _participants[j].amountCtrl.text = perOther.toStringAsFixed(2);
+            _participants[j].amountCtrl.text = mine.toStringAsFixed(2);
           }
         }
       }
@@ -105,7 +105,8 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
       _participants.fold<double>(0, (s, p) => s + (double.tryParse(p.amountCtrl.text) ?? 0));
 
   Future<void> _submit() async {
-    final total = double.tryParse(_totalCtrl.text) ?? 0;
+    double total = double.tryParse(_totalCtrl.text) ?? 0;
+    if (total <= 0) total = _participantTotal;
     if (total <= 0) {
       ErrorHandler.showError("Enter a valid total amount.");
       return;

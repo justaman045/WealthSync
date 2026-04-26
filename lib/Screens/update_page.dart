@@ -127,8 +127,13 @@ class _UpdatePageState extends State<UpdatePage> {
     final publishedRaw = releaseData?["published_at"] ?? "";
     final publishedDate = DateTime.tryParse(publishedRaw);
 
-    final downloadUrl = releaseData?["assets"]?.isNotEmpty == true
-        ? releaseData!["assets"][0]["browser_download_url"]
+    final assets = releaseData?["assets"] as List<dynamic>? ?? [];
+    final apkAsset = assets.firstWhere(
+      (a) => (a["name"] as String? ?? '').endsWith('.apk'),
+      orElse: () => assets.isNotEmpty ? assets[0] : null,
+    );
+    final downloadUrl = apkAsset != null
+        ? apkAsset["browser_download_url"]
         : "https://github.com/justaman045/Money_Control/releases";
 
     final fullReleaseUrl =

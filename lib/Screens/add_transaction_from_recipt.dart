@@ -124,13 +124,32 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
   // Helper parsers:
 
   double? _extractAmount(String text) {
-    final amtRegex = RegExp(r'((?:Rs\.?|INR)?\s?[\d,]+(?:\.\d{1,2})?)');
-    final match = amtRegex.firstMatch(text);
-    if (match != null) {
-      String amtStr = match.group(1)!.replaceAll(RegExp(r'[^\d.]'), '');
-      return double.tryParse(amtStr);
+    final lower = text.toLowerCase();
+    final numRegex = RegExp(r'[\d,]+(?:\.\d{1,2})?');
+
+    // Stage 1: find amount near common total keywords (most specific first)
+    const totalKeywords = [
+      'grand total', 'total amount', 'net amount', 'amount payable',
+      'total payable', 'bill amount', 'payable', 'total',
+    ];
+    for (final kw in totalKeywords) {
+      final idx = lower.indexOf(kw);
+      if (idx == -1) continue;
+      final snippet = text.substring(idx, (idx + 60).clamp(0, text.length));
+      final m = numRegex.firstMatch(snippet);
+      if (m != null) {
+        final val = double.tryParse(m.group(0)!.replaceAll(',', ''));
+        if (val != null && val > 0) return val;
+      }
     }
-    return null;
+
+    // Stage 2: return the largest number in the full text
+    double largest = 0;
+    for (final m in numRegex.allMatches(text)) {
+      final val = double.tryParse(m.group(0)!.replaceAll(',', '')) ?? 0;
+      if (val > largest) largest = val;
+    }
+    return largest > 0 ? largest : null;
   }
 
   String? _extractCategory(String text) {

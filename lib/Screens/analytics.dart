@@ -1657,6 +1657,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       daySpend[tx.date.day] = (daySpend[tx.date.day] ?? 0) + tx.amount.abs();
     }
     final maxSpend = daySpend.values.fold(0.0, (a, b) => b > a ? b : a);
+    // Sun=0, Mon=1, …, Sat=6
+    final firstDayOffset = DateTime(now.year, now.month, 1).weekday % 7;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -1671,12 +1673,36 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             'Spending Heatmap',
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 16.h),
-          Wrap(
-            spacing: 4.w,
-            runSpacing: 4.h,
-            children: List.generate(daysInMonth, (i) {
-              final day = i + 1;
+          SizedBox(height: 12.h),
+          Row(
+            children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label) {
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.w600,
+                      color: theme.textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          SizedBox(height: 4.h),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              crossAxisSpacing: 4.w,
+              mainAxisSpacing: 4.h,
+            ),
+            itemCount: firstDayOffset + daysInMonth,
+            itemBuilder: (context, index) {
+              if (index < firstDayOffset) return const SizedBox.shrink();
+              final day = index - firstDayOffset + 1;
               final spend = daySpend[day] ?? 0;
               final intensity = maxSpend > 0 ? (spend / maxSpend) : 0.0;
               final color = spend == 0
@@ -1689,8 +1715,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               return Tooltip(
                 message: 'Day $day: ${CurrencyController.to.currencySymbol.value}${spend.toStringAsFixed(0)}',
                 child: Container(
-                  width: 28.w,
-                  height: 28.w,
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(4.r),
@@ -1713,7 +1737,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                 ),
               );
-            }),
+            },
           ),
           SizedBox(height: 8.h),
           Row(
@@ -1837,6 +1861,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final salaryTx = _filtered.firstWhere(
       (tx) => tx.recipientId == uid && tx.amount.abs() == maxCredit,
     );
+
+    // Exclude EMI, loan, transfer credits from being shown as salary
+    const nonSalaryKeywords = [
+      'emi', 'loan', 'payoff', 'pay off', 'transfer', 'neft', 'imps',
+      'rtgs', 'refund', 'disburs', 'installment', 'settlement',
+    ];
+    final txLabel = '${salaryTx.recipientName} ${salaryTx.note ?? ''} ${salaryTx.category ?? ''}'.toLowerCase();
+    for (final kw in nonSalaryKeywords) {
+      if (txLabel.contains(kw)) return const SizedBox.shrink();
+    }
 
     return Container(
       padding: EdgeInsets.all(20.w),

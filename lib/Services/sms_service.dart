@@ -190,6 +190,28 @@ class SmsService {
     return 'Uncategorized';
   }
 
+  static String _getCreditCategory(String body) {
+    final lower = body.toLowerCase();
+    const loanKeywords = [
+      'emi', 'loan', 'payoff', 'pay off', 'installment',
+      'lender', 'towards loan', 'loan repay', 'mortgage',
+      'noc', 'settlement', 'disburs', 'advance emi',
+    ];
+    for (final kw in loanKeywords) {
+      if (lower.contains(kw)) return 'Loan/EMI';
+    }
+    const transferKeywords = ['neft', 'imps', 'rtgs', 'self transfer'];
+    for (final kw in transferKeywords) {
+      if (lower.contains(kw)) return 'Transfer';
+    }
+    if (lower.contains('refund') || lower.contains('cashback')) return 'Refund';
+    const salaryKeywords = ['salary', 'sal ', 'payroll', 'wages', 'stipend', 'remuneration'];
+    for (final kw in salaryKeywords) {
+      if (lower.contains(kw)) return 'Salary';
+    }
+    return 'Income';
+  }
+
   static SmsTransaction? parseMessage(
     String body,
     String sender,
@@ -277,7 +299,7 @@ class SmsService {
 
     final category = isDebit
         ? _getCategoryStatic(merchant, body, rules)
-        : 'Income';
+        : _getCreditCategory(body);
 
     return SmsTransaction(
       sender: sender,

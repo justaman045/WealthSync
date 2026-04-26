@@ -879,10 +879,28 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             ),
           ),
           SizedBox(height: 8.h),
+          // Weekday header row
+          Row(
+            children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label) {
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          SizedBox(height: 6.h),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: daysInMonth,
+            itemCount: DateTime(now.year, now.month, 1).weekday % 7 + daysInMonth,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
               mainAxisSpacing: 8.h,
@@ -890,7 +908,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
               childAspectRatio: 1.0,
             ),
             itemBuilder: (context, index) {
-              final day = index + 1;
+              // Leading empty cells for the starting weekday (Sun=0, Mon=1 … Sat=6)
+              final startOffset = DateTime(now.year, now.month, 1).weekday % 7;
+              if (index < startOffset) return const SizedBox.shrink();
+              final day = index - startOffset + 1;
               final date = DateTime(now.year, now.month, day);
               final spent = dailySpending[date] ?? 0;
 

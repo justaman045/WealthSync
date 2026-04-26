@@ -774,23 +774,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     final amountStr = amount.toStringAsFixed(2);
 
-    // All possible UPI apps: check which are installed
+    // All possible UPI apps: check which are installed via minimal scheme URI
     final candidates = [
-      (name: "GPay", scheme: "tez", icon: "G", color: const Color(0xFF4285F4)),
-      (name: "PhonePe", scheme: "phonepe", icon: "P", color: const Color(0xFF5F259F)),
-      (name: "Paytm", scheme: "paytmmp", icon: "P", color: const Color(0xFF002970)),
-      (name: "BHIM", scheme: "bhim", icon: "B", color: const Color(0xFF0033A0)),
+      (name: "GPay",    scheme: "tez",      icon: "G", color: const Color(0xFF4285F4)),
+      (name: "PhonePe", scheme: "phonepe",  icon: "P", color: const Color(0xFF5F259F)),
+      (name: "Paytm",   scheme: "paytmmp",  icon: "P", color: const Color(0xFF002970)),
+      (name: "CRED",    scheme: "cred",     icon: "C", color: const Color(0xFF1A1A2E)),
+      (name: "BHIM",    scheme: "bhim",     icon: "B", color: const Color(0xFF0033A0)),
     ];
 
-    // Build check URIs using the corrected scheme logic
     final available = <({String name, String scheme, String icon, Color color})>[];
     for (final app in candidates) {
-      final checkUri = Uri(
-        scheme: app.scheme,
-        host: app.scheme == 'tez' ? 'upi' : 'pay',
-        path: app.scheme == 'tez' ? '/pay' : '',
-      );
-      if (await canLaunchUrl(checkUri)) {
+      if (await canLaunchUrl(Uri.parse('${app.scheme}://'))) {
         available.add(app);
       }
     }
