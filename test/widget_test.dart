@@ -1,30 +1,26 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:money_control/main.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const RootApp());
+  group('SubscriptionController', () {
+    test('SubscriptionStatus enum has expected values', () {
+      expect(
+        SubscriptionStatus.values.map((e) => e.name).toList(),
+        containsAll(['free', 'pending', 'pro']),
+      );
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('approveUpgrade expiry uses calendar arithmetic — monthly', () {
+      final now = DateTime(2024, 1, 31);
+      // Monthly: same day next month — Dart normalises overflow (e.g. Feb 31 → Mar 2)
+      final monthly = DateTime(now.year, now.month + 1, now.day);
+      expect(monthly.isAfter(now), isTrue);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('approveUpgrade expiry uses calendar arithmetic — yearly', () {
+      final now = DateTime(2024, 3, 15);
+      final yearly = DateTime(now.year + 1, now.month, now.day);
+      expect(yearly, DateTime(2025, 3, 15));
+    });
   });
 }

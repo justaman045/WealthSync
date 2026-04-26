@@ -15,6 +15,7 @@ import 'package:money_control/Services/offline_queue.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/budget_service.dart';
 import 'package:money_control/Utils/icon_helper.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -313,15 +314,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         );
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Transaction Updated"),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true);
-      }
+      ErrorHandler.showSuccess("Transaction Updated");
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       // ----------------- OFFLINE PATH: queue update -----------------
       // final Map<String, dynamic> updateJson = {

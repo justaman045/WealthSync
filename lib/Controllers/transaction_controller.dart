@@ -10,6 +10,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/widget_service.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 
@@ -23,20 +25,39 @@ class TransactionController extends GetxController {
   var categories = <CategoryModel>[].obs;
   var isLoading = false.obs;
   var isSaving = false.obs;
+  var streakCount = 0.obs;
 
   // Sorted categories by usage
   var sortedCategoryNames = <String>[].obs;
+
+  late final Worker _categoriesWorker;
+  late final Worker _transactionsWorker;
 
   @override
   void onInit() {
     super.onInit();
     bindTransactions();
     bindCategories();
-    // fetchSortedCategories(); // This might need to be reactive or called on change
+    _categoriesWorker = debounce(
+      categories,
+      (_) => fetchSortedCategories(),
+      time: const Duration(milliseconds: 300),
+    );
+    _transactionsWorker = debounce(
+      transactions,
+      (_) {
+        fetchSortedCategories();
+        _updateHomeWidget();
+      },
+      time: const Duration(milliseconds: 500),
+    );
+  }
 
-    // Listen to changes in categories/transactions to update sorted list
-    ever(categories, (_) => fetchSortedCategories());
-    ever(transactions, (_) => fetchSortedCategories());
+  @override
+  void onClose() {
+    _categoriesWorker.dispose();
+    _transactionsWorker.dispose();
+    super.onClose();
   }
 
   // Derived State
@@ -73,6 +94,13 @@ class TransactionController extends GetxController {
 
   void bindTransactions() {
     transactions.bindStream(_repository.getTransactionsStream());
+  }
+
+  void _updateHomeWidget() {
+    try {
+      final sym = CurrencyController.to.currencySymbol.value;
+      WidgetService.updateBalance(totalBalance, sym);
+    } catch (_) {}
   }
 
   void bindCategories() {
@@ -226,13 +254,17 @@ class TransactionController extends GetxController {
       // 1. Attempt Firestore write with timeout
       await _repository.addTransaction(tx).timeout(const Duration(seconds: 5));
     } on TimeoutException catch (e) {
-      debugPrint("Firebase error: $e");
-      // 2. Offline Queue Fallback
-      await OfflineQueueService.savePending(tx.toMap());
-      ErrorHandler.showSuccess(
-        "Saved locally. Will sync later.",
-        title: "Offline",
-      );
+      debugPrint("Firebase timeout: $e");
+      // 2. Offline Queue Fallback — wrap separately so isSaving is always reset
+      try {
+        await OfflineQueueService.savePending(tx.toMap());
+        ErrorHandler.showSuccess("Saved locally. Will sync later.", title: "Offline");
+      } catch (queueError) {
+        debugPrint("Offline queue error: $queueError");
+        ErrorHandler.showError("Failed to save transaction. Please retry.");
+        isSaving.value = false;
+        return false;
+      }
     } catch (e) {
       _handleFirestoreError(e, "Failed to save transaction");
       isSaving.value = false;
@@ -254,11 +286,55 @@ class TransactionController extends GetxController {
     }
 
     // 5. Update cached sorted categories
-    // (Optional: could just re-fetch or optimistically update)
     fetchSortedCategories();
+
+    // 6. Update spending streak
+    if (user.email != null) _updateStreak(user.email!);
 
     isSaving.value = false;
     return true;
+  }
+
+  Future<void> _updateStreak(String email) async {
+    try {
+      final db = FirebaseFirestore.instance;
+      final doc = await db.collection('users').doc(email).get();
+      final data = doc.data() ?? {};
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+
+      final lastTs = data['lastStreakDate'] as Timestamp?;
+      final lastDate = lastTs != null
+          ? DateTime(lastTs.toDate().year, lastTs.toDate().month, lastTs.toDate().day)
+          : null;
+      final count = (data['streakCount'] as int?) ?? 0;
+
+      if (lastDate == null || lastDate.isBefore(today.subtract(const Duration(days: 1)))) {
+        // Streak broken or new — reset to 1
+        await db.collection('users').doc(email).set({
+          'streakCount': 1,
+          'lastStreakDate': Timestamp.fromDate(today),
+        }, SetOptions(merge: true));
+        streakCount.value = 1;
+      } else if (lastDate.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
+        // Consecutive — increment
+        final newCount = count + 1;
+        await db.collection('users').doc(email).set({
+          'streakCount': newCount,
+          'lastStreakDate': Timestamp.fromDate(today),
+        }, SetOptions(merge: true));
+        streakCount.value = newCount;
+        if ([7, 30, 100].contains(newCount)) {
+          ErrorHandler.showSuccess(
+            '$newCount day streak! Keep it up!',
+            title: 'Streak Milestone',
+          );
+        }
+      }
+      // If lastDate == today, no-op (already tracked today)
+    } catch (e) {
+      debugPrint('Streak update error: $e');
+    }
   }
 
   Future<bool> deleteTransaction(TransactionModel tx) async {

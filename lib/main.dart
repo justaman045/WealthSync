@@ -27,7 +27,14 @@ import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Controllers/goals_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/profile_controller.dart';
+import 'package:money_control/Services/widget_service.dart';
+import 'package:money_control/Services/iap_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:home_widget/home_widget.dart';
+import 'package:money_control/Screens/add_transaction.dart';
 
 // ---- THEME CONTROLLER ----
 class ThemeController extends GetxController {
@@ -136,6 +143,9 @@ Future<void> mainCommon({bool isTest = false}) async {
   Get.put(PrivacyController());
   Get.put(CurrencyController());
   Get.put(SubscriptionController());
+  Get.put(GoalsController());
+  await WidgetService.init();
+  await IapService().init();
   final bioService = Get.put(BiometricService());
 
   // await _loadThemeFromFirebase(); // Handled by ThemeController listener
@@ -181,15 +191,35 @@ class RootApp extends StatefulWidget {
 
 class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
   final BiometricService _bioService = Get.find();
+  StreamSubscription<Uri?>? _widgetClickSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _initWidgetClickHandling();
+  }
+
+  void _initWidgetClickHandling() {
+    // Cold start: app opened via widget tap
+    HomeWidget.initiallyLaunchedFromHomeWidget().then((uri) {
+      if (uri?.host == 'add_transaction') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Get.to(() => const PaymentScreen(type: PaymentType.send));
+        });
+      }
+    });
+    // Warm start: app already running when widget tapped
+    _widgetClickSub = HomeWidget.widgetClicked.listen((uri) {
+      if (uri?.host == 'add_transaction') {
+        Get.to(() => const PaymentScreen(type: PaymentType.send));
+      }
+    });
   }
 
   @override
   void dispose() {
+    _widgetClickSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -221,7 +251,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           // navigatorKey is properly handled by GetX internally
           debugShowCheckedModeBanner: false,
-          title: "Finance Control",
+          title: "Money Control",
           defaultTransition: Transition.fadeIn,
           transitionDuration: const Duration(milliseconds: 300),
           themeMode: themeController.themeMode,
@@ -294,6 +324,16 @@ class _AuthCheckerState extends State<AuthChecker> {
 
         if (user != null) {
           if (user.emailVerified) {
+            // Register session-level controllers once per login.
+            // These must survive tab navigation (Get.offAll) so they live here,
+            // not inside BankingHomeScreen which gets destroyed on tab switch.
+            if (!Get.isRegistered<TransactionController>()) {
+              Get.put(TransactionController());
+            }
+            if (!Get.isRegistered<ProfileController>()) {
+              Get.put(ProfileController());
+            }
+
             // Trigger one-time backup when logged in
             if (!_didInitialBackup && user.email != null) {
               _didInitialBackup = true;
@@ -322,6 +362,15 @@ class _AuthCheckerState extends State<AuthChecker> {
           }
           FirebaseAuth.instance.signOut();
         }
+
+        // Logged out — clean up session-level controllers
+        if (Get.isRegistered<TransactionController>()) {
+          Get.delete<TransactionController>(force: true);
+        }
+        if (Get.isRegistered<ProfileController>()) {
+          Get.delete<ProfileController>(force: true);
+        }
+        _didInitialBackup = false;
 
         return const AnimatedSplashScreen();
       },

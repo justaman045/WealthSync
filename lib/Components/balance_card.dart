@@ -63,38 +63,46 @@ class _BalanceCardState extends State<BalanceCard> {
           ),
           child: Stack(
             children: [
-              // Background Gradient Blob for "Mesh" feel - refined
-              Positioned(
+              // Static decorative blobs — isolated in their own repaint layer
+              // so balance value changes do not trigger repaints here.
+              const Positioned(
                 right: -60,
                 top: -60,
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.transparent,
-                      ],
+                child: RepaintBoundary(
+                  child: SizedBox(
+                    width: 250,
+                    height: 250,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Color(0x26FFFFFF),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-              // Second Blob (Bottom Left)
-              Positioned(
+              const Positioned(
                 left: -60,
                 bottom: -60,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.1),
-                        Colors.transparent,
-                      ],
+                child: RepaintBoundary(
+                  child: SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Color(0x1AFFFFFF),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -309,6 +317,79 @@ class _BalanceCardState extends State<BalanceCard> {
                       })
                     else
                       _balanceLabel('--', Theme.of(context).colorScheme),
+                    Obx(() {
+                      if (_privacyController.isPrivacyMode.value) return const SizedBox.shrink();
+                      final now = DateTime.now();
+                      final uid = FirebaseAuth.instance.currentUser?.uid;
+                      if (uid == null) return const SizedBox.shrink();
+                      final txs = _transactionController.transactions;
+
+                      double thisMonth = 0;
+                      double lastMonth = 0;
+                      final startThis = DateTime(now.year, now.month, 1);
+                      final startLast = DateTime(now.year, now.month - 1, 1);
+                      final endLast = startThis;
+
+                      for (final tx in txs) {
+                        final isSend = tx.senderId == uid;
+                        final isRecv = tx.recipientId == uid;
+                        if (!isSend && !isRecv) continue;
+                        final amount = isSend ? -tx.amount.abs() : tx.amount.abs();
+                        if (!tx.date.isBefore(startThis)) {
+                          thisMonth += amount;
+                        } else if (!tx.date.isBefore(startLast) && tx.date.isBefore(endLast)) {
+                          lastMonth += amount;
+                        }
+                      }
+
+                      if (lastMonth == 0) return const SizedBox.shrink();
+                      final pct = ((thisMonth - lastMonth) / lastMonth.abs() * 100);
+                      final isUp = pct >= 0;
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 6.h),
+                        child: Row(
+                          children: [
+                            Icon(
+                              isUp ? Icons.trending_up : Icons.trending_down,
+                              color: isUp
+                                  ? const Color(0xFF69F0AE)
+                                  : const Color(0xFFFF5252),
+                              size: 14.sp,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              '${isUp ? '+' : ''}${pct.toStringAsFixed(1)}% vs last month',
+                              style: TextStyle(
+                                color: isUp
+                                    ? const Color(0xFF69F0AE)
+                                    : const Color(0xFFFF5252),
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    Obx(() {
+                      final streak = _transactionController.streakCount.value;
+                      if (streak < 2) return const SizedBox.shrink();
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 4.h),
+                        child: Row(
+                          children: [
+                            Text(
+                              '🔥 $streak day streak',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                     SizedBox(height: 24.h),
                     Row(
                       children: [

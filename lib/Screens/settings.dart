@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -105,25 +106,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // -- CATEGORIZED MENU --
                   _SectionHeader("Menu"),
 
-                  // Subscription Card (NEW)
-                  if (FirebaseAuth.instance.currentUser?.email !=
-                      "developerlife69@gmail.com")
-                    Obx(() {
-                      final isPro = Get.find<SubscriptionController>().isPro;
-                      return _SettingsCategoryCard(
-                        title: isPro
-                            ? "Managing Subscription"
-                            : "Upgrade to Pro",
-                        subtitle: isPro
-                            ? "You are a Pro Member"
-                            : "Unlock limits & features",
-                        icon: isPro
-                            ? Icons.verified_user_rounded
-                            : Icons.diamond_outlined,
-                        color: isPro ? Colors.greenAccent : Colors.cyanAccent,
-                        onTap: () => Get.to(() => const SubscriptionScreen()),
-                      );
-                    }),
+                  // Subscription Card — hidden for admins (they are always Pro)
+                  Obx(() {
+                    final ctrl = Get.find<SubscriptionController>();
+                    if (ctrl.isAdmin.value) return const SizedBox.shrink();
+                    final isPro = ctrl.isPro;
+                    return _SettingsCategoryCard(
+                      title: isPro ? "Managing Subscription" : "Upgrade to Pro",
+                      subtitle: isPro
+                          ? "You are a Pro Member"
+                          : "Unlock limits & features",
+                      icon: isPro
+                          ? Icons.verified_user_rounded
+                          : Icons.diamond_outlined,
+                      color: isPro ? Colors.greenAccent : Colors.cyanAccent,
+                      onTap: () => Get.to(() => const SubscriptionScreen()),
+                    );
+                  }),
                   SizedBox(height: 16.h),
                   _SettingsCategoryCard(
                     title: "General",
@@ -166,32 +165,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   SizedBox(height: 16.h),
 
-                  // LENT MONEY (NEW FEATURE)
+                  // LENT MONEY (PRO FEATURE)
                   _SettingsCategoryCard(
                     title: "Future Money Tracker",
                     subtitle: "Track money you lent and borrowed",
                     icon: Icons.handshake_rounded,
                     color: Colors.orangeAccent,
-                    onTap: () => Get.to(() => const LentMoneyScreen()),
+                    onTap: () {
+                      final ctrl = Get.find<SubscriptionController>();
+                      if (!ctrl.isPro) {
+                        Get.to(() => const SubscriptionScreen());
+                        return;
+                      }
+                      Get.to(() => const LentMoneyScreen());
+                    },
                   ),
 
                   SizedBox(height: 40.h),
 
                   // Admin Dashboard (Restricted)
-                  if (FirebaseAuth.instance.currentUser?.email ==
-                      "developerlife69@gmail.com") ...[
-                    _SettingsCategoryCard(
-                      key: const ValueKey("admin_utils_card"),
-                      title: "Admin Utils",
-                      subtitle: "Manage Data & Approvals",
-                      icon: Icons.admin_panel_settings_rounded,
-                      color: Colors.redAccent,
-                      onTap: () {
-                        Get.to(() => const AdminMenu());
-                      },
-                    ),
-                    SizedBox(height: 40.h),
-                  ],
+                  Obx(() {
+                    if (!Get.find<SubscriptionController>().isAdmin.value) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      children: [
+                        _SettingsCategoryCard(
+                          key: const ValueKey("admin_utils_card"),
+                          title: "Admin Utils",
+                          subtitle: "Manage Data & Approvals",
+                          icon: Icons.admin_panel_settings_rounded,
+                          color: Colors.redAccent,
+                          onTap: () => Get.to(() => const AdminMenu()),
+                        ),
+                        SizedBox(height: 40.h),
+                      ],
+                    );
+                  }),
 
                   _buildSignOutButton(),
                   SizedBox(height: 24.h),
@@ -246,7 +256,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   border: Border.all(color: const Color(0xFF00E5FF), width: 2),
                   image: DecorationImage(
                     image: url.isNotEmpty
-                        ? NetworkImage(url)
+                        ? CachedNetworkImageProvider(url)
                         : const AssetImage("assets/profile.png")
                               as ImageProvider,
                     fit: BoxFit.cover,

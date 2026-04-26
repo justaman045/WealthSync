@@ -3,7 +3,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:uuid/uuid.dart';
 
+/// Advance a date by one calendar month, clamping the day to the last day of
+/// the target month (e.g. Jan 31 → Feb 28, not Mar 3).
+DateTime _clampedNextMonth(DateTime date) {
+  final targetMonth = date.month == 12 ? 1 : date.month + 1;
+  final targetYear = date.month == 12 ? date.year + 1 : date.year;
+  final lastDay = DateTime(targetYear, targetMonth + 1, 0).day;
+  return DateTime(targetYear, targetMonth, date.day.clamp(1, lastDay));
+}
+
 class RecurringService {
+  static final RecurringService _instance = RecurringService._();
+  RecurringService._();
+  factory RecurringService() => _instance;
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -139,7 +152,7 @@ class RecurringService {
     // 1. Advance Date
     DateTime nextDate = payment.nextDueDate;
     if (payment.frequency == RecurringFrequency.monthly) {
-      nextDate = DateTime(nextDate.year, nextDate.month + 1, nextDate.day);
+      nextDate = _clampedNextMonth(nextDate);
     } else if (payment.frequency == RecurringFrequency.weekly) {
       nextDate = nextDate.add(const Duration(days: 7));
     } else if (payment.frequency == RecurringFrequency.yearly) {
@@ -196,54 +209,62 @@ class RecurringService {
         .where('nextDueDate', isLessThanOrEqualTo: Timestamp.fromDate(today))
         .get();
 
+    // Fetch uid once (reused for all payments)
+    final userDoc = await db.collection('users').doc(userEmail).get();
+    final uid = userDoc.data()?['uid'];
+    if (uid == null) return;
+
     for (var doc in snapshot.docs) {
       final payment = RecurringPayment.fromMap(doc.id, doc.data());
 
+      // Deduplication: skip if a transaction for this payment was already created today
+      final existingSnap = await db
+          .collection('users')
+          .doc(userEmail)
+          .collection('transactions')
+          .where('recurringPaymentId', isEqualTo: payment.id)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(today))
+          .limit(1)
+          .get();
+      if (existingSnap.docs.isNotEmpty) continue;
+
       // 1. Create Transaction
       final txId = const Uuid().v4();
+      final newTx = {
+        'id': txId,
+        'amount': -payment.amount,
+        'recipientName': payment.title,
+        'recipientId': 'External',
+        'senderId': uid,
+        'date': Timestamp.now(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'category': payment.category,
+        'status': 'success',
+        'type': 'debit',
+        'note': 'Auto-payment for ${payment.title}',
+        'recurringPaymentId': payment.id,
+      };
 
-      // Need proper UID for 'senderId'
-      final userDoc = await db.collection('users').doc(userEmail).get();
-      final uid = userDoc.data()?['uid'];
+      await db
+          .collection('users')
+          .doc(userEmail)
+          .collection('transactions')
+          .doc(txId)
+          .set(newTx);
 
-      if (uid != null) {
-        final newTx = {
-          'id': txId,
-          'amount': -payment.amount,
-          'recipientName': payment.title,
-          'recipientId': 'External',
-          'senderId': uid,
-          'date': Timestamp.now(),
-          'createdAt': FieldValue.serverTimestamp(),
-          'category': payment.category,
-          'status': 'success',
-          'type': 'debit',
-          'note': 'Auto-payment for ${payment.title}',
-          'recurringPaymentId': payment.id,
-        };
-
-        // Add to Transaction History
-        await db
-            .collection('users')
-            .doc(userEmail)
-            .collection('transactions')
-            .doc(txId)
-            .set(newTx);
-
-        // 2. Update Next Due Date
-        DateTime nextDate = payment.nextDueDate;
-        if (payment.frequency == RecurringFrequency.monthly) {
-          nextDate = DateTime(nextDate.year, nextDate.month + 1, nextDate.day);
-        } else if (payment.frequency == RecurringFrequency.weekly) {
-          nextDate = nextDate.add(const Duration(days: 7));
-        } else if (payment.frequency == RecurringFrequency.yearly) {
-          nextDate = DateTime(nextDate.year + 1, nextDate.month, nextDate.day);
-        }
-
-        await doc.reference.update({
-          'nextDueDate': Timestamp.fromDate(nextDate),
-        });
+      // 2. Update Next Due Date
+      DateTime nextDate = payment.nextDueDate;
+      if (payment.frequency == RecurringFrequency.monthly) {
+        nextDate = _clampedNextMonth(nextDate);
+      } else if (payment.frequency == RecurringFrequency.weekly) {
+        nextDate = nextDate.add(const Duration(days: 7));
+      } else if (payment.frequency == RecurringFrequency.yearly) {
+        nextDate = DateTime(nextDate.year + 1, nextDate.month, nextDate.day);
       }
+
+      await doc.reference.update({
+        'nextDueDate': Timestamp.fromDate(nextDate),
+      });
     }
   }
 }

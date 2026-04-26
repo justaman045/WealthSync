@@ -4,12 +4,15 @@ import 'dart:developer';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:uuid/uuid.dart';
 import 'package:money_control/firebase_options.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:money_control/Services/recurring_service.dart';
+import 'package:money_control/Services/sms_service.dart';
 
 /// Background worker to check inactivity and show reminder notifications
 class BackgroundWorker {
@@ -115,6 +118,14 @@ void callbackDispatcher() {
 
       // --- LOGIC 4: RECURRING PAYMENTS ---
       await _checkRecurringPayments(prefs);
+
+      // --- LOGIC 5: SMS AUTO-IMPORT ---
+      if (prefs.getBool('sms_auto_import_enabled') == true) {
+        await _processSmsMessages(prefs);
+      }
+
+      // --- LOGIC 6: WEEKLY DIGEST ---
+      await _checkWeeklyDigest(prefs);
     }
 
     return Future.value(true);
@@ -340,4 +351,174 @@ Future<void> _checkRecurringPayments(SharedPreferences prefs) async {
       log("Error processing recurring payments: $e");
     }
   }
+}
+
+Future<void> _processSmsMessages(SharedPreferences prefs) async {
+  final userEmail = prefs.getString('user_email');
+  if (userEmail == null) return;
+
+  final lastScanMs = prefs.getInt('last_sms_scan_ms') ?? 0;
+  final lastScanDate = DateTime.fromMillisecondsSinceEpoch(lastScanMs);
+
+  try {
+    final query = SmsQuery();
+    final messages = await query.querySms(
+      kinds: [SmsQueryKind.inbox],
+      count: 200,
+    );
+
+    final newBankMessages = messages.where((msg) {
+      final date = msg.date;
+      if (date == null) return false;
+      return date.isAfter(lastScanDate) && SmsService.isBankSms(msg.body ?? '');
+    }).toList();
+
+    if (newBankMessages.isEmpty) {
+      await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
+      return;
+    }
+
+    final db = FirebaseFirestore.instance;
+    final userDoc = await db.collection('users').doc(userEmail).get();
+    final uid = userDoc.data()?['uid'] as String?;
+    if (uid == null) return;
+
+    int imported = 0;
+    const uuid = Uuid();
+
+    for (final msg in newBankMessages) {
+      final parsed = SmsService.parseMessage(
+        msg.body ?? '',
+        msg.sender ?? 'Unknown',
+        msg.date ?? DateTime.now(),
+      );
+      if (parsed == null) continue;
+
+      // Deduplicate: sender + epoch-minute + amount to avoid double-saves on retry
+      final dedupeKey =
+          '${parsed.sender}_${(parsed.date.millisecondsSinceEpoch ~/ 60000)}_${parsed.amount}';
+
+      final existing = await db
+          .collection('users')
+          .doc(userEmail)
+          .collection('transactions')
+          .where('smsDedupeKey', isEqualTo: dedupeKey)
+          .limit(1)
+          .get();
+      if (existing.docs.isNotEmpty) continue;
+
+      final txId = uuid.v4();
+      await db
+          .collection('users')
+          .doc(userEmail)
+          .collection('transactions')
+          .doc(txId)
+          .set({
+            'id': txId,
+            'amount': parsed.isDebit ? -parsed.amount : parsed.amount,
+            'recipientName': parsed.isDebit ? parsed.merchant : userEmail,
+            'recipientId': parsed.isDebit ? 'External' : uid,
+            'senderId': parsed.isDebit ? uid : 'External',
+            'date': Timestamp.fromDate(parsed.date),
+            'createdAt': FieldValue.serverTimestamp(),
+            'category': parsed.category,
+            'status': 'success',
+            'type': parsed.isDebit ? 'debit' : 'credit',
+            'note': 'Auto-imported from SMS',
+            'smsDedupeKey': dedupeKey,
+            'smsSender': parsed.sender,
+          });
+
+      imported++;
+    }
+
+    if (imported > 0) {
+      await BackgroundWorker.showNotification(
+        'SMS Auto-Import',
+        '$imported new transaction${imported > 1 ? 's' : ''} detected and saved.',
+        'sms_import_channel',
+        'SMS Import',
+        userEmail: userEmail,
+      );
+    }
+
+    await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
+  } catch (e) {
+    log('SMS auto-import error: $e');
+  }
+}
+
+Future<void> _checkWeeklyDigest(SharedPreferences prefs) async {
+  final now = DateTime.now();
+  // Only fire on Sunday (weekday 7) between 9-10 AM
+  if (now.weekday != DateTime.sunday || now.hour < 9 || now.hour >= 10) return;
+
+  final thisWeekStr = 'week_${now.year}_${_isoWeekNumber(now)}';
+  final lastSent = prefs.getString('last_weekly_digest');
+  if (lastSent == thisWeekStr) return; // Already sent this week
+
+  final userEmail = prefs.getString('user_email');
+  if (userEmail == null) return;
+
+  try {
+    final db = FirebaseFirestore.instance;
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final weekStartDay = DateTime(weekStart.year, weekStart.month, weekStart.day);
+    final lastWeekStart = weekStartDay.subtract(const Duration(days: 7));
+
+    final snap = await db
+        .collection('users')
+        .doc(userEmail)
+        .collection('transactions')
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(lastWeekStart))
+        .get();
+
+    double thisWeekSpend = 0;
+    double lastWeekSpend = 0;
+
+    final userDoc = await db.collection('users').doc(userEmail).get();
+    final uid = userDoc.data()?['uid'] ?? '';
+
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final date = (data['date'] as Timestamp?)?.toDate();
+      if (date == null) continue;
+      final isSend = data['senderId'] == uid;
+      if (!isSend) continue;
+      final amount = (data['amount'] as num?)?.abs().toDouble() ?? 0;
+      if (!date.isBefore(weekStartDay)) {
+        thisWeekSpend += amount;
+      } else {
+        lastWeekSpend += amount;
+      }
+    }
+
+    final symbol = prefs.getString('currency_symbol') ?? '₹';
+    String body;
+    if (lastWeekSpend > 0) {
+      final pct = ((thisWeekSpend - lastWeekSpend) / lastWeekSpend * 100).abs();
+      final dir = thisWeekSpend <= lastWeekSpend ? 'less' : 'more';
+      body = 'You spent $symbol${thisWeekSpend.toStringAsFixed(0)} this week — '
+          '${pct.toStringAsFixed(0)}% $dir than last week.';
+    } else {
+      body = 'You spent $symbol${thisWeekSpend.toStringAsFixed(0)} this week.';
+    }
+
+    await BackgroundWorker.showNotification(
+      'Weekly Money Digest',
+      body,
+      'weekly_digest_channel',
+      'Weekly Digest',
+      userEmail: userEmail,
+    );
+
+    await prefs.setString('last_weekly_digest', thisWeekStr);
+  } catch (e) {
+    log('Weekly digest error: $e');
+  }
+}
+
+int _isoWeekNumber(DateTime date) {
+  final dayOfYear = int.parse(DateFormat('D').format(date));
+  return ((dayOfYear - date.weekday + 10) / 7).floor();
 }

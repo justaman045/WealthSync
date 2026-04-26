@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -90,31 +91,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
       // Google Forms usually returns 200 or 302 on success
       if (resp.statusCode >= 200 && resp.statusCode < 400) {
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Thanks! Your feedback has been submitted 🙌"),
-          ),
-        );
-
+        ErrorHandler.showSuccess("Thanks! Your feedback has been submitted");
         _feedbackCtrl.clear();
       } else {
-        if (!mounted) return;
         debugPrint(resp.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Failed to submit feedback (code ${resp.statusCode}).",
-            ),
-          ),
-        );
+        ErrorHandler.showError("Failed to submit feedback (code ${resp.statusCode}).");
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error submitting feedback: $e")));
+      ErrorHandler.showError("Error submitting feedback: $e");
     } finally {
       if (mounted) {
         setState(() => _submitting = false);

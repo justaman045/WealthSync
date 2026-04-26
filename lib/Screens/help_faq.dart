@@ -40,7 +40,7 @@ class _HelpFAQScreenState extends State<HelpFAQScreen> {
     {
       "q": "Can I export or download my transaction history?",
       "a":
-          "Data export is coming soon! For now, you can share screenshots of individual transactions.",
+          "Yes! Go to Analytics → tap the download icon → choose CSV or PDF. Pro members get full transaction history exports.",
     },
     {
       "q": "How do I reset my password?",

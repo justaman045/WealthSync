@@ -25,17 +25,22 @@ class DataSupportSettingsScreen extends StatelessWidget {
 
       if (!context.mounted) return;
       Navigator.of(context).pop(); // close loading
-      Get.snackbar(
-        "Backup Success",
-        "Data backed up securely",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+      // Defer past the dialog-pop frame so GetX overlay is ready
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar(
+          "Backup Success",
+          "Data backed up securely",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+      });
     } catch (e) {
       if (!context.mounted) return;
       Navigator.of(context).pop();
-      Get.snackbar("Error", "Backup failed: $e");
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar("Error", "Backup failed: $e");
+      });
     }
   }
 

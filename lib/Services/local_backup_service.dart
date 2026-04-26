@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 
 class LocalBackupService {
@@ -75,6 +76,7 @@ class LocalBackupService {
     } catch (e, st) {
       debugPrint('[LocalBackupService] backupUserTransactions ERROR: $e');
       debugPrint('$st');
+      ErrorHandler.showError('Backup failed. Data is safe in the cloud.', title: 'Backup');
     }
   }
 
@@ -96,6 +98,7 @@ class LocalBackupService {
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
       debugPrint("[LocalBackupService] read error: $e");
+      ErrorHandler.showError('Could not read local backup. Please try again.', title: 'Restore');
       return [];
     }
   }

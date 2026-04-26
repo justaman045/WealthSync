@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class AdminUserListScreen extends StatefulWidget {
   const AdminUserListScreen({super.key});
@@ -291,15 +292,8 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                     if (!isPro) 'expiryDate': FieldValue.delete(),
                   }, SetOptions(merge: true));
 
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Subscription updated successfully!"),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
+                  ErrorHandler.showSuccess("Subscription updated successfully!");
+                  if (context.mounted) Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyanAccent,

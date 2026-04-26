@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
@@ -70,10 +71,17 @@ class AuthController extends GetxController {
       // Use the API pattern from signup.dart
       await (_googleSignIn as dynamic).authenticate();
 
-      // Wait for the sign-in event
+      // Wait for the sign-in event — timeout prevents infinite hang if the
+      // Google authentication event never fires (e.g. network drop after the
+      // intent is launched but before the callback arrives).
       final Stream<dynamic> events =
           (_googleSignIn as dynamic).authenticationEvents;
-      final event = await events.first;
+      final event = await events.first.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw TimeoutException(
+          'Google Sign-In did not complete within 30 seconds.',
+        ),
+      );
 
       // Ensure event has a user (dynamic check)
       final googleUser = (event as dynamic).user;

@@ -81,29 +81,29 @@ jobs:
       # ------------------------------------------------------------
       # BUILD APK (signed)
       # ------------------------------------------------------------
-      - name: Build APK with signing
+      - name: Build AAB with signing
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: flutter build apk --release
+        run: flutter build appbundle --release
 
       # ------------------------------------------------------------
       # UPLOAD ARTIFACT
       # ------------------------------------------------------------
-      - name: Upload APK artifact
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: app-release.aab
+          path: build/app/outputs/bundle/release/app-release.aab
 
       # ------------------------------------------------------------
       # CREATE RELEASE (AUTO-GENERATED RELEASE NOTES)
       # ------------------------------------------------------------
-      - name: Create GitHub Release & Upload APK
+      - name: Create GitHub Release & Upload AAB
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: build/app/outputs/bundle/release/app-release.aab
           tag_name: v2.0.${{ github.run_number }}
           generate_release_notes: true
         env:
@@ -112,10 +112,10 @@ jobs:
       # ------------------------------------------------------------
       # UPDATE README WITH LATEST APK DOWNLOAD LINK
       # ------------------------------------------------------------
-      - name: Update README with latest APK link
+      - name: Update README with latest AAB link
         run: |
           TAG="v2.0.${{ github.run_number }}"
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/app-release.apk"
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${TAG}/app-release.aab"
 
           echo "Updating README with: $DOWNLOAD_URL"
 

@@ -1,8 +1,13 @@
 // --- imports ---
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
@@ -16,6 +21,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import 'package:flutter/rendering.dart' as rendering;
 
@@ -38,9 +44,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
   int _touchedIndex = -1;
   final GlobalKey _keyChart = GlobalKey();
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   // ---- PERIOD SELECTION ----
   String _period = "This Month";
+  DateTimeRange? _customRange;
 
   final List<String> _periodOptions = [
     "Last Month",
@@ -50,9 +58,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     "This Year",
     "Last Year",
     "All Time",
+    "Custom Range",
   ];
 
   String? _categoryFilter;
+
+  List<TransactionModel>? _filteredCache;
+  String? _filteredCachePeriod;
+  String? _filteredCacheCategory;
+  DateTimeRange? _filteredCacheCustomRange;
 
   @override
   void initState() {
@@ -74,6 +88,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   List<TransactionModel> get _all => _transactionController.transactions;
   bool get _loading => _transactionController.isLoading.value;
+
+  String get _periodLabel {
+    if (_period == "Custom Range" && _customRange != null) {
+      final fmt = DateFormat('MMM d');
+      return '${fmt.format(_customRange!.start)} – ${fmt.format(_customRange!.end)}';
+    }
+    return _period;
+  }
 
   // ---------------- DATE RANGES ---------------------
 
@@ -121,6 +143,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       case "All Time":
         return DateTimeRange(start: DateTime(2000), end: DateTime(2100));
 
+      case "Custom Range":
+        if (_customRange != null) {
+          return DateTimeRange(
+            start: _customRange!.start,
+            end: _customRange!.end.add(const Duration(days: 1)),
+          );
+        }
+        return DateTimeRange(
+          start: DateTime(now.year, now.month, 1),
+          end: DateTime(now.year, now.month + 1, 1),
+        );
+
       default:
         return DateTimeRange(
           start: DateTime(now.year, now.month, 1),
@@ -132,8 +166,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   // --------------- FILTERED TRANSACTIONS ----------------
 
   List<TransactionModel> get _filtered {
+    if (_filteredCache != null &&
+        _filteredCachePeriod == _period &&
+        _filteredCacheCategory == _categoryFilter &&
+        _filteredCacheCustomRange == _customRange) {
+      return _filteredCache!;
+    }
     final range = _getDateRange();
-    return _all.where((tx) {
+    _filteredCache = _all.where((tx) {
       final inRange =
           tx.date.compareTo(range.start) >= 0 &&
           tx.date.compareTo(range.end) < 0;
@@ -141,6 +181,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           _categoryFilter == null || tx.category == _categoryFilter;
       return inRange && catMatch;
     }).toList();
+    _filteredCachePeriod = _period;
+    _filteredCacheCategory = _categoryFilter;
+    _filteredCacheCustomRange = _customRange;
+    return _filteredCache!;
   }
 
   // ---------------- QUICK OVERVIEW AGGREGATION ----------------
@@ -297,7 +341,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       totalIncome: totalIncome,
       totalExpense: totalExpense,
       netBalance: netBalance,
-      periodLabel: _period,
+      periodLabel: _periodLabel,
+    );
+  }
+
+  Future<void> _shareReport() async {
+    final SubscriptionController subscriptionController = Get.find();
+    if (!subscriptionController.isPro) {
+      _showProLockModal("Share Report", "Share your monthly report as an image.");
+      return;
+    }
+    try {
+      final Uint8List? image = await _screenshotController.capture(pixelRatio: 2.0);
+      if (image == null) return;
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/money_control_report.png');
+      await file.writeAsBytes(image);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'My $_periodLabel Financial Report — Money Control',
+        ),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _exportTaxSummary() async {
+    final SubscriptionController subscriptionController = Get.find();
+    if (!subscriptionController.isPro) {
+      _showProLockModal("Tax Summary", "Export categorized annual tax summary PDF.");
+      return;
+    }
+    await ExportService.exportTaxSummaryPDF(
+      filtered: _filtered,
+      periodLabel: _periodLabel,
     );
   }
 
@@ -341,24 +418,53 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           centerTitle: true,
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
-            PopupMenuButton(
-              icon: const Icon(Icons.download, color: Colors.white),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
               color: const Color(0xFF1A1A2E),
-              onSelected: (v) => v == "csv" ? _exportCsv() : _exportPdf(),
+              onSelected: (v) {
+                if (v == "csv") {
+                  _exportCsv();
+                } else if (v == "pdf") {
+                  _exportPdf();
+                } else if (v == "tax") {
+                  _exportTaxSummary();
+                } else if (v == "share") {
+                  _shareReport();
+                }
+              },
               itemBuilder: (ctx) => const [
                 PopupMenuItem(
+                  value: "share",
+                  child: Row(children: [
+                    Icon(Icons.share_outlined, color: Colors.white, size: 18),
+                    SizedBox(width: 10),
+                    Text("Share Report", style: TextStyle(color: Colors.white)),
+                  ]),
+                ),
+                PopupMenuDivider(),
+                PopupMenuItem(
                   value: "csv",
-                  child: Text(
-                    "Export CSV",
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: Row(children: [
+                    Icon(Icons.table_chart_outlined, color: Colors.white, size: 18),
+                    SizedBox(width: 10),
+                    Text("Export CSV", style: TextStyle(color: Colors.white)),
+                  ]),
                 ),
                 PopupMenuItem(
                   value: "pdf",
-                  child: Text(
-                    "Export PDF",
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  child: Row(children: [
+                    Icon(Icons.picture_as_pdf_outlined, color: Colors.white, size: 18),
+                    SizedBox(width: 10),
+                    Text("Export PDF", style: TextStyle(color: Colors.white)),
+                  ]),
+                ),
+                PopupMenuItem(
+                  value: "tax",
+                  child: Row(children: [
+                    Icon(Icons.receipt_long_outlined, color: Colors.white, size: 18),
+                    SizedBox(width: 10),
+                    Text("Tax Summary PDF", style: TextStyle(color: Colors.white)),
+                  ]),
                 ),
               ],
             ),
@@ -391,7 +497,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
                 )
-              : _buildBody(),
+              : Screenshot(
+                  controller: _screenshotController,
+                  child: _buildBody(),
+                ),
         ),
       ),
     );
@@ -462,7 +571,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           label: "Period",
                           value: _period,
                           items: _periodOptions,
-                          onChanged: (v) {
+                          onChanged: (v) async {
                             final SubscriptionController subCtrl = Get.find();
                             if (!subCtrl.isPro && v != "This Month") {
                               _showProLockModal(
@@ -471,7 +580,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               );
                               return;
                             }
-                            setState(() => _period = v);
+                            if (v == "Custom Range") {
+                              final picked = await showDateRangePicker(
+                                context: context,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                                initialDateRange: _customRange ?? DateTimeRange(
+                                  start: DateTime.now().subtract(const Duration(days: 30)),
+                                  end: DateTime.now(),
+                                ),
+                              );
+                              if (picked == null) return;
+                              setState(() {
+                                _customRange = picked;
+                                _period = v;
+                                _filteredCache = null;
+                              });
+                            } else {
+                              setState(() { _period = v; _filteredCache = null; });
+                            }
                           },
                         ),
                       ),
@@ -482,7 +609,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           value: _categoryFilter,
                           items: [null, ...categories],
                           format: (v) => v ?? "All Categories",
-                          onChanged: (v) => setState(() => _categoryFilter = v),
+                          onChanged: (v) => setState(() { _categoryFilter = v; _filteredCache = null; }),
                         ),
                       ),
                     ],
@@ -615,6 +742,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
           // ------------- PIE CHART -------------------
           _StaggeredSlideFade(delay: 500, child: _buildPieChart()),
+
+          SizedBox(height: 32.h),
+
+          // ------------- SPENDING HEATMAP -------------------
+          _StaggeredSlideFade(delay: 600, child: _buildHeatmap()),
+
+          SizedBox(height: 32.h),
+
+          // ------------- MERCHANT INSIGHTS -------------------
+          _StaggeredSlideFade(delay: 700, child: _buildMerchantInsights()),
+
+          SizedBox(height: 32.h),
+
+          // ------------- SALARY DETECTION -------------------
+          _StaggeredSlideFade(delay: 800, child: _buildSalaryDetection()),
+
+          SizedBox(height: 32.h),
+
+          // ------------- SPENDING PERSONALITY -------------------
+          _StaggeredSlideFade(delay: 900, child: _buildSpendingPersonality()),
 
           SizedBox(height: 50.h),
         ],
@@ -1489,6 +1636,435 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           text,
           style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
         ),
+      ),
+    );
+  }
+
+  // ------------- SPENDING HEATMAP -------------------
+  Widget _buildHeatmap() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+    final now = DateTime.now();
+    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Build daily spend map for this month
+    final Map<int, double> daySpend = {};
+    for (final tx in _filtered) {
+      if (tx.senderId != uid) continue;
+      if (tx.date.year != now.year || tx.date.month != now.month) continue;
+      daySpend[tx.date.day] = (daySpend[tx.date.day] ?? 0) + tx.amount.abs();
+    }
+    final maxSpend = daySpend.values.fold(0.0, (a, b) => b > a ? b : a);
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(24.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Spending Heatmap',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 16.h),
+          Wrap(
+            spacing: 4.w,
+            runSpacing: 4.h,
+            children: List.generate(daysInMonth, (i) {
+              final day = i + 1;
+              final spend = daySpend[day] ?? 0;
+              final intensity = maxSpend > 0 ? (spend / maxSpend) : 0.0;
+              final color = spend == 0
+                  ? Colors.green.withValues(alpha: 0.08)
+                  : Color.lerp(
+                      Colors.green.shade200,
+                      Colors.green.shade900,
+                      intensity,
+                    )!;
+              return Tooltip(
+                message: 'Day $day: ${CurrencyController.to.currencySymbol.value}${spend.toStringAsFixed(0)}',
+                child: Container(
+                  width: 28.w,
+                  height: 28.w,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(4.r),
+                    border: Border.all(
+                      color: day == now.day
+                          ? const Color(0xFF00E5FF)
+                          : Colors.transparent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$day',
+                      style: TextStyle(
+                        fontSize: 9.sp,
+                        color: intensity > 0.6 ? Colors.white : theme.textTheme.bodySmall?.color,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            children: [
+              Container(width: 12.w, height: 12.w, decoration: BoxDecoration(color: Colors.green.shade200, borderRadius: BorderRadius.circular(2.r))),
+              SizedBox(width: 4.w),
+              Text('Low', style: TextStyle(fontSize: 10.sp, color: theme.textTheme.bodySmall?.color)),
+              SizedBox(width: 12.w),
+              Container(width: 12.w, height: 12.w, decoration: BoxDecoration(color: Colors.green.shade900, borderRadius: BorderRadius.circular(2.r))),
+              SizedBox(width: 4.w),
+              Text('High', style: TextStyle(fontSize: 10.sp, color: theme.textTheme.bodySmall?.color)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------- MERCHANT INSIGHTS -------------------
+  Widget _buildMerchantInsights() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sym = CurrencyController.to.currencySymbol.value;
+
+    final Map<String, ({int count, double total})> merchants = {};
+    for (final tx in _filtered) {
+      if (tx.senderId != uid) continue;
+      final name = tx.recipientName.isEmpty ? 'Unknown' : tx.recipientName;
+      final existing = merchants[name];
+      if (existing == null) {
+        merchants[name] = (count: 1, total: tx.amount.abs());
+      } else {
+        merchants[name] = (count: existing.count + 1, total: existing.total + tx.amount.abs());
+      }
+    }
+
+    if (merchants.isEmpty) return const SizedBox.shrink();
+
+    final sorted = merchants.entries.toList()
+      ..sort((a, b) => b.value.total.compareTo(a.value.total));
+    final top5 = sorted.take(5).toList();
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(24.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Top Merchants',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 12.h),
+          ...top5.map((e) => Padding(
+            padding: EdgeInsets.only(bottom: 10.h),
+            child: Row(
+              children: [
+                Container(
+                  width: 36.w,
+                  height: 36.w,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      e.key.isNotEmpty ? e.key[0].toUpperCase() : '?',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: const Color(0xFF00E5FF), fontSize: 14.sp),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(e.key, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      Text('${e.value.count} transaction${e.value.count > 1 ? 's' : ''}', style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                Text(
+                  '$sym${e.value.total.toStringAsFixed(0)}',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp, color: const Color(0xFFFF5252)),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  // ------------- SALARY DETECTION -------------------
+  Widget _buildSalaryDetection() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sym = CurrencyController.to.currencySymbol.value;
+
+    final credits = _filtered
+        .where((tx) => tx.recipientId == uid)
+        .map((tx) => tx.amount.abs())
+        .toList();
+
+    if (credits.length < 2) return const SizedBox.shrink();
+
+    credits.sort();
+    final median = credits[credits.length ~/ 2];
+    final maxCredit = credits.last;
+
+    // Likely salary: largest credit is > 3× median
+    if (maxCredit <= median * 3) return const SizedBox.shrink();
+
+    final salaryTx = _filtered.firstWhere(
+      (tx) => tx.recipientId == uid && tx.amount.abs() == maxCredit,
+    );
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF69F0AE).withValues(alpha: 0.08) : const Color(0xFF69F0AE).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: const Color(0xFF69F0AE).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.w),
+            decoration: const BoxDecoration(color: Color(0xFF69F0AE), shape: BoxShape.circle),
+            child: Icon(Icons.account_balance_wallet_outlined, color: Colors.black, size: 20.sp),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Salary Detected',
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF69F0AE)),
+                ),
+                Text(
+                  '${salaryTx.recipientName.isEmpty ? 'Largest credit' : salaryTx.recipientName} — $sym${maxCredit.toStringAsFixed(0)}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // ------------- SPENDING PERSONALITY -------------------
+
+  ({String label, String emoji, String description, Color color}) get _spendingPersonality {
+    final income = totalIncome;
+    final expense = totalExpense;
+    final byCategory = spendingByCategory;
+    final allSpend = byCategory.values.fold<double>(0, (a, b) => a + b);
+
+    // Saving rate
+    if (income > 0 && (income - expense) / income >= 0.40) {
+      return (
+        label: 'Smart Saver',
+        emoji: '💰',
+        description: 'You save over 40% of your income — great financial discipline!',
+        color: const Color(0xFF69F0AE),
+      );
+    }
+
+    if (allSpend > 0 && byCategory.isNotEmpty) {
+      final top = byCategory.entries.reduce((a, b) => a.value > b.value ? a : b);
+      final topPct = top.value / allSpend;
+      final cat = top.key.toLowerCase();
+
+      if (topPct >= 0.30 &&
+          (cat.contains('food') || cat.contains('dining') || cat.contains('grocer') ||
+           cat.contains('restaurant') || cat.contains('eat'))) {
+        return (
+          label: 'Foodie',
+          emoji: '🍔',
+          description: 'Food & dining makes up ${(topPct * 100).toStringAsFixed(0)}% of your spending.',
+          color: const Color(0xFFFF8A65),
+        );
+      }
+
+      if (topPct >= 0.25 &&
+          (cat.contains('travel') || cat.contains('transport') || cat.contains('fuel') ||
+           cat.contains('cab') || cat.contains('bus') || cat.contains('uber') || cat.contains('auto'))) {
+        return (
+          label: 'Commuter',
+          emoji: '🚌',
+          description: 'Transport accounts for ${(topPct * 100).toStringAsFixed(0)}% of your expenses.',
+          color: const Color(0xFF4FC3F7),
+        );
+      }
+
+      if (topPct >= 0.30 &&
+          (cat.contains('shopping') || cat.contains('clothing') || cat.contains('fashion') ||
+           cat.contains('apparel') || cat.contains('shoes'))) {
+        return (
+          label: 'Shopaholic',
+          emoji: '🛍️',
+          description: 'Shopping takes ${(topPct * 100).toStringAsFixed(0)}% of your budget.',
+          color: const Color(0xFFE040FB),
+        );
+      }
+
+      if (topPct >= 0.25 &&
+          (cat.contains('entertainment') || cat.contains('leisure') || cat.contains('movie') ||
+           cat.contains('game') || cat.contains('fun') || cat.contains('sport'))) {
+        return (
+          label: 'Fun Seeker',
+          emoji: '🎉',
+          description: 'Entertainment & leisure is your top spending category.',
+          color: const Color(0xFFFFD54F),
+        );
+      }
+    }
+
+    // Average spend per transaction
+    final sendTxs = _filtered.where((tx) => tx.senderId == uid).toList();
+    if (sendTxs.isNotEmpty) {
+      final avg = expense / sendTxs.length;
+      if (avg > 5000) {
+        return (
+          label: 'Big Spender',
+          emoji: '💸',
+          description: 'Your average transaction is over ₹5,000 — you go big.',
+          color: const Color(0xFFFF5252),
+        );
+      }
+      // Frequent spender: >20 transactions in last 30 days
+      final cutoff = DateTime.now().subtract(const Duration(days: 30));
+      final recentCount = _all
+          .where((tx) => tx.senderId == uid && tx.date.isAfter(cutoff))
+          .length;
+      if (recentCount > 20) {
+        return (
+          label: 'Frequent Spender',
+          emoji: '⚡',
+          description: '$recentCount transactions in the last 30 days — always on the move.',
+          color: const Color(0xFFFFB300),
+        );
+      }
+    }
+
+    if (income == 0) {
+      return (
+        label: 'Just Getting Started',
+        emoji: '🌱',
+        description: 'Add more transactions to unlock your spending personality.',
+        color: const Color(0xFFA5D6A7),
+      );
+    }
+
+    return (
+      label: 'Balanced Spender',
+      emoji: '⚖️',
+      description: 'Your spending is well-distributed across categories.',
+      color: const Color(0xFF80CBC4),
+    );
+  }
+
+  Widget _buildSpendingPersonality() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final p = _spendingPersonality;
+    final income = totalIncome;
+    final expense = totalExpense;
+    final savingRate = income > 0 ? ((income - expense) / income).clamp(0.0, 1.0) : 0.0;
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: p.color.withValues(alpha: isDark ? 0.08 : 0.1),
+        borderRadius: BorderRadius.circular(24.r),
+        border: Border.all(color: p.color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(color: p.color.withValues(alpha: 0.2), shape: BoxShape.circle),
+                child: Text(p.emoji, style: TextStyle(fontSize: 20.sp)),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your Spending Personality',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w600,
+                        color: p.color,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    Text(
+                      p.label,
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.w800,
+                        color: theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            p.description,
+            style: TextStyle(fontSize: 13.sp, color: theme.textTheme.bodyMedium?.color),
+          ),
+          if (income > 0) ...[
+            SizedBox(height: 14.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Saving rate', style: TextStyle(fontSize: 12.sp, color: theme.textTheme.bodyMedium?.color)),
+                Text(
+                  '${(savingRate * 100).toStringAsFixed(1)}%',
+                  style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w700, color: p.color),
+                ),
+              ],
+            ),
+            SizedBox(height: 6.h),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6.r),
+              child: LinearProgressIndicator(
+                value: savingRate,
+                minHeight: 6.h,
+                backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                valueColor: AlwaysStoppedAnimation(p.color),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

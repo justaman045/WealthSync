@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering;
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ import 'package:money_control/Screens/transaction_history.dart';
 import 'package:money_control/Screens/transaction_search.dart';
 import 'package:money_control/Screens/recurring_payments_screen.dart';
 import 'package:money_control/Screens/lent_money_screen.dart';
+import 'package:money_control/Screens/goals_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 🔥 import background worker
@@ -32,6 +34,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
+import 'package:money_control/Screens/add_transaction_from_recipt.dart';
 
 class BankingHomeScreen extends StatefulWidget {
   const BankingHomeScreen({super.key});
@@ -41,11 +44,9 @@ class BankingHomeScreen extends StatefulWidget {
 }
 
 class _BankingHomeScreenState extends State<BankingHomeScreen> {
-  final ProfileController _profileController = Get.put(ProfileController());
-
-  final TransactionController _transactionController = Get.put(
-    TransactionController(),
-  );
+  // Controllers are registered in AuthChecker (main.dart) and survive tab navigation.
+  final ProfileController _profileController = Get.find<ProfileController>();
+  final TransactionController _transactionController = Get.find<TransactionController>();
 
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
@@ -129,7 +130,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                       ),
                       image: DecorationImage(
                         image: url.isNotEmpty
-                            ? NetworkImage(url)
+                            ? CachedNetworkImageProvider(url)
                             : const AssetImage('assets/profile.png')
                                   as ImageProvider,
                         fit: BoxFit.cover,
@@ -182,20 +183,19 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             ),
           ),
           actions: [
-            // 💎 PRO STATUS
-            if (FirebaseAuth.instance.currentUser?.email !=
-                "developerlife69@gmail.com")
-              Obx(() {
-                final isPro = Get.find<SubscriptionController>().isPro;
-                return _buildActionButton(
-                  icon: isPro
-                      ? Icons.verified_user_rounded
-                      : Icons.diamond_outlined,
-                  onTap: () => gotoPage(const SubscriptionScreen()),
-                  theme: theme,
-                  color: isPro ? Colors.cyanAccent : null, // Highlight if Pro
-                );
-              }),
+            // 💎 PRO STATUS — hidden for admins (they are always Pro)
+            Obx(() {
+              final ctrl = Get.find<SubscriptionController>();
+              if (ctrl.isAdmin.value) return const SizedBox.shrink();
+              return _buildActionButton(
+                icon: ctrl.isPro
+                    ? Icons.verified_user_rounded
+                    : Icons.diamond_outlined,
+                onTap: () => gotoPage(const SubscriptionScreen()),
+                theme: theme,
+                color: ctrl.isPro ? Colors.cyanAccent : null,
+              );
+            }),
             SizedBox(width: 8.w),
 
             // 🔍 NEW SEARCH BUTTON
@@ -210,7 +210,13 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             // 📅 SUBSCRIPTIONS BUTTON
             _buildActionButton(
               icon: Icons.event_repeat,
-              onTap: () => gotoPage(const RecurringPaymentsScreen()),
+              onTap: () {
+                if (!Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                gotoPage(const RecurringPaymentsScreen());
+              },
               theme: theme,
             ),
             SizedBox(width: 8.w),
@@ -218,7 +224,13 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             // 🤝 LENT MONEY TRACKER BUTTON
             _buildActionButton(
               icon: Icons.handshake_outlined,
-              onTap: () => gotoPage(const LentMoneyScreen()),
+              onTap: () {
+                if (!Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                gotoPage(const LentMoneyScreen());
+              },
               theme: theme,
               color: Colors.greenAccent,
             ),
@@ -227,8 +239,29 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             // 📈 FORECAST BUTTON
             _buildActionButton(
               icon: Icons.trending_up,
-              onTap: () => gotoPage(const ForecastScreen()),
+              onTap: () {
+                if (!Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                gotoPage(const ForecastScreen());
+              },
               theme: theme,
+            ),
+            SizedBox(width: 8.w),
+
+            // 🎯 GOALS BUTTON
+            _buildActionButton(
+              icon: Icons.flag_outlined,
+              onTap: () {
+                if (!Get.find<SubscriptionController>().isPro) {
+                  gotoPage(const SubscriptionScreen());
+                  return;
+                }
+                gotoPage(const GoalsScreen());
+              },
+              theme: theme,
+              color: Colors.amberAccent,
             ),
             SizedBox(width: 6.w),
           ],
@@ -311,6 +344,20 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             ),
           ),
         ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: AppColors.primary,
+          tooltip: 'Scan Receipt',
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            if (!Get.find<SubscriptionController>().isPro) {
+              gotoPage(const SubscriptionScreen());
+              return;
+            }
+            Get.to(() => const ReceiptScanPage(), transition: Transition.downToUp);
+          },
+          child: const Icon(Icons.document_scanner_outlined, color: Colors.white),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         extendBody: true,
         bottomNavigationBar: ValueListenableBuilder<bool>(
           valueListenable: _isBottomBarVisible,

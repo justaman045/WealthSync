@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -376,15 +377,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             await _auth.sendPasswordResetEmail(
                               email: user.email!,
                             );
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Password reset link sent to your email',
-                                  ),
-                                ),
-                              );
-                            }
+                            ErrorHandler.showSuccess('Password reset link sent to your email');
                           }
                         },
                         child: Text(

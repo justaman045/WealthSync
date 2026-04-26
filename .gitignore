@@ -57,3 +57,6 @@ firebase.json
 service_account.json
 *.base64
 
+# for AI Agents
+CLAUDE.md
+GEMINI.md

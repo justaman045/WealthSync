@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Services/biometric_service.dart';
 import 'package:money_control/Screens/deactivate_account.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class SecuritySettingsScreen extends StatelessWidget {
   const SecuritySettingsScreen({super.key});
@@ -14,63 +15,9 @@ class SecuritySettingsScreen extends StatelessWidget {
     if (user?.email == null) return;
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: user!.email!);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(
-                  color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle_rounded,
-                    color: const Color(0xFF00E5FF),
-                    size: 24.sp,
-                  ),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Text(
-                      "Link sent to ${user.email}",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.fromLTRB(20.w, 0, 20.w, 30.h),
-          ),
-        );
-      }
+      ErrorHandler.showSuccess("Link sent to ${user.email}");
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed: $e"),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      ErrorHandler.showError("Failed: $e");
     }
   }
 

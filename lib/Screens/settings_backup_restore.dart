@@ -10,6 +10,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class BackupRestorePage extends StatefulWidget {
   const BackupRestorePage({super.key});
@@ -31,9 +32,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     await LocalBackupService.backupUserTransactions(user.email!);
     _setWorking(false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Backup completed successfully!")),
-    );
+    ErrorHandler.showSuccess("Backup completed successfully!");
   }
 
   Future<void> _exportBackup() async {
@@ -48,9 +47,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     );
 
     if (backup.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No transactions found to backup")),
-      );
+      ErrorHandler.showError("No transactions found to backup", title: "Backup");
       return;
     }
 

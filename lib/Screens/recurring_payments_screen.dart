@@ -431,7 +431,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  "₹${item.amount.toStringAsFixed(0)}",
+                  "${CurrencyController.to.currencySymbol.value}${item.amount.toStringAsFixed(0)}",
                   style: TextStyle(
                     fontSize: 17.sp,
                     fontWeight: FontWeight.w800,
@@ -620,13 +620,18 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                       child: ElevatedButton(
                         onPressed: () async {
                           if (formKey.currentState!.validate()) {
+                            final amount = double.tryParse(amountCtrl.text) ?? 0;
+                            if (amount <= 0) {
+                              Get.snackbar("Invalid Amount", "Enter a valid amount greater than 0");
+                              return;
+                            }
                             final userId =
                                 FirebaseAuth.instance.currentUser?.uid ?? '';
                             final newPayment = RecurringPayment(
                               id: payment?.id ?? const Uuid().v4(),
                               userId: userId,
-                              title: titleCtrl.text,
-                              amount: double.tryParse(amountCtrl.text) ?? 0,
+                              title: titleCtrl.text.trim(),
+                              amount: amount,
                               category: category,
                               frequency: freq,
                               startDate: payment?.startDate ?? DateTime.now(),
@@ -634,13 +639,18 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                               isActive: true,
                             );
 
-                            if (payment == null) {
-                              await _service.addPayment(newPayment);
-                            } else {
-                              await _service.updatePayment(newPayment);
+                            try {
+                              if (payment == null) {
+                                await _service.addPayment(newPayment);
+                              } else {
+                                await _service.updatePayment(newPayment);
+                              }
+                              if (context.mounted) Navigator.pop(context);
+                            } catch (e) {
+                              if (context.mounted) {
+                                Get.snackbar("Error", "Failed to save. Please try again.");
+                              }
                             }
-
-                            if (context.mounted) Navigator.pop(context);
                           }
                         },
                         child: const Text("Save"),

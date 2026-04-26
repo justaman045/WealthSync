@@ -7,7 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/auth_controller.dart';
-// import 'package:money_control/Screens/forgot_password.dart'; // Temporarily commented out if not found
+import 'package:money_control/Screens/forgot_password.dart';
 import 'package:money_control/Screens/signup.dart'; // Correct import
 
 class LoginScreen extends StatefulWidget {
@@ -203,11 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
-                // Get.to(() => const ForgotPasswordScreen());
-                Get.snackbar(
-                  "Coming Soon",
-                  "Forgot password feature is coming soon.",
-                );
+                Get.to(() => const ForgotPasswordScreen());
               },
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,

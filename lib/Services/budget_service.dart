@@ -38,8 +38,8 @@ class BudgetService {
           .collection('users')
           .doc(userId)
           .collection('transactions')
-          .where('date', isGreaterThanOrEqualTo: startOfMonth)
-          .where('date', isLessThanOrEqualTo: endOfMonth)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .where('category', isEqualTo: category)
           .get();
 

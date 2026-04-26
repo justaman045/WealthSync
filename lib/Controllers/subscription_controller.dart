@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:money_control/main.dart'; // For rootScaffoldMessengerKey
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:money_control/main.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,11 +15,28 @@ class SubscriptionController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Observable subscription status
   Rx<SubscriptionStatus> subscriptionStatus = SubscriptionStatus.free.obs;
+  RxBool isAdmin = false.obs;
+  Rx<DateTime?> expiryDate = Rx<DateTime?>(null);
+  Rx<DateTime?> trialEndDate = Rx<DateTime?>(null);
+  RxBool trialUsed = false.obs; // true once trial has been created (even if expired)
+  RxString planType = ''.obs;
 
-  // Computed property for easy access
-  bool get isPro => subscriptionStatus.value == SubscriptionStatus.pro;
+  bool get isTrial {
+    final end = trialEndDate.value;
+    if (end == null) return false;
+    return subscriptionStatus.value == SubscriptionStatus.free &&
+        DateTime.now().isBefore(end);
+  }
+
+  int get daysLeftInTrial {
+    final end = trialEndDate.value;
+    if (end == null) return 0;
+    return end.difference(DateTime.now()).inDays.clamp(0, 7);
+  }
+
+  bool get isPro =>
+      subscriptionStatus.value == SubscriptionStatus.pro || isTrial;
   bool get isPending => subscriptionStatus.value == SubscriptionStatus.pending;
 
   @override
@@ -27,7 +45,6 @@ class SubscriptionController extends GetxController {
     checkSubscriptionStatus();
   }
 
-  /// Check subscription status from Firestore
   void checkSubscriptionStatus() {
     final user = _auth.currentUser;
     if (user != null) {
@@ -39,58 +56,67 @@ class SubscriptionController extends GetxController {
           if (data != null) {
             SubscriptionStatus newStatus = SubscriptionStatus.free;
 
-            // Admin Override
-            bool isAdmin = user.email == "developerlife69@gmail.com";
-            if (isAdmin) {
+            // Admin check via Firestore field — set isAdmin: true in Firebase Console
+            final adminFlag = data['isAdmin'] == true;
+            isAdmin.value = adminFlag;
+
+            if (adminFlag) {
               newStatus = SubscriptionStatus.pro;
-            }
-            // Check for 'status' string first
-            else if (data.containsKey('subscriptionStatus')) {
-              final statusStr = data['subscriptionStatus'] as String;
-              newStatus = _parseStatus(statusStr);
-            }
-            // Fallback for backward compatibility
-            else if (data.containsKey('isPro') && data['isPro'] == true) {
+            } else if (data.containsKey('subscriptionStatus')) {
+              newStatus = _parseStatus(data['subscriptionStatus'] as String);
+            } else if (data.containsKey('isPro') && data['isPro'] == true) {
               newStatus = SubscriptionStatus.pro;
             }
 
-            // check expiry (Skip for admin to prevent loop)
-            if (!isAdmin &&
+            // Persist plan type
+            if (data.containsKey('planType')) {
+              planType.value = data['planType'] as String? ?? '';
+            }
+
+            // Check expiry (skip for admin)
+            if (!adminFlag &&
                 newStatus == SubscriptionStatus.pro &&
                 data.containsKey('expiryDate')) {
               final expiry = (data['expiryDate'] as Timestamp).toDate();
+              expiryDate.value = expiry;
               if (DateTime.now().isAfter(expiry)) {
-                // Expired!
                 newStatus = SubscriptionStatus.free;
+                expiryDate.value = null;
                 _expireSubscription(user.email!);
               }
+            } else if (!adminFlag) {
+              expiryDate.value = null;
             }
 
-            // --- NOTIFICATION LOGIC ---
-            // We use SharedPreferences to check if the status changed while the app was closed.
+            // Trial: initialize on first load; read on subsequent
+            if (!adminFlag && newStatus == SubscriptionStatus.free) {
+              if (!data.containsKey('trialEndDate')) {
+                final trialEnd = DateTime.now().add(const Duration(days: 7));
+                trialEndDate.value = trialEnd;
+                trialUsed.value = true;
+                _firestore.collection('users').doc(user.email).set({
+                  'trialEndDate': Timestamp.fromDate(trialEnd),
+                }, SetOptions(merge: true));
+              } else {
+                trialUsed.value = true; // field exists → trial was started at some point
+                final end = (data['trialEndDate'] as Timestamp).toDate();
+                trialEndDate.value = DateTime.now().isBefore(end) ? end : null;
+              }
+            } else {
+              trialEndDate.value = null;
+            }
+
             final prefs = await SharedPreferences.getInstance();
             final lastStatusStr = prefs.getString('last_sub_status');
             final lastStatus = lastStatusStr != null
                 ? _parseStatus(lastStatusStr)
                 : SubscriptionStatus.free;
 
-            // If this is the very first check (lastStatusStr is null) and we are pro,
-            // we might not want to notify (restoring session), OR maybe we do?
-            // Let's notify only if there is a detected change from what we last knew.
-
-            // Allow notification if we have a stored status OR if it's a runtime update (not first load)
-            // But actually, just comparing stored vs new is the robust way.
             if (newStatus != lastStatus) {
-              // Special case: If installing for first time (lastStatusStr == null) and Free, don't notify.
-              // If first time and Pro, maybe notify "Welcome Back".
-              // For now, let's treat "no record" as "free".
-
               if (lastStatusStr != null ||
                   newStatus != SubscriptionStatus.free) {
                 _handleStatusChange(lastStatus, newStatus);
               }
-
-              // Update storage
               await prefs.setString('last_sub_status', newStatus.name);
             }
 
@@ -98,16 +124,21 @@ class SubscriptionController extends GetxController {
           }
         } else {
           subscriptionStatus.value = SubscriptionStatus.free;
+          isAdmin.value = false;
+          expiryDate.value = null;
         }
       });
     } else {
       subscriptionStatus.value = SubscriptionStatus.free;
-      // Listen for auth changes to re-check
+      isAdmin.value = false;
+      expiryDate.value = null;
       _auth.authStateChanges().listen((user) {
         if (user != null) {
           checkSubscriptionStatus();
         } else {
           subscriptionStatus.value = SubscriptionStatus.free;
+          isAdmin.value = false;
+          expiryDate.value = null;
         }
       });
     }
@@ -122,8 +153,7 @@ class SubscriptionController extends GetxController {
 
     NotificationService.showNotification(
       title: "Subscription Expired",
-      body:
-          "Your Pro plan has expired. Renew now to restore access to features.",
+      body: "Your Pro plan has expired. Renew now to restore access.",
     );
   }
 
@@ -133,12 +163,10 @@ class SubscriptionController extends GetxController {
   ) {
     if (oldStatus == SubscriptionStatus.pending &&
         newStatus == SubscriptionStatus.pro) {
-      // System Notification
       NotificationService.showNotification(
         title: "Upgrade Approved! 🎉",
         body: "Congratulations! You are now a Pro member.",
       );
-
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
           content: Text(
@@ -151,27 +179,23 @@ class SubscriptionController extends GetxController {
       );
     } else if (oldStatus == SubscriptionStatus.pending &&
         newStatus == SubscriptionStatus.free) {
-      // System Notification
       NotificationService.showNotification(
         title: "Request Rejected",
         body: "Your upgrade request was rejected. Contact support for help.",
       );
-
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
-          content: Text("Request Updates\nYour upgrade request was rejected."),
+          content: Text("Your upgrade request was rejected."),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 5),
         ),
       );
     } else if (newStatus == SubscriptionStatus.pro) {
-      // System Notification
       NotificationService.showNotification(
         title: "You are now Pro! 💎",
         body: "Your subscription status has been updated to Pro.",
       );
-
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
           content: Text("You are now Pro! 💎"),
@@ -182,15 +206,15 @@ class SubscriptionController extends GetxController {
       );
     } else if (oldStatus == SubscriptionStatus.pro &&
         newStatus == SubscriptionStatus.free) {
-      // System Notification
       NotificationService.showNotification(
         title: "Subscription Ended ⚠️",
         body: "Your Pro subscription has ended. You are now on the Free plan.",
       );
-
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
-          content: Text("Subscription Ended ⚠️\nYou are now on the Free plan."),
+          content: Text(
+            "Subscription Ended ⚠️\nYou are now on the Free plan.",
+          ),
           backgroundColor: Colors.orangeAccent,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 5),
@@ -211,21 +235,38 @@ class SubscriptionController extends GetxController {
   }
 
   /// User requests an upgrade (sets status to pending)
-  Future<void> requestUpgrade(String transactionId, String planType) async {
+  Future<void> requestUpgrade(String transactionId, String plan) async {
     final user = _auth.currentUser;
-    if (user != null && user.email != null) {
-      await _firestore.collection('users').doc(user.email).set({
-        'subscriptionStatus': 'pending',
-        'lastUpgradeRequest': FieldValue.serverTimestamp(),
-        'transactionId': transactionId,
-        'requestedPlan': planType,
-      }, SetOptions(merge: true));
+    if (user == null || user.email == null) return;
+
+    // Client-side rate limit: block requests within 60 seconds of previous
+    final doc = await _firestore.collection('users').doc(user.email).get();
+    if (doc.exists) {
+      final lastReq = doc.data()?['lastUpgradeRequest'] as Timestamp?;
+      if (lastReq != null) {
+        final secondsSince = DateTime.now().difference(lastReq.toDate()).inSeconds;
+        if (secondsSince < 60) {
+          Get.snackbar(
+            'Too Many Requests',
+            'Please wait a moment before trying again.',
+            backgroundColor: Colors.orangeAccent,
+            colorText: Colors.white,
+          );
+          return;
+        }
+      }
     }
+
+    await _firestore.collection('users').doc(user.email).set({
+      'subscriptionStatus': 'pending',
+      'lastUpgradeRequest': FieldValue.serverTimestamp(),
+      'transactionId': transactionId,
+      'requestedPlan': plan,
+    }, SetOptions(merge: true));
   }
 
   /// Admin approves an upgrade
   Future<void> approveUpgrade(String email) async {
-    // 1. Get requested plan
     final doc = await _firestore.collection('users').doc(email).get();
     String plan = 'Monthly';
     if (doc.exists &&
@@ -234,18 +275,18 @@ class SubscriptionController extends GetxController {
       plan = doc.data()!['requestedPlan'];
     }
 
-    // 2. Calculate Expiry
-    DateTime now = DateTime.now();
-    DateTime expiryDate = plan == 'Yearly'
-        ? now.add(const Duration(days: 365))
-        : now.add(const Duration(days: 30));
+    final DateTime now = DateTime.now();
+    // Use calendar arithmetic instead of fixed days to handle leap years
+    final DateTime expiry = plan == 'Yearly'
+        ? DateTime(now.year + 1, now.month, now.day)
+        : DateTime(now.year, now.month + 1, now.day);
 
     await _firestore.collection('users').doc(email).set({
       'subscriptionStatus': 'pro',
       'isPro': true,
       'proSince': FieldValue.serverTimestamp(),
       'planType': plan,
-      'expiryDate': Timestamp.fromDate(expiryDate),
+      'expiryDate': Timestamp.fromDate(expiry),
     }, SetOptions(merge: true));
   }
 
@@ -257,7 +298,51 @@ class SubscriptionController extends GetxController {
     }, SetOptions(merge: true));
   }
 
-  /// Manually set pro status (for testing)
+  /// User cancels their own subscription (or ends their free trial)
+  Future<void> cancelSubscription() async {
+    final user = _auth.currentUser;
+    if (user != null && user.email != null) {
+      // Expire trial immediately so the Firestore listener cannot re-activate it.
+      // Keeping the key present (but in the past) prevents the listener from
+      // creating a fresh 7-day trial on its next fire.
+      trialEndDate.value = null;
+      await _firestore.collection('users').doc(user.email).set({
+        'subscriptionStatus': 'free',
+        'isPro': false,
+        'cancelledAt': FieldValue.serverTimestamp(),
+        'expiryDate': FieldValue.delete(),
+        'planType': FieldValue.delete(),
+        'trialEndDate': Timestamp.fromDate(
+          DateTime.now().subtract(const Duration(seconds: 1)),
+        ),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  /// Activates Pro after a successful Google Play Billing purchase
+  Future<void> activateGooglePlaySubscription(PurchaseDetails purchase) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) return;
+
+    final isMonthly = purchase.productID == 'money_control_monthly';
+    final now = DateTime.now();
+    final expiry = isMonthly
+        ? DateTime(now.year, now.month + 1, now.day)
+        : DateTime(now.year + 1, now.month, now.day);
+
+    await _firestore.collection('users').doc(user.email).set({
+      'subscriptionStatus': 'pro',
+      'isPro': true,
+      'planType': isMonthly ? 'Monthly' : 'Yearly',
+      'expiryDate': Timestamp.fromDate(expiry),
+      'proSince': FieldValue.serverTimestamp(),
+      'purchaseToken': purchase.verificationData.serverVerificationData,
+      'orderId': purchase.purchaseID,
+      'purchaseSource': 'google_play',
+    }, SetOptions(merge: true));
+  }
+
+  /// Manually set pro status (for testing / admin use)
   Future<void> setProStatus(bool status) async {
     final user = _auth.currentUser;
     if (user != null && user.email != null) {

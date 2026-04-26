@@ -6,8 +6,12 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Screens/auto_tag_rules_screen.dart';
 
 class SmsImportScreen extends StatefulWidget {
   const SmsImportScreen({super.key});
@@ -44,6 +48,18 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
           _selectedIndices.addAll(List.generate(results.length, (i) => i));
         });
       }
+      // Permission was granted — enable background auto-import
+      if (results.isNotEmpty || _scanned) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('sms_auto_import_enabled', true);
+        // Seed the last scan timestamp so the worker only picks up NEW messages
+        prefs.getInt('last_sms_scan_ms') == null
+            ? await prefs.setInt(
+                'last_sms_scan_ms',
+                DateTime.now().millisecondsSinceEpoch,
+              )
+            : null;
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -59,73 +75,51 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
 
     setState(() => _loading = true);
 
+    final collection = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.email)
+        .collection('transactions');
+
+    final selectedList = _selectedIndices.toList();
+    const chunkSize = 499;
     int count = 0;
-    final batch = FirebaseFirestore.instance.batch();
 
-    for (int i in _selectedIndices) {
-      final smsTx = _transactions[i];
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.email)
-          .collection('transactions')
-          .doc();
+    for (int start = 0; start < selectedList.length; start += chunkSize) {
+      final end = (start + chunkSize).clamp(0, selectedList.length);
+      final chunk = selectedList.sublist(start, end);
+      final batch = FirebaseFirestore.instance.batch();
 
-      final isDebit = smsTx.isDebit;
+      for (int i in chunk) {
+        final smsTx = _transactions[i];
+        final docRef = collection.doc();
+        final isDebit = smsTx.isDebit;
 
-      final tx = TransactionModel(
-        id: docRef.id,
-        senderId: isDebit ? user.uid : 'External',
-        recipientId: isDebit ? 'External' : user.uid,
-        recipientName: isDebit ? smsTx.merchant : 'Self',
-        amount: smsTx.amount,
-        currency: 'INR',
-        tax: 0,
-        date: smsTx.date,
-        note: "Imported from SMS: ${smsTx.body}",
-        category: smsTx.category,
-        status: 'success',
-        createdAt: Timestamp.now(),
-      );
+        final tx = TransactionModel(
+          id: docRef.id,
+          senderId: isDebit ? user.uid : 'External',
+          recipientId: isDebit ? 'External' : user.uid,
+          recipientName: isDebit ? smsTx.merchant : 'Self',
+          amount: smsTx.amount,
+          currency: 'INR',
+          tax: 0,
+          date: smsTx.date,
+          note: "Imported from SMS: ${smsTx.body}",
+          category: smsTx.category,
+          status: 'success',
+          createdAt: Timestamp.now(),
+        );
 
-      batch.set(docRef, tx.toMap());
-      count++;
+        batch.set(docRef, tx.toMap());
+        count++;
+      }
+
+      await batch.commit();
     }
 
-    await batch.commit();
-
+    ErrorHandler.showSuccess("Imported $count transactions!");
     if (mounted) {
       setState(() => _loading = false);
-      Navigator.pop(context, true); // Return true to indicate refresh needed
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_outline, color: Color(0xFF00E5FF)),
-              SizedBox(width: 12.w),
-              Text(
-                "Imported $count transactions!",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14.sp,
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-          behavior: SnackBarBehavior.floating,
-          elevation: 10,
-          margin: EdgeInsets.all(16.w),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
-            side: BorderSide(
-              color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-          ),
-        ),
-      );
+      Navigator.pop(context, true);
     }
   }
 
@@ -144,6 +138,11 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
         elevation: 0,
         leading: BackButton(color: Colors.white),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.rule, color: Colors.white),
+            tooltip: "Auto-tag rules",
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AutoTagRulesScreen())),
+          ),
           Obx(() {
             if (subscriptionController.isPro && _transactions.isNotEmpty) {
               return TextButton(
@@ -243,7 +242,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                   ),
                                 ),
                                 Text(
-                                  "${tx.isDebit ? '-' : '+'} ₹${tx.amount.toStringAsFixed(0)}",
+                                  "${tx.isDebit ? '-' : '+'} ${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
                                   style: TextStyle(
                                     color: tx.isDebit
                                         ? Colors.redAccent

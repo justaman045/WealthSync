@@ -38,7 +38,7 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.high,
           ticker: 'ticker',
-          styleInformation: BigTextStyleInformation(''),
+          styleInformation: BigTextStyleInformation(body),
         );
 
     NotificationDetails platformChannelSpecifics = NotificationDetails(
@@ -46,7 +46,7 @@ class NotificationService {
     );
 
     await _notificationsPlugin.show(
-      DateTime.now().millisecond, // unique id
+      DateTime.now().millisecondsSinceEpoch % 100000, // unique id
       title,
       body,
       platformChannelSpecifics,

@@ -20,6 +20,7 @@ class CategoryBudgetScreen extends StatefulWidget {
 class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
   final BudgetController _budgetController = Get.put(BudgetController());
   final Map<String, TextEditingController> _controllers = {};
+  final Map<String, FocusNode> _focusNodes = {};
 
   @override
   void initState() {
@@ -31,6 +32,9 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
   void dispose() {
     for (var ctrl in _controllers.values) {
       ctrl.dispose();
+    }
+    for (var fn in _focusNodes.values) {
+      fn.dispose();
     }
     super.dispose();
   }
@@ -119,11 +123,10 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                   _controllers[item.categoryName] = TextEditingController(
                     text: item.budget.toStringAsFixed(2),
                   );
+                  _focusNodes[item.categoryName] = FocusNode();
                 } else if (_controllers[item.categoryName]!.text !=
                         item.budget.toStringAsFixed(2) &&
-                    !_controllers[item.categoryName]!.selection.isValid) {
-                  // Update text only if not currently editing (selection invalid often implies not focused/editing for strict purposes,
-                  // though simple focus check is better. For now, simple text sync on load/refresh)
+                    !_focusNodes[item.categoryName]!.hasFocus) {
                   _controllers[item.categoryName]!.text = item.budget
                       .toStringAsFixed(2);
                 }
@@ -236,6 +239,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                                   ),
                                   child: TextFormField(
                                     controller: controller,
+                                    focusNode: _focusNodes[item.categoryName],
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
                                           decimal: true,

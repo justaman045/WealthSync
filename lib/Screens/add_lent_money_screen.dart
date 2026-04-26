@@ -7,6 +7,7 @@ import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class AddLentMoneyScreen extends StatefulWidget {
   final LentMoneyModel? existingEntry;
@@ -80,15 +81,8 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
     }
 
     if (success) {
+      ErrorHandler.showSuccess(widget.existingEntry != null ? "Entry Updated" : "Entry Added");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.existingEntry != null ? "Entry Updated" : "Entry Added",
-            ),
-            backgroundColor: const Color(0xFF00C853), // Success Green
-          ),
-        );
         Navigator.of(context).pop();
       }
     }

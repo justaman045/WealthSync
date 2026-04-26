@@ -9,9 +9,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
-import 'package:money_control/Components/shimmer_loading.dart'; // Ensure transparency of loading state
+import 'package:money_control/Components/shimmer_loading.dart';
 
-class RecentPaymentList extends StatelessWidget {
+class RecentPaymentList extends StatefulWidget {
   final Color? cardColor;
   final Color? textColor;
   final Color? receivedColor;
@@ -24,6 +24,16 @@ class RecentPaymentList extends StatelessWidget {
     this.receivedColor,
     this.sentColor,
   });
+
+  @override
+  State<RecentPaymentList> createState() => _RecentPaymentListState();
+}
+
+class _RecentPaymentListState extends State<RecentPaymentList> {
+  // Track whether the entrance animation has already played once.
+  // After first render, subsequent Obx rebuilds (data changes) skip animations
+  // to avoid janky re-animation of all tiles on every transaction update.
+  bool _entranceAnimationDone = false;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +64,6 @@ class RecentPaymentList extends StatelessWidget {
         );
       }
 
-      // Filter for this user and take top 8
       final recentTxs = controller.transactions
           .where(
             (txn) => txn.senderId == user.uid || txn.recipientId == user.uid,
@@ -71,8 +80,16 @@ class RecentPaymentList extends StatelessWidget {
       }
 
       final isDark = Theme.of(context).brightness == Brightness.dark;
-      // Define colors using AppColors if possible or keep theme logic for text
       final txTextColor = isDark ? Colors.white : Colors.black87;
+
+      // Mark animation as done after first successful build so subsequent
+      // reactive rebuilds (e.g. new transaction added) don't re-animate all tiles.
+      final shouldAnimate = !_entranceAnimationDone;
+      if (shouldAnimate) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _entranceAnimationDone = true);
+        });
+      }
 
       return GlassContainer(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
@@ -83,14 +100,24 @@ class RecentPaymentList extends StatelessWidget {
             final tx = entry.value;
             final bool received = tx.recipientId == user.uid;
 
-            return TxTile(
-                  tx: tx,
-                  received: received,
-                  textColor: txTextColor,
-                  receivedColor: AppColors.success,
-                  sentColor: AppColors.error,
+            final tile = TxTile(
+              // Stable key prevents Flutter from destroying/recreating the tile
+              // widget when the list order is unchanged, avoiding unnecessary repaints.
+              key: ValueKey(tx.id),
+              tx: tx,
+              received: received,
+              textColor: txTextColor,
+              receivedColor: AppColors.success,
+              sentColor: AppColors.error,
+            );
+
+            if (!shouldAnimate) return tile;
+
+            return tile
+                .animate(
+                  key: ValueKey('anim_${tx.id}'),
+                  delay: (index * 50).ms,
                 )
-                .animate(delay: (index * 50).ms)
                 .fadeIn(duration: 300.ms, curve: Curves.easeOut)
                 .slideY(
                   begin: 0.2,

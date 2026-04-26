@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/import_service.dart';
 
 class ImportScreen extends StatefulWidget {
@@ -93,6 +94,7 @@ class _ImportScreenState extends State<ImportScreen> {
         _csvData!,
         headerMap,
         userId,
+        currency: CurrencyController.to.currencyCode.value,
       );
 
       await ImportService.saveTransactionsToFirestore(transactions, userId);

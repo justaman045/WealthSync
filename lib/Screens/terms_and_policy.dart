@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 
@@ -277,6 +278,26 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
                 textColor: textColor,
                 secondaryColor: secondaryTextColor,
                 isDark: isDark,
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => launchUrl(
+                    Uri.parse(
+                      'https://justaman045.github.io/Money_Control/privacy_policy.html',
+                    ),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  icon: Icon(
+                    Icons.open_in_new,
+                    size: 14.sp,
+                    color: Colors.blue,
+                  ),
+                  label: Text(
+                    "View full policy online",
+                    style: TextStyle(fontSize: 13.sp, color: Colors.blue),
+                  ),
+                ),
               ),
               SizedBox(height: 24.h),
               _sectionTitle("Your Consents", textColor),
@@ -566,6 +587,10 @@ What We Collect:
 • Financial transactions that you manually add
 • Categories and notes you create
 • App usage data to improve features
+• SMS messages (Pro feature — bank notifications only, processed on-device)
+
+SMS Data Collection:
+We access device SMS messages solely to detect bank transaction notifications for automatic expense import. SMS content is processed entirely on-device. We extract only the transaction amount, merchant name, and date — no SMS body text is stored on our servers or shared with any third party. This feature requires your explicit permission and can be revoked at any time from your device settings.
 
 How Your Data is Used:
 • To provide budgeting & analytics features
@@ -581,7 +606,7 @@ Your Rights:
 We NEVER:
 • Sell your data
 • Share with third parties without consent
-• Read your actual banking credentials or SMS content without permission
+• Store SMS message body text on our servers
 
 Your data is securely stored with industry-standard encryption.
 ''';

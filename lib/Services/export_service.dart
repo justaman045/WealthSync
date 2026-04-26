@@ -10,6 +10,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class ExportService {
   // Brand Colors (Approximate matches to Neon/Midnight theme for Print)
@@ -20,6 +21,13 @@ class ExportService {
   static const PdfColor expenseColor = PdfColor.fromInt(0xFFFF2975); // Pink/Red
   static const PdfColor incomeColor = PdfColor.fromInt(0xFF00E5FF); // Cyan
   static const PdfColor greyLight = PdfColor.fromInt(0xFFF1F5F9);
+
+  // Noto Sans supports ₹ and all Indian script characters
+  static Future<pw.ThemeData> _loadPdfTheme() async {
+    final font = await PdfGoogleFonts.notoSansRegular();
+    final bold = await PdfGoogleFonts.notoSansBold();
+    return pw.ThemeData.withFont(base: font, bold: bold);
+  }
 
   static Future<void> exportTransactionsCSV(List<TransactionModel> list) async {
     final rows = <List<dynamic>>[
@@ -68,6 +76,7 @@ class ExportService {
     required String periodLabel,
   }) async {
     final pdf = pw.Document();
+    final theme = await _loadPdfTheme();
 
     // 1. Calculate Category Data
     final catStats = _calculateCategoryStats(filtered);
@@ -77,10 +86,7 @@ class ExportService {
         pageTheme: pw.PageTheme(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(32),
-          theme: pw.ThemeData.withFont(
-            base: pw.Font.helvetica(),
-            bold: pw.Font.helveticaBold(),
-          ),
+          theme: theme,
         ),
         build: (ctx) {
           return [
@@ -336,11 +342,12 @@ class ExportService {
     // Header
     final headers = ["Date", "Name", "Category", "Amount"];
 
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
     return pw.TableHelper.fromTextArray(
       headers: headers,
-      data: txs.take(50).map((tx) {
-        // Limit to 50 for MVP to prevent overflow issues in simple implementation
-        final isExpense = tx.senderId == FirebaseAuth.instance.currentUser?.uid;
+      data: txs.map((tx) {
+        final isExpense = uid != null && tx.senderId == uid;
         final color = isExpense ? expenseColor : incomeColor;
         final sign = isExpense ? "-" : "+";
 
@@ -370,6 +377,158 @@ class ExportService {
       oddRowDecoration: const pw.BoxDecoration(color: greyLight),
       border: null,
       cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    );
+  }
+
+  // --- Tax Summary PDF ---
+  static Future<void> exportTaxSummaryPDF({
+    required List<TransactionModel> filtered,
+    required String periodLabel,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final sym = CurrencyController.to.currencySymbol.value;
+    final pdf = pw.Document();
+    final theme = await _loadPdfTheme();
+
+    // Build category → {spend, tax} map
+    final Map<String, ({double spend, double tax, int count})> catMap = {};
+    double totalSpend = 0;
+    double totalTax = 0;
+    double totalIncome = 0;
+
+    // Month → {spend, income}
+    final Map<String, ({double spend, double income})> monthMap = {};
+
+    for (final tx in filtered) {
+      final isExpense = uid != null && tx.senderId == uid;
+      final isIncome = uid != null && tx.recipientId == uid;
+      final month = "${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}";
+
+      if (isExpense) {
+        final cat = tx.category ?? 'Uncategorized';
+        final existing = catMap[cat];
+        catMap[cat] = (
+          spend: (existing?.spend ?? 0) + tx.amount.abs(),
+          tax: (existing?.tax ?? 0) + tx.tax,
+          count: (existing?.count ?? 0) + 1,
+        );
+        totalSpend += tx.amount.abs();
+        totalTax += tx.tax;
+        final m = monthMap[month];
+        monthMap[month] = (spend: (m?.spend ?? 0) + tx.amount.abs() + tx.tax, income: m?.income ?? 0);
+      }
+      if (isIncome) {
+        totalIncome += tx.amount;
+        final m = monthMap[month];
+        monthMap[month] = (spend: m?.spend ?? 0, income: (m?.income ?? 0) + tx.amount);
+      }
+    }
+
+    final sortedCats = catMap.entries.toList()..sort((a, b) => b.value.spend.compareTo(a.value.spend));
+    final sortedMonths = monthMap.keys.toList()..sort();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageTheme: pw.PageTheme(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          theme: theme,
+        ),
+        build: (ctx) => [
+          // Header
+          pw.Container(
+            color: primaryColor,
+            padding: const pw.EdgeInsets.all(16),
+            child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text("Tax Summary Report", style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+              pw.SizedBox(height: 4),
+              pw.Text("Period: $periodLabel", style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey300)),
+              pw.Text("Generated: ${DateTime.now().toString().split('.')[0]}", style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey400)),
+            ]),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Summary row
+          pw.Row(children: [
+            _taxSummaryBox("Total Income", "$sym${totalIncome.toStringAsFixed(2)}", incomeColor),
+            pw.SizedBox(width: 12),
+            _taxSummaryBox("Total Expenses", "$sym${totalSpend.toStringAsFixed(2)}", expenseColor),
+            pw.SizedBox(width: 12),
+            _taxSummaryBox("Total Tax Paid", "$sym${totalTax.toStringAsFixed(2)}", accentColor),
+          ]),
+          pw.SizedBox(height: 24),
+
+          // Category breakdown
+          pw.Text("Category-wise Breakdown", style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+          pw.SizedBox(height: 8),
+          pw.TableHelper.fromTextArray(
+            headers: ["Category", "Transactions", "Amount Spent", "Tax"],
+            data: sortedCats.map((e) => [
+              e.key,
+              "${e.value.count}",
+              "$sym${e.value.spend.toStringAsFixed(2)}",
+              e.value.tax > 0 ? "$sym${e.value.tax.toStringAsFixed(2)}" : "-",
+            ]).toList(),
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
+            headerDecoration: const pw.BoxDecoration(color: primaryColor),
+            cellStyle: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+            cellAlignments: {0: pw.Alignment.centerLeft, 1: pw.Alignment.center, 2: pw.Alignment.centerRight, 3: pw.Alignment.centerRight},
+            oddRowDecoration: const pw.BoxDecoration(color: greyLight),
+            border: null,
+            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          ),
+          pw.SizedBox(height: 24),
+
+          // Month-by-month
+          if (sortedMonths.isNotEmpty) ...[
+            pw.Text("Month-by-Month Summary", style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+            pw.SizedBox(height: 8),
+            pw.TableHelper.fromTextArray(
+              headers: ["Month", "Income", "Expenses", "Net"],
+              data: sortedMonths.map((m) {
+                final d = monthMap[m]!;
+                final net = d.income - d.spend;
+                return [
+                  m,
+                  "$sym${d.income.toStringAsFixed(2)}",
+                  "$sym${d.spend.toStringAsFixed(2)}",
+                  "${net >= 0 ? '+' : ''}$sym${net.toStringAsFixed(2)}",
+                ];
+              }).toList(),
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 10),
+              headerDecoration: const pw.BoxDecoration(color: primaryColor),
+              cellStyle: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+              cellAlignments: {0: pw.Alignment.centerLeft, 1: pw.Alignment.centerRight, 2: pw.Alignment.centerRight, 3: pw.Alignment.centerRight},
+              oddRowDecoration: const pw.BoxDecoration(color: greyLight),
+              border: null,
+              cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            ),
+          ],
+
+          pw.SizedBox(height: 20),
+          pw.Divider(color: PdfColors.grey300),
+          pw.Text("Generated by Money Control · For personal use only", style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey500)),
+        ],
+      ),
+    );
+
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File("${dir.path}/tax_summary_${periodLabel.replaceAll(' ', '_')}.pdf");
+    await file.writeAsBytes(await pdf.save());
+    await OpenFilex.open(file.path);
+  }
+
+  static pw.Widget _taxSummaryBox(String label, String value, PdfColor color) {
+    return pw.Expanded(
+      child: pw.Container(
+        padding: const pw.EdgeInsets.all(12),
+        decoration: pw.BoxDecoration(color: greyLight, borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8))),
+        child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Text(label, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+          pw.SizedBox(height: 4),
+          pw.Text(value, style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: color)),
+        ]),
+      ),
     );
   }
 

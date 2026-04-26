@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class NotificationHistoryScreen extends StatelessWidget {
   const NotificationHistoryScreen({super.key});
@@ -162,14 +163,7 @@ class NotificationHistoryScreen extends StatelessWidget {
 
       await batch.commit();
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("History cleared"),
-            backgroundColor: Colors.white12,
-          ),
-        );
-      }
+      ErrorHandler.showSuccess("History cleared");
     }
   }
 }

@@ -8,7 +8,9 @@ import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Screens/transaction_details.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class SubscriptionDetailsScreen extends StatefulWidget {
   final RecurringPayment payment;
@@ -296,7 +298,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            "₹${payment.amount.toStringAsFixed(0)} / ${payment.frequency.name}",
+            "${CurrencyController.to.currencySymbol.value}${payment.amount.toStringAsFixed(0)} / ${payment.frequency.name}",
             style: TextStyle(
               fontSize: 16.sp,
               color: textColor.withValues(alpha: 0.6),
@@ -494,7 +496,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                           ),
                         ),
                         Text(
-                          "₹${tx.amount.toStringAsFixed(0)}",
+                          "${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16.sp,
@@ -544,15 +546,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               Navigator.pop(context);
 
               await _service.markAsPaid(payment, createTransaction: true);
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text("Payment recorded"),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
+              ErrorHandler.showSuccess("Payment recorded");
             },
             child: const Text("Confirm"),
           ),
@@ -587,12 +581,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       nextDueDate: nextDate,
     );
 
-    if (mounted) {
-      String msg = newState ? "Subscription Resumed" : "Subscription Paused";
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
-      );
-    }
+    ErrorHandler.showSuccess(newState ? "Subscription Resumed" : "Subscription Paused");
   }
 
   Future<void> _handleSkip(RecurringPayment payment) async {
@@ -627,14 +616,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
 
     if (confirm == true) {
       await _service.markAsPaid(payment, createTransaction: false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Payment skipped. Next due date updated."),
-            backgroundColor: Colors.blue,
-          ),
-        );
-      }
+      ErrorHandler.showSuccess("Payment skipped. Next due date updated.");
     }
   }
 

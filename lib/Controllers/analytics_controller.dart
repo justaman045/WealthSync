@@ -6,6 +6,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 
 class AnalyticsController extends GetxController {
   final RxBool isLoading = true.obs;
+  final RxBool hasError = false.obs;
   final RxDouble incomeSoFar = 0.0.obs;
   final RxDouble expenseSoFar = 0.0.obs;
   final RxDouble forecastIncome = 0.0.obs;
@@ -19,6 +20,7 @@ class AnalyticsController extends GetxController {
 
   Future<void> loadMonthTransactions() async {
     isLoading.value = true;
+    hasError.value = false;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       isLoading.value = false;
@@ -77,74 +79,69 @@ class AnalyticsController extends GetxController {
       incomeSoFar.value = dailyIncome.values.fold(0, (a, b) => a + b);
       expenseSoFar.value = dailyExpense.values.fold(0, (a, b) => a + b);
 
-      // --- HISTORY FETCH (Last 3 Months) ---
-      final startOfHistory = DateTime(now.year, now.month - 3, 1);
+      // --- HISTORY: All past complete months (no date cutoff) ---
+      final currentKey = now.year * 100 + now.month;
+      Map<int, double> monthlyIncome = {};
+      Map<int, double> monthlyExpense = {};
 
-      final historyTx = allTx.where((tx) {
-        return tx.date.isAfter(
-              startOfHistory.subtract(const Duration(seconds: 1)),
-            ) &&
-            tx.date.isBefore(startOfMonth);
-      });
-
-      double historicalIncomeSum = 0;
-      double historicalExpenseSum = 0;
-
-      for (var tx in historyTx) {
+      for (var tx in allTx) {
+        final k = tx.date.year * 100 + tx.date.month;
+        if (k == currentKey) continue;
         if (tx.recipientId == user.uid) {
-          historicalIncomeSum += tx.amount.abs();
+          monthlyIncome[k] = (monthlyIncome[k] ?? 0) + tx.amount.abs();
         } else if (tx.senderId == user.uid) {
-          historicalExpenseSum += tx.amount.abs();
+          monthlyExpense[k] = (monthlyExpense[k] ?? 0) + tx.amount.abs();
         }
       }
 
-      // --- LOGIC: Weighted Forecast ---
-      // 1. Calculate Historical Daily Avg
-      final daysInHistory = startOfMonth.difference(startOfHistory).inDays;
-      final safeHistoryDays = daysInHistory > 0 ? daysInHistory : 1;
+      // Sort descending (most recent first) for linear-decay weighting
+      final sortedKeys = {...monthlyIncome.keys, ...monthlyExpense.keys}
+          .toList()
+        ..sort((a, b) => b.compareTo(a));
 
-      final double historicalDailyIncome =
-          historicalIncomeSum / safeHistoryDays;
-      final double historicalDailyExpense =
-          historicalExpenseSum / safeHistoryDays;
+      // Linear-decay weighted average: most recent month gets weight N, oldest gets 1
+      double totalWeight = 0, weightedInc = 0, weightedExp = 0;
+      for (int i = 0; i < sortedKeys.length; i++) {
+        final w = (sortedKeys.length - i).toDouble();
+        weightedInc += (monthlyIncome[sortedKeys[i]] ?? 0) * w;
+        weightedExp += (monthlyExpense[sortedKeys[i]] ?? 0) * w;
+        totalWeight += w;
+      }
+      final historicalMonthlyIncome =
+          totalWeight > 0 ? weightedInc / totalWeight : 0.0;
+      final historicalMonthlyExpense =
+          totalWeight > 0 ? weightedExp / totalWeight : 0.0;
 
-      // 2. Calculate Current Month Daily Avg (So Far)
+      // Progress-based blend: early in month → trust history more; late → trust current pace
       int daysPassed = now.day;
       if (daysPassed < 1) daysPassed = 1;
 
-      final double currentDailyIncome = incomeSoFar.value / daysPassed;
-      final double currentDailyExpense = expenseSoFar.value / daysPassed;
+      final double progress = daysPassed / daysInMonth;
+      final double histW = (1.0 - progress * 0.8).clamp(0.2, 1.0);
+      final double currW = 1.0 - histW;
 
-      // 3. Blend Logic
-      double projectedDailyIncome;
-      double projectedDailyExpense;
+      final currentPacedIncome =
+          (incomeSoFar.value / daysPassed) * daysInMonth;
+      final currentPacedExpense =
+          (expenseSoFar.value / daysPassed) * daysInMonth;
 
-      if (historyTx.isNotEmpty) {
-        // We have history. Blend 50/50.
-        projectedDailyIncome = (historicalDailyIncome + currentDailyIncome) / 2;
-        projectedDailyExpense =
-            (historicalDailyExpense + currentDailyExpense) / 2;
-      } else {
-        // No history, purely current pacing
-        projectedDailyIncome = currentDailyIncome;
-        projectedDailyExpense = currentDailyExpense;
-      }
+      final projectedIncome = sortedKeys.isNotEmpty
+          ? historicalMonthlyIncome * histW + currentPacedIncome * currW
+          : currentPacedIncome;
+      final projectedExpense = sortedKeys.isNotEmpty
+          ? historicalMonthlyExpense * histW + currentPacedExpense * currW
+          : currentPacedExpense;
 
-      // 4. Final Projection
-      final int daysLeft = daysInMonth - daysPassed;
-
-      forecastIncome.value = (projectedDailyIncome * daysLeft).clamp(
-        0,
-        double.infinity,
-      );
-      forecastExpense.value = (projectedDailyExpense * daysLeft).clamp(
-        0,
-        double.infinity,
-      );
+      // Projected remaining = projected month-end total minus what's already in
+      forecastIncome.value =
+          (projectedIncome - incomeSoFar.value).clamp(0, double.infinity);
+      forecastExpense.value =
+          (projectedExpense - expenseSoFar.value).clamp(0, double.infinity);
 
       isLoading.value = false;
     } catch (e) {
       debugPrint("Forecast error: $e");
+      hasError.value = true;
       isLoading.value = false;
     }
   }

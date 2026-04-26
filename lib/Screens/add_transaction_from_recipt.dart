@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/budget_service.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class ReceiptScanPage extends StatefulWidget {
   const ReceiptScanPage({super.key});
@@ -75,11 +76,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
     String note = _recognizedText!;
 
     if (amount == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Unable to extract amount. Please edit manually."),
-        ),
-      );
+      ErrorHandler.showError("Unable to extract amount. Please edit manually.");
       return;
     }
 
@@ -117,19 +114,10 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         );
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Transaction saved successfully.")),
-        );
-
-        Navigator.pop(context);
-      }
+      ErrorHandler.showSuccess("Transaction saved successfully.");
+      if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to save transaction: $e")),
-        );
-      }
+      ErrorHandler.showError("Failed to save transaction: $e");
     }
   }
 

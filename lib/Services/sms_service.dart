@@ -1,6 +1,8 @@
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
+import 'dart:convert';
 import 'dart:developer';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
 
 class SmsTransaction {
@@ -30,8 +32,8 @@ class SmsService {
   Map<String, List<String>> _currentRules = {};
   bool _rulesLoaded = false;
 
-  // Fallback rules
-  final Map<String, List<String>> _defaultRules = {
+  // Default rules — also exposed statically so BackgroundWorker can use them without an instance
+  static const Map<String, List<String>> defaultRules = {
     'Food': [
       'zomato',
       'swiggy',
@@ -148,78 +150,12 @@ class SmsService {
   };
 
   SmsService() {
-    _currentRules = Map.from(_defaultRules);
+    _currentRules = Map.from(defaultRules);
   }
 
-  Future<void> initRules() async {
-    if (_rulesLoaded) return;
-    try {
-      final fetched = await _rulesRepository.fetchRules();
-      if (fetched.isNotEmpty) {
-        // Merge or replace?
-        // Let's replace keys that exist, keep others, or just use fetched if comprehensive.
-        // For now, let's merge: overwrite defaults with fetched, keep defaults if not present.
-        fetched.forEach((key, value) {
-          _currentRules[key] = value;
-        });
-      }
-      _rulesLoaded = true;
-    } catch (e) {
-      log("Error initializing rules: $e");
-    }
-  }
+  // ---- Static helpers used by BackgroundWorker (no plugin/Firebase deps) ----
 
-  String _getCategory(String merchant, String body) {
-    final lowerBody = body.toLowerCase();
-    final lowerMerchant = merchant.toLowerCase();
-
-    for (var entry in _currentRules.entries) {
-      for (var keyword in entry.value) {
-        if (lowerMerchant.contains(keyword.toLowerCase()) ||
-            lowerBody.contains(keyword.toLowerCase())) {
-          return entry.key;
-        }
-      }
-    }
-    return 'Uncategorized';
-  }
-
-  /// Request permissions and fetch SMS. Returns parsed transactions.
-  Future<List<SmsTransaction>> scanMessages({int limit = 50}) async {
-    // Ensure rules are loaded
-    await initRules();
-
-    var status = await Permission.sms.status;
-    if (!status.isGranted) {
-      status = await Permission.sms.request();
-      if (!status.isGranted) {
-        return [];
-      }
-    }
-
-    try {
-      final messages = await _query.querySms(
-        kinds: [SmsQueryKind.inbox],
-        count: limit,
-      );
-
-      final List<SmsTransaction> transactions = [];
-      for (final msg in messages) {
-        if (_isBankSms(msg.body ?? '')) {
-          final tx = _parseSms(msg);
-          if (tx != null) {
-            transactions.add(tx);
-          }
-        }
-      }
-      return transactions;
-    } catch (e) {
-      log("Error scanning SMS: $e");
-      return [];
-    }
-  }
-
-  bool _isBankSms(String body) {
+  static bool isBankSms(String body) {
     if (body.isEmpty) return false;
     final lower = body.toLowerCase();
     if (lower.contains('otp')) return false;
@@ -236,65 +172,65 @@ class SmsService {
         lower.contains('transferred');
   }
 
-  SmsTransaction? _parseSms(SmsMessage msg) {
-    final body = msg.body ?? '';
-    final date = msg.date ?? DateTime.now();
-    final sender = msg.sender ?? 'Unknown';
+  static String _getCategoryStatic(
+    String merchant,
+    String body,
+    Map<String, List<String>> rules,
+  ) {
+    final lowerBody = body.toLowerCase();
+    final lowerMerchant = merchant.toLowerCase();
+    for (final entry in rules.entries) {
+      for (final keyword in entry.value) {
+        if (lowerMerchant.contains(keyword.toLowerCase()) ||
+            lowerBody.contains(keyword.toLowerCase())) {
+          return entry.key;
+        }
+      }
+    }
+    return 'Uncategorized';
+  }
+
+  static SmsTransaction? parseMessage(
+    String body,
+    String sender,
+    DateTime date, {
+    Map<String, List<String>> rules = defaultRules,
+  }) {
     final lower = body.toLowerCase();
 
-    // 1. Extract Amount
-    // Regex for: Rs. 500, INR 500, Rs 500, 500.00, Amt 500
     final amountRegex = RegExp(
       r'(?:Rs\.?|INR|MRP|Amt|Amount)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)',
       caseSensitive: false,
     );
-
     final match = amountRegex.firstMatch(body);
     if (match == null) return null;
 
-    String amountStr = match.group(1) ?? '0';
-    amountStr = amountStr.replaceAll(',', '');
+    String amountStr = (match.group(1) ?? '0').replaceAll(',', '');
     final double amount = double.tryParse(amountStr) ?? 0;
     if (amount == 0) return null;
 
-    // 2. Determine Type
     bool isDebit = true;
     if (lower.contains('refund')) {
       isDebit = false;
-    } else if (lower.contains('debited') ||
-        lower.contains('spent') ||
-        lower.contains('sent') ||
-        lower.contains('paid') ||
-        lower.contains('purchase') ||
-        lower.contains('withdraw')) {
-      isDebit = true;
     } else if (lower.contains('credited') ||
         lower.contains('received') ||
         lower.contains('deposit')) {
       isDebit = false;
     }
 
-    // 3. Extract Merchant
     String merchant = 'Unknown';
 
-    String? findEntity(
-      List<String> prepositions, {
-      bool allowGenerics = false,
-    }) {
-      // Look for text after preposition (or @) until a terminator
+    String? findEntity(List<String> prepositions, {bool allowGenerics = false}) {
       final pattern =
           '(?:${prepositions.join('|')}|@)\\s+([A-Za-z0-9\\s\\.\\*\\-&]{3,25})(?:\\s+(?:on|via|using|ref)|\\.|\\,|\$|\\;)';
       final reg = RegExp(pattern, caseSensitive: false);
-      final matches = reg.allMatches(body);
-
-      for (final m in matches) {
+      for (final m in reg.allMatches(body)) {
         final val = m.group(1)?.trim();
         if (val != null &&
             !val.toLowerCase().contains('rs.') &&
             !val.toLowerCase().contains('inr') &&
             !val.startsWith(RegExp(r'[0-9]'))) {
           if (!allowGenerics) {
-            // Avoid detecting "Credit Card", "Bank Account" as merchant in first pass
             if (val.toLowerCase().contains(' card') ||
                 val.toLowerCase().contains(' account') ||
                 val.toLowerCase().contains(' a/c') ||
@@ -309,71 +245,39 @@ class SmsService {
     }
 
     if (isDebit) {
-      // Check for "[Merchant] credited" pattern first (e.g. "RSPL credited")
-      final beneficiaryMatch = RegExp(
+      final bMatch = RegExp(
         r'([A-Za-z0-9\s\.\*\-&]{3,25})\s+(?:credited|received)',
         caseSensitive: false,
       ).firstMatch(body);
-      if (beneficiaryMatch != null) {
-        final candidate = beneficiaryMatch.group(1)?.trim();
-        if (candidate != null &&
-            !candidate.toLowerCase().contains('account') &&
-            !candidate.toLowerCase().contains('acct') &&
-            !candidate.toLowerCase().contains('you') &&
-            !candidate.toLowerCase().contains('msg')) {
-          merchant = candidate;
+      if (bMatch != null) {
+        final c = bMatch.group(1)?.trim();
+        if (c != null &&
+            !c.toLowerCase().contains('account') &&
+            !c.toLowerCase().contains('you') &&
+            !c.toLowerCase().contains('msg')) {
+          merchant = c;
         }
       }
-
-      if (merchant == 'Unknown') {
-        // Pass 1: Look for "at", "to" without generics
-        merchant =
-            findEntity(['to', 'at', 'via', 'for'], allowGenerics: false) ??
-            'Unknown';
-      }
-
-      if (merchant == 'Unknown') {
-        // Pass 2: Fallback to "using" with generics (e.g. "using ICICI Bank Card")
-        merchant =
-            findEntity(['using', 'via'], allowGenerics: true) ?? 'Unknown';
-      }
-
-      // Fallback: Check for "Info: [Merchant]" or start of message
-      if (merchant == 'Unknown') {
-        final headerMatch = RegExp(
-          r'^([A-Za-z0-9\s&]{3,20})[:\-]',
-        ).firstMatch(body);
-        if (headerMatch != null) {
-          final val = headerMatch.group(1)?.trim();
-          if (val != null &&
-              !val.toLowerCase().contains('info') &&
-              !val.toLowerCase().contains('alert') &&
-              !val.toLowerCase().contains('txn')) {
-            merchant = val;
-          }
-        }
-      }
+      merchant = merchant == 'Unknown'
+          ? findEntity(['to', 'at', 'via', 'for']) ?? 'Unknown'
+          : merchant;
+      merchant = merchant == 'Unknown'
+          ? findEntity(['using', 'via'], allowGenerics: true) ?? 'Unknown'
+          : merchant;
     } else {
       merchant = findEntity(['from', 'by'], allowGenerics: true) ?? 'Unknown';
     }
 
-    // Cleanup Merchant
-    if (merchant == 'Unknown' || merchant.toLowerCase().contains('unknown')) {
-      if (!RegExp(r'\d').hasMatch(sender) && sender.length > 2) {
-        merchant = sender;
-      }
+    if ((merchant == 'Unknown') &&
+        !RegExp(r'\d').hasMatch(sender) &&
+        sender.length > 2) {
+      merchant = sender;
     }
-
-    // Truncate if too long
     if (merchant.length > 20) merchant = merchant.substring(0, 20);
 
-    // 4. Determine Category
-    String category = 'Uncategorized';
-    if (isDebit) {
-      category = _getCategory(merchant, body);
-    } else {
-      category = 'Income';
-    }
+    final category = isDebit
+        ? _getCategoryStatic(merchant, body, rules)
+        : 'Income';
 
     return SmsTransaction(
       sender: sender,
@@ -384,5 +288,79 @@ class SmsService {
       isDebit: isDebit,
       category: category,
     );
+  }
+
+  static const String _userRulesKey = 'user_custom_sms_rules';
+
+  static Future<Map<String, List<String>>> loadUserCustomRules() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString(_userRulesKey);
+      if (json == null) return {};
+      final decoded = jsonDecode(json) as Map<String, dynamic>;
+      return decoded.map((k, v) => MapEntry(k, List<String>.from(v as List)));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> saveUserCustomRules(Map<String, List<String>> rules) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userRulesKey, jsonEncode(rules));
+  }
+
+  Future<void> initRules() async {
+    if (_rulesLoaded) return;
+    try {
+      final fetched = await _rulesRepository.fetchRules();
+      if (fetched.isNotEmpty) {
+        fetched.forEach((key, value) {
+          _currentRules[key] = value;
+        });
+      }
+      // Merge user custom rules (stored locally, no Firebase cost)
+      final userRules = await loadUserCustomRules();
+      userRules.forEach((key, keywords) {
+        _currentRules[key] = [...(_currentRules[key] ?? []), ...keywords];
+      });
+      _rulesLoaded = true;
+    } catch (e) {
+      log("Error initializing rules: $e");
+    }
+  }
+
+  /// Request permissions and fetch SMS. Returns parsed transactions.
+  Future<List<SmsTransaction>> scanMessages({int limit = 50}) async {
+    await initRules();
+
+    var status = await Permission.sms.status;
+    if (!status.isGranted) {
+      status = await Permission.sms.request();
+      if (!status.isGranted) return [];
+    }
+
+    try {
+      final messages = await _query.querySms(
+        kinds: [SmsQueryKind.inbox],
+        count: limit,
+      );
+
+      final List<SmsTransaction> transactions = [];
+      for (final msg in messages) {
+        if (isBankSms(msg.body ?? '')) {
+          final tx = parseMessage(
+            msg.body ?? '',
+            msg.sender ?? 'Unknown',
+            msg.date ?? DateTime.now(),
+            rules: _currentRules,
+          );
+          if (tx != null) transactions.add(tx);
+        }
+      }
+      return transactions;
+    } catch (e) {
+      log("Error scanning SMS: $e");
+      return [];
+    }
   }
 }

@@ -104,10 +104,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
       final daysPassed = now.day;
 
-      // Wait for data if needed
+      // Wait for the Firestore stream to deliver at least the first batch
       if (txController.isLoading.value) {
-        // Should ideally listen, but for now simple check or wait
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 800));
       }
 
       final allTx = txController.transactions
@@ -117,7 +116,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       if (allTx.isEmpty) {
         setState(() {
           loading = false;
-          error = "No transaction history found.";
+          error = "No expense transactions yet.\nAdd a 'Send' transaction to see AI insights.";
         });
         return;
       }
@@ -130,12 +129,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       Map<String, Map<int, double>> categoryMonthly = {};
       Map<int, double> monthlyTotal = {};
 
-      // HISTORY: MonthKey -> Day -> VariableAmount
-      Map<int, Map<int, double>> historyDailyVar = {};
-
       // Current Month Variable Spending
       double currentVar = 0;
-      // Map for explicit variable totals per month
+      // Monthly variable totals per month
       Map<int, double> monthlyVariable = {};
 
       dailySpending.clear();
@@ -155,11 +151,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         monthlyTotal[monthKey] =
             (monthlyTotal[monthKey] ?? 0) + tx.amount.abs();
 
-        // Detailed Variable History
+        // Variable monthly totals
         if (!isFixed) {
-          historyDailyVar.putIfAbsent(monthKey, () => {});
-          historyDailyVar[monthKey]![d.day] =
-              (historyDailyVar[monthKey]![d.day] ?? 0) + tx.amount.abs();
           monthlyVariable[monthKey] =
               (monthlyVariable[monthKey] ?? 0) + tx.amount.abs();
         }
@@ -176,20 +169,21 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           }
         }
       }
-      todaySpent = dailySpending[DateTime(now.year, now.month, now.day)] ?? 0;
+      final todayKey = DateTime(now.year, now.month, now.day);
+      todaySpent = dailySpending[todayKey] ?? 0;
 
-      // Calculate Today's Variable Spent separately
-      double todayVar = 0;
+      // Today's variable = today's total minus today's fixed spending
+      double todayFixed = 0;
       for (final tx in allTx) {
         final d = tx.date;
         if (d.year == now.year && d.month == now.month && d.day == now.day) {
           final cat = (tx.category ?? "Others").toLowerCase();
-          if (!fixedCategories.contains(cat)) {
-            todayVar += tx.amount.abs();
+          if (fixedCategories.contains(cat)) {
+            todayFixed += tx.amount.abs();
           }
         }
       }
-      todayVariableSpent = todayVar;
+      todayVariableSpent = max(0, todaySpent - todayFixed);
 
       currentVariableSpent = currentVar;
 
@@ -201,36 +195,34 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       // ------------------------------------------------------
       // 3. FIXED EXPENSE FORECAST (Status Based)
       // ------------------------------------------------------
-      // Local var used for calculation, updated to class var at end
       double calcForecastFixed = 0;
 
-      Set<String> allKnownFixedCats = {
-        ...fixedCategories,
-        ...fixedCategories,
-        ...categoryMonthly.keys.where(
-          (c) => fixedCategories.contains(c.toLowerCase()),
-        ),
-      };
+      // Use actual category names from the user's data (case-insensitive match
+      // against fixedCategories keywords). This fixes the bug where lowercase
+      // keywords like "rent" failed to match actual category names like "Rent".
+      final fixedCatNames = categoryMonthly.keys
+          .where((c) => fixedCategories.contains(c.toLowerCase()))
+          .toSet();
 
-      for (var cat in allKnownFixedCats) {
+      for (var cat in fixedCatNames) {
         final spentThisMonth = categoryMonthly[cat]?[currentKey] ?? 0;
 
-        // Calculate Usual
         double typicalAmount = 0;
         if (pastMonthKeys.isNotEmpty) {
-          int count = 0;
-          double sum = 0;
-          for (var mKey in pastMonthKeys.take(3)) {
-            if (categoryMonthly[cat]?.containsKey(mKey) == true) {
-              sum += categoryMonthly[cat]![mKey]!;
-              count++;
+          double wSum = 0, wTotal = 0;
+          for (int i = 0; i < pastMonthKeys.length; i++) {
+            final v = categoryMonthly[cat]?[pastMonthKeys[i]];
+            if (v != null && v > 0) {
+              final w = (pastMonthKeys.length - i).toDouble();
+              wSum += v * w;
+              wTotal += w;
             }
           }
-          if (count > 0) typicalAmount = sum / count;
+          if (wTotal > 0) typicalAmount = wSum / wTotal;
         }
 
-        // Logic: If spent > 80% of typical, assume paid. Else add max(spent, typical).
-        if (spentThisMonth >= typicalAmount * 0.8) {
+        // If already paid ≥80% of typical → assume done; else forecast the full amount.
+        if (typicalAmount > 0 && spentThisMonth >= typicalAmount * 0.8) {
           calcForecastFixed += spentThisMonth;
         } else {
           calcForecastFixed += max(spentThisMonth, typicalAmount);
@@ -238,98 +230,41 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       }
 
       // ------------------------------------------------------
-      // 4. VARIABLE EXPENSE FORECAST (Historical Remaining + Volatility Filter)
+      // 4. VARIABLE EXPENSE FORECAST (Progress-based blend)
       // ------------------------------------------------------
 
-      double avgRemainingVar = 0;
-      double avgHistorySoFarVar = 0; // Avg spend for Days 1 to CurrentDay
-
-      int historyCount = 0;
-
-      // Calculate Daily Variable Average (for Volatility Filtering)
-      double totalVarSum = 0;
-      int totalVarMonths = 0;
-      for (var mKey in pastMonthKeys.take(6)) {
-        totalVarSum += (monthlyVariable[mKey] ?? 0);
-        totalVarMonths++;
-      }
-      double globalMonthlyAvgVar = totalVarMonths > 0
-          ? totalVarSum / totalVarMonths
-          : 0;
-      double globalDailyAvgVar = daysInMonth > 0
-          ? globalMonthlyAvgVar / daysInMonth
-          : 0; // Approx daily average
-
-      // We analyze last 6 months
-      for (var mKey in pastMonthKeys.take(6)) {
-        if (!historyDailyVar.containsKey(mKey)) continue;
-
-        final dailyMap = historyDailyVar[mKey]!;
-
-        double spentBeforeToday = 0;
-        double spentRestOfMonth = 0;
-
-        // Sum up spending for that month split by today's day
-        dailyMap.forEach((day, amount) {
-          if (day <= daysPassed) {
-            spentBeforeToday += amount;
-          } else {
-            spentRestOfMonth += amount;
-          }
-        });
-
-        avgHistorySoFarVar += spentBeforeToday;
-        avgRemainingVar += spentRestOfMonth;
-        historyCount++;
-      }
-
-      if (historyCount > 0) {
-        avgHistorySoFarVar /= historyCount;
-        avgRemainingVar /= historyCount;
-      }
-
-      // Use avgRemaining as base.
-      // Modulate it by "Spending Momentum" (Trend).
-
-      double trendFactor = 1.0;
-
-      // VOLATILITY FILTERING:
-      // If currentVar includes a massive one-off (e.g., > 3x daily average), we cap its effect on the TREND.
-      // We don't remove it from 'currentVar' (money is gone), but we don't let it panic the forecast pattern.
-
-      double effectiveTrendVar = currentVar;
-      // Is today a super high spend day?
-      double todaysVarSpend =
-          dailySpending[DateTime(now.year, now.month, now.day)] ?? 0;
-      // (Simplified check: if today's spend is huge, reduce effectiveTrendVar)
-      if (globalDailyAvgVar > 0 && todaysVarSpend > globalDailyAvgVar * 4.0) {
-        // Cap today's contribution to the TREND calculation
-        // e.g. Spent 5000, avg 500. We count 1500 for trend, 5000 for total.
-        double cappedSpend = globalDailyAvgVar * 4.0;
-        effectiveTrendVar = (currentVar - todaysVarSpend) + cappedSpend;
-      }
-
-      if (avgHistorySoFarVar > 100) {
-        double rawTrend = effectiveTrendVar / avgHistorySoFarVar;
-        // Conservative Dampening:
-        trendFactor = 1.0 + (rawTrend - 1.0) * 0.2;
-        trendFactor = trendFactor.clamp(0.8, 1.15);
-      }
-
-      double calcForecastVariable =
-          currentVar + (avgRemainingVar * trendFactor);
-
-      // Sanity Checks
-      if (daysPassed == 1 || historyCount == 0) {
-        double avgTotalVar = 0;
-        if (historyCount > 0) {
-          avgTotalVar = (avgHistorySoFarVar + avgRemainingVar);
-        } else {
-          avgTotalVar = (currentVar / max(1, daysPassed)) * daysInMonth;
+      // Weighted historical monthly variable total (recency-weighted)
+      double historicalVarMonthly = 0;
+      if (pastMonthKeys.isNotEmpty) {
+        double wSum = 0, wTotal = 0;
+        for (int i = 0; i < pastMonthKeys.length; i++) {
+          final w = (pastMonthKeys.length - i).toDouble();
+          wSum += (monthlyVariable[pastMonthKeys[i]] ?? 0) * w;
+          wTotal += w;
         }
-        calcForecastVariable = avgTotalVar > 0 ? avgTotalVar : currentVar;
+        historicalVarMonthly = wTotal > 0 ? wSum / wTotal : 0;
       }
 
+      // Current month pace extrapolated to full month
+      final double currentVarPaced = daysPassed > 0
+          ? (currentVar / daysPassed) * daysInMonth
+          : historicalVarMonthly;
+
+      // Early in month → trust history more; late → trust current pacing more
+      final double varProgress = daysPassed / daysInMonth;
+      final double varHistWeight = (1.0 - varProgress * 0.8).clamp(0.2, 1.0);
+      final double varCurrWeight = 1.0 - varHistWeight;
+
+      double calcForecastVariable;
+      if (historicalVarMonthly > 0) {
+        calcForecastVariable =
+            historicalVarMonthly * varHistWeight + currentVarPaced * varCurrWeight;
+      } else {
+        // No history: project current pace to full month
+        calcForecastVariable = currentVarPaced > 0 ? currentVarPaced : currentVar;
+      }
+
+      // Never forecast less than what's already been spent
       calcForecastVariable = max(calcForecastVariable, currentVar);
 
       // ------------------------------------------------------
@@ -340,25 +275,23 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       forecastVariable = calcForecastVariable;
       forecastTotal = forecastFixed + forecastVariable;
 
-      // Calculate "Usual" (Last 3 months avg total)
-      double avgHistoricalTotal = 0;
+      // Calculate "Usual" — full-history weighted average (recent months weighted higher)
       if (pastMonthKeys.isNotEmpty) {
-        avgHistoricalTotal =
-            pastMonthKeys
-                .take(3)
-                .map((k) => monthlyTotal[k] ?? 0)
-                .fold(0.0, (a, b) => a + b) /
-            min(3, pastMonthKeys.length);
+        double wSum = 0, wTotal = 0;
+        for (int i = 0; i < pastMonthKeys.length; i++) {
+          final w = (pastMonthKeys.length - i).toDouble();
+          wSum += (monthlyTotal[pastMonthKeys[i]] ?? 0) * w;
+          wTotal += w;
+        }
+        usualMonthAvg = wTotal > 0 ? wSum / wTotal : 0;
       }
-      usualMonthAvg = avgHistoricalTotal > 0
-          ? avgHistoricalTotal
-          : forecastTotal;
+      // Fallback for very first month: estimate from current pace
+      if (usualMonthAvg == 0 && daysPassed > 0) {
+        usualMonthAvg = (currentMonthSpent / daysPassed) * daysInMonth;
+      }
 
       overshootPercent = usualMonthAvg > 0 && forecastTotal > usualMonthAvg
-          ? ((forecastTotal - usualMonthAvg) / usualMonthAvg * 100).clamp(
-              0,
-              999,
-            )
+          ? ((forecastTotal - usualMonthAvg) / usualMonthAvg * 100).clamp(0.0, 999.0)
           : 0;
 
       // ======================================================
@@ -370,16 +303,20 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         final currentSpent = months[currentKey] ?? 0;
         final isFixed = fixedCategories.contains(cat.toLowerCase());
 
-        // Historical Average
+        // Full-history weighted average for this category
         double catHistAvg = 0;
-        int count = 0;
-        for (var k in pastMonthKeys.take(3)) {
-          if (months.containsKey(k)) {
-            catHistAvg += months[k]!;
-            count++;
+        if (pastMonthKeys.isNotEmpty) {
+          double wSum = 0, wTotal = 0;
+          for (int i = 0; i < pastMonthKeys.length; i++) {
+            final k = pastMonthKeys[i];
+            if (months.containsKey(k)) {
+              final w = (pastMonthKeys.length - i).toDouble();
+              wSum += months[k]! * w;
+              wTotal += w;
+            }
           }
+          if (wTotal > 0) catHistAvg = wSum / wTotal;
         }
-        if (count > 0) catHistAvg /= count;
 
         String msg;
         double catForecast = 0;

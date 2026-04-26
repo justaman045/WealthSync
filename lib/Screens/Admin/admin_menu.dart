@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/admin_dashboard.dart';
 import 'package:money_control/Screens/Admin/admin_user_list.dart';
 
@@ -10,6 +11,20 @@ class AdminMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.find<SubscriptionController>().isAdmin.value) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.lock_outline, size: 64, color: Colors.redAccent),
+              SizedBox(height: 16),
+              Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      );
+    }
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(

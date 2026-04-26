@@ -3,9 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/glass_container.dart';
-
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:money_control/Services/iap_service.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -44,6 +42,169 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ),
         body: SafeArea(
           child: Obx(() {
+            // ── TRIAL VIEW ──────────────────────────────────────────────────
+            if (SubscriptionController.to.isTrial) {
+              final days = SubscriptionController.to.daysLeftInTrial;
+              return SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Column(
+                  children: [
+                    SizedBox(height: 40.h),
+                    Container(
+                      padding: EdgeInsets.all(20.w),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.amber.withValues(alpha: 0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Icon(Icons.timer_outlined, size: 60.sp, color: Colors.amber),
+                    ),
+                    SizedBox(height: 24.h),
+                    Text(
+                      "Free Trial Active",
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(
+                        "$days day${days == 1 ? '' : 's'} remaining",
+                        style: TextStyle(
+                          color: Colors.amber,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    Text(
+                      "You have full Pro access during your trial. Subscribe before it ends to keep everything.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15.sp, color: Colors.white70, height: 1.5),
+                    ),
+                    SizedBox(height: 32.h),
+                    _buildFeatureRow("Unlimited Transactions", "No monthly limits on your activity."),
+                    _buildFeatureRow("Unlimited Categories", "Create as many categories as you need."),
+                    _buildFeatureRow("AI SMS Tracking", "Automated expense tracking from bank SMS."),
+                    _buildFeatureRow("Smart Budgeting", "Set limits and get alerts before overspending."),
+                    _buildFeatureRow("Data Export", "Download CSV & PDF reports for tax & analysis."),
+                    _buildFeatureRow("Advanced Analytics", "Lifetime history and deep trend insights."),
+                    SizedBox(height: 32.h),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56.h,
+                      child: ElevatedButton(
+                        onPressed: _buySubscription,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyanAccent,
+                          foregroundColor: Colors.black,
+                          elevation: 10,
+                          shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                        ),
+                        child: Text(
+                          "Upgrade to Pro Now",
+                          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    TextButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.black.withValues(alpha: 0.8),
+                          builder: (ctx) => Center(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: GlassContainer(
+                                width: 320.w,
+                                padding: EdgeInsets.all(24.w),
+                                borderRadius: BorderRadius.circular(24.r),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, size: 40.sp, color: Colors.redAccent),
+                                    SizedBox(height: 16.h),
+                                    Text(
+                                      "End Free Trial?",
+                                      style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(height: 12.h),
+                                    Text(
+                                      "You will lose Pro access immediately. This cannot be undone.",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white70, fontSize: 15.sp, height: 1.5),
+                                    ),
+                                    SizedBox(height: 32.h),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextButton(
+                                            onPressed: () async {
+                                              Navigator.of(ctx).pop();
+                                              await SubscriptionController.to.cancelSubscription();
+                                              Get.snackbar(
+                                                "Trial Ended",
+                                                "Your free trial has been ended.",
+                                                backgroundColor: Colors.redAccent.withValues(alpha: 0.85),
+                                                colorText: Colors.white,
+                                              );
+                                            },
+                                            child: Text("End Trial", style: TextStyle(color: Colors.redAccent, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                                          ),
+                                        ),
+                                        SizedBox(width: 16.w),
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () => Navigator.of(ctx).pop(),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.cyanAccent,
+                                              foregroundColor: Colors.black,
+                                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                                            ),
+                                            child: Text("Keep Trial", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "End Trial",
+                        style: TextStyle(color: Colors.white38, fontSize: 14.sp),
+                      ),
+                    ),
+                    SizedBox(height: 40.h),
+                  ],
+                ),
+              );
+            }
+
+            // ── PAID PRO VIEW ────────────────────────────────────────────────
             if (SubscriptionController.to.isPro) {
               return SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -106,29 +267,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             ),
                           ),
                           SizedBox(height: 8.h),
-                          Text(
-                            "Pro (Monthly)",
-                            style: TextStyle(
-                              color: Colors.cyanAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20.sp,
-                            ),
-                          ),
+                          Obx(() {
+                            final plan =
+                                SubscriptionController.to.planType.value;
+                            return Text(
+                              plan.isNotEmpty ? "Pro ($plan)" : "Pro",
+                              style: TextStyle(
+                                color: Colors.cyanAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20.sp,
+                              ),
+                            );
+                          }),
                           SizedBox(height: 8.h),
-                          Text(
-                            "Renews on: ${DateTime.now().add(const Duration(days: 30)).toString().split(' ')[0]}", // Mock date
-                            style: TextStyle(
-                              color: Colors.white30,
-                              fontSize: 12.sp,
-                            ),
-                          ),
+                          Obx(() {
+                            final expiry =
+                                SubscriptionController.to.expiryDate.value;
+                            final label = expiry != null
+                                ? "Renews on: ${expiry.day.toString().padLeft(2, '0')}/${expiry.month.toString().padLeft(2, '0')}/${expiry.year}"
+                                : "Renews on: --";
+                            return Text(
+                              label,
+                              style: TextStyle(
+                                color: Colors.white30,
+                                fontSize: 12.sp,
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),
                     SizedBox(height: 40.h),
                     ElevatedButton(
                       onPressed: () {
-                        // Mock cancel subscription
                         showDialog(
                           context: context,
                           barrierColor: Colors.black.withValues(alpha: 0.8),
@@ -180,34 +351,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                       children: [
                                         Expanded(
                                           child: TextButton(
-                                            onPressed: () {
-                                              // Logic to cancel
-                                              SubscriptionController.to
-                                                  .setProStatus(false);
-                                              Navigator.of(
-                                                context,
-                                              ).pop(); // Close dialog
-                                              Future.delayed(
-                                                const Duration(
-                                                  milliseconds: 300,
-                                                ),
-                                                () {
-                                                  if (Get.context != null &&
-                                                      Get.overlayContext !=
-                                                          null) {
-                                                    Get.snackbar(
-                                                      "Subscription Cancelled",
-                                                      "Access has been revoked immediately for demo purposes.",
-                                                      backgroundColor: Colors
-                                                          .redAccent
+                                            onPressed: () async {
+                                              Navigator.of(context).pop();
+                                              await SubscriptionController.to
+                                                  .cancelSubscription();
+                                              if (Get.context != null) {
+                                                Get.snackbar(
+                                                  "Subscription Cancelled",
+                                                  "Your Pro subscription has been cancelled.",
+                                                  backgroundColor:
+                                                      Colors.redAccent
                                                           .withValues(
-                                                            alpha: 0.2,
+                                                            alpha: 0.85,
                                                           ),
-                                                      colorText: Colors.white,
-                                                    );
-                                                  }
-                                                },
-                                              );
+                                                  colorText: Colors.white,
+                                                );
+                                              }
                                             },
                                             style: TextButton.styleFrom(
                                               padding: EdgeInsets.symmetric(
@@ -401,6 +560,62 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       height: 1.5,
                     ),
                   ),
+                  // Trial banner / expired-trial notice
+                  Obx(() {
+                    final sub = SubscriptionController.to;
+                    if (sub.isTrial) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 20.h),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF69F0AE).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: const Color(0xFF69F0AE), width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.timer_outlined, color: Color(0xFF69F0AE), size: 20),
+                            SizedBox(width: 8.w),
+                            Text(
+                              '${sub.daysLeftInTrial} day${sub.daysLeftInTrial == 1 ? '' : 's'} left in free trial',
+                              style: TextStyle(
+                                color: const Color(0xFF69F0AE),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    if (sub.trialUsed.value) {
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 20.h),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                        decoration: BoxDecoration(
+                          color: Colors.redAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4), width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.timer_off_outlined, color: Colors.redAccent, size: 20),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'Your free trial has ended',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+
                   SizedBox(height: 40.h),
 
                   // Features List
@@ -447,7 +662,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       Expanded(
                         child: _buildPriceCard(
                           "Yearly",
-                          "₹1499",
+                          "₹1,999",
                           "/yr",
                           true,
                           "Yearly",
@@ -459,31 +674,57 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   SizedBox(height: 40.h),
 
                   // Subscribe Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56.h,
-                    child: ElevatedButton(
-                      onPressed: () => _handleSubscribe(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.cyanAccent,
-                        foregroundColor: Colors.black,
-                        elevation: 10,
-                        shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
+                  Obx(() {
+                    final loading = IapService().isLoading.value;
+                    final label = SubscriptionController.to.trialUsed.value
+                        ? "Subscribe Now"
+                        : "Start 7-Day Free Trial";
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 56.h,
+                      child: ElevatedButton(
+                        onPressed: loading ? null : _buySubscription,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyanAccent,
+                          foregroundColor: Colors.black,
+                          elevation: 10,
+                          shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
                         ),
+                        child: loading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.black,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                       ),
-                      child: Text(
-                        "Start 7-Day Free Trial",
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
+                    );
+                  }),
+                  SizedBox(height: 12.h),
+                  TextButton(
+                    onPressed: () => IapService().restorePurchases(),
+                    child: Text(
+                      "Restore Purchases",
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13.sp,
                       ),
                     ),
                   ),
-                  SizedBox(height: 16.h),
+                  SizedBox(height: 8.h),
                   Text(
                     "Cancel anytime. No questions asked.",
                     style: TextStyle(color: Colors.white30, fontSize: 12.sp),
@@ -565,10 +806,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ),
         child: Column(
           children: [
-            if (isBestValue)
+            if (isBestValue) ...[
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                margin: EdgeInsets.only(bottom: 8.h),
+                margin: EdgeInsets.only(bottom: 4.h),
                 decoration: BoxDecoration(
                   color: Colors.cyanAccent,
                   borderRadius: BorderRadius.circular(20.r),
@@ -582,6 +823,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ),
                 ),
               ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                margin: EdgeInsets.only(bottom: 8.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF69F0AE).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20.r),
+                  border: Border.all(color: const Color(0xFF69F0AE), width: 1),
+                ),
+                child: Text(
+                  "SAVE 33%",
+                  style: TextStyle(
+                    color: const Color(0xFF69F0AE),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10.sp,
+                  ),
+                ),
+              ),
+            ],
             Text(
               title,
               style: TextStyle(
@@ -615,377 +874,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Future<void> _handleSubscribe(BuildContext context) async {
-    final amount = _selectedPlan == "Monthly" ? "249" : "1499";
-    final upiId = "coderaman07-1@okaxis";
-    final upiUrl = "upi://pay?pa=$upiId&pn=MoneyControl&am=$amount&cu=INR";
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder: (ctx) => Center(
-        child: Material(
-          color: Colors.transparent,
-          child: GlassContainer(
-            width: 320.w,
-            padding: EdgeInsets.all(24.w),
-            borderRadius: BorderRadius.circular(24.r),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Scan to Pay",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                Container(
-                  padding: EdgeInsets.all(12.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  child: QrImageView(
-                    data: upiUrl,
-                    version: QrVersions.auto,
-                    size: 200.w,
-                    backgroundColor: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 24.h),
-                Text(
-                  "Amount: ₹$amount",
-                  style: TextStyle(
-                    color: Colors.cyanAccent,
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Text(
-                  "UPI ID: $upiId",
-                  style: TextStyle(color: Colors.white54, fontSize: 12.sp),
-                ),
-                SizedBox(height: 24.h),
-                // Pay with UPI App Button
-                FutureBuilder<bool>(
-                  future: canLaunchUrl(Uri.parse(upiUrl)),
-                  builder: (ctx, snapshot) {
-                    if (snapshot.hasData && snapshot.data == true) {
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 24.h),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () async {
-                              await launchUrl(
-                                Uri.parse(upiUrl),
-                                mode: LaunchMode.externalApplication,
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.payment,
-                              color: Colors.black,
-                            ),
-                            label: const Text(
-                              "Pay with UPI App",
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 14.h),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                        ),
-                        child: Text(
-                          "Cancel",
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: 16.sp,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 16.w),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _verifyPayment(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyanAccent,
-                          foregroundColor: Colors.black,
-                          padding: EdgeInsets.symmetric(vertical: 14.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        child: Text(
-                          "I have paid",
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _verifyPayment() async {
-    Navigator.of(context).pop(); // Close QR dialog
-
-    final TextEditingController transactionIdController =
-        TextEditingController();
-
-    // Show Transaction ID Input Dialog
-    await Get.dialog(
-      Dialog(
-        backgroundColor: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.r),
-          side: BorderSide(color: Colors.cyanAccent.withValues(alpha: 0.3)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Enter Transaction ID",
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                "Please enter the UPI Transaction ID / Reference Number for verification.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 14.sp),
-              ),
-              SizedBox(height: 24.h),
-              TextField(
-                controller: transactionIdController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: "Enter Transaction ID",
-                  hintStyle: TextStyle(color: Colors.white30),
-                  filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: const BorderSide(color: Colors.cyanAccent),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24.h),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (transactionIdController.text.trim().isEmpty) {
-                      Get.snackbar(
-                        "Error",
-                        "Please enter a valid Transaction ID",
-                        backgroundColor: Colors.redAccent,
-                        colorText: Colors.white,
-                      );
-                      return;
-                    }
-
-                    Navigator.of(context).pop(); // Close Input Dialog
-
-                    // Show Loading
-                    Get.dialog(
-                      Center(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: GlassContainer(
-                            width: 280.w,
-                            padding: EdgeInsets.all(32.w),
-                            borderRadius: BorderRadius.circular(24.r),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  height: 60.w,
-                                  width: 60.w,
-                                  child: const CircularProgressIndicator(
-                                    color: Colors.cyanAccent,
-                                    strokeWidth: 4,
-                                  ),
-                                ),
-                                SizedBox(height: 32.h),
-                                Text(
-                                  "Submitting Request",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      barrierDismissible: false,
-                      barrierColor: Colors.black.withValues(alpha: 0.8),
-                    );
-
-                    // Simulate network delay
-                    await Future.delayed(const Duration(seconds: 1));
-
-                    if (mounted) {
-                      Navigator.of(context).pop(); // Close loading dialog
-
-                      // Request Upgrade with Transaction ID
-                      await SubscriptionController.to.requestUpgrade(
-                        transactionIdController.text.trim(),
-                        _selectedPlan,
-                      );
-
-                      // Show "Verification In Progress" Dialog
-                      Get.dialog(
-                        Dialog(
-                          backgroundColor: const Color(
-                            0xFF1A1A2E,
-                          ).withValues(alpha: 0.95),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20.r),
-                            side: BorderSide(
-                              color: Colors.orangeAccent.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Padding(
-                            padding: EdgeInsets.all(24.w),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(16.w),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orangeAccent.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.hourglass_top_rounded,
-                                    color: Colors.orangeAccent,
-                                    size: 40.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 24.h),
-                                Text(
-                                  "Verification In Progress",
-                                  style: TextStyle(
-                                    fontSize: 20.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                SizedBox(height: 12.h),
-                                Text(
-                                  "We have received your payment request (ID: ${transactionIdController.text.trim()}). Administration will verify the transaction shortly.",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 14.sp,
-                                    color: Colors.white70,
-                                    height: 1.5,
-                                  ),
-                                ),
-                                SizedBox(height: 30.h),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.of(
-                                        context,
-                                      ).pop(); // Close dialog
-                                      Navigator.of(
-                                        context,
-                                      ).pop(); // Close Subscription Screen
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orangeAccent,
-                                      foregroundColor: Colors.black,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 16.h,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12.r,
-                                        ),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      "Got it",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        barrierDismissible: false,
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyanAccent,
-                    foregroundColor: Colors.black,
-                    padding: EdgeInsets.symmetric(vertical: 16.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  child: const Text(
-                    "Submit",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: false,
-    );
+  Future<void> _buySubscription() async {
+    final productId = _selectedPlan == 'Monthly'
+        ? IapService.kMonthlyId
+        : IapService.kYearlyId;
+    await IapService().buySubscription(productId);
   }
 }

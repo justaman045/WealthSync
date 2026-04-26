@@ -16,6 +16,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 // ----------------------------------------------------------------------
 
@@ -92,11 +93,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         ]);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share screenshot: $e')),
-        );
-      }
+      ErrorHandler.showError('Failed to share screenshot: $e');
     }
   }
 

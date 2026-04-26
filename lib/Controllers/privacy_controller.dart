@@ -53,19 +53,10 @@ class PrivacyBlur extends StatelessWidget {
           ),
           child: Opacity(
             opacity: 0,
-            child: child, // Hide the child but keep layout
+            child: child,
           ),
         ),
       );
-
-      // Actually, standard Blur is better.
-      /*
-      return ImageFiltered(
-        imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: child,
-      );
-      */
-      // Let's implement a "Masked Content" widget that replaces text with dots.
     });
   }
 }

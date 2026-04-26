@@ -1,14 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
 
 class AdminUsersScreen extends StatelessWidget {
   const AdminUsersScreen({super.key});
 
   bool _isAdmin() {
-    final user = FirebaseAuth.instance.currentUser;
-    return user != null && user.email == 'developerlife69@gmail.com';
+    return SubscriptionController.to.isAdmin.value;
   }
 
   @override
@@ -150,7 +149,7 @@ class AdminUsersScreen extends StatelessWidget {
           separatorBuilder: (_, __) => SizedBox(height: 12.h),
           itemBuilder: (context, index) {
             final data = users[index].data() as Map<String, dynamic>;
-            final isAdminUser = data['email'] == 'developerlife69@gmail.com';
+            final isAdminUser = data['isAdmin'] == true;
 
             return Container(
               padding: EdgeInsets.all(16.w),

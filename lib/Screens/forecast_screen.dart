@@ -86,6 +86,27 @@ class ForecastScreen extends StatelessWidget {
               );
             }
 
+            if (controller.hasError.value) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 48.sp, color: AppColors.error),
+                    SizedBox(height: 12.h),
+                    Text(
+                      'Could not load forecast',
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    SizedBox(height: 8.h),
+                    TextButton(
+                      onPressed: controller.loadMonthTransactions,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
               child: Column(

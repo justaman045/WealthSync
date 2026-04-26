@@ -10,6 +10,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Screens/add_lent_money_screen.dart';
+import 'package:money_control/Screens/split_bill_screen.dart';
 
 class LentMoneyScreen extends StatefulWidget {
   const LentMoneyScreen({super.key});
@@ -19,7 +20,7 @@ class LentMoneyScreen extends StatefulWidget {
 }
 
 class _LentMoneyScreenState extends State<LentMoneyScreen> {
-  final LentMoneyController _controller = Get.put(LentMoneyController());
+  final LentMoneyController _controller = Get.find<LentMoneyController>();
   final CurrencyController _currencyController = Get.find();
 
   @override
@@ -42,6 +43,13 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.call_split_rounded),
+              tooltip: "Split a Bill",
+              onPressed: () => Get.to(() => const SplitBillScreen()),
+            ),
+          ],
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => Get.to(() => const AddLentMoneyScreen()),

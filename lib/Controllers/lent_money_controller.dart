@@ -27,7 +27,7 @@ class LentMoneyController extends GetxController {
   double get totalPendingReceivables {
     double total = 0.0;
     for (var entry in entries) {
-      if (!entry.isSettled && entry.type.toString() == 'lent') {
+      if (!entry.isSettled && entry.type == 'lent') {
         total += entry.amount;
       }
     }
@@ -37,7 +37,7 @@ class LentMoneyController extends GetxController {
   double get totalPendingPayables {
     double total = 0.0;
     for (var entry in entries) {
-      if (!entry.isSettled && entry.type.toString() == 'borrowed') {
+      if (!entry.isSettled && entry.type == 'borrowed') {
         total += entry.amount;
       }
     }

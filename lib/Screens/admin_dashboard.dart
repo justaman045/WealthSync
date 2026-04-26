@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Services/error_handler.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -18,6 +19,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    if (!SubscriptionController.to.isAdmin.value) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.lock_outline, size: 64, color: Colors.redAccent),
+              SizedBox(height: 16),
+              Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      );
+    }
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -161,17 +176,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   SubscriptionController.to.rejectUpgrade(
                                     email,
                                   );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        "User $email request rejected.",
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      backgroundColor: Colors.redAccent,
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: EdgeInsets.all(16.w),
-                                    ),
-                                  );
+                                  ErrorHandler.showError("User $email request rejected.", title: "Rejected");
                                 },
                                 icon: Icon(
                                   Icons.close,
@@ -195,17 +200,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   SubscriptionController.to.approveUpgrade(
                                     email,
                                   );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        "User $email is now Pro!",
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      backgroundColor: Colors.green,
-                                      behavior: SnackBarBehavior.floating,
-                                      margin: EdgeInsets.all(16.w),
-                                    ),
-                                  );
+                                  ErrorHandler.showSuccess("User $email is now Pro!");
                                 },
                                 icon: Icon(
                                   Icons.check,
@@ -293,17 +288,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       'subscriptionStatus': 'pro', // Ensure they are pro first
                     }, SetOptions(merge: true));
 
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Expiry set to yesterday! Restart app to test.",
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
+                ErrorHandler.showSuccess("Expiry set to yesterday! Restart app to test.", title: "Test Mode");
+                if (context.mounted) Navigator.pop(context);
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),

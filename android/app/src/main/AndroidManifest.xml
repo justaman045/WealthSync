@@ -19,7 +19,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="Finance Control"
+        android:label="Money Control"
         android:icon="@mipmap/ic_launcher">
 
         <!-- Main Activity -->
@@ -48,6 +48,18 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
+        <!-- Home Screen Widget -->
+        <receiver
+            android:name=".MoneyControlWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_widget_provider" />
+        </receiver>
+
         <!-- Workmanager background executor -->
         <meta-data
             android:name="flutterBackgroundExecutor"
@@ -60,6 +72,27 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
+        </intent>
+        <!-- Required to detect and launch UPI payment apps (Android 11+) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tez" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="phonepe" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="paytmmp" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="bhim" />
         </intent>
     </queries>
 

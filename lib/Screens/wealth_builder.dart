@@ -45,36 +45,44 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Future<void> _loadData() async {
-    final TransactionController txController = Get.find();
-    final ProfileController profileController = Get.find();
+    try {
+      final TransactionController txController = Get.find();
+      final ProfileController profileController = Get.find();
 
-    // Ensure we have latest portfolio (still need this one read as it's specific to this screen)
-    final p = await WealthService.getPortfolio();
+      // Wait briefly if transactions are still streaming in
+      if (txController.isLoading.value) {
+        await Future.delayed(const Duration(milliseconds: 800));
+      }
 
-    // Use cached data
-    final transactions = txController.transactions;
-    final userProfile = profileController.userProfile.value;
+      final p = await WealthService.getPortfolio();
 
-    final balance = WealthService.calculateBankBalance(transactions);
-    final insights = WealthService.generateSmartInsights(p, transactions);
-    final targets = await WealthService.calculateAssetTargets(
-      p,
-      transactions,
-      userProfile,
-    );
+      final transactions = txController.transactions;
+      final userProfile = profileController.userProfile.value;
 
-    // Get age from profile
-    final age = userProfile?.calculatedAge;
+      final balance = WealthService.calculateBankBalance(transactions);
+      final insights = WealthService.generateSmartInsights(p, transactions);
+      final targets = await WealthService.calculateAssetTargets(
+        p,
+        transactions,
+        userProfile,
+      );
 
-    if (mounted) {
-      setState(() {
-        portfolio = p;
-        bankBalance = balance;
-        smartInsights = insights;
-        assetTargets = targets;
-        userAge = age;
-        loading = false;
-      });
+      final age = userProfile?.calculatedAge;
+
+      if (mounted) {
+        setState(() {
+          portfolio = p;
+          bankBalance = balance;
+          smartInsights = insights;
+          assetTargets = targets;
+          userAge = age;
+          loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
@@ -642,7 +650,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               if (isBank) {
                                 // Update Expense Override. Null or 0 means reset to auto.
                                 final text = targetController.text.trim();
-                                final val = double.tryParse(text) ?? 0;
+                                final val = double.tryParse(text.replaceAll(',', '')) ?? 0;
                                 if (text.isEmpty || val <= 0) {
                                   await WealthService.updateMonthlyExpenseOverride(
                                     null,
@@ -655,7 +663,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               } else if (!readOnly) {
                                 // Update Asset Value
                                 final val =
-                                    double.tryParse(valueController.text) ?? 0;
+                                    double.tryParse(valueController.text.replaceAll(',', '')) ?? 0;
                                 await WealthService.updateAsset(key, val);
                               }
                               // Formula targets are not updated explicitly
