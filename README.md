@@ -66,7 +66,7 @@ Experience the app today. We release frequent updates with new features and impr
 ### 📲 Latest Android APK
 Get the latest build directly from GitHub:
 
-> **[Download Latest APK (v2.0.88)](https://github.com/justaman045/Finance-Control/releases/download/v2.0.96/app-release.apk
+> **[Download Latest APK (v2.0.88)](https://github.com/justaman045/Finance-Control/releases/download/v2.0.100/app-release.apk
 
 **Installation Instructions:**
 1. Download the `.apk` file from the link above.
