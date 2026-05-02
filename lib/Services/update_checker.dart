@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/update_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 class UpdateChecker {
-  static Future<void> checkForUpdate(BuildContext context) async {
+  static Future<void> checkForUpdate() async {
     try {
       final url = Uri.parse(
         "https://raw.githubusercontent.com/justaman045/Money_Control/master/app_version.json",
@@ -23,22 +24,31 @@ class UpdateChecker {
 
       final data = jsonDecode(response.body);
 
-      debugPrint(data["latest_version"].toString());
-
-      final latestVersion = data["latest_version"];
-      final updateMessage = data["update_message"];
-      final isForce = data["force"] ?? false;
+      final latestVersion = data["latest_version"] as String;
+      final updateMessage = data["update_message"] as String;
+      final isForce = data["force"] as bool? ?? false;
 
       final package = await PackageInfo.fromPlatform();
       final currentVersion = package.version;
 
       if (_isNewerVersion(latestVersion, currentVersion)) {
-        if (context.mounted) {
-          _showUpdateDialog(context, latestVersion, updateMessage, isForce);
-        }
+        _maybeShowUpdateDialog(latestVersion, updateMessage, isForce);
       }
     } catch (e) {
       debugPrint("Update check failed: $e");
+    }
+  }
+
+  // Sync helper so no BuildContext is used inside the async function.
+  // Get.overlayContext is always the active navigator's overlay — never stale.
+  static void _maybeShowUpdateDialog(
+    String version,
+    String message,
+    bool force,
+  ) {
+    final overlayCtx = Get.overlayContext;
+    if (overlayCtx != null) {
+      _showUpdateDialog(overlayCtx, version, message, force);
     }
   }
 

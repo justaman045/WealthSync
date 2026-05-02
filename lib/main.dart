@@ -306,7 +306,7 @@ class _AuthCheckerState extends State<AuthChecker> {
   void initState() {
     super.initState();
     if (!widget.isTest) {
-      UpdateChecker.checkForUpdate(context);
+      UpdateChecker.checkForUpdate();
     }
     _handleAuthChange(FirebaseAuth.instance.currentUser);
     _authSub = FirebaseAuth.instance.authStateChanges().skip(1).listen(_handleAuthChange);
