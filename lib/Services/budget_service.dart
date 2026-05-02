@@ -46,12 +46,8 @@ class BudgetService {
       double totalSpent = 0.0;
       for (var doc in txSnap.docs) {
         final amount = (doc.data()['amount'] ?? 0).toDouble();
-
-        // Robust Fix: Always add the absolute value of the amount.
-        // Expenses are conceptually "spending", so valid amounts (whether stored as -200 or 200) contribute to the total.
-        // We assume this query filters for RELEVANT transactions (by category).
-        // Since categories are primarily for expenses, we sum everything as positive spend.
-        totalSpent += amount.abs();
+        // Only negative amounts are expenses (sign convention: expense = negative, income = positive)
+        if (amount < 0) totalSpent += amount.abs();
       }
 
       // If we are calling this *after* adding the new transaction, it's already in Firestore?

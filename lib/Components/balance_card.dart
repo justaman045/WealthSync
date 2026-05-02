@@ -318,6 +318,7 @@ class _BalanceCardState extends State<BalanceCard> {
                     else
                       _balanceLabel('--', Theme.of(context).colorScheme),
                     Obx(() {
+                      if (_transactionController.isLoading.value) return const SizedBox.shrink();
                       if (_privacyController.isPrivacyMode.value) return const SizedBox.shrink();
                       final now = DateTime.now();
                       final uid = FirebaseAuth.instance.currentUser?.uid;

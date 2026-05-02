@@ -209,9 +209,7 @@ class RecurringService {
         .where('nextDueDate', isLessThanOrEqualTo: Timestamp.fromDate(today))
         .get();
 
-    // Fetch uid once (reused for all payments)
-    final userDoc = await db.collection('users').doc(userEmail).get();
-    final uid = userDoc.data()?['uid'];
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     for (var doc in snapshot.docs) {

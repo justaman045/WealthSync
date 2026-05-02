@@ -36,6 +36,14 @@ class BackgroundWorker {
     );
   }
 
+  /// Manually trigger SMS auto-import (admin use). Scans the last [days] days.
+  /// Returns the number of newly imported transactions.
+  static Future<int> triggerSmsImport({int days = 7}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final scanFrom = DateTime.now().subtract(Duration(days: days));
+    return _processSmsMessages(prefs, scanFrom: scanFrom);
+  }
+
   /// Show notification helper
   /// Show notification helper
   static Future<void> showNotification(
@@ -123,6 +131,7 @@ void callbackDispatcher() {
       if (prefs.getBool('sms_auto_import_enabled') == true) {
         await _processSmsMessages(prefs);
       }
+
 
       // --- LOGIC 6: WEEKLY DIGEST ---
       await _checkWeeklyDigest(prefs);
@@ -353,12 +362,16 @@ Future<void> _checkRecurringPayments(SharedPreferences prefs) async {
   }
 }
 
-Future<void> _processSmsMessages(SharedPreferences prefs) async {
+Future<int> _processSmsMessages(
+  SharedPreferences prefs, {
+  DateTime? scanFrom,
+}) async {
   final userEmail = prefs.getString('user_email');
-  if (userEmail == null) return;
+  if (userEmail == null) return 0;
 
   final lastScanMs = prefs.getInt('last_sms_scan_ms') ?? 0;
-  final lastScanDate = DateTime.fromMillisecondsSinceEpoch(lastScanMs);
+  final lastScanDate =
+      scanFrom ?? DateTime.fromMillisecondsSinceEpoch(lastScanMs);
 
   try {
     final query = SmsQuery();
@@ -375,13 +388,13 @@ Future<void> _processSmsMessages(SharedPreferences prefs) async {
 
     if (newBankMessages.isEmpty) {
       await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
-      return;
+      return 0;
     }
 
     final db = FirebaseFirestore.instance;
     final userDoc = await db.collection('users').doc(userEmail).get();
     final uid = userDoc.data()?['uid'] as String?;
-    if (uid == null) return;
+    if (uid == null) return 0;
 
     int imported = 0;
     const uuid = Uuid();
@@ -443,8 +456,10 @@ Future<void> _processSmsMessages(SharedPreferences prefs) async {
     }
 
     await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
+    return imported;
   } catch (e) {
     log('SMS auto-import error: $e');
+    return 0;
   }
 }
 

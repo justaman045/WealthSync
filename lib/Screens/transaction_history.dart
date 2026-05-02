@@ -17,9 +17,14 @@ import 'package:money_control/Components/shimmer_loading.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:intl/intl.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
-  const TransactionHistoryScreen({super.key});
+  /// 0 = all, 1 = income, 2 = expense
+  final int initialTab;
+  /// When set, only transactions in this month/year are shown.
+  final DateTime? filterMonth;
+  const TransactionHistoryScreen({super.key, this.initialTab = 0, this.filterMonth});
 
   @override
   State<TransactionHistoryScreen> createState() =>
@@ -27,7 +32,7 @@ class TransactionHistoryScreen extends StatefulWidget {
 }
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
-  int selectedTab = 0;
+  late int selectedTab;
   List<TransactionModel> _filteredTxs = [];
   Map<DateTime, List<TransactionModel>> _grouped = {};
   List<DateTime> _sections = [];
@@ -36,6 +41,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   @override
   void initState() {
     super.initState();
+    selectedTab = widget.initialTab;
     final controller = Get.find<TransactionController>();
     _txWorker = ever(controller.transactions, (_) => _regroup());
     _regroup();
@@ -51,14 +57,18 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final controller = Get.find<TransactionController>();
-    final txs = controller.transactions
-        .where((tx) => tx.senderId == user.uid || tx.recipientId == user.uid)
-        .toList();
+    final fm = widget.filterMonth;
+    var txs = controller.transactions
+        .where((tx) => tx.senderId == user.uid || tx.recipientId == user.uid);
+    if (fm != null) {
+      txs = txs.where((tx) => tx.date.year == fm.year && tx.date.month == fm.month);
+    }
+    final txsList = txs.toList();
     final filtered = selectedTab == 0
-        ? txs
+        ? txsList
         : selectedTab == 1
-            ? txs.where((tx) => tx.recipientId == user.uid).toList()
-            : txs.where((tx) => tx.senderId == user.uid).toList();
+            ? txsList.where((tx) => tx.recipientId == user.uid).toList()
+            : txsList.where((tx) => tx.senderId == user.uid).toList();
     final grouped = <DateTime, List<TransactionModel>>{};
     for (var tx in filtered) {
       final day = DateTime(tx.date.year, tx.date.month, tx.date.day);
@@ -135,7 +145,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            l10n.transactionHistoryTitle,
+            widget.filterMonth != null
+                ? DateFormat('MMMM yyyy').format(widget.filterMonth!)
+                : l10n.transactionHistoryTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,

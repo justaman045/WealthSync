@@ -154,6 +154,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                 Text(
                   AppLocalizations.of(context)!.welcomeBack,
                   style: theme.textTheme.bodyMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Obx(() {
                   final userModel = _profileController.userProfile.value;
@@ -177,6 +179,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   );
                 }),
               ],
@@ -196,7 +200,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                 color: ctrl.isPro ? Colors.cyanAccent : null,
               );
             }),
-            SizedBox(width: 8.w),
+            SizedBox(width: 4.w),
 
             // 🔍 NEW SEARCH BUTTON
             _buildActionButton(
@@ -205,7 +209,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               theme: theme,
               heroTag: 'search_bar',
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 4.w),
 
             // 📅 SUBSCRIPTIONS BUTTON
             _buildActionButton(
@@ -219,7 +223,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 4.w),
 
             // 🤝 LENT MONEY TRACKER BUTTON
             _buildActionButton(
@@ -234,7 +238,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               theme: theme,
               color: Colors.greenAccent,
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 4.w),
 
             // 📈 FORECAST BUTTON
             _buildActionButton(
@@ -248,7 +252,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
             ),
-            SizedBox(width: 8.w),
+            SizedBox(width: 4.w),
 
             // 🎯 GOALS BUTTON
             _buildActionButton(
@@ -393,9 +397,9 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
 
     return GlassContainer(
       padding: EdgeInsets.zero,
-      borderRadius: BorderRadius.circular(25.r),
-      width: 45.w,
-      height: 40.h,
+      borderRadius: BorderRadius.circular(22.r),
+      width: 38.w,
+      height: 36.h,
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();

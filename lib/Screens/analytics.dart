@@ -14,6 +14,7 @@ import 'package:money_control/Components/pro_lock_widget.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/analytics_trends.dart';
+import 'package:money_control/Screens/transaction_history.dart';
 import 'package:money_control/Services/export_service.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 
@@ -643,8 +644,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   child: _summary(
                     "Income",
                     totalIncome,
-                    const Color(0xFF00E5FF), // Neon Cyan
+                    const Color(0xFF00E5FF),
                     Icons.arrow_upward_rounded,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => TransactionHistoryScreen(initialTab: 1, filterMonth: DateTime.now()),
+                    )),
                   ),
                 ),
                 SizedBox(width: 16.w),
@@ -652,8 +656,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   child: _summary(
                     "Expenses",
                     totalExpense,
-                    const Color(0xFFFF2975), // Neon Pink
+                    const Color(0xFFFF2975),
                     Icons.arrow_downward_rounded,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => TransactionHistoryScreen(initialTab: 2, filterMonth: DateTime.now()),
+                    )),
                   ),
                 ),
               ],
@@ -670,6 +677,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   : const Color(0xFFFF2975),
               Icons.account_balance_wallet_rounded,
               isWide: true,
+              onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => TransactionHistoryScreen(initialTab: 0, filterMonth: DateTime.now()),
+              )),
             ),
           ),
 
@@ -1058,8 +1068,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     Color color,
     IconData icon, {
     bool isWide = false,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       width: isWide ? double.infinity : null,
       padding: EdgeInsets.all(18.w),
       decoration: BoxDecoration(
@@ -1117,10 +1130,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         ],
       ),
-    );
+    ),  // Container
+    );  // GestureDetector
   }
 
   // ================= TREND CHART ===================
+
 
   Widget _buildTrendChart() {
     final data = _monthlyTrend;

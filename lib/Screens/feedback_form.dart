@@ -71,7 +71,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     try {
       final body = {
         _entryName: _nameCtrl.text.trim(),
-        _entryEmail: FirebaseAuth.instance.currentUser!.email,
+        _entryEmail: FirebaseAuth.instance.currentUser?.email ?? '',
         _entryFeedback: _feedbackCtrl.text.trim(),
         _entryAppVersion: _appVersionCtrl.text.trim(),
         _entryDeviceModel:

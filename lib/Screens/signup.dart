@@ -19,7 +19,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -31,12 +31,6 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _googleSignIn.initialize();
-  }
 
   @override
   void dispose() {
@@ -102,16 +96,18 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     try {
-      await _googleSignIn.authenticate();
-      final event = await _googleSignIn.authenticationEvents.first;
-
-      if (event is! GoogleSignInAuthenticationEventSignIn) {
-        throw Exception('Google sign-in cancelled');
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        // User cancelled
+        setState(() => _isLoading = false);
+        return;
       }
 
-      final googleUser = event.user;
-      final googleAuth = googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
       final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 

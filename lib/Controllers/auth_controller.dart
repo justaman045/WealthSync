@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
@@ -13,21 +12,10 @@ class AuthController extends GetxController {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
 
   var isLoading = false.obs;
   var errorMessage = ''.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    try {
-      // Initialize Google Sign In (using dynamic to avoid strict type checks if version mismatch)
-      (_googleSignIn as dynamic).initialize();
-    } catch (e) {
-      debugPrint("Google Sign In Init Error: $e");
-    }
-  }
 
   Future<void> loginWithEmail(String email, String password) async {
     isLoading.value = true;
@@ -68,38 +56,23 @@ class AuthController extends GetxController {
     errorMessage.value = '';
 
     try {
-      // Use the API pattern from signup.dart
-      await (_googleSignIn as dynamic).authenticate();
-
-      // Wait for the sign-in event — timeout prevents infinite hang if the
-      // Google authentication event never fires (e.g. network drop after the
-      // intent is launched but before the callback arrives).
-      final Stream<dynamic> events =
-          (_googleSignIn as dynamic).authenticationEvents;
-      final event = await events.first.timeout(
-        const Duration(seconds: 30),
-        onTimeout: () => throw TimeoutException(
-          'Google Sign-In did not complete within 30 seconds.',
-        ),
-      );
-
-      // Ensure event has a user (dynamic check)
-      final googleUser = (event as dynamic).user;
-
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
+        // User cancelled the picker
         isLoading.value = false;
-        return; // User canceled
+        return;
       }
 
-      final googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await _auth.signInWithCredential(
-        credential,
-      );
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
       final user = userCredential.user;
 
       if (user != null) {
@@ -128,14 +101,7 @@ class AuthController extends GetxController {
 
   Future<void> logout() async {
     await _auth.signOut();
-    try {
-      // signOut might not be available or needed if using authenticate() flow?
-      // We'll try to call it dynamically if it exists, or just ignore.
-      // In 7.x usually signOut is still there on the instance?
-      // Inspecting signup.dart it doesn't use it.
-      // But standard GoogleSignIn usually has it.
-      await (_googleSignIn as dynamic).signOut();
-    } catch (_) {}
+    await _googleSignIn.signOut();
   }
 
   String _getFriendlyErrorMessage(FirebaseAuthException e) {

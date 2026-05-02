@@ -127,14 +127,24 @@ class _UpdatePageState extends State<UpdatePage> {
     final publishedRaw = releaseData?["published_at"] ?? "";
     final publishedDate = DateTime.tryParse(publishedRaw);
 
+    // Construct the APK URL directly from the tag — CI always uploads app-release.apk.
+    // Fall back to scanning assets only when the direct URL can't be built.
     final assets = releaseData?["assets"] as List<dynamic>? ?? [];
-    final apkAsset = assets.firstWhere(
-      (a) => (a["name"] as String? ?? '').endsWith('.apk'),
-      orElse: () => assets.isNotEmpty ? assets[0] : null,
-    );
-    final downloadUrl = apkAsset != null
-        ? apkAsset["browser_download_url"]
-        : "https://github.com/justaman045/Money_Control/releases";
+    final String downloadUrl = () {
+      if (tag != "Unknown") {
+        return "https://github.com/justaman045/Money_Control/releases/download/$tag/app-release.apk";
+      }
+      // Secondary: scan assets, explicitly skipping .aab files
+      final apkAsset = assets.firstWhere(
+        (a) {
+          final name = (a["name"] as String? ?? '').toLowerCase();
+          return name.endsWith('.apk') && !name.endsWith('.aab');
+        },
+        orElse: () => null,
+      );
+      return apkAsset?["browser_download_url"] as String? ??
+          "https://github.com/justaman045/Money_Control/releases";
+    }();
 
     final fullReleaseUrl =
         releaseData?["html_url"] ??

@@ -232,12 +232,36 @@ class SmsService {
     if (amount == 0) return null;
 
     bool isDebit = true;
-    if (lower.contains('refund')) {
+
+    // Explicit debit signals — check first so they win over ambiguous keywords
+    final hasDebitSignal = lower.contains('debited') ||
+        lower.contains('deducted') ||
+        lower.contains('withdrawn') ||
+        lower.contains('spent') ||
+        lower.contains('sent');
+
+    // Unambiguous credit signals
+    final hasCreditSignal = lower.contains('credited') ||
+        lower.contains('deposit');
+
+    if (lower.contains('refund') || lower.contains('cashback')) {
       isDebit = false;
-    } else if (lower.contains('credited') ||
-        lower.contains('received') ||
-        lower.contains('deposit')) {
+    } else if (hasDebitSignal) {
+      isDebit = true;
+    } else if (hasCreditSignal) {
       isDebit = false;
+    } else if (lower.contains('received')) {
+      // "received by MERCHANT" → debit (merchant received money from you)
+      // "received in/to/into/from" → credit (money came into your account)
+      if (lower.contains('received by')) {
+        isDebit = true;
+      } else if (lower.contains('received in') ||
+          lower.contains('received to') ||
+          lower.contains('received into') ||
+          lower.contains('received from')) {
+        isDebit = false;
+      }
+      // bare "received" with no preposition: leave as default isDebit = true
     }
 
     String merchant = 'Unknown';
