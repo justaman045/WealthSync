@@ -43,7 +43,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
   void initState() {
     super.initState();
     // Ensure BudgetController is in memory and fetch data if needed
-    final BudgetController budgetController = Get.put(BudgetController());
+    final BudgetController budgetController = Get.find<BudgetController>();
     if (budgetController.categoryBudgets.isEmpty) {
       budgetController.fetchBudgetsAndSpends();
     }

@@ -38,7 +38,7 @@ class ThemeController extends GetxController {
 class ThemeSettingsScreen extends StatelessWidget {
   ThemeSettingsScreen({super.key});
 
-  final themeController = Get.put(ThemeController());
+  final themeController = Get.find<ThemeController>();
 
   @override
   Widget build(BuildContext context) {

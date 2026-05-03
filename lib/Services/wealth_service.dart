@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Models/user_model.dart';
@@ -129,16 +131,7 @@ class WealthService {
       for (final tx in transactions) {
         if (tx.senderId == user.uid) {
           balance -= tx.amount.abs();
-          // Assuming tax is not in TransactionModel based on previous usage context,
-          // or logic should be adapted.
-          // Checking Model: TransactionModel likely has amount.
-          // If tax was separate in FireStore but not in Model, we might miss it.
-          // But existing Model usually maps all fields.
-          // Let's assume amount covers it or tax is negligible/handled.
-          // Previous code: balance -= amount; balance -= tax;
-          // Let's check if 'tax' exists in TransactionModel via previous context?
-          // I recall seeing TransactionModel source in previous turns or I can assume standard.
-          // For safety, I'll stick to amount. If tax was critical it should be in model.
+          balance -= tx.tax;
         }
         if (tx.recipientId == user.uid) {
           balance += tx.amount.abs();
@@ -233,7 +226,7 @@ class WealthService {
         insights.add({
           'type': 'info',
           'message':
-              "📈 Idle Cash? You save ~₹${avgMonthlySavings.toStringAsFixed(0)}/mo. Consider starting a new SIP of ₹${(avgMonthlySavings * 0.4).toStringAsFixed(0)}.",
+              "📈 Idle Cash? You save ~${Get.find<CurrencyController>().currencySymbol.value}${avgMonthlySavings.toStringAsFixed(0)}/mo. Consider starting a new SIP of ${Get.find<CurrencyController>().currencySymbol.value}${(avgMonthlySavings * 0.4).toStringAsFixed(0)}.",
         });
       }
 

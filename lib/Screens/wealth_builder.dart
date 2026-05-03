@@ -14,6 +14,8 @@ import 'package:flutter/rendering.dart' as rendering;
 
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
+import 'package:money_control/Controllers/loan_controller.dart';
+import 'package:money_control/Screens/loan_tracker_screen.dart';
 import 'package:get/get.dart';
 
 class WealthBuilderScreen extends StatefulWidget {
@@ -49,9 +51,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       final TransactionController txController = Get.find();
       final ProfileController profileController = Get.find();
 
-      // Wait briefly if transactions are still streaming in
+      // Wait for transactions to finish loading before computing portfolio
       if (txController.isLoading.value) {
-        await Future.delayed(const Duration(milliseconds: 800));
+        await Future.any([
+          txController.isLoading.stream.firstWhere((loading) => !loading),
+          Future.delayed(const Duration(seconds: 5)),
+        ]);
       }
 
       final p = await WealthService.getPortfolio();
@@ -318,7 +323,22 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     add("ETFs", p.etf, 'etf', Icons.stacked_line_chart, Colors.cyan);
     add("REITs", p.reit, 'reit', Icons.apartment, Colors.tealAccent.shade700);
     add("P2P Lending", p.p2p, 'p2p', Icons.people_alt, Colors.lime);
-    add("Loans / Liabilities", p.loans, 'loans', Icons.money_off, Colors.red);
+    if (!p.hiddenKeys.contains('loans')) {
+      final loanController = LoanController.to;
+      final loanCount = loanController.loans.length;
+      children.add(_assetCard(
+        "Loans / Liabilities",
+        loanController.totalOutstanding,
+        'loans',
+        Icons.money_off,
+        Colors.red,
+        scheme,
+        secondaryLabel: loanCount > 0
+            ? "$loanCount loan${loanCount > 1 ? 's' : ''}"
+            : null,
+        onTapOverride: () => Get.to(() => const LoanTrackerScreen()),
+      ));
+    }
 
     return GridView.count(
       crossAxisCount: 2,
@@ -342,6 +362,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     bool readOnly = false,
     String? secondaryLabel,
     double? secondaryValue,
+    VoidCallback? onTapOverride,
   }) {
     final currencyCode = CurrencyController.to.currencyCode.value;
     final symbol = CurrencyController.to.currencySymbol.value;
@@ -359,7 +380,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     return GestureDetector(
       // Allow tap even if readOnly (Bank) to update TARGET
-      onTap: () => _showUpdateDialog(title, key, amount, readOnly: readOnly),
+      onTap: onTapOverride ?? () => _showUpdateDialog(title, key, amount, readOnly: readOnly),
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
@@ -941,7 +962,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       });
 
       // Liabilities (Subtract)
-      if (!hidden.contains('loans')) total -= p.loans;
+      if (!hidden.contains('loans')) total -= LoanController.to.totalOutstanding;
     }
 
     final symbol = CurrencyController.to.currencySymbol.value;

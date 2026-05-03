@@ -21,6 +21,8 @@ import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/loan_controller.dart';
+import 'package:money_control/Services/recurring_service.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -43,6 +45,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // Restored State Variables
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
+  Worker? _txWorker;
   int _touchedIndex = -1;
   final GlobalKey _keyChart = GlobalKey();
   final ScreenshotController _screenshotController = ScreenshotController();
@@ -63,6 +66,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   ];
 
   String? _categoryFilter;
+  int _calendarMonthOffset = 0;
+  Map<int, List<String>> _calendarDayEvents = {};
 
   List<TransactionModel>? _filteredCache;
   String? _filteredCachePeriod;
@@ -79,10 +84,63 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       TutorialController.showAnalyticsTutorial(context, keyChart: _keyChart);
     });
+    _loadCalendarEvents();
+    // Re-run event detection whenever transaction data updates from the stream
+    _txWorker = ever(_transactionController.transactions, (_) {
+      if (mounted) _loadCalendarEvents();
+    });
+  }
+
+  Future<void> _loadCalendarEvents() async {
+    final now = DateTime.now();
+    final displayMonth = DateTime(now.year, now.month + _calendarMonthOffset, 1);
+    final daysInMonth = DateTime(displayMonth.year, displayMonth.month + 1, 0).day;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+
+    final Map<int, List<String>> events = {};
+
+    // Salary: largest income credit in the displayed month
+    double maxCredit = 0;
+    int? salaryDay;
+    for (final tx in _transactionController.transactions) {
+      if (tx.recipientId != currentUid) continue;
+      if (tx.date.year != displayMonth.year || tx.date.month != displayMonth.month) continue;
+      if (tx.amount.abs() > maxCredit) {
+        maxCredit = tx.amount.abs();
+        salaryDay = tx.date.day;
+      }
+    }
+    if (salaryDay != null && maxCredit > 0) {
+      events[salaryDay] = [...(events[salaryDay] ?? []), 'salary'];
+    }
+
+    // Loan EMI days from startDate day-of-month
+    try {
+      for (final loan in LoanController.to.loans) {
+        final day = loan.startDate.day.clamp(1, daysInMonth);
+        events[day] = [...(events[day] ?? []), 'emi'];
+      }
+    } catch (_) {}
+
+    // Recurring payments (async stream) — use startDate day-of-month so
+    // dots appear on the correct day for any displayed month, not just next due month
+    try {
+      final payments = await RecurringService().getPayments().first;
+      final lastDayOfDisplay = DateTime(displayMonth.year, displayMonth.month + 1, 0);
+      for (final p in payments) {
+        if (!p.isActive) continue;
+        if (p.startDate.isAfter(lastDayOfDisplay)) continue;
+        final day = p.startDate.day.clamp(1, daysInMonth);
+        events[day] = [...(events[day] ?? []), 'bill'];
+      }
+    } catch (_) {}
+
+    if (mounted) setState(() => _calendarDayEvents = events);
   }
 
   @override
   void dispose() {
+    _txWorker?.dispose();
     _isBottomBarVisible.dispose();
     super.dispose();
   }
@@ -311,7 +369,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       "Nov",
       "Dec",
     ];
-    return list[m - 1];
+    return list[(m - 1).clamp(0, 11)];
   }
 
   // ---------------- EXPORT --------------------------
@@ -494,14 +552,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             }
             return true;
           },
-          child: _loading
+          child: Obx(() => _loading
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
                 )
               : Screenshot(
                   controller: _screenshotController,
                   child: _buildBody(),
-                ),
+                )),
         ),
       ),
     );
@@ -1660,20 +1718,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
     final now = DateTime.now();
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final displayMonth = DateTime(now.year, now.month + _calendarMonthOffset, 1);
+    final daysInMonth = DateTime(displayMonth.year, displayMonth.month + 1, 0).day;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final sym = CurrencyController.to.currencySymbol.value;
 
-    // Build daily spend map for this month
+    // Build daily spend map for the displayed month
     final Map<int, double> daySpend = {};
-    for (final tx in _filtered) {
+    for (final tx in _transactionController.transactions) {
       if (tx.senderId != uid) continue;
-      if (tx.date.year != now.year || tx.date.month != now.month) continue;
+      if (tx.date.year != displayMonth.year || tx.date.month != displayMonth.month) continue;
       daySpend[tx.date.day] = (daySpend[tx.date.day] ?? 0) + tx.amount.abs();
     }
     final maxSpend = daySpend.values.fold(0.0, (a, b) => b > a ? b : a);
-    // Sun=0, Mon=1, …, Sat=6
-    final firstDayOffset = DateTime(now.year, now.month, 1).weekday % 7;
+    final firstDayOffset = displayMonth.weekday % 7; // Sun=0
+
+    final dayEvents = _calendarDayEvents;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -1684,9 +1745,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Spending Heatmap',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          // Month navigation header
+          Row(
+            children: [
+              Text(
+                'Spending Heatmap',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  setState(() => _calendarMonthOffset--);
+                  _loadCalendarEvents();
+                },
+                child: Icon(Icons.chevron_left, size: 22.sp, color: theme.textTheme.bodySmall?.color),
+              ),
+              SizedBox(width: 4.w),
+              Text(
+                DateFormat('MMM yyyy').format(displayMonth),
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color),
+              ),
+              SizedBox(width: 4.w),
+              GestureDetector(
+                onTap: _calendarMonthOffset < 0
+                    ? () {
+                        setState(() => _calendarMonthOffset++);
+                        _loadCalendarEvents();
+                      }
+                    : null,
+                child: Icon(
+                  Icons.chevron_right,
+                  size: 22.sp,
+                  color: _calendarMonthOffset < 0
+                      ? theme.textTheme.bodySmall?.color
+                      : Colors.white24,
+                ),
+              ),
+            ],
           ),
           SizedBox(height: 12.h),
           Row(
@@ -1713,6 +1808,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               crossAxisCount: 7,
               crossAxisSpacing: 4.w,
               mainAxisSpacing: 4.h,
+              childAspectRatio: 0.85,
             ),
             itemCount: firstDayOffset + daysInMonth,
             itemBuilder: (context, index) {
@@ -1720,54 +1816,101 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               final day = index - firstDayOffset + 1;
               final spend = daySpend[day] ?? 0;
               final intensity = maxSpend > 0 ? (spend / maxSpend) : 0.0;
-              final color = spend == 0
+              final bgColor = spend == 0
                   ? Colors.green.withValues(alpha: 0.08)
-                  : Color.lerp(
-                      Colors.green.shade200,
-                      Colors.green.shade900,
-                      intensity,
-                    )!;
-              return Tooltip(
-                message: 'Day $day: ${CurrencyController.to.currencySymbol.value}${spend.toStringAsFixed(0)}',
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(4.r),
-                    border: Border.all(
-                      color: day == now.day
-                          ? const Color(0xFF00E5FF)
-                          : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$day',
-                      style: TextStyle(
-                        fontSize: 9.sp,
-                        color: intensity > 0.6 ? Colors.white : theme.textTheme.bodySmall?.color,
-                        fontWeight: FontWeight.w500,
+                  : Color.lerp(Colors.green.shade200, Colors.green.shade900, intensity)!;
+              final isToday = _calendarMonthOffset == 0 && day == now.day;
+              final events = dayEvents[day] ?? [];
+              final hasSalary = events.contains('salary');
+              final hasBill = events.contains('bill') || events.contains('emi');
+
+              return GestureDetector(
+                onTap: () {
+                  final date = DateTime(displayMonth.year, displayMonth.month, day);
+                  Get.to(() => TransactionHistoryScreen(filterDate: date));
+                },
+                child: Tooltip(
+                  message: '$sym${spend.toStringAsFixed(0)}',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(4.r),
+                      border: Border.all(
+                        color: isToday ? const Color(0xFF00E5FF) : Colors.transparent,
+                        width: 1.5,
                       ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$day',
+                          style: TextStyle(
+                            fontSize: 8.sp,
+                            color: intensity > 0.6 ? Colors.white : theme.textTheme.bodySmall?.color,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (hasSalary || hasBill)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (hasSalary)
+                                Container(
+                                  width: 4.w,
+                                  height: 4.w,
+                                  margin: EdgeInsets.only(right: 1.w),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.cyanAccent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              if (hasBill)
+                                Container(
+                                  width: 4.w,
+                                  height: 4.w,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.amber,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                            ],
+                          ),
+                      ],
                     ),
                   ),
                 ),
               );
             },
           ),
-          SizedBox(height: 8.h),
-          Row(
+          SizedBox(height: 10.h),
+          Wrap(
+            spacing: 12.w,
+            runSpacing: 4.h,
             children: [
-              Container(width: 12.w, height: 12.w, decoration: BoxDecoration(color: Colors.green.shade200, borderRadius: BorderRadius.circular(2.r))),
-              SizedBox(width: 4.w),
-              Text('Low', style: TextStyle(fontSize: 10.sp, color: theme.textTheme.bodySmall?.color)),
-              SizedBox(width: 12.w),
-              Container(width: 12.w, height: 12.w, decoration: BoxDecoration(color: Colors.green.shade900, borderRadius: BorderRadius.circular(2.r))),
-              SizedBox(width: 4.w),
-              Text('High', style: TextStyle(fontSize: 10.sp, color: theme.textTheme.bodySmall?.color)),
+              _heatmapLegend(Colors.green.shade200, 'Low spend'),
+              _heatmapLegend(Colors.green.shade900, 'High spend'),
+              _heatmapLegend(Colors.cyanAccent, 'Salary'),
+              _heatmapLegend(Colors.amber, 'Bill/EMI due'),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _heatmapLegend(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10.w,
+          height: 10.w,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2.r)),
+        ),
+        SizedBox(width: 4.w),
+        Text(label, style: TextStyle(fontSize: 10.sp, color: Theme.of(context).textTheme.bodySmall?.color)),
+      ],
     );
   }
 
@@ -1992,7 +2135,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         return (
           label: 'Big Spender',
           emoji: '💸',
-          description: 'Your average transaction is over ₹5,000 — you go big.',
+          description: 'Your average transaction is over ${CurrencyController.to.currencySymbol.value}5,000 — you go big.',
           color: const Color(0xFFFF5252),
         );
       }

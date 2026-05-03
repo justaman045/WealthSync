@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Services/category_service.dart';
 
 class AutoTagRulesScreen extends StatefulWidget {
   const AutoTagRulesScreen({super.key});
@@ -11,9 +12,9 @@ class AutoTagRulesScreen extends StatefulWidget {
 }
 
 class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
-  // Merged rules: category → keywords (default + user custom)
   Map<String, List<String>> _rules = {};
   Map<String, List<String>> _userRules = {};
+  List<Map<String, dynamic>> _suggestions = [];
   bool _loading = true;
 
   @override
@@ -26,25 +27,42 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
     final userRules = await SmsService.loadUserCustomRules();
     final merged = <String, List<String>>{};
 
-    // Start with defaults
     SmsService.defaultRules.forEach((cat, keywords) {
       merged[cat] = List<String>.from(keywords);
     });
-
-    // Merge user rules
     userRules.forEach((cat, keywords) {
       merged[cat] = [...(merged[cat] ?? []), ...keywords];
     });
 
+    final suggestions = await CategoryService.getPendingSuggestions();
+
     setState(() {
       _rules = merged;
       _userRules = userRules;
+      _suggestions = suggestions;
       _loading = false;
     });
   }
 
   Future<void> _save() async {
     await SmsService.saveUserCustomRules(_userRules);
+  }
+
+  Future<void> _acceptSuggestion(Map<String, dynamic> suggestion) async {
+    final merchant = suggestion['merchant'] as String;
+    final category = suggestion['category'] as String;
+    setState(() {
+      _userRules[category] = [...(_userRules[category] ?? []), merchant];
+      _rules[category] = [...(_rules[category] ?? []), merchant];
+      _suggestions.removeWhere((s) => s['merchant'] == merchant);
+    });
+    await _save();
+    await CategoryService.removeSuggestion(merchant);
+  }
+
+  Future<void> _dismissSuggestion(String merchant) async {
+    setState(() => _suggestions.removeWhere((s) => s['merchant'] == merchant));
+    await CategoryService.removeSuggestion(merchant);
   }
 
   bool _isDefault(String category, String keyword) {
@@ -192,6 +210,69 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
+                  if (_suggestions.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Suggested Rules",
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.secondary,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          ..._suggestions.map((s) {
+                            final merchant = s['merchant'] as String;
+                            final category = s['category'] as String;
+                            final count = s['count'] as int;
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 8.h),
+                              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(color: AppColors.secondary.withValues(alpha: 0.25)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          merchant.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        Text(
+                                          "Categorized as $category ($count times)",
+                                          style: TextStyle(fontSize: 11.sp, color: Colors.white60),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => _acceptSuggestion(s),
+                                    child: Text("Add Rule", style: TextStyle(fontSize: 12.sp, color: AppColors.secondary)),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => _dismissSuggestion(merchant),
+                                    child: Icon(Icons.close, size: 16.sp, color: Colors.white38),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
                     child: Container(

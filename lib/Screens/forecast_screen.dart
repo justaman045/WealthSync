@@ -37,12 +37,13 @@ class ForecastScreen extends StatelessWidget {
       "November",
       "December",
     ];
+    if (monthNum < 1 || monthNum > 12) return '';
     return months[monthNum - 1];
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AnalyticsController());
+    final controller = Get.find<AnalyticsController>();
 
     DateTime now = DateTime.now();
     String currentMonthYear = "${_monthName(now.month)} ${now.year}";

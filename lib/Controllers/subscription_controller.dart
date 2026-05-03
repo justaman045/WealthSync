@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,11 +16,14 @@ class SubscriptionController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  StreamSubscription? _statusSub;
+  StreamSubscription? _authSub;
+
   Rx<SubscriptionStatus> subscriptionStatus = SubscriptionStatus.free.obs;
   RxBool isAdmin = false.obs;
   Rx<DateTime?> expiryDate = Rx<DateTime?>(null);
   Rx<DateTime?> trialEndDate = Rx<DateTime?>(null);
-  RxBool trialUsed = false.obs; // true once trial has been created (even if expired)
+  RxBool trialUsed = false.obs;
   RxString planType = ''.obs;
 
   bool get isTrial {
@@ -29,10 +33,15 @@ class SubscriptionController extends GetxController {
         DateTime.now().isBefore(end);
   }
 
+  bool get trialActive {
+    final end = trialEndDate.value;
+    return end != null && DateTime.now().isBefore(end);
+  }
+
   int get daysLeftInTrial {
     final end = trialEndDate.value;
     if (end == null) return 0;
-    return end.difference(DateTime.now()).inDays.clamp(0, 7);
+    return end.difference(DateTime.now()).inDays.clamp(0, 30);
   }
 
   bool get isPro =>
@@ -45,10 +54,19 @@ class SubscriptionController extends GetxController {
     checkSubscriptionStatus();
   }
 
+  @override
+  void onClose() {
+    _statusSub?.cancel();
+    _authSub?.cancel();
+    super.onClose();
+  }
+
   void checkSubscriptionStatus() {
+    _statusSub?.cancel();
+    _statusSub = null;
     final user = _auth.currentUser;
     if (user != null) {
-      _firestore.collection('users').doc(user.email).snapshots().listen((
+      _statusSub = _firestore.collection('users').doc(user.email).snapshots().listen((
         snapshot,
       ) async {
         if (snapshot.exists) {
@@ -77,12 +95,14 @@ class SubscriptionController extends GetxController {
             if (!adminFlag &&
                 newStatus == SubscriptionStatus.pro &&
                 data.containsKey('expiryDate')) {
-              final expiry = (data['expiryDate'] as Timestamp).toDate();
-              expiryDate.value = expiry;
-              if (DateTime.now().isAfter(expiry)) {
-                newStatus = SubscriptionStatus.free;
-                expiryDate.value = null;
-                _expireSubscription(user.email!);
+              final expiry = (data['expiryDate'] as Timestamp?)?.toDate();
+              if (expiry != null) {
+                expiryDate.value = expiry;
+                if (DateTime.now().isAfter(expiry)) {
+                  newStatus = SubscriptionStatus.free;
+                  expiryDate.value = null;
+                  _expireSubscription(user.email!);
+                }
               }
             } else if (!adminFlag) {
               expiryDate.value = null;
@@ -91,7 +111,9 @@ class SubscriptionController extends GetxController {
             // Trial: initialize on first load; read on subsequent
             if (!adminFlag && newStatus == SubscriptionStatus.free) {
               if (!data.containsKey('trialEndDate')) {
-                final trialEnd = DateTime.now().add(const Duration(days: 7));
+                final isReferred = data.containsKey('referredBy') && data['referredBy'] != null;
+                final trialDays = isReferred ? 30 : 7;
+                final trialEnd = DateTime.now().add(Duration(days: trialDays));
                 trialEndDate.value = trialEnd;
                 trialUsed.value = true;
                 _firestore.collection('users').doc(user.email).set({
@@ -99,8 +121,8 @@ class SubscriptionController extends GetxController {
                 }, SetOptions(merge: true));
               } else {
                 trialUsed.value = true; // field exists → trial was started at some point
-                final end = (data['trialEndDate'] as Timestamp).toDate();
-                trialEndDate.value = DateTime.now().isBefore(end) ? end : null;
+                final end = (data['trialEndDate'] as Timestamp?)?.toDate();
+                trialEndDate.value = (end != null && DateTime.now().isBefore(end)) ? end : null;
               }
             } else {
               trialEndDate.value = null;
@@ -132,7 +154,7 @@ class SubscriptionController extends GetxController {
       subscriptionStatus.value = SubscriptionStatus.free;
       isAdmin.value = false;
       expiryDate.value = null;
-      _auth.authStateChanges().listen((user) {
+      _authSub = _auth.authStateChanges().listen((user) {
         if (user != null) {
           checkSubscriptionStatus();
         } else {

@@ -25,12 +25,9 @@ class _BalanceCardState extends State<BalanceCard> {
   final PrivacyController _privacyController = Get.find<PrivacyController>();
   final TransactionController _transactionController =
       Get.find<TransactionController>();
-  final LentMoneyController _lentMoneyController = Get.put(
-    LentMoneyController(),
-  );
-  final RecurringPaymentController _recurringPaymentController = Get.put(
-    RecurringPaymentController(),
-  );
+  final LentMoneyController _lentMoneyController = Get.find<LentMoneyController>();
+  final RecurringPaymentController _recurringPaymentController =
+      Get.find<RecurringPaymentController>();
   final RxBool _includeLentMoney = false.obs;
   final RxBool _subtractSubscriptions = false.obs;
 

@@ -46,7 +46,7 @@ class NotificationService {
     );
 
     await _notificationsPlugin.show(
-      DateTime.now().millisecondsSinceEpoch % 100000, // unique id
+      DateTime.now().microsecondsSinceEpoch % 2147483647, // unique id
       title,
       body,
       platformChannelSpecifics,

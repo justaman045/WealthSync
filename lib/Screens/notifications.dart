@@ -13,7 +13,6 @@ class NotificationsScreen extends StatelessWidget {
   }
 
   @override
-  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -108,7 +107,7 @@ class NotificationsScreen extends StatelessWidget {
                 separatorBuilder: (_, __) => SizedBox(height: 16.h),
                 itemBuilder: (context, index) {
                   final doc = docs[index];
-                  final data = doc.data()! as Map<String, dynamic>;
+                  final data = doc.data() as Map<String, dynamic>;
 
                   final title = data['title'] ?? "Notification";
                   final body = data['body'] ?? "";

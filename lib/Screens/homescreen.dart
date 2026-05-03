@@ -23,6 +23,7 @@ import 'package:money_control/Screens/transaction_search.dart';
 import 'package:money_control/Screens/recurring_payments_screen.dart';
 import 'package:money_control/Screens/lent_money_screen.dart';
 import 'package:money_control/Screens/goals_screen.dart';
+import 'package:money_control/Screens/savings_challenges_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // 🔥 import background worker
@@ -162,18 +163,12 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   if (userModel == null) {
                     return shimmerText(theme);
                   }
+                  final displayName = FirebaseAuth.instance.currentUser?.displayName;
                   return Text(
-                    userModel.firstName != null &&
-                            userModel.firstName!.isNotEmpty
+                    (userModel.firstName != null && userModel.firstName!.isNotEmpty)
                         ? userModel.firstName!
-                        : (FirebaseAuth.instance.currentUser?.displayName !=
-                                      null &&
-                                  FirebaseAuth
-                                      .instance
-                                      .currentUser!
-                                      .displayName!
-                                      .isNotEmpty
-                              ? FirebaseAuth.instance.currentUser!.displayName!
+                        : (displayName != null && displayName.isNotEmpty
+                              ? displayName
                               : 'User'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -266,6 +261,14 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
               color: Colors.amberAccent,
+            ),
+            SizedBox(width: 4.w),
+            // 🏆 CHALLENGES BUTTON
+            _buildActionButton(
+              icon: Icons.emoji_events_outlined,
+              onTap: () => gotoPage(const SavingsChallengesScreen()),
+              theme: theme,
+              color: Colors.greenAccent,
             ),
             SizedBox(width: 6.w),
           ],

@@ -159,6 +159,8 @@ class _ExportImportPageState extends State<ExportImportPage> {
           var row = rows[i];
           if (row.isEmpty) continue;
 
+          if (row.length < 11) continue;
+
           String id = row[0].toString();
           if (id.isEmpty) {
             id = FirebaseFirestore.instance.collection('users').doc().id;

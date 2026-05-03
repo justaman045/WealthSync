@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:money_control/Screens/homescreen.dart';
 
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/referral_service.dart';
 
 class AuthController extends GetxController {
   static AuthController get to => Get.find();
@@ -94,9 +95,11 @@ class AuthController extends GetxController {
   Future<void> _updateUserData(User user, String provider) async {
     await _firestore.collection('users').doc(user.email).set({
       'email': user.email,
+      'uid': user.uid,
       'provider': provider,
       'lastLogin': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    await ReferralService.ensureReferralCode();
   }
 
   Future<void> logout() async {

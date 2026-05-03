@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
+import 'package:money_control/Services/category_service.dart';
 
 class SmsTransaction {
   final String sender;
@@ -31,6 +32,9 @@ class SmsService {
 
   Map<String, List<String>> _currentRules = {};
   bool _rulesLoaded = false;
+
+  // Merchant → category corrections learned from user edits (loaded on initRules)
+  static Map<String, String> _correctionCache = {};
 
   // Default rules — also exposed statically so BackgroundWorker can use them without an instance
   static const Map<String, List<String>> defaultRules = {
@@ -186,6 +190,10 @@ class SmsService {
           return entry.key;
         }
       }
+    }
+    // Fall back to user-correction cache before giving up
+    if (_correctionCache.containsKey(lowerMerchant)) {
+      return _correctionCache[lowerMerchant]!;
     }
     return 'Uncategorized';
   }
@@ -369,6 +377,12 @@ class SmsService {
       userRules.forEach((key, keywords) {
         _currentRules[key] = [...(_currentRules[key] ?? []), ...keywords];
       });
+      // Load correction cache for merchant-level fallback
+      final corrections = await CategoryService.getPendingSuggestions();
+      _correctionCache = {
+        for (final s in corrections)
+          (s['merchant'] as String).toLowerCase(): s['category'] as String,
+      };
       _rulesLoaded = true;
     } catch (e) {
       log("Error initializing rules: $e");

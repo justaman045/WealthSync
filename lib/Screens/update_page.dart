@@ -140,7 +140,7 @@ class _UpdatePageState extends State<UpdatePage> {
           final name = (a["name"] as String? ?? '').toLowerCase();
           return name.endsWith('.apk') && !name.endsWith('.aab');
         },
-        orElse: () => null,
+        orElse: () => <String, dynamic>{},
       );
       return apkAsset?["browser_download_url"] as String? ??
           "https://github.com/justaman045/Money_Control/releases";

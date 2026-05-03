@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Screens/homescreen.dart';
+import 'package:money_control/Services/referral_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:confetti/confetti.dart';
@@ -21,6 +22,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _budgetController = TextEditingController();
+  final _referralController = TextEditingController();
   late ConfettiController _confettiController;
   String _selectedCurrency = '₹';
   String? _userName;
@@ -41,6 +43,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void dispose() {
     _confettiController.dispose();
     _budgetController.dispose();
+    _referralController.dispose();
     super.dispose();
   }
 
@@ -71,13 +74,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               'is_onboarded': true,
             }, SetOptions(merge: true));
 
-        // 2. Save to SharedPreferences for local check
+        // 2. Apply referral code if provided
+        final referralCode = _referralController.text.trim();
+        if (referralCode.isNotEmpty) {
+          await ReferralService.applyReferralCode(referralCode);
+        }
+
+        // 3. Save to SharedPreferences for local check
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_onboarded', true);
         await prefs.setString('currency_symbol', _selectedCurrency);
       }
 
-      // 3. Play Confetti & Navigate Home
+      // 4. Play Confetti & Navigate Home
       _confettiController.play();
       await Future.delayed(const Duration(seconds: 1)); // Wait a bit for effect
 
@@ -243,6 +252,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 }
                                 return null;
                               },
+                            ),
+                          ),
+                          SizedBox(height: 24.h),
+
+                          // Step 3: Referral Code (optional)
+                          Text(
+                            "Referral Code (Optional)",
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            "Have a friend's code? Get 1 month free!",
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 13.sp,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          SizedBox(height: 10.h),
+                          GlassContainer(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 8.h,
+                            ),
+                            child: TextFormField(
+                              controller: _referralController,
+                              textCapitalization: TextCapitalization.characters,
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 2,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                hintText: "e.g. AMAN05",
+                                hintStyle: TextStyle(
+                                  color: textColor.withValues(alpha: 0.4),
+                                  fontWeight: FontWeight.normal,
+                                  letterSpacing: 1,
+                                ),
+                                filled: false,
+                              ),
                             ),
                           ),
                         ],

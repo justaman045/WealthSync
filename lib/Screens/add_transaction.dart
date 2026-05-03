@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
@@ -31,9 +30,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final TransactionController _transactionController = Get.put(
-    TransactionController(),
-  );
+  final TransactionController _transactionController = Get.find<TransactionController>();
   final TextEditingController _amount = TextEditingController();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _note = TextEditingController();
@@ -47,6 +44,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String? selectedCategory;
   String _categoryQuery = '';
   DateTime selectedDate = DateTime.now();
+  Worker? _categoryAutoSelectWorker;
 
   @override
   void initState() {
@@ -55,6 +53,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Initialize selected category if passed from widget
     if (widget.cateogary != null) {
       selectedCategory = widget.cateogary;
+    }
+
+    // Auto-select first category once when categories load — not inside Obx
+    if (selectedCategory == null) {
+      if (_transactionController.categories.isNotEmpty) {
+        selectedCategory = _transactionController.categories.first.name;
+      } else {
+        _categoryAutoSelectWorker = ever(_transactionController.categories, (cats) {
+          if (cats.isNotEmpty && selectedCategory == null && mounted) {
+            setState(() => selectedCategory = cats.first.name);
+            _categoryAutoSelectWorker?.dispose();
+            _categoryAutoSelectWorker = null;
+          }
+        });
+      }
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,6 +81,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   void dispose() {
+    _categoryAutoSelectWorker?.dispose();
     _confettiController.dispose();
     _categorySearch.dispose();
     super.dispose();
@@ -501,15 +515,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return Obx(() {
       final categories = _transactionController.categories;
 
-      // Auto-select first category if none selected and categories exist
-      if (selectedCategory == null && categories.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && selectedCategory == null) {
-            setState(() => selectedCategory = categories.first.name);
-          }
-        });
-      }
-
       final filteredCats = _categoryQuery.isEmpty
           ? categories
           : categories.where(
@@ -731,9 +736,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  // Platform channel for UPI — uses startActivityForResult so we get the result back
+  static const _upiChannel = MethodChannel('money_control/upi');
+
+  static const _upiApps = [
+    (name: 'GPay',    pkg: 'com.google.android.apps.nbu.paisa.user', icon: 'G', color: Color(0xFF4285F4)),
+    (name: 'PhonePe', pkg: 'com.phonepe.app',                        icon: 'P', color: Color(0xFF5F259F)),
+    (name: 'Paytm',   pkg: 'net.one97.paytm',                        icon: 'P', color: Color(0xFF002970)),
+    (name: 'BHIM',    pkg: 'in.org.npci.upiapp',                     icon: 'B', color: Color(0xFF0033A0)),
+    (name: 'CRED',    pkg: 'com.dreamplug.androidapp',               icon: 'C', color: Color(0xFF1A1A2E)),
+    (name: 'Any UPI', pkg: null,                                      icon: 'U', color: AppColors.primary),
+  ];
+
   Widget _upiPayButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showUpiAppsSheet(context),
+      onTap: () => _showUpiAppSelector(context),
       child: Container(
         width: double.infinity,
         height: 50.h,
@@ -746,10 +763,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.account_balance_wallet_outlined, color: AppColors.primary, size: 18.sp),
+            Icon(Icons.qr_code_scanner, color: AppColors.primary, size: 18.sp),
             SizedBox(width: 8.w),
             Text(
-              "Pay with UPI App",
+              "Scan & Pay with UPI",
               style: TextStyle(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w600,
@@ -762,35 +779,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Future<void> _showUpiAppsSheet(BuildContext context) async {
+  Future<void> _showUpiAppSelector(BuildContext context) async {
     final amount = double.tryParse(_amount.text.replaceAll(',', '')) ?? 0;
-    final name = _name.text.trim();
-    final note = _note.text.trim().isEmpty ? "Payment" : _note.text.trim();
-
     if (amount <= 0) {
       ErrorHandler.showError("Enter amount before paying via UPI.");
       return;
     }
-
+    final sym      = CurrencyController.to.currencySymbol.value;
+    final name     = _name.text.trim();
     final amountStr = amount.toStringAsFixed(2);
-
-    // All possible UPI apps: check which are installed via minimal scheme URI
-    final candidates = [
-      (name: "GPay",    scheme: "tez",      icon: "G", color: const Color(0xFF4285F4)),
-      (name: "PhonePe", scheme: "phonepe",  icon: "P", color: const Color(0xFF5F259F)),
-      (name: "Paytm",   scheme: "paytmmp",  icon: "P", color: const Color(0xFF002970)),
-      (name: "CRED",    scheme: "cred",     icon: "C", color: const Color(0xFF1A1A2E)),
-      (name: "BHIM",    scheme: "bhim",     icon: "B", color: const Color(0xFF0033A0)),
-    ];
-
-    final available = <({String name, String scheme, String icon, Color color})>[];
-    for (final app in candidates) {
-      if (await canLaunchUrl(Uri.parse('${app.scheme}://'))) {
-        available.add(app);
-      }
-    }
-    // Always include generic UPI as the last option
-    available.add((name: "Any UPI App", scheme: "upi", icon: "U", color: AppColors.primary));
 
     if (!context.mounted) return;
 
@@ -798,7 +795,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF1E1E2C),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
       builder: (_) => SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 16.h),
@@ -806,45 +805,70 @@ class _PaymentScreenState extends State<PaymentScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Choose UPI App", style: TextStyle(color: Colors.white, fontSize: 17.sp, fontWeight: FontWeight.w700)),
+              Text(
+                "Choose UPI App",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               SizedBox(height: 4.h),
               Text(
-                name.isEmpty ? "₹$amountStr" : "Pay ₹$amountStr to $name",
+                name.isEmpty ? "$sym$amountStr" : "Pay $sym$amountStr to $name",
                 style: TextStyle(color: Colors.white60, fontSize: 13.sp),
               ),
               SizedBox(height: 16.h),
-              ...available.map((app) => Padding(
+              ..._upiApps.map((app) => Padding(
                 padding: EdgeInsets.only(bottom: 10.h),
                 child: GestureDetector(
-                  onTap: () async {
+                  onTap: () {
                     Navigator.pop(context);
-                    await _launchUpi(
-                      scheme: app.scheme,
-                      payeeName: name.isEmpty ? "Recipient" : name,
-                      amount: amountStr,
-                      note: note,
-                    );
+                    _initiateUpiPayment(appName: app.name, packageName: app.pkg);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(14.r),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Container(
                           width: 34.w,
                           height: 34.w,
-                          decoration: BoxDecoration(color: app.color, borderRadius: BorderRadius.circular(8.r)),
+                          decoration: BoxDecoration(
+                            color: app.color,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
                           alignment: Alignment.center,
-                          child: Text(app.icon, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.sp)),
+                          child: Text(
+                            app.icon,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.sp,
+                            ),
+                          ),
                         ),
                         SizedBox(width: 14.w),
-                        Text(app.name, style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w500)),
+                        Text(
+                          app.name,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                         const Spacer(),
-                        Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14.sp),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white24,
+                          size: 14.sp,
+                        ),
                       ],
                     ),
                   ),
@@ -857,38 +881,163 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Future<void> _launchUpi({
-    required String scheme,
-    required String payeeName,
-    required String amount,
-    required String note,
+  Future<void> _initiateUpiPayment({
+    required String appName,
+    String? packageName,
   }) async {
-    // Build UPI URL — payee VPA must be filled by user in the UPI app
-    // GPay (tez) uses tez://upi/pay?... — all others use <scheme>://pay?...
-    final uri = Uri(
-      scheme: scheme,
-      host: scheme == "tez" ? "upi" : "pay",
-      path: scheme == "tez" ? "/pay" : "",
-      queryParameters: {
-        'pn': payeeName,
-        'am': amount,
-        'cu': 'INR',
-        'tn': note,
-      },
-    );
+    final amount    = double.tryParse(_amount.text.replaceAll(',', '')) ?? 0;
+    final payeeName = _name.text.trim().isEmpty ? 'Recipient' : _name.text.trim();
+    final note      = _note.text.trim().isEmpty ? 'Payment' : _note.text.trim();
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      // Fallback to generic UPI intent
-      final fallback = Uri.parse(
-        'upi://pay?pn=${Uri.encodeComponent(payeeName)}&am=$amount&cu=INR&tn=${Uri.encodeComponent(note)}',
-      );
-      if (await canLaunchUrl(fallback)) {
-        await launchUrl(fallback, mode: LaunchMode.externalApplication);
+    try {
+      final response = await _upiChannel.invokeMethod<String>('pay', {
+        if (packageName != null) 'packageName': packageName,
+        'amount':    amount.toStringAsFixed(2),
+        'payeeName': payeeName,
+        'note':      note,
+      });
+      _handleUpiResponse(response ?? '', appName);
+    } on PlatformException catch (e) {
+      if (e.code == 'APP_NOT_FOUND' && packageName != null) {
+        // Specific app not installed — retry with Android system UPI chooser
+        await _initiateUpiPayment(appName: 'UPI', packageName: null);
       } else {
-        ErrorHandler.showError("${scheme == "upi" ? "No" : "This"} UPI app found. Please install GPay, PhonePe or Paytm.");
+        ErrorHandler.showError(
+          'No UPI app found. Please install GPay, PhonePe or Paytm.',
+        );
       }
     }
   }
+
+  void _handleUpiResponse(String response, String appName) {
+    if (response.isEmpty) return; // user pressed back — cancelled silently
+
+    // Response is a query-string: "Status=SUCCESS&txnId=XXX&txnRef=YYY&..."
+    final params = Map.fromEntries(
+      response.split('&').where((s) => s.contains('=')).map((kv) {
+        final i = kv.indexOf('=');
+        return MapEntry(kv.substring(0, i).toLowerCase(), kv.substring(i + 1));
+      }),
+    );
+
+    final status      = (params['status'] ?? '').toUpperCase();
+    final txnId       = params['txnid'] ?? params['txnref'] ?? '';
+    final approvalRef = params['approvalrefno'] ?? '';
+
+    if (status == 'SUCCESS' || status == 'SUBMITTED') {
+      _showUpiResultDialog(
+        appName: appName,
+        txnId: txnId,
+        approvalRef: approvalRef,
+        pending: status == 'SUBMITTED',
+      );
+    } else {
+      ErrorHandler.showError(
+        'Payment ${status.isEmpty ? "failed or cancelled" : status.toLowerCase()}.',
+      );
+    }
+  }
+
+  void _showUpiResultDialog({
+    required String appName,
+    required String txnId,
+    required String approvalRef,
+    bool pending = false,
+  }) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E2C),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              pending ? Icons.access_time_rounded : Icons.check_circle_rounded,
+              color: pending ? Colors.amber : Colors.greenAccent,
+              size: 52.sp,
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              pending ? 'Payment Pending' : 'Payment Successful',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              'via $appName',
+              style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+            ),
+            if (txnId.isNotEmpty) ...[
+              SizedBox(height: 16.h),
+              _resultRow('Transaction ID', txnId),
+            ],
+            if (approvalRef.isNotEmpty) ...[
+              SizedBox(height: 8.h),
+              _resultRow('Approval Ref', approvalRef),
+            ],
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Close',
+              style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              // Pre-fill note with txnId so it's saved with the transaction
+              if (txnId.isNotEmpty) {
+                _note.text = 'UPI:$txnId';
+              }
+              saveTransaction();
+            },
+            child: Text(
+              'Save Transaction',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultRow(String label, String value) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        '$label: ',
+        style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+      ),
+      Expanded(
+        child: Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    ],
+  );
 }

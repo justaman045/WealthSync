@@ -12,7 +12,8 @@ class RootNavigator extends StatefulWidget {
 }
 
 class _RootNavigatorState extends State<RootNavigator> {
-  final int _selectedIndex = 0;
+  // ignore: prefer_final_fields
+  int _selectedIndex = 0;
 
   late final List<Widget> _pages = [
     const BankingHomeScreen(),

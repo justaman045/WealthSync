@@ -252,7 +252,7 @@ Future<void> syncPendingTransactions() async {
   if (pending.isEmpty) return;
 
   final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+  if (user == null || user.email == null) return;
 
   for (var tx in pending) {
     try {

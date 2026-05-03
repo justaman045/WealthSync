@@ -24,7 +24,9 @@ class TransactionHistoryScreen extends StatefulWidget {
   final int initialTab;
   /// When set, only transactions in this month/year are shown.
   final DateTime? filterMonth;
-  const TransactionHistoryScreen({super.key, this.initialTab = 0, this.filterMonth});
+  /// When set, filters to a single specific day.
+  final DateTime? filterDate;
+  const TransactionHistoryScreen({super.key, this.initialTab = 0, this.filterMonth, this.filterDate});
 
   @override
   State<TransactionHistoryScreen> createState() =>
@@ -58,9 +60,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     if (user == null) return;
     final controller = Get.find<TransactionController>();
     final fm = widget.filterMonth;
+    final fd = widget.filterDate;
     var txs = controller.transactions
         .where((tx) => tx.senderId == user.uid || tx.recipientId == user.uid);
-    if (fm != null) {
+    if (fd != null) {
+      txs = txs.where((tx) =>
+          tx.date.year == fd.year &&
+          tx.date.month == fd.month &&
+          tx.date.day == fd.day);
+    } else if (fm != null) {
       txs = txs.where((tx) => tx.date.year == fm.year && tx.date.month == fm.month);
     }
     final txsList = txs.toList();
@@ -145,9 +153,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
-            widget.filterMonth != null
-                ? DateFormat('MMMM yyyy').format(widget.filterMonth!)
-                : l10n.transactionHistoryTitle,
+            widget.filterDate != null
+                ? DateFormat('d MMM yyyy').format(widget.filterDate!)
+                : widget.filterMonth != null
+                    ? DateFormat('MMMM yyyy').format(widget.filterMonth!)
+                    : l10n.transactionHistoryTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,

@@ -47,8 +47,13 @@ class IapService {
     }
     isLoading.value = true;
     final param = PurchaseParam(productDetails: product);
-    await _iap.buyNonConsumable(purchaseParam: param);
-    // isLoading is reset in _handlePurchases after outcome is known
+    try {
+      await _iap.buyNonConsumable(purchaseParam: param);
+      // isLoading is reset in _handlePurchases after outcome is known
+    } catch (e) {
+      isLoading.value = false;
+      ErrorHandler.showError('Failed to initiate purchase. Please try again.');
+    }
   }
 
   Future<void> restorePurchases() async {

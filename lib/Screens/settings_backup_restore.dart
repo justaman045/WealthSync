@@ -81,7 +81,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       final raw = await File(path).readAsString();
       final decoded = jsonDecode(raw);
 
-      if (decoded is! List) throw "Invalid backup format";
+      if (decoded is! List) throw Exception("Invalid backup format");
 
       final col = FirebaseFirestore.instance
           .collection("users")

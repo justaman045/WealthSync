@@ -21,11 +21,14 @@ class ProfileController extends GetxController {
   RxString photoURL = ''.obs;
   RxBool isLoading = false.obs;
 
+  late final Worker _workerUpdateUser;
+  late final Worker _workerBindProfile;
+
   @override
   void onInit() {
     super.onInit();
     currentUser.bindStream(_auth.userChanges());
-    ever(currentUser, _updateUser);
+    _workerUpdateUser = ever(currentUser, _updateUser);
 
     // Bind user profile stream
     if (_auth.currentUser != null) {
@@ -33,13 +36,20 @@ class ProfileController extends GetxController {
     }
 
     // Re-bind if user changes (e.g. login/logout)
-    ever(currentUser, (user) {
+    _workerBindProfile = ever(currentUser, (user) {
       if (user != null) {
         _bindUserProfile(user.email);
       } else {
         userProfile.value = null;
       }
     });
+  }
+
+  @override
+  void onClose() {
+    _workerUpdateUser.dispose();
+    _workerBindProfile.dispose();
+    super.onClose();
   }
 
   void _bindUserProfile(String? email) {
@@ -66,17 +76,19 @@ class ProfileController extends GetxController {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 70, // Optimize size
+        imageQuality: 70,
         maxWidth: 512,
         maxHeight: 512,
       );
 
       if (image == null) return;
 
+      final user = _auth.currentUser;
+      if (user == null) return;
+
       isLoading.value = true;
       final File file = File(image.path);
-      final String uid = _auth.currentUser!.uid;
-      final String refPath = 'users/$uid/profile.jpg';
+      final String refPath = 'users/${user.uid}/profile.jpg';
 
       // 1. Upload to Storage
       final ref = _storage.ref().child(refPath);
@@ -84,12 +96,12 @@ class ProfileController extends GetxController {
       final String downloadUrl = await ref.getDownloadURL();
 
       // 2. Update Auth (so currentUser.photoURL updates automatically)
-      await _auth.currentUser!.updatePhotoURL(downloadUrl);
-      await _auth.currentUser!.reload(); // Refresh local user
+      await user.updatePhotoURL(downloadUrl);
+      await user.reload();
       photoURL.value = downloadUrl;
 
       // 3. Update Firestore (optional, but good for redundancy)
-      await _firestore.collection('users').doc(_auth.currentUser!.email).set({
+      await _firestore.collection('users').doc(user.email).set({
         'photoURL': downloadUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));

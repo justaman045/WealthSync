@@ -18,7 +18,7 @@ class AddLentMoneyScreen extends StatefulWidget {
 }
 
 class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
-  final LentMoneyController _controller = Get.put(LentMoneyController());
+  final LentMoneyController _controller = Get.find<LentMoneyController>();
   final CurrencyController _currencyController = Get.find();
 
   final TextEditingController _amountController = TextEditingController();

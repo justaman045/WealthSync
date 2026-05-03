@@ -57,13 +57,15 @@ class _AuthScreenState extends State<AuthScreen> {
         password: _passwordController.text.trim(),
       );
 
-      final user = credential.user!;
+      final user = credential.user;
+      if (user == null) return;
       await user.updateDisplayName(_nameController.text.trim());
       await user.sendEmailVerification();
 
       await FirebaseFirestore.instance.collection('users').doc(user.email).set({
         'name': _nameController.text.trim(),
         'email': user.email,
+        'uid': user.uid,
         'provider': 'email',
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));

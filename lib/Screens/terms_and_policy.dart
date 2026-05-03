@@ -151,7 +151,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
   /// -------------------------------------------------------
   Future<void> _downloadMyData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null || user.email == null) return;
 
     setState(() => downloadingData = true);
 
@@ -174,9 +174,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       //       .toList(),
       // };
 
-      await LocalBackupService.exportBackupFile(
-        FirebaseAuth.instance.currentUser!.email!,
-      );
+      await LocalBackupService.exportBackupFile(user.email!);
 
       if (mounted) setState(() => downloadingData = false);
 

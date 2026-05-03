@@ -650,23 +650,35 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildPriceCard(
-                          "Monthly",
-                          "₹249",
-                          "/mo",
-                          false,
-                          "Monthly",
-                        ),
+                        child: Obx(() {
+                          final iap = IapService();
+                          final monthly = iap.products.firstWhereOrNull(
+                            (p) => p.id == IapService.kMonthlyId,
+                          );
+                          return _buildPriceCard(
+                            "Monthly",
+                            monthly?.price ?? "₹249",
+                            "/mo",
+                            false,
+                            "Monthly",
+                          );
+                        }),
                       ),
                       SizedBox(width: 16.w),
                       Expanded(
-                        child: _buildPriceCard(
-                          "Yearly",
-                          "₹1,999",
-                          "/yr",
-                          true,
-                          "Yearly",
-                        ),
+                        child: Obx(() {
+                          final iap = IapService();
+                          final yearly = iap.products.firstWhereOrNull(
+                            (p) => p.id == IapService.kYearlyId,
+                          );
+                          return _buildPriceCard(
+                            "Yearly",
+                            yearly?.price ?? "₹1,999",
+                            "/yr",
+                            true,
+                            "Yearly",
+                          );
+                        }),
                       ),
                     ],
                   ),
@@ -676,9 +688,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   // Subscribe Button
                   Obx(() {
                     final loading = IapService().isLoading.value;
-                    final label = SubscriptionController.to.trialUsed.value
+                    final ctrl = SubscriptionController.to;
+                    final trialDays = ctrl.trialEndDate.value != null
+                        ? ctrl.trialEndDate.value!.difference(DateTime.now()).inDays.clamp(1, 30)
+                        : (ctrl.trialUsed.value ? 0 : 7);
+                    final label = ctrl.trialUsed.value
                         ? "Subscribe Now"
-                        : "Start 7-Day Free Trial";
+                        : "Start $trialDays-Day Free Trial";
                     return SizedBox(
                       width: double.infinity,
                       height: 56.h,

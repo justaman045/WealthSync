@@ -16,6 +16,7 @@ import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/budget_service.dart';
 import 'package:money_control/Utils/icon_helper.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/category_service.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -614,7 +615,15 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             return Padding(
               padding: EdgeInsets.only(right: 12.w),
               child: GestureDetector(
-                onTap: () => setState(() => _selectedCategory = cat.name),
+                onTap: () {
+                  if (_selectedCategory != cat.name) {
+                    CategoryService.recordCorrection(
+                      _recipientNameController.text.trim(),
+                      cat.name,
+                    );
+                  }
+                  setState(() => _selectedCategory = cat.name);
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: EdgeInsets.symmetric(

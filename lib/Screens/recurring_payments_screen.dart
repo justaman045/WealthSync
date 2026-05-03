@@ -486,10 +486,10 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     // Let's create a safe list including the current category if it's missing.
     final categoryNames = categories.map((e) => e.name).toSet();
     if (category.isNotEmpty) categoryNames.add(category);
+    if (categoryNames.isEmpty) categoryNames.add('General');
     final sortedCategories = categoryNames.toList()..sort();
 
-    // Default if empty
-    if (category.isEmpty && sortedCategories.isNotEmpty) {
+    if (category.isEmpty) {
       category = sortedCategories.first;
     }
 
@@ -549,7 +549,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                           .map(
                             (f) => DropdownMenuItem(
                               value: f,
-                              child: Text(f.name.capitalizeFirst!),
+                              child: Text(f.name.capitalizeFirst ?? f.name),
                             ),
                           )
                           .toList(),

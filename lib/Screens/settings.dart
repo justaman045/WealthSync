@@ -19,6 +19,10 @@ import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/Admin/admin_menu.dart';
 import 'package:money_control/Screens/lent_money_screen.dart';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Services/referral_service.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -28,7 +32,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final ProfileController _profileController = Get.put(ProfileController());
+  final ProfileController _profileController = Get.find<ProfileController>();
   String _version = "1.0.0";
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
@@ -162,6 +166,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     color: Colors.greenAccent,
                     onTap: () => Get.to(() => const SmsImportScreen()),
                   ),
+
+                  SizedBox(height: 16.h),
+
+                  // INVITE FRIENDS
+                  _InviteFriendsCard(),
 
                   SizedBox(height: 16.h),
 
@@ -435,6 +444,144 @@ class _SettingsCategoryCard extends StatelessWidget {
               ).colorScheme.onSurface.withValues(alpha: 0.3),
               size: 16.sp,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteFriendsCard extends StatefulWidget {
+  @override
+  State<_InviteFriendsCard> createState() => _InviteFriendsCardState();
+}
+
+class _InviteFriendsCardState extends State<_InviteFriendsCard> {
+  String _code = '';
+  int _count = 0;
+  bool _loading = true;
+  StreamSubscription? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToStats();
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _subscribeToStats() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) {
+      setState(() => _loading = false);
+      return;
+    }
+    await ReferralService.ensureReferralCode();
+    _sub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.email)
+        .snapshots()
+        .listen((snap) {
+      if (!mounted) return;
+      final data = snap.data() ?? {};
+      setState(() {
+        _code = data['referralCode'] as String? ?? '';
+        _count = (data['referralCount'] as int?) ?? 0;
+        _loading = false;
+      });
+    });
+  }
+
+  void _share() {
+    if (_code.isEmpty) return;
+    SharePlus.instance.share(
+      ShareParams(
+        text: "Use my code **$_code** to get 1 month free on Money Control! 💰 Track your finances smarter. Download from Play Store.",
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: _share,
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.15),
+              AppColors.secondary.withValues(alpha: 0.15),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.card_giftcard_rounded, color: AppColors.primary, size: 24.sp),
+            ),
+            SizedBox(width: 14.w),
+            Expanded(
+              child: _loading
+                  ? Text("Loading...", style: TextStyle(color: Colors.white54, fontSize: 13.sp))
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Invite Friends",
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
+                            color: theme.textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                        SizedBox(height: 2.h),
+                        Row(
+                          children: [
+                            Text(
+                              "Your code: ",
+                              style: TextStyle(fontSize: 12.sp, color: Colors.white60),
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6.r),
+                              ),
+                              child: Text(
+                                _code.isEmpty ? '—' : _code,
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_count > 0)
+                          Text(
+                            "You've referred $_count friend${_count > 1 ? 's' : ''} — $_count month${_count > 1 ? 's' : ''} earned 🎉",
+                            style: TextStyle(fontSize: 11.sp, color: Colors.greenAccent),
+                          ),
+                      ],
+                    ),
+            ),
+            Icon(Icons.share_rounded, color: AppColors.primary, size: 20.sp),
           ],
         ),
       ),

@@ -28,6 +28,12 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Controllers/goals_controller.dart';
+import 'package:money_control/Controllers/loan_controller.dart';
+import 'package:money_control/Controllers/challenges_controller.dart';
+import 'package:money_control/Controllers/analytics_controller.dart';
+import 'package:money_control/Controllers/budget_controller.dart';
+import 'package:money_control/Controllers/lent_money_controller.dart';
+import 'package:money_control/Controllers/recurring_payment_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Services/widget_service.dart';
@@ -144,6 +150,10 @@ Future<void> mainCommon({bool isTest = false}) async {
   Get.put(CurrencyController());
   Get.put(SubscriptionController());
   Get.put(GoalsController());
+  Get.put(LoanController());
+  Get.put(ChallengesController());
+  Get.put(LentMoneyController());
+  Get.put(RecurringPaymentController());
   await WidgetService.init();
   await IapService().init();
   final bioService = Get.put(BiometricService());
@@ -320,6 +330,12 @@ class _AuthCheckerState extends State<AuthChecker> {
       if (!Get.isRegistered<ProfileController>()) {
         Get.put(ProfileController());
       }
+      if (!Get.isRegistered<AnalyticsController>()) {
+        Get.put(AnalyticsController());
+      }
+      if (!Get.isRegistered<BudgetController>()) {
+        Get.put(BudgetController());
+      }
       if (!_didInitialBackup && user.email != null) {
         _didInitialBackup = true;
         LocalBackupService.backupUserTransactions(user.email!);
@@ -330,6 +346,12 @@ class _AuthCheckerState extends State<AuthChecker> {
       }
       if (Get.isRegistered<ProfileController>()) {
         Get.delete<ProfileController>(force: true);
+      }
+      if (Get.isRegistered<AnalyticsController>()) {
+        Get.delete<AnalyticsController>(force: true);
+      }
+      if (Get.isRegistered<BudgetController>()) {
+        Get.delete<BudgetController>(force: true);
       }
       _didInitialBackup = false;
       if (user != null && !user.emailVerified) {
