@@ -16,7 +16,17 @@ class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPI_CHANNEL)
             .setMethodCallHandler { call, result ->
-                if (call.method == "pay") {
+                if (call.method == "getInstallerPackageName") {
+                    val installer = try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                            packageManager.getInstallSourceInfo(packageName).installingPackageName
+                        } else {
+                            @Suppress("DEPRECATION")
+                            packageManager.getInstallerPackageName(packageName)
+                        }
+                    } catch (e: Exception) { null }
+                    result.success(installer)
+                } else if (call.method == "pay") {
                     val packageName = call.argument<String>("packageName")
                     val amount     = call.argument<String>("amount") ?: ""
                     val payeeName  = call.argument<String>("payeeName") ?: ""

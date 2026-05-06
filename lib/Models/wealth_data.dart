@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WealthPortfolio {
+  // ── Original assets ───────────────────────────────────────────────────────
   final double sip;
   final double fd;
   final double stocks;
@@ -13,6 +14,27 @@ class WealthPortfolio {
   final double etf;
   final double reit;
   final double p2p;
+
+  // ── New asset categories ──────────────────────────────────────────────────
+  final double ppf;
+  final double sgb;
+  final double bonds;
+  final double insurance;
+  final double foreignStocks;
+  final double vpf;
+  final double postOffice;
+  final double chitFund;
+  final double startupEquity;
+  final double business;
+  final double vehicle;
+  final double jewelry;
+  final double agriLand;
+
+  // ── New liability categories ──────────────────────────────────────────────
+  final double creditCard;
+  final double bnpl;
+
+  // ── Metadata ──────────────────────────────────────────────────────────────
   final Map<String, double> custom;
   final Map<String, double> targets;
   final List<String> hiddenKeys;
@@ -32,6 +54,21 @@ class WealthPortfolio {
     this.etf = 0,
     this.reit = 0,
     this.p2p = 0,
+    this.ppf = 0,
+    this.sgb = 0,
+    this.bonds = 0,
+    this.insurance = 0,
+    this.foreignStocks = 0,
+    this.vpf = 0,
+    this.postOffice = 0,
+    this.chitFund = 0,
+    this.startupEquity = 0,
+    this.business = 0,
+    this.vehicle = 0,
+    this.jewelry = 0,
+    this.agriLand = 0,
+    this.creditCard = 0,
+    this.bnpl = 0,
     this.custom = const {},
     this.targets = const {},
     this.hiddenKeys = const [],
@@ -53,10 +90,27 @@ class WealthPortfolio {
       'etf': etf,
       'reit': reit,
       'p2p': p2p,
+      'ppf': ppf,
+      'sgb': sgb,
+      'bonds': bonds,
+      'insurance': insurance,
+      'foreignStocks': foreignStocks,
+      'vpf': vpf,
+      'postOffice': postOffice,
+      'chitFund': chitFund,
+      'startupEquity': startupEquity,
+      'business': business,
+      'vehicle': vehicle,
+      'jewelry': jewelry,
+      'agriLand': agriLand,
+      'creditCard': creditCard,
+      'bnpl': bnpl,
       'custom': custom,
       'targets': targets,
       'hiddenKeys': hiddenKeys,
       'lastUpdated': Timestamp.fromDate(lastUpdated),
+      if (monthlyExpenseOverride != null)
+        'monthlyExpenseOverride': monthlyExpenseOverride,
     };
   }
 
@@ -74,13 +128,28 @@ class WealthPortfolio {
       etf: (map['etf'] ?? 0).toDouble(),
       reit: (map['reit'] ?? 0).toDouble(),
       p2p: (map['p2p'] ?? 0).toDouble(),
+      ppf: (map['ppf'] ?? 0).toDouble(),
+      sgb: (map['sgb'] ?? 0).toDouble(),
+      bonds: (map['bonds'] ?? 0).toDouble(),
+      insurance: (map['insurance'] ?? 0).toDouble(),
+      foreignStocks: (map['foreignStocks'] ?? 0).toDouble(),
+      vpf: (map['vpf'] ?? 0).toDouble(),
+      postOffice: (map['postOffice'] ?? 0).toDouble(),
+      chitFund: (map['chitFund'] ?? 0).toDouble(),
+      startupEquity: (map['startupEquity'] ?? 0).toDouble(),
+      business: (map['business'] ?? 0).toDouble(),
+      vehicle: (map['vehicle'] ?? 0).toDouble(),
+      jewelry: (map['jewelry'] ?? 0).toDouble(),
+      agriLand: (map['agriLand'] ?? 0).toDouble(),
+      creditCard: (map['creditCard'] ?? 0).toDouble(),
+      bnpl: (map['bnpl'] ?? 0).toDouble(),
       custom: Map<String, double>.from(map['custom'] ?? {}),
       targets: Map<String, double>.from(map['targets'] ?? {}),
       hiddenKeys: List<String>.from(map['hiddenKeys'] ?? []),
       lastUpdated:
           (map['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
       monthlyExpenseOverride:
-          (map['monthly_expense_override'] as num?)?.toDouble(),
+          (map['monthlyExpenseOverride'] as num?)?.toDouble(),
     );
   }
 
@@ -96,5 +165,20 @@ class WealthPortfolio {
       etf +
       reit +
       p2p +
+      ppf +
+      sgb +
+      bonds +
+      insurance +
+      foreignStocks +
+      vpf +
+      postOffice +
+      chitFund +
+      startupEquity +
+      business +
+      vehicle +
+      jewelry +
+      agriLand +
       custom.values.fold(0, (a, b) => a + b);
+
+  double get totalLiabilities => loans + creditCard + bnpl;
 }

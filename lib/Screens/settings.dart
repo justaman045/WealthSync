@@ -1,6 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering;
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -496,11 +499,53 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
     });
   }
 
-  void _share() {
+  static const _upiChannel = MethodChannel('money_control/upi');
+
+  static const _playStoreUrl =
+      'https://play.google.com/store/apps/details?id=app.vercel.justaman045.money_control';
+
+  /// Returns a direct APK download link by reading the latest version tag
+  /// from app_version.json (same source UpdateChecker uses).
+  static Future<String> _githubApkUrl() async {
+    try {
+      final resp = await http.get(Uri.parse(
+        'https://raw.githubusercontent.com/justaman045/Money_Control/master/app_version.json',
+      ));
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        final version = data['latest_version'] as String?;
+        if (version != null && version.isNotEmpty) {
+          return 'https://github.com/justaman045/Money_Control/releases/download/v$version/app-release.apk';
+        }
+      }
+    } catch (_) {}
+    // Fallback: link to releases page if version fetch fails
+    return 'https://github.com/justaman045/Money_Control/releases/latest';
+  }
+
+  Future<void> _share() async {
     if (_code.isEmpty) return;
+
+    // Detect distribution channel: Play Store vs GitHub sideload
+    String downloadUrl;
+    try {
+      final installer = await _upiChannel
+          .invokeMethod<String?>('getInstallerPackageName');
+      if (installer == 'com.android.vending') {
+        downloadUrl = _playStoreUrl;
+      } else {
+        downloadUrl = await _githubApkUrl();
+      }
+    } catch (_) {
+      downloadUrl = await _githubApkUrl();
+    }
+
     SharePlus.instance.share(
       ShareParams(
-        text: "Use my code **$_code** to get 1 month free on Money Control! 💰 Track your finances smarter. Download from Play Store.",
+        text:
+            "Use my code **$_code** to get 1 month free on Money Control! 💰\n\n"
+            "Track your expenses, budgets, loans & wealth — all in one app.\n\n"
+            "📲 Download here: $downloadUrl",
       ),
     );
   }

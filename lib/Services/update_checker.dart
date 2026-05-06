@@ -53,8 +53,10 @@ class UpdateChecker {
   }
 
   static bool _isNewerVersion(String remote, String local) {
-    List<int> r = remote.split('.').map(int.parse).toList();
-    List<int> l = local.split('.').map(int.parse).toList();
+    List<int> r = remote.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    List<int> l = local.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    while (r.length < 3) { r.add(0); }
+    while (l.length < 3) { l.add(0); }
 
     for (int i = 0; i < 3; i++) {
       if (r[i] > l[i]) return true;

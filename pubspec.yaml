@@ -79,6 +79,8 @@ dependencies:
   qr_flutter: ^4.1.0
   in_app_purchase: ^3.2.0
   home_widget: ^0.7.0
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
 
 dev_dependencies:
   integration_test:

@@ -114,10 +114,10 @@ class _ExportImportPageState extends State<ExportImportPage> {
       final budgetFile = File('${directory.path}/budgets_export.csv');
       await budgetFile.writeAsString(budgetCsv);
 
-      setState(() => loadingExport = false);
+      if (mounted) setState(() => loadingExport = false);
       _showSnack("Success", "Files exported to: ${directory.path}", false);
     } catch (e) {
-      setState(() => loadingExport = false);
+      if (mounted) setState(() => loadingExport = false);
       _showSnack("Export Failed", e.toString(), true);
     }
   }
@@ -142,7 +142,7 @@ class _ExportImportPageState extends State<ExportImportPage> {
         allowedExtensions: ['csv'],
       );
       if (result == null || result.files.isEmpty) {
-        setState(() => loadingImport = false);
+        if (mounted) setState(() => loadingImport = false);
         return;
       }
 
@@ -221,9 +221,9 @@ class _ExportImportPageState extends State<ExportImportPage> {
         _showSnack("Error", "Unknown CSV format", true);
       }
 
-      setState(() => loadingImport = false);
+      if (mounted) setState(() => loadingImport = false);
     } catch (e) {
-      setState(() => loadingImport = false);
+      if (mounted) setState(() => loadingImport = false);
       _showSnack("Import Failed", e.toString(), true);
     }
   }

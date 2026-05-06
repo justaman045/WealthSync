@@ -108,7 +108,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       debugPrint("Error saving user data: $e");
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
 
       Get.snackbar(
         "Error",

@@ -11,17 +11,60 @@ class WealthTarget {
   final double effective;
   final double formula;
   final bool isOverridden;
+  /// True when calculated from a geo-baseline rather than real transaction data
+  final bool isEstimated;
 
   WealthTarget({
     required this.effective,
     required this.formula,
     required this.isOverridden,
+    this.isEstimated = false,
   });
 }
 
 class WealthService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // ── Age-milestone tables ────────────────────────────────────────────────
+  // Values are multiples of annual expense at each age bracket.
+  // Source: Fidelity lifecycle model adapted for India, SEBI/AMFI guidelines.
+  // Linear interpolation is used between brackets.
+
+  static const _sipM        = {22:0.0, 25:0.5,  30:2.0,  35:5.0,  40:10.0, 50:20.0, 60:35.0};
+  static const _stocksM     = {22:0.0, 25:0.3,  30:1.0,  35:3.0,  40:6.0,  50:12.0, 60:20.0};
+  static const _etfM        = {22:0.0, 25:0.2,  30:0.8,  35:2.0,  40:4.0,  50:8.0,  60:12.0};
+  static const _foreignM    = {22:0.0, 25:0.0,  30:0.5,  35:1.0,  40:2.0,  50:4.0,  60:6.0};
+  static const _startupM    = {22:0.0, 25:0.1,  30:0.3,  35:0.5,  40:0.5,  50:0.5,  60:0.5};
+  static const _pfM         = {22:0.5, 25:0.8,  30:1.5,  35:3.0,  40:6.0,  50:12.0, 60:18.0};
+  static const _ppfM        = {22:0.3, 25:0.5,  30:1.5,  35:3.0,  40:6.0,  50:10.0, 60:15.0};
+  static const _vpfM        = {22:0.0, 25:0.0,  30:0.5,  35:1.0,  40:2.0,  50:4.0,  60:7.0};
+  static const _npsM        = {22:0.0, 25:0.0,  30:0.5,  35:1.5,  40:3.0,  50:7.0,  60:12.0};
+  static const _bondsM      = {22:0.0, 25:0.0,  30:0.5,  35:1.0,  40:2.0,  50:5.0,  60:10.0};
+  static const _goldM       = {22:0.2, 25:0.3,  30:0.5,  35:0.7,  40:1.0,  50:1.2,  60:1.5};
+  static const _sgbM        = {22:0.0, 25:0.1,  30:0.3,  35:0.5,  40:0.7,  50:1.0,  60:1.2};
+  static const _cryptoM     = {22:0.0, 25:0.1,  30:0.2,  35:0.2,  40:0.2,  50:0.1,  60:0.0};
+  static const _reitM       = {22:0.0, 25:0.0,  30:0.3,  35:0.7,  40:1.5,  50:3.0,  60:4.0};
+  static const _p2pM        = {22:0.0, 25:0.1,  30:0.3,  35:0.5,  40:0.7,  50:1.0,  60:1.0};
+  // Insurance target rises to 10× then tapers as retirement approaches and
+  // dependents reduce. Expressed as × annual expense (proxy for annual income).
+  static const _insuranceM  = {22:5.0, 25:8.0,  30:10.0, 35:10.0, 40:10.0, 50:8.0,  60:5.0};
+
+  /// Linearly interpolates between the two bracketing entries in [milestones].
+  /// [age] is clamped to the table's min/max range.
+  static double _milestone(int age, Map<int, double> milestones) {
+    final keys = milestones.keys.toList()..sort();
+    if (age <= keys.first) return milestones[keys.first]!;
+    if (age >= keys.last)  return milestones[keys.last]!;
+    int lo = keys.first, hi = keys.last;
+    for (final k in keys) {
+      if (k <= age) lo = k;
+      if (k >= age && k < hi) hi = k;
+    }
+    if (lo == hi) return milestones[lo]!;
+    final t = (age - lo) / (hi - lo);
+    return milestones[lo]! + t * (milestones[hi]! - milestones[lo]!);
+  }
 
   static DocumentReference get _portfolioRef {
     final user = _auth.currentUser;
@@ -213,6 +256,19 @@ class WealthService {
           getVisible('etf', portfolio.etf) +
           getVisible('reit', portfolio.reit) +
           getVisible('p2p', portfolio.p2p) +
+          getVisible('ppf', portfolio.ppf) +
+          getVisible('sgb', portfolio.sgb) +
+          getVisible('bonds', portfolio.bonds) +
+          getVisible('insurance', portfolio.insurance) +
+          getVisible('foreignStocks', portfolio.foreignStocks) +
+          getVisible('vpf', portfolio.vpf) +
+          getVisible('postOffice', portfolio.postOffice) +
+          getVisible('chitFund', portfolio.chitFund) +
+          getVisible('startupEquity', portfolio.startupEquity) +
+          getVisible('business', portfolio.business) +
+          getVisible('vehicle', portfolio.vehicle) +
+          getVisible('jewelry', portfolio.jewelry) +
+          getVisible('agriLand', portfolio.agriLand) +
           portfolio.custom.entries.fold(
             0,
             (accum, e) =>
@@ -267,6 +323,36 @@ class WealthService {
                 "🔒 Low Growth: Heavy FD allocation. Stocks/Mutual Funds might beat inflation better.",
           });
         }
+        if (!portfolio.hiddenKeys.contains('foreignStocks') &&
+            portfolio.foreignStocks / visibleTotal < 0.05) {
+          insights.add({
+            'type': 'info',
+            'message':
+                "🌍 No Global Exposure: Consider 5–10% in US/global stocks for geographic diversification.",
+          });
+        }
+      }
+
+      // Insurance check (independent of visibleTotal)
+      if (!portfolio.hiddenKeys.contains('insurance') &&
+          portfolio.insurance == 0) {
+        insights.add({
+          'type': 'warning',
+          'message':
+              "🛡️ No Insurance Tracked: Add your life insurance / ULIP surrender value. Aim for at least 10× annual income in coverage.",
+        });
+      }
+
+      // Credit card debt check
+      if (!portfolio.hiddenKeys.contains('creditCard') &&
+          portfolio.creditCard > 0 &&
+          avgMonthlyExpense > 0 &&
+          portfolio.creditCard > avgMonthlyExpense * 0.5) {
+        insights.add({
+          'type': 'warning',
+          'message':
+              "💳 High CC Debt: ₹${portfolio.creditCard.toStringAsFixed(0)} outstanding. Pay this off first — credit card rates (36–48% p.a.) beat any investment return.",
+        });
       }
 
       if (insights.isEmpty) {
@@ -287,8 +373,9 @@ class WealthService {
   static Future<Map<String, WealthTarget>> calculateAssetTargets(
     WealthPortfolio portfolio,
     List<TransactionModel> transactions,
-    UserModel? userProfile,
-  ) async {
+    UserModel? userProfile, {
+    int baselineMonthlyIncome = 25000,
+  }) async {
     final user = _auth.currentUser;
     if (user == null) return {};
 
@@ -335,59 +422,76 @@ class WealthService {
       // as modifying Model might be larger scope.
       // Optimization: It's just 1 doc read (Portfolio) which we likely just read in `getPortfolio`?
       // Actually `getPortfolio` reads it. If we could cache it...
-      final effectiveMonthlyExpense =
+      // Use the location's average income as the baseline when no transaction
+      // history exists. Real transaction data always takes priority.
+      final double rawMonthlyExpense =
           portfolio.monthlyExpenseOverride ?? monthlyExpense;
+      final bool usingEstimate = rawMonthlyExpense <= 0;
+      final double effectiveMonthlyExpense =
+          usingEstimate ? baselineMonthlyIncome.toDouble() : rawMonthlyExpense;
       final annualExpense = effectiveMonthlyExpense * 12;
 
-      final double P = portfolio.totalAssets;
+      // Age-based emergency fund multiplier (months)
+      final int cashMonths = age < 30 ? 3 : age > 50 ? 12 : 6;
 
-      // Age-Based Multiplier for Cash
-      int cashMultiplier = 6;
-      if (age < 30) {
-        cashMultiplier = 3; // Aggressive, less cash needed
-      } else if (age > 50) {
-        cashMultiplier = 12; // Conservative, higher safety net
-      }
+      // Every target = _milestone(age, table) × annualExpense.
+      // Targets grow with age, NOT with net worth.
+      double m(Map<int, double> table) =>
+          _milestone(age, table) * annualExpense;
 
-      // Age-Based Multiplier for SIP
-      int sipMultiplier = 25;
-      if (age < 30) {
-        sipMultiplier = 1;
-      } else if (age < 40) {
-        sipMultiplier = 3;
-      } else if (age < 50) {
-        sipMultiplier = 8;
-      } else if (age < 60) {
-        sipMultiplier = 15;
-      }
-
-      // Default Formula Targets
       final formulaTargets = {
-        'bank': effectiveMonthlyExpense * cashMultiplier,
-        'fd': effectiveMonthlyExpense * 3,
-        'sip': annualExpense * sipMultiplier,
-        'stocks': P > 0 ? P * ((100 - age) / 100) : 0.0,
-        'pf': P > 0 ? P * 0.20 : 0.0,
-        'gold': P > 0 ? P * 0.10 : 0.0,
-        'crypto': P > 0 ? P * 0.05 : 0.0,
-        'realEstate': P > 0 ? P * 0.35 : 0.0,
-        'nps': P > 0 ? P * 0.10 : 0.0,
-        'etf': P > 0 ? P * 0.10 : 0.0,
-        'reit': P > 0 ? P * 0.05 : 0.0,
-        'p2p': P > 0 ? P * 0.05 : 0.0,
-        'loans': 0.0, // Goal is debt free
+        // ── Liquidity (expense × months, geo-scaled) ──────────────────────
+        'bank':       effectiveMonthlyExpense * cashMonths,
+        'fd':         effectiveMonthlyExpense * 3,
+        'postOffice': effectiveMonthlyExpense * 2,
+
+        // ── Age-milestone investments (× annual expense) ───────────────────
+        'sip':           m(_sipM),
+        'stocks':        m(_stocksM),
+        'etf':           m(_etfM),
+        'foreignStocks': m(_foreignM),
+        'startupEquity': m(_startupM),
+        'pf':            m(_pfM),
+        'ppf':           m(_ppfM),
+        'vpf':           m(_vpfM),
+        'nps':           m(_npsM),
+        'bonds':         m(_bondsM),
+        'gold':          m(_goldM),
+        'sgb':           m(_sgbM),
+        'crypto':        m(_cryptoM),
+        'reit':          m(_reitM),
+        'p2p':           m(_p2pM),
+        'insurance':     m(_insuranceM),
+
+        // ── Tracked only — no prescriptive target ─────────────────────────
+        'realEstate':  0.0,
+        'agriLand':    0.0,
+        'vehicle':     0.0,
+        'jewelry':     0.0,
+        'chitFund':    0.0,
+        'business':    0.0,
+
+        // ── Liabilities — goal is always zero ─────────────────────────────
+        'loans':      0.0,
+        'creditCard': 0.0,
+        'bnpl':       0.0,
       };
 
+      const alwaysZero = {
+        'realEstate', 'agriLand', 'vehicle', 'jewelry',
+        'chitFund', 'business', 'loans', 'creditCard', 'bnpl',
+      };
+      const expenseBased = {'bank', 'fd', 'postOffice'};
+
       final result = <String, WealthTarget>{};
-
-      formulaTargets.forEach((key, formulaVal) {
-        const isOverridden = false;
-        final effectiveVal = formulaVal;
-
+      formulaTargets.forEach((key, val) {
+        final bool est = !alwaysZero.contains(key) && usingEstimate &&
+            !expenseBased.contains(key);
         result[key] = WealthTarget(
-          effective: effectiveVal,
-          formula: formulaVal,
-          isOverridden: isOverridden,
+          effective: val,
+          formula: val,
+          isOverridden: false,
+          isEstimated: est,
         );
       });
 

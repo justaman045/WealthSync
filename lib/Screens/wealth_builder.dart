@@ -16,6 +16,8 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
 import 'package:money_control/Screens/loan_tracker_screen.dart';
+import 'package:money_control/Services/geo_service.dart';
+import 'package:money_control/Screens/edit_profile.dart';
 import 'package:get/get.dart';
 
 class WealthBuilderScreen extends StatefulWidget {
@@ -32,6 +34,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   Map<String, WealthTarget> assetTargets = {};
   List<Map<String, dynamic>> smartInsights = [];
   int? userAge;
+  GeoResult? geoResult;
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
   @override
@@ -64,12 +67,21 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       final transactions = txController.transactions;
       final userProfile = profileController.userProfile.value;
 
+      // Run geo fetch in parallel with other calculations; never blocks main data
+      final Future<GeoResult> geoFuture = GeoService.getCached().then(
+        (cached) async => cached ?? await GeoService.fetchAndCache(),
+      );
+
       final balance = WealthService.calculateBankBalance(transactions);
       final insights = WealthService.generateSmartInsights(p, transactions);
+
+      // Use cached geo if available immediately, else baseline for first render
+      final GeoResult? quickGeo = await GeoService.getCached();
       final targets = await WealthService.calculateAssetTargets(
         p,
         transactions,
         userProfile,
+        baselineMonthlyIncome: quickGeo?.baselineMonthlyIncome ?? 25000,
       );
 
       final age = userProfile?.calculatedAge;
@@ -81,8 +93,30 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           smartInsights = insights;
           assetTargets = targets;
           userAge = age;
+          geoResult = quickGeo;
           loading = false;
         });
+      }
+
+      // Once geo resolves (may take a few seconds for GPS), refresh targets
+      final GeoResult liveGeo = await geoFuture;
+      if (mounted &&
+          liveGeo.baselineMonthlyIncome !=
+              (quickGeo?.baselineMonthlyIncome ?? 25000)) {
+        final updatedTargets = await WealthService.calculateAssetTargets(
+          p,
+          transactions,
+          userProfile,
+          baselineMonthlyIncome: liveGeo.baselineMonthlyIncome,
+        );
+        if (mounted) {
+          setState(() {
+            assetTargets = updatedTargets;
+            geoResult = liveGeo;
+          });
+        }
+      } else if (mounted && geoResult == null && liveGeo.city.isNotEmpty) {
+        setState(() => geoResult = liveGeo);
       }
     } catch (e) {
       if (mounted) {
@@ -156,7 +190,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           },
           child: loading
               ? const WealthSkeleton()
-              : RefreshIndicator(
+              : (userAge == null ? _buildAgeBlocker(scheme) : RefreshIndicator(
                   onRefresh: _loadData,
                   color: const Color(0xFF00E5FF),
                   backgroundColor: const Color(0xFF1A1A2E),
@@ -172,7 +206,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         if (userAge != null)
                           Container(
                             width: double.infinity,
-                            margin: EdgeInsets.only(bottom: 20.h),
+                            margin: EdgeInsets.only(bottom: 12.h),
                             padding: EdgeInsets.symmetric(
                               horizontal: 16.w,
                               vertical: 12.h,
@@ -209,6 +243,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               ],
                             ),
                           ),
+                        if (geoResult != null && geoResult!.city.isNotEmpty)
+                          _buildGeoBadge(geoResult!),
+                        SizedBox(height: 8.h),
                         _buildNetWorthCard(scheme),
                         SizedBox(height: 20.h),
                         Row(
@@ -260,100 +297,320 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       ],
                     ),
                   ),
-                ),
+                )),
         ),
       ),
     );
   }
 
-  // ... (Keep existing _buildNetWorthCard)
+  Widget _buildAgeBlocker(ColorScheme scheme) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(24.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.cake_outlined,
+                size: 56.sp,
+                color: const Color(0xFF00E5FF),
+              ),
+            ),
+            SizedBox(height: 24.h),
+            Text(
+              "Set Your Age First",
+              style: TextStyle(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.bold,
+                color: scheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              "Wealth Builder personalises every target — emergency fund, equity allocation, retirement corpus — based on your age.\n\nAdd your date of birth in your profile to get started.",
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: scheme.onSurface.withValues(alpha: 0.6),
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 32.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await Get.to(() => const EditProfileScreen());
+                  // Re-load after returning in case user set their DOB
+                  _loadData();
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text("Go to Profile"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E5FF),
+                  foregroundColor: Colors.black,
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  // ... (Keep existing _buildNetWorthCard)
+  Widget _buildGeoBadge(GeoResult geo) {
+    const zoneColor = Color(0xFF69F0AE);
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: zoneColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: zoneColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.location_on_outlined, color: zoneColor, size: 18.sp),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  geo.displayLocation,
+                  style: TextStyle(
+                    color: zoneColor,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  '${geo.zoneName} · ${geo.zoneDescription}',
+                  style: TextStyle(
+                    color: zoneColor.withValues(alpha: 0.8),
+                    fontSize: 11.sp,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+            decoration: BoxDecoration(
+              color: zoneColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Text(
+              '~₹${(geo.baselineMonthlyIncome / 1000).toStringAsFixed(0)}K/mo',
+              style: TextStyle(
+                color: zoneColor,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildAssetGrid(ColorScheme scheme) {
     if (portfolio == null) return const SizedBox.shrink();
     final p = portfolio!;
-    final List<Widget> children = [];
 
-    // 1. Cash / Bank (Special Logic)
+    // ── helpers ──────────────────────────────────────────────────────────────
     int multiplier = 6;
     if (userAge != null) {
-      if (userAge! < 30) {
-        multiplier = 3;
-      } else if (userAge! > 50) {
-        multiplier = 12;
-      }
+      if (userAge! < 30) { multiplier = 3; }
+      else if (userAge! > 50) { multiplier = 12; }
     }
     final monthlyExpense = (assetTargets['bank']?.formula ?? 0) / multiplier;
-    children.add(
-      _assetCard(
-        "Cash / Bank",
-        bankBalance,
-        'bank',
-        Icons.account_balance,
-        Colors.teal,
-        scheme,
-        readOnly: true,
-        secondaryLabel: "Monthly Expense",
-        secondaryValue: monthlyExpense,
-      ),
-    );
 
-    // Helper to add standard cards
-    void add(
-      String title,
-      double amount,
-      String key,
-      IconData icon,
-      Color color,
-    ) {
-      if (!p.hiddenKeys.contains(key)) {
-        children.add(_assetCard(title, amount, key, icon, color, scheme));
-      }
+    Widget card(String title, double amount, String key, IconData icon, Color color) =>
+        _assetCard(title, amount, key, icon, color, scheme);
+
+    List<Widget> addIf(String key, Widget Function() builder) =>
+        p.hiddenKeys.contains(key) ? [] : [builder()];
+
+    // ── sections ─────────────────────────────────────────────────────────────
+    final sections = <Widget>[];
+
+    // 1. Liquid & Fixed Income
+    final liquidCards = <Widget>[
+      _assetCard("Cash / Bank", bankBalance, 'bank', Icons.account_balance, Colors.teal, scheme,
+          readOnly: true,
+          secondaryLabel: monthlyExpense > 0 ? "Monthly Expense" : null,
+          secondaryValue: monthlyExpense > 0 ? monthlyExpense : null),
+      ...addIf('fd',         () => card("FD / RD",              p.fd,         'fd',         Icons.savings,                    Colors.orange)),
+      ...addIf('ppf',        () => card("PPF",                  p.ppf,        'ppf',        Icons.savings_outlined,            Colors.lightBlue)),
+      ...addIf('postOffice', () => card("Post Office Schemes",  p.postOffice, 'postOffice', Icons.local_post_office,           Colors.red.shade300)),
+      ...addIf('bonds',      () => card("Bonds (Govt/Corp)",    p.bonds,      'bonds',      Icons.receipt_long,                Colors.blueGrey)),
+      ...addIf('chitFund',   () => card("Chit Fund",            p.chitFund,   'chitFund',   Icons.groups,                      Colors.teal.shade300)),
+    ];
+    if (liquidCards.isNotEmpty) {
+      sections.add(_sectionHeader("Liquid & Fixed Income"));
+      sections.add(GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        children: liquidCards,
+      ));
+      sections.add(SizedBox(height: 20.h));
     }
 
-    add("Real Estate", p.realEstate, 'realEstate', Icons.domain, Colors.brown);
-    add("Stocks", p.stocks, 'stocks', Icons.show_chart, Colors.purple);
-    add("Mutual Funds (SIP)", p.sip, 'sip', Icons.pie_chart, Colors.blue);
-    add("FD / RD", p.fd, 'fd', Icons.savings, Colors.orange);
-    add("PF / EPF", p.pf, 'pf', Icons.account_balance_wallet, Colors.green);
-    add("NPS", p.nps, 'nps', Icons.elderly, Colors.indigo);
-    add("Gold / Silver", p.gold, 'gold', Icons.grid_goldenratio, Colors.amber);
-    add(
-      "Crypto",
-      p.crypto,
-      'crypto',
-      Icons.currency_bitcoin,
-      Colors.deepOrange,
-    );
-    add("ETFs", p.etf, 'etf', Icons.stacked_line_chart, Colors.cyan);
-    add("REITs", p.reit, 'reit', Icons.apartment, Colors.tealAccent.shade700);
-    add("P2P Lending", p.p2p, 'p2p', Icons.people_alt, Colors.lime);
-    if (!p.hiddenKeys.contains('loans')) {
-      final loanController = LoanController.to;
-      final loanCount = loanController.loans.length;
-      children.add(_assetCard(
-        "Loans / Liabilities",
-        loanController.totalOutstanding,
-        'loans',
-        Icons.money_off,
-        Colors.red,
-        scheme,
-        secondaryLabel: loanCount > 0
-            ? "$loanCount loan${loanCount > 1 ? 's' : ''}"
-            : null,
-        onTapOverride: () => Get.to(() => const LoanTrackerScreen()),
+    // 2. Equity & Growth
+    final equityCards = <Widget>[
+      ...addIf('stocks',       () => card("Stocks",                p.stocks,       'stocks',       Icons.show_chart,          Colors.purple)),
+      ...addIf('sip',          () => card("Mutual Funds (SIP)",    p.sip,          'sip',          Icons.pie_chart,           Colors.blue)),
+      ...addIf('etf',          () => card("ETFs",                  p.etf,          'etf',          Icons.stacked_line_chart,  Colors.cyan)),
+      ...addIf('foreignStocks',() => card("Foreign Stocks",        p.foreignStocks,'foreignStocks',Icons.language,            Colors.deepPurple)),
+      ...addIf('startupEquity',() => card("Angel / Startup",       p.startupEquity,'startupEquity',Icons.rocket_launch,       Colors.orange)),
+    ];
+    if (equityCards.isNotEmpty) {
+      sections.add(_sectionHeader("Equity & Growth"));
+      sections.add(GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        children: equityCards,
+      ));
+      sections.add(SizedBox(height: 20.h));
+    }
+
+    // 3. Retirement
+    final retirementCards = <Widget>[
+      ...addIf('pf',  () => card("PF / EPF",       p.pf,  'pf',  Icons.account_balance_wallet,          Colors.green)),
+      ...addIf('vpf', () => card("Voluntary PF",   p.vpf, 'vpf', Icons.account_balance_wallet_outlined,  Colors.green.shade300)),
+      ...addIf('nps', () => card("NPS",             p.nps, 'nps', Icons.elderly,                          Colors.indigo)),
+    ];
+    if (retirementCards.isNotEmpty) {
+      sections.add(_sectionHeader("Retirement"));
+      sections.add(GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        children: retirementCards,
+      ));
+      sections.add(SizedBox(height: 20.h));
+    }
+
+    // 4. Alternative Assets
+    final altCards = <Widget>[
+      ...addIf('gold',    () => card("Gold / Silver",          p.gold,    'gold',    Icons.grid_goldenratio,   Colors.amber)),
+      ...addIf('sgb',     () => card("Sovereign Gold Bonds",   p.sgb,     'sgb',     Icons.monetization_on,    Colors.amber.shade300)),
+      ...addIf('jewelry', () => card("Jewelry / Diamonds",     p.jewelry, 'jewelry', Icons.diamond,            Colors.pink.shade300)),
+      ...addIf('crypto',  () => card("Crypto",                 p.crypto,  'crypto',  Icons.currency_bitcoin,   Colors.deepOrange)),
+      ...addIf('reit',    () => card("REITs",                  p.reit,    'reit',    Icons.apartment,          Colors.tealAccent.shade700)),
+      ...addIf('p2p',     () => card("P2P Lending",            p.p2p,     'p2p',     Icons.people_alt,         Colors.lime)),
+    ];
+    if (altCards.isNotEmpty) {
+      sections.add(_sectionHeader("Alternative Assets"));
+      sections.add(GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        children: altCards,
+      ));
+      sections.add(SizedBox(height: 20.h));
+    }
+
+    // 5. Physical Assets
+    final physicalCards = <Widget>[
+      ...addIf('realEstate', () => card("Real Estate",       p.realEstate, 'realEstate', Icons.domain,       Colors.brown)),
+      ...addIf('agriLand',   () => card("Agricultural Land", p.agriLand,   'agriLand',   Icons.grass,        Colors.green)),
+      ...addIf('vehicle',    () => card("Vehicle(s)",        p.vehicle,    'vehicle',    Icons.directions_car,Colors.blueGrey.shade300)),
+    ];
+    if (physicalCards.isNotEmpty) {
+      sections.add(_sectionHeader("Physical Assets"));
+      sections.add(GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        children: physicalCards,
+      ));
+      sections.add(SizedBox(height: 20.h));
+    }
+
+    // 6. Protection
+    final protectionCards = <Widget>[
+      ...addIf('insurance', () => card("Life Insurance / ULIP", p.insurance, 'insurance', Icons.health_and_safety,  Colors.pink)),
+      ...addIf('business',  () => card("Business Capital",      p.business,  'business',  Icons.business_center,    Colors.brown.shade300)),
+    ];
+    if (protectionCards.isNotEmpty) {
+      sections.add(_sectionHeader("Protection & Business"));
+      sections.add(GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        children: protectionCards,
+      ));
+      sections.add(SizedBox(height: 20.h));
+    }
+
+    // 7. Liabilities
+    final loanController = LoanController.to;
+    final loanCount = loanController.loans.length;
+    final liabilityCards = <Widget>[
+      if (!p.hiddenKeys.contains('loans'))
+        _assetCard("Loans / Liabilities", loanController.totalOutstanding, 'loans',
+            Icons.money_off, Colors.red, scheme,
+            secondaryLabel: loanCount > 0 ? "$loanCount loan${loanCount > 1 ? 's' : ''}" : null,
+            onTapOverride: () => Get.to(() => const LoanTrackerScreen())),
+      ...addIf('creditCard', () => card("Credit Card Outstanding", p.creditCard, 'creditCard', Icons.credit_card,  Colors.red.shade700)),
+      ...addIf('bnpl',       () => card("BNPL / Pay Later",        p.bnpl,       'bnpl',       Icons.schedule,     Colors.deepOrange.shade700)),
+    ];
+    if (liabilityCards.isNotEmpty) {
+      sections.add(_sectionHeader("Liabilities"));
+      sections.add(GridView.count(
+        crossAxisCount: 2, shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        children: liabilityCards,
       ));
     }
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12.w,
-      mainAxisSpacing: 12.h,
-      childAspectRatio: 0.8,
-      children: children,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: sections,
+    );
+  }
+
+  Widget _sectionHeader(String label) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h, top: 4.h),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: scheme.onSurface.withValues(alpha: 0.15), height: 1)),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10.w),
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface.withValues(alpha: 0.4),
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: scheme.onSurface.withValues(alpha: 0.15), height: 1)),
+        ],
+      ),
     );
   }
 
@@ -455,8 +712,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 ),
               ),
             ],
+            SizedBox(height: 8.h),
             if (target > 0) ...[
-              SizedBox(height: 8.h),
               LinearProgressIndicator(
                 value: progress,
                 backgroundColor: color.withValues(alpha: 0.1),
@@ -465,15 +722,42 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 minHeight: 4.h,
               ),
               SizedBox(height: 4.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      wealthTarget?.isEstimated == true
+                          ? "Suggested: ${formatter.format(target)}"
+                          : "Target: ${formatter.format(target)}",
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        color: wealthTarget?.isEstimated == true
+                            ? color.withValues(alpha: 0.8)
+                            : scheme.onSurface.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                  if (wealthTarget?.isEstimated == true)
+                    Text(
+                      "est.",
+                      style: TextStyle(
+                        fontSize: 9.sp,
+                        color: color.withValues(alpha: 0.6),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
+              ),
+            ] else if (wealthTarget != null) ...[
               Text(
-                "Target: ${formatter.format(target)}",
+                "Tracking only",
                 style: TextStyle(
                   fontSize: 10.sp,
-                  color: scheme.onSurface.withValues(alpha: 0.5),
+                  color: scheme.onSurface.withValues(alpha: 0.35),
+                  fontStyle: FontStyle.italic,
                 ),
               ),
-            ] else
-              SizedBox(height: 16.h),
+            ],
 
             // Show interaction hint
             Row(
@@ -732,19 +1016,41 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
   Future<void> _showVisibilityDialog() async {
     final Map<String, String> assets = {
-      'bank': "Cash / Bank",
-      'realEstate': "Real Estate",
-      'stocks': "Stocks",
-      'sip': "Mutual Funds (SIP)",
-      'fd': "FD / RD",
-      'pf': "PF / EPF",
+      // Liquid & Fixed Income
+      'bank':        "Cash / Bank",
+      'fd':          "FD / RD",
+      'ppf':         "PPF",
+      'postOffice':  "Post Office Schemes",
+      'bonds':       "Bonds (Govt/Corp)",
+      'chitFund':    "Chit Fund",
+      // Equity & Growth
+      'stocks':        "Stocks",
+      'sip':           "Mutual Funds (SIP)",
+      'etf':           "ETFs",
+      'foreignStocks': "Foreign Stocks",
+      'startupEquity': "Angel / Startup Equity",
+      // Retirement
+      'pf':  "PF / EPF",
+      'vpf': "Voluntary PF (VPF)",
       'nps': "NPS",
-      'gold': "Gold / Silver",
-      'crypto': "Crypto",
-      'etf': "ETFs",
-      'reit': "REITs",
-      'p2p': "P2P Lending",
-      'loans': "Loans / Liabilities",
+      // Alternative Assets
+      'gold':    "Gold / Silver",
+      'sgb':     "Sovereign Gold Bonds",
+      'jewelry': "Jewelry / Diamonds",
+      'crypto':  "Crypto",
+      'reit':    "REITs",
+      'p2p':     "P2P Lending",
+      // Physical Assets
+      'realEstate': "Real Estate",
+      'agriLand':   "Agricultural Land",
+      'vehicle':    "Vehicle(s)",
+      // Protection
+      'insurance': "Life Insurance / ULIP",
+      'business':  "Business Capital",
+      // Liabilities
+      'loans':      "Loans / Liabilities",
+      'creditCard': "Credit Card Outstanding",
+      'bnpl':       "BNPL / Pay Later",
     };
 
     final hidden = List<String>.from(portfolio?.hiddenKeys ?? []);
@@ -949,26 +1255,42 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       final p = portfolio!;
       final hidden = p.hiddenKeys;
 
-      if (!hidden.contains('bank')) total += bankBalance;
-      if (!hidden.contains('realEstate')) total += p.realEstate;
-      if (!hidden.contains('stocks')) total += p.stocks;
-      if (!hidden.contains('sip')) total += p.sip;
-      if (!hidden.contains('fd')) total += p.fd;
-      if (!hidden.contains('pf')) total += p.pf;
-      if (!hidden.contains('nps')) total += p.nps;
-      if (!hidden.contains('gold')) total += p.gold;
-      if (!hidden.contains('crypto')) total += p.crypto;
-      if (!hidden.contains('etf')) total += p.etf;
-      if (!hidden.contains('reit')) total += p.reit;
-      if (!hidden.contains('p2p')) total += p.p2p;
+      void add(String key, double val) { if (!hidden.contains(key)) total += val; }
+      void sub(String key, double val) { if (!hidden.contains(key)) total -= val; }
+
+      add('bank', bankBalance);
+      add('realEstate', p.realEstate);
+      add('stocks', p.stocks);
+      add('sip', p.sip);
+      add('fd', p.fd);
+      add('pf', p.pf);
+      add('nps', p.nps);
+      add('gold', p.gold);
+      add('crypto', p.crypto);
+      add('etf', p.etf);
+      add('reit', p.reit);
+      add('p2p', p.p2p);
+      add('ppf', p.ppf);
+      add('sgb', p.sgb);
+      add('bonds', p.bonds);
+      add('insurance', p.insurance);
+      add('foreignStocks', p.foreignStocks);
+      add('vpf', p.vpf);
+      add('postOffice', p.postOffice);
+      add('chitFund', p.chitFund);
+      add('startupEquity', p.startupEquity);
+      add('business', p.business);
+      add('vehicle', p.vehicle);
+      add('jewelry', p.jewelry);
+      add('agriLand', p.agriLand);
 
       // Customs
-      p.custom.forEach((key, val) {
-        if (!hidden.contains(key)) total += val;
-      });
+      p.custom.forEach((key, val) { if (!hidden.contains(key)) total += val; });
 
-      // Liabilities (Subtract)
-      if (!hidden.contains('loans')) total -= LoanController.to.totalOutstanding;
+      // Liabilities (subtract all)
+      sub('loans', LoanController.to.totalOutstanding);
+      sub('creditCard', p.creditCard);
+      sub('bnpl', p.bnpl);
     }
 
     final symbol = CurrencyController.to.currencySymbol.value;
@@ -1008,7 +1330,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            "Assets + Bank - Liabilities",
+            "Assets − All Liabilities",
             style: TextStyle(color: Colors.white54, fontSize: 12.sp),
           ),
         ],
