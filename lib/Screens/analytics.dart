@@ -2023,6 +2023,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     final salaryTx = candidateCredits.firstWhere(
       (tx) => tx.amount.abs() == maxCredit,
+      orElse: () => candidateCredits.last,
     );
 
     return Container(

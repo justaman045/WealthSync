@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
 
 class BudgetController extends GetxController {
   static BudgetController get to => Get.find();
@@ -15,15 +16,22 @@ class BudgetController extends GetxController {
   RxBool isLoading = false.obs;
   RxList<BudgetCategoryItem> categoryBudgets = <BudgetCategoryItem>[].obs;
 
+  Worker? _txWorker;
+
   @override
   void onInit() {
     super.onInit();
-    // Listen to transaction changes to auto-update spending
-    ever(_transactionController.transactions, (_) {
+    _txWorker = ever(_transactionController.transactions, (_) {
       if (categoryBudgets.isNotEmpty) {
         _calculateSpending();
       }
     });
+  }
+
+  @override
+  void onClose() {
+    _txWorker?.dispose();
+    super.onClose();
   }
 
   Future<void> fetchBudgetsAndSpends() async {
@@ -115,6 +123,7 @@ class BudgetController extends GetxController {
   }
 
   Future<void> saveBudget(String categoryName, double amount) async {
+    if (!SubscriptionController.to.isPro) return;
     final user = _auth.currentUser;
     if (user == null) return;
 

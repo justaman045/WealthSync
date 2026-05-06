@@ -220,7 +220,7 @@ class WealthService {
           );
 
       final totalInvested = visibleTotal;
-      if (avgMonthlySavings > 5000 &&
+      if (avgMonthlySavings > avgMonthlyExpense * 0.2 &&
           totalInvested < avgMonthlySavings * 6 &&
           !portfolio.hiddenKeys.contains('sip')) {
         insights.add({
@@ -335,25 +335,8 @@ class WealthService {
       // as modifying Model might be larger scope.
       // Optimization: It's just 1 doc read (Portfolio) which we likely just read in `getPortfolio`?
       // Actually `getPortfolio` reads it. If we could cache it...
-      // But `WealthBuilder` calls `getPortfolio` then `calculateAssetTargets`.
-      // We are duplicating the read of Portfolio doc.
-      // Ideally I should update `WealthPortfolio` model to include `monthlyExpenseOverride`.
-      // Let's do that quickly? No, stick to plan scope.
-      // I will leave the portfolio read for override for now, but remove transaction/user reads.
-      // That is still a huge win.
-
-      final portfolioDoc = await _portfolioRef
-          .get(); // This is the only remaining read here.
-      double? expenseOverride;
-      if (portfolioDoc.exists && portfolioDoc.data() is Map) {
-        final data = portfolioDoc.data() as Map<String, dynamic>;
-        if (data.containsKey('monthly_expense_override')) {
-          expenseOverride = (data['monthly_expense_override'] as num?)
-              ?.toDouble();
-        }
-      }
-
-      final effectiveMonthlyExpense = expenseOverride ?? monthlyExpense;
+      final effectiveMonthlyExpense =
+          portfolio.monthlyExpenseOverride ?? monthlyExpense;
       final annualExpense = effectiveMonthlyExpense * 12;
 
       final double P = portfolio.totalAssets;

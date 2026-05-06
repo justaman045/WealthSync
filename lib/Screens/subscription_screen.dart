@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/iap_service.dart';
+import 'package:money_control/Services/payment_config_service.dart';
+import 'package:money_control/main.dart' show rootScaffoldMessengerKey;
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -13,7 +16,18 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  String _selectedPlan = "Yearly"; // Default to best value
+  static const _upiChannel = MethodChannel('money_control/upi');
+
+  String _selectedPlan = "Yearly";
+  final _txnController = TextEditingController();
+  String? _upiTxnId;
+  bool _upiSubmitting = false;
+
+  @override
+  void dispose() {
+    _txnController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -685,66 +699,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                   SizedBox(height: 40.h),
 
-                  // Subscribe Button
+                  // Subscribe area — switches between Google Play and UPI mode
                   Obx(() {
-                    final loading = IapService().isLoading.value;
-                    final ctrl = SubscriptionController.to;
-                    final trialDays = ctrl.trialEndDate.value != null
-                        ? ctrl.trialEndDate.value!.difference(DateTime.now()).inDays.clamp(1, 30)
-                        : (ctrl.trialUsed.value ? 0 : 7);
-                    final label = ctrl.trialUsed.value
-                        ? "Subscribe Now"
-                        : "Start $trialDays-Day Free Trial";
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 56.h,
-                      child: ElevatedButton(
-                        onPressed: loading ? null : _buySubscription,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyanAccent,
-                          foregroundColor: Colors.black,
-                          elevation: 10,
-                          shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.r),
-                          ),
-                        ),
-                        child: loading
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.black,
-                                  strokeWidth: 2.5,
-                                ),
-                              )
-                            : Text(
-                                label,
-                                style: TextStyle(
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                      ),
-                    );
+                    final isUpiMode = PaymentConfigService.to.paymentMode.value == 'upi';
+                    return isUpiMode ? _buildUpiFlow() : _buildIapFlow();
                   }),
-                  SizedBox(height: 12.h),
-                  TextButton(
-                    onPressed: () => IapService().restorePurchases(),
-                    child: Text(
-                      "Restore Purchases",
-                      style: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 13.sp,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  Text(
-                    "Cancel anytime. No questions asked.",
-                    style: TextStyle(color: Colors.white30, fontSize: 12.sp),
-                  ),
                   SizedBox(height: 20.h),
                 ],
               ),
@@ -890,10 +849,260 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
+  // ── Google Play IAP flow ─────────────────────────────────────────────────
+  Widget _buildIapFlow() {
+    return Column(
+      children: [
+        Obx(() {
+          final loading = IapService().isLoading.value;
+          final ctrl = SubscriptionController.to;
+          final trialDays = ctrl.trialEndDate.value != null
+              ? ctrl.trialEndDate.value!.difference(DateTime.now()).inDays.clamp(1, 30)
+              : (ctrl.trialUsed.value ? 0 : 7);
+          final label = ctrl.trialUsed.value ? "Subscribe Now" : "Start $trialDays-Day Free Trial";
+          return SizedBox(
+            width: double.infinity,
+            height: 56.h,
+            child: ElevatedButton(
+              onPressed: loading ? null : _buySubscription,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyanAccent,
+                foregroundColor: Colors.black,
+                elevation: 10,
+                shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+              ),
+              child: loading
+                  ? const SizedBox(height: 24, width: 24,
+                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                  : Text(label, style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            ),
+          );
+        }),
+        SizedBox(height: 12.h),
+        TextButton(
+          onPressed: () => IapService().restorePurchases(),
+          child: Text("Restore Purchases", style: TextStyle(color: Colors.white38, fontSize: 13.sp)),
+        ),
+        SizedBox(height: 8.h),
+        Text("Cancel anytime. No questions asked.", style: TextStyle(color: Colors.white30, fontSize: 12.sp)),
+      ],
+    );
+  }
+
+  // ── Manual UPI flow ──────────────────────────────────────────────────────
+  Widget _buildUpiFlow() {
+    final upiId = PaymentConfigService.to.upiId.value;
+    final amount = _selectedPlan == 'Monthly' ? '249' : '1,999';
+    final amountRaw = _selectedPlan == 'Monthly' ? '249.00' : '1999.00';
+
+    return StatefulBuilder(builder: (context, setLocal) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Info box
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: Colors.cyanAccent.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(14.r),
+              border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Pay via UPI', style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                SizedBox(height: 8.h),
+                Text('Send ₹$amount to:', style: TextStyle(color: Colors.white70, fontSize: 14.sp)),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Expanded(child: Text(upiId.isNotEmpty ? upiId : '—', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16.sp))),
+                    if (upiId.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.copy, color: Colors.cyanAccent, size: 18),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: upiId));
+                          Get.snackbar('Copied', 'UPI ID copied to clipboard.',
+                              backgroundColor: Colors.cyanAccent.withValues(alpha: 0.2),
+                              colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+                        },
+                      ),
+                  ],
+                ),
+                SizedBox(height: 4.h),
+                Text('Note: Money Control Pro - $_selectedPlan', style: TextStyle(color: Colors.white38, fontSize: 12.sp)),
+              ],
+            ),
+          ),
+          SizedBox(height: 16.h),
+
+          // Pay via UPI app button
+          if (upiId.isNotEmpty)
+            SizedBox(
+              width: double.infinity,
+              height: 52.h,
+              child: ElevatedButton.icon(
+                onPressed: () => _openUpiApp(amountRaw, upiId, setLocal),
+                icon: const Icon(Icons.account_balance_wallet_rounded),
+                label: Text('Open UPI App', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyanAccent,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+                ),
+              ),
+            ),
+
+          SizedBox(height: 16.h),
+          Text('Enter Transaction ID', style: TextStyle(color: Colors.white70, fontSize: 13.sp)),
+          SizedBox(height: 8.h),
+          GlassContainer(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+            borderRadius: BorderRadius.circular(14.r),
+            child: TextField(
+              controller: _txnController,
+              style: TextStyle(color: Colors.white, fontSize: 15.sp),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: _upiTxnId ?? 'Paste UPI transaction ID here',
+                hintStyle: TextStyle(color: Colors.white38, fontSize: 14.sp),
+                prefixIcon: const Icon(Icons.receipt_long_rounded, color: Colors.cyanAccent),
+              ),
+              onChanged: (_) => setLocal(() {}),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text('The transaction ID is shown in your UPI app after payment.', style: TextStyle(color: Colors.white30, fontSize: 11.sp)),
+          SizedBox(height: 20.h),
+
+          SizedBox(
+            width: double.infinity,
+            height: 56.h,
+            child: ElevatedButton(
+              onPressed: (_upiSubmitting || _txnController.text.trim().isEmpty) ? null : () => _submitUpiPayment(setLocal),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyanAccent,
+                foregroundColor: Colors.black,
+                elevation: 10,
+                shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+              ),
+              child: _upiSubmitting
+                  ? const SizedBox(height: 24, width: 24,
+                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
+                  : Text('Submit for Verification', style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold)),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Text('Your request will be reviewed by the admin. You will be notified once approved.',
+              textAlign: TextAlign.center, style: TextStyle(color: Colors.white30, fontSize: 12.sp)),
+        ],
+      );
+    });
+  }
+
+  Future<void> _openUpiApp(String amount, String upiId, StateSetter setLocal) async {
+    _showUpiAppSelector(amount, upiId, setLocal);
+  }
+
+  void _showUpiAppSelector(String amount, String upiId, StateSetter setLocal) {
+    final apps = [
+      (name: 'GPay',    pkg: 'com.google.android.apps.nbu.paisa.user'),
+      (name: 'PhonePe', pkg: 'com.phonepe.app'),
+      (name: 'Paytm',   pkg: 'net.one97.paytm'),
+      (name: 'BHIM',    pkg: 'in.org.npci.upiapp'),
+      (name: 'CRED',    pkg: 'com.dreamplug.androidapp'),
+      (name: 'Any UPI', pkg: ''),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A2E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
+      builder: (_) => Padding(
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Choose UPI App', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+            SizedBox(height: 20.h),
+            ...apps.map((app) => ListTile(
+              title: Text(app.name, style: const TextStyle(color: Colors.white)),
+              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14),
+              onTap: () {
+                Navigator.pop(context);
+                _initiateUpiPayment(app.pkg, amount, upiId, setLocal);
+              },
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _initiateUpiPayment(String pkg, String amount, String upiId, StateSetter setLocal) async {
+    try {
+      final response = await _upiChannel.invokeMethod<String>('pay', {
+        if (pkg.isNotEmpty) 'packageName': pkg,
+        'pa': upiId,
+        'amount': amount,
+        'payeeName': 'Money Control',
+        'note': 'Money Control Pro - $_selectedPlan',
+      });
+      _parseUpiResponse(response, setLocal);
+    } catch (e) {
+      if (pkg.isNotEmpty) {
+        // App not installed — retry with system chooser
+        _initiateUpiPayment('', amount, upiId, setLocal);
+      } else {
+        _showMessengerSnackBar('No UPI App Found', 'Please install a UPI app and try again.', Colors.redAccent);
+      }
+    }
+  }
+
+  void _parseUpiResponse(String? response, StateSetter setLocal) {
+    if (response == null || response.isEmpty) return;
+    final params = Uri.splitQueryString(response);
+    final status = params['Status'] ?? params['status'] ?? '';
+    final txnId = params['txnId'] ?? params['txnRef'] ?? params['approvalRefNo'] ?? '';
+
+    if (status.toUpperCase() == 'SUCCESS' && txnId.isNotEmpty) {
+      setLocal(() {
+        _upiTxnId = txnId;
+        _txnController.text = txnId;
+      });
+      _showMessengerSnackBar('Payment Successful', 'Transaction ID auto-filled. Tap Submit to complete.', Colors.green);
+    } else if (status.toUpperCase() == 'SUBMITTED') {
+      _showMessengerSnackBar('Payment Pending', 'Enter the transaction ID manually once confirmed.', Colors.orangeAccent);
+    } else if (status.toUpperCase() == 'FAILURE') {
+      _showMessengerSnackBar('Payment Failed', 'Please try again or enter the transaction ID manually.', Colors.redAccent);
+    }
+  }
+
+  void _showMessengerSnackBar(String title, String message, Color color) {
+    rootScaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
+      content: Text('$title\n$message', style: const TextStyle(color: Colors.white)),
+      backgroundColor: color,
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 4),
+    ));
+  }
+
+  Future<void> _submitUpiPayment(StateSetter setLocal) async {
+    final txnId = _txnController.text.trim();
+    if (txnId.isEmpty) return;
+    setLocal(() => _upiSubmitting = true);
+    try {
+      await SubscriptionController.to.requestUpgrade(txnId, _selectedPlan);
+    } finally {
+      if (mounted) setLocal(() => _upiSubmitting = false);
+    }
+  }
+
   Future<void> _buySubscription() async {
-    final productId = _selectedPlan == 'Monthly'
-        ? IapService.kMonthlyId
-        : IapService.kYearlyId;
+    final productId = _selectedPlan == 'Monthly' ? IapService.kMonthlyId : IapService.kYearlyId;
     await IapService().buySubscription(productId);
   }
 }

@@ -38,6 +38,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/iap_service.dart';
+import 'package:money_control/Services/payment_config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:money_control/Screens/add_transaction.dart';
@@ -149,11 +150,7 @@ Future<void> mainCommon({bool isTest = false}) async {
   Get.put(PrivacyController());
   Get.put(CurrencyController());
   Get.put(SubscriptionController());
-  Get.put(GoalsController());
-  Get.put(LoanController());
-  Get.put(ChallengesController());
-  Get.put(LentMoneyController());
-  Get.put(RecurringPaymentController());
+  Get.put(PaymentConfigService());
   await WidgetService.init();
   await IapService().init();
   final bioService = Get.put(BiometricService());
@@ -323,7 +320,11 @@ class _AuthCheckerState extends State<AuthChecker> {
   }
 
   void _handleAuthChange(User? user) {
-    if (user != null && user.emailVerified) {
+    final isOAuthUser = user?.providerData.any(
+          (p) => p.providerId == 'google.com' || p.providerId == 'apple.com',
+        ) ??
+        false;
+    if (user != null && (user.emailVerified || isOAuthUser)) {
       if (!Get.isRegistered<TransactionController>()) {
         Get.put(TransactionController());
       }
@@ -335,6 +336,21 @@ class _AuthCheckerState extends State<AuthChecker> {
       }
       if (!Get.isRegistered<BudgetController>()) {
         Get.put(BudgetController());
+      }
+      if (!Get.isRegistered<GoalsController>()) {
+        Get.put(GoalsController());
+      }
+      if (!Get.isRegistered<LoanController>()) {
+        Get.put(LoanController());
+      }
+      if (!Get.isRegistered<ChallengesController>()) {
+        Get.put(ChallengesController());
+      }
+      if (!Get.isRegistered<LentMoneyController>()) {
+        Get.put(LentMoneyController());
+      }
+      if (!Get.isRegistered<RecurringPaymentController>()) {
+        Get.put(RecurringPaymentController());
       }
       if (!_didInitialBackup && user.email != null) {
         _didInitialBackup = true;
@@ -353,8 +369,23 @@ class _AuthCheckerState extends State<AuthChecker> {
       if (Get.isRegistered<BudgetController>()) {
         Get.delete<BudgetController>(force: true);
       }
+      if (Get.isRegistered<GoalsController>()) {
+        Get.delete<GoalsController>(force: true);
+      }
+      if (Get.isRegistered<LoanController>()) {
+        Get.delete<LoanController>(force: true);
+      }
+      if (Get.isRegistered<ChallengesController>()) {
+        Get.delete<ChallengesController>(force: true);
+      }
+      if (Get.isRegistered<LentMoneyController>()) {
+        Get.delete<LentMoneyController>(force: true);
+      }
+      if (Get.isRegistered<RecurringPaymentController>()) {
+        Get.delete<RecurringPaymentController>(force: true);
+      }
       _didInitialBackup = false;
-      if (user != null && !user.emailVerified) {
+      if (user != null && !user.emailVerified && !isOAuthUser) {
         FirebaseAuth.instance.signOut();
       }
     }

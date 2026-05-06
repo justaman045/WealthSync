@@ -129,7 +129,8 @@ class SubscriptionController extends GetxController {
             }
 
             final prefs = await SharedPreferences.getInstance();
-            final lastStatusStr = prefs.getString('last_sub_status');
+            final prefKey = 'last_sub_status_${user.email}';
+            final lastStatusStr = prefs.getString(prefKey);
             final lastStatus = lastStatusStr != null
                 ? _parseStatus(lastStatusStr)
                 : SubscriptionStatus.free;
@@ -139,7 +140,7 @@ class SubscriptionController extends GetxController {
                   newStatus != SubscriptionStatus.free) {
                 _handleStatusChange(lastStatus, newStatus);
               }
-              await prefs.setString('last_sub_status', newStatus.name);
+              await prefs.setString(prefKey, newStatus.name);
             }
 
             subscriptionStatus.value = newStatus;

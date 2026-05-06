@@ -65,15 +65,25 @@ class OfflineQueueService {
     final file = await _getFile();
     if (!await file.exists()) return [];
 
-    final list = jsonDecode(await file.readAsString()) as List<dynamic>;
+    List<dynamic> list;
+    try {
+      list = jsonDecode(await file.readAsString()) as List<dynamic>;
+    } catch (_) {
+      await file.writeAsString(jsonEncode([]));
+      return [];
+    }
     return list.map((e) {
       final m = Map<String, dynamic>.from(e as Map);
-      if (m['date'] is String) {
-        m['date'] = Timestamp.fromDate(DateTime.parse(m['date'] as String));
-      }
-      if (m['createdAt'] is String) {
-        m['createdAt'] =
-            Timestamp.fromDate(DateTime.parse(m['createdAt'] as String));
+      try {
+        if (m['date'] is String) {
+          m['date'] = Timestamp.fromDate(DateTime.parse(m['date'] as String));
+        }
+        if (m['createdAt'] is String) {
+          m['createdAt'] =
+              Timestamp.fromDate(DateTime.parse(m['createdAt'] as String));
+        }
+      } catch (_) {
+        m['date'] ??= Timestamp.now();
       }
       return m;
     }).toList();

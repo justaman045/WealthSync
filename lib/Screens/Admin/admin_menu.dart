@@ -6,6 +6,7 @@ import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/admin_dashboard.dart';
 import 'package:money_control/Screens/Admin/admin_user_list.dart';
 import 'package:money_control/Services/background_worker.dart';
+import 'package:money_control/Screens/Admin/payment_settings_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class AdminMenu extends StatefulWidget {
@@ -116,6 +117,15 @@ class _AdminMenuState extends State<AdminMenu> {
                 icon: Icons.people_alt_rounded,
                 color: Colors.cyanAccent,
                 onTap: () => Get.to(() => const AdminUserListScreen()),
+              ),
+              SizedBox(height: 16.h),
+              _buildMenuCard(
+                context,
+                title: "Payment Settings",
+                subtitle: "Toggle Google Play / Manual UPI mode",
+                icon: Icons.payment_rounded,
+                color: Colors.purpleAccent,
+                onTap: () => Get.to(() => const PaymentSettingsScreen()),
               ),
               SizedBox(height: 16.h),
               _buildMenuCard(

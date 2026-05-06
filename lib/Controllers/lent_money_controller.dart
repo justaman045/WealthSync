@@ -14,14 +14,25 @@ class LentMoneyController extends GetxController {
   var isLoading = false.obs;
   var isSaving = false.obs;
 
+  StreamSubscription? _entriesSub;
+
   @override
   void onInit() {
     super.onInit();
     bindEntries();
   }
 
+  @override
+  void onClose() {
+    _entriesSub?.cancel();
+    super.onClose();
+  }
+
   void bindEntries() {
-    entries.bindStream(_repository.getEntriesStream());
+    _entriesSub?.cancel();
+    _entriesSub = _repository.getEntriesStream().listen((list) {
+      entries.value = list;
+    });
   }
 
   double get totalPendingReceivables {

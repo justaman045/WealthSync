@@ -17,6 +17,7 @@ class WealthPortfolio {
   final Map<String, double> targets;
   final List<String> hiddenKeys;
   final DateTime lastUpdated;
+  final double? monthlyExpenseOverride;
 
   WealthPortfolio({
     this.sip = 0,
@@ -35,6 +36,7 @@ class WealthPortfolio {
     this.targets = const {},
     this.hiddenKeys = const [],
     required this.lastUpdated,
+    this.monthlyExpenseOverride,
   });
 
   Map<String, dynamic> toMap() {
@@ -77,6 +79,8 @@ class WealthPortfolio {
       hiddenKeys: List<String>.from(map['hiddenKeys'] ?? []),
       lastUpdated:
           (map['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      monthlyExpenseOverride:
+          (map['monthly_expense_override'] as num?)?.toDouble(),
     );
   }
 

@@ -87,6 +87,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load wealth data. Pull down to retry.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }

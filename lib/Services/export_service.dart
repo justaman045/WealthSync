@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:csv/csv.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:open_filex/open_filex.dart';
@@ -30,6 +31,7 @@ class ExportService {
   }
 
   static Future<void> exportTransactionsCSV(List<TransactionModel> list) async {
+    if (!SubscriptionController.to.isPro) throw Exception('Pro subscription required');
     final rows = <List<dynamic>>[
       [
         "ID",
@@ -75,6 +77,7 @@ class ExportService {
     required double netBalance,
     required String periodLabel,
   }) async {
+    if (!SubscriptionController.to.isPro) throw Exception('Pro subscription required');
     final pdf = pw.Document();
     final theme = await _loadPdfTheme();
 
@@ -385,6 +388,7 @@ class ExportService {
     required List<TransactionModel> filtered,
     required String periodLabel,
   }) async {
+    if (!SubscriptionController.to.isPro) throw Exception('Pro subscription required');
     final uid = FirebaseAuth.instance.currentUser?.uid;
     final sym = CurrencyController.to.currencySymbol.value;
     final pdf = pw.Document();
