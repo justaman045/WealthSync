@@ -328,11 +328,13 @@ Future<void> _checkUpdate(SharedPreferences prefs) async {
 }
 
 bool _isNewer(String remote, String local) {
-  List<int> r = remote.split('.').map(int.parse).toList();
-  List<int> l = local.split('.').map(int.parse).toList();
+  int parseSeg(String s) => int.tryParse(s.split(RegExp(r'[+\-]')).first) ?? 0;
+  List<int> r = remote.split('.').map(parseSeg).toList();
+  List<int> l = local.split('.').map(parseSeg).toList();
+  while (r.length < 3) { r.add(0); }
+  while (l.length < 3) { l.add(0); }
 
   for (int i = 0; i < 3; i++) {
-    if (i >= r.length || i >= l.length) break;
     if (r[i] > l[i]) return true;
     if (r[i] < l[i]) return false;
   }
@@ -429,7 +431,11 @@ Future<int> _processSmsMessages(
           .set({
             'id': txId,
             'amount': parsed.isDebit ? -parsed.amount : parsed.amount,
-            'recipientName': parsed.isDebit ? parsed.merchant : userEmail,
+            'recipientName': parsed.isDebit
+                ? parsed.merchant
+                : (parsed.merchant != 'Unknown' && parsed.merchant.isNotEmpty
+                    ? parsed.merchant
+                    : (parsed.sender.isNotEmpty ? parsed.sender : 'Bank Credit')),
             'recipientId': parsed.isDebit ? 'External' : uid,
             'senderId': parsed.isDebit ? uid : 'External',
             'date': Timestamp.fromDate(parsed.date),

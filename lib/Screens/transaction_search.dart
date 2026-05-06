@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -20,9 +21,22 @@ class TransactionSearchPage extends StatefulWidget {
 
 class _TransactionSearchPageState extends State<TransactionSearchPage> {
   final TextEditingController _search = TextEditingController();
+  Timer? _debounce;
   List<TransactionModel> results = [];
   bool searching = false;
-  bool hasSearched = false; // Track if a search has been performed
+  bool hasSearched = false;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () => _performSearch(query));
+  }
 
   /// Search Firestore for matching transactions
   Future<void> _performSearch(String query) async {
@@ -126,7 +140,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                     ),
                     child: TextField(
                       controller: _search,
-                      onChanged: _performSearch,
+                      onChanged: _onSearchChanged,
                       style: TextStyle(color: Colors.white, fontSize: 15.sp),
                       cursorColor: const Color(0xFF00E5FF),
                       decoration: InputDecoration(

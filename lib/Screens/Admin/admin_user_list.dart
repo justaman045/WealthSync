@@ -18,6 +18,12 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
   String _searchQuery = "";
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(

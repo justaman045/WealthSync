@@ -19,7 +19,9 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _mode = PaymentConfigService.to.paymentMode.value;
+    _mode = PaymentConfigService.to.paymentMode.value.isNotEmpty
+        ? PaymentConfigService.to.paymentMode.value
+        : 'cash';
     _upiCtrl = TextEditingController(text: PaymentConfigService.to.upiId.value);
   }
 

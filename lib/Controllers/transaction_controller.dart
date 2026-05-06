@@ -259,6 +259,8 @@ class TransactionController extends GetxController {
       try {
         await OfflineQueueService.savePending(tx.toMap());
         ErrorHandler.showSuccess("Saved locally. Will sync later.", title: "Offline");
+        isSaving.value = false;
+        return true;
       } catch (queueError) {
         debugPrint("Offline queue error: $queueError");
         ErrorHandler.showError("Failed to save transaction. Please retry.");

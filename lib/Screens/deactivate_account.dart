@@ -30,10 +30,12 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
       // Hard Delete using UserService
       await UserService().deleteAccount();
 
-      setState(() {
-        success = "Your account has been deleted. You have been logged out.";
-        processing = false;
-      });
+      if (mounted) {
+        setState(() {
+          success = "Your account has been deleted. You have been logged out.";
+          processing = false;
+        });
+      }
 
       // Redirect to login after a short delay
       Future.delayed(const Duration(seconds: 2), () {

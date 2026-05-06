@@ -48,15 +48,19 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
       final RecognizedText recognizedText = await textRecognizer.processImage(
         inputImage,
       );
-      setState(() {
-        _recognizedText = recognizedText.text;
-        _scanning = false;
-      });
+      if (mounted) {
+        setState(() {
+          _recognizedText = recognizedText.text;
+          _scanning = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _recognizedText = "Failed to recognize text: $e";
-        _scanning = false;
-      });
+      if (mounted) {
+        setState(() {
+          _recognizedText = "Failed to recognize text: $e";
+          _scanning = false;
+        });
+      }
     } finally {
       textRecognizer.close();
     }

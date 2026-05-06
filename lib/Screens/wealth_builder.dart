@@ -16,6 +16,12 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
 import 'package:money_control/Screens/loan_tracker_screen.dart';
+import 'package:money_control/Screens/credit_card_detail_screen.dart';
+import 'package:money_control/Screens/insurance_policy_screen.dart';
+import 'package:money_control/Screens/vehicle_detail_screen.dart';
+import 'package:money_control/Screens/real_estate_detail_screen.dart';
+import 'package:money_control/Screens/asset_detail_screen.dart';
+import 'package:money_control/Config/asset_screen_configs.dart';
 import 'package:money_control/Services/geo_service.dart';
 import 'package:money_control/Screens/edit_profile.dart';
 import 'package:get/get.dart';
@@ -440,8 +446,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     }
     final monthlyExpense = (assetTargets['bank']?.formula ?? 0) / multiplier;
 
-    Widget card(String title, double amount, String key, IconData icon, Color color) =>
-        _assetCard(title, amount, key, icon, color, scheme);
+    // Helper: card with detail screen
+    Widget detailCard(String title, double amount, String key, IconData icon, Color color, AssetScreenConfig cfg) =>
+        _assetCard(title, amount, key, icon, color, scheme,
+            onTapOverride: () => Get.to(() => AssetDetailScreen(config: cfg)));
 
     List<Widget> addIf(String key, Widget Function() builder) =>
         p.hiddenKeys.contains(key) ? [] : [builder()];
@@ -455,11 +463,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           readOnly: true,
           secondaryLabel: monthlyExpense > 0 ? "Monthly Expense" : null,
           secondaryValue: monthlyExpense > 0 ? monthlyExpense : null),
-      ...addIf('fd',         () => card("FD / RD",              p.fd,         'fd',         Icons.savings,                    Colors.orange)),
-      ...addIf('ppf',        () => card("PPF",                  p.ppf,        'ppf',        Icons.savings_outlined,            Colors.lightBlue)),
-      ...addIf('postOffice', () => card("Post Office Schemes",  p.postOffice, 'postOffice', Icons.local_post_office,           Colors.red.shade300)),
-      ...addIf('bonds',      () => card("Bonds (Govt/Corp)",    p.bonds,      'bonds',      Icons.receipt_long,                Colors.blueGrey)),
-      ...addIf('chitFund',   () => card("Chit Fund",            p.chitFund,   'chitFund',   Icons.groups,                      Colors.teal.shade300)),
+      ...addIf('fd',         () => detailCard("FD / RD",             p.fd,         'fd',         Icons.savings,          Colors.orange,       AssetConfigs.fd)),
+      ...addIf('ppf',        () => detailCard("PPF",                 p.ppf,        'ppf',        Icons.savings_outlined,  Colors.lightBlue,    AssetConfigs.ppf)),
+      ...addIf('postOffice', () => detailCard("Post Office Schemes", p.postOffice, 'postOffice', Icons.local_post_office, Colors.red.shade300, AssetConfigs.postOffice)),
+      ...addIf('bonds',      () => detailCard("Bonds (Govt/Corp)",   p.bonds,      'bonds',      Icons.receipt_long,      Colors.blueGrey,     AssetConfigs.bonds)),
+      ...addIf('chitFund',   () => detailCard("Chit Fund",           p.chitFund,   'chitFund',   Icons.groups,            Colors.teal.shade300,AssetConfigs.chitFund)),
     ];
     if (liquidCards.isNotEmpty) {
       sections.add(_sectionHeader("Liquid & Fixed Income"));
@@ -474,11 +482,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     // 2. Equity & Growth
     final equityCards = <Widget>[
-      ...addIf('stocks',       () => card("Stocks",                p.stocks,       'stocks',       Icons.show_chart,          Colors.purple)),
-      ...addIf('sip',          () => card("Mutual Funds (SIP)",    p.sip,          'sip',          Icons.pie_chart,           Colors.blue)),
-      ...addIf('etf',          () => card("ETFs",                  p.etf,          'etf',          Icons.stacked_line_chart,  Colors.cyan)),
-      ...addIf('foreignStocks',() => card("Foreign Stocks",        p.foreignStocks,'foreignStocks',Icons.language,            Colors.deepPurple)),
-      ...addIf('startupEquity',() => card("Angel / Startup",       p.startupEquity,'startupEquity',Icons.rocket_launch,       Colors.orange)),
+      ...addIf('stocks',       () => detailCard("Stocks",             p.stocks,       'stocks',       Icons.show_chart,         Colors.purple,      AssetConfigs.stocks)),
+      ...addIf('sip',          () => detailCard("Mutual Funds (SIP)", p.sip,          'sip',          Icons.pie_chart,          Colors.blue,        AssetConfigs.sip)),
+      ...addIf('etf',          () => detailCard("ETFs",               p.etf,          'etf',          Icons.stacked_line_chart, Colors.cyan,        AssetConfigs.etf)),
+      ...addIf('foreignStocks',() => detailCard("Foreign Stocks",     p.foreignStocks,'foreignStocks',Icons.language,           Colors.deepPurple,  AssetConfigs.foreignStocks)),
+      ...addIf('startupEquity',() => detailCard("Angel / Startup",    p.startupEquity,'startupEquity',Icons.rocket_launch,      Colors.orange,      AssetConfigs.startupEquity)),
     ];
     if (equityCards.isNotEmpty) {
       sections.add(_sectionHeader("Equity & Growth"));
@@ -493,9 +501,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     // 3. Retirement
     final retirementCards = <Widget>[
-      ...addIf('pf',  () => card("PF / EPF",       p.pf,  'pf',  Icons.account_balance_wallet,          Colors.green)),
-      ...addIf('vpf', () => card("Voluntary PF",   p.vpf, 'vpf', Icons.account_balance_wallet_outlined,  Colors.green.shade300)),
-      ...addIf('nps', () => card("NPS",             p.nps, 'nps', Icons.elderly,                          Colors.indigo)),
+      ...addIf('pf',  () => detailCard("PF / EPF",     p.pf,  'pf',  Icons.account_balance_wallet,          Colors.green,           AssetConfigs.pf)),
+      ...addIf('vpf', () => detailCard("Voluntary PF", p.vpf, 'vpf', Icons.account_balance_wallet_outlined,  Colors.green.shade300,  AssetConfigs.vpf)),
+      ...addIf('nps', () => detailCard("NPS",           p.nps, 'nps', Icons.elderly,                          Colors.indigo,          AssetConfigs.nps)),
     ];
     if (retirementCards.isNotEmpty) {
       sections.add(_sectionHeader("Retirement"));
@@ -510,12 +518,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     // 4. Alternative Assets
     final altCards = <Widget>[
-      ...addIf('gold',    () => card("Gold / Silver",          p.gold,    'gold',    Icons.grid_goldenratio,   Colors.amber)),
-      ...addIf('sgb',     () => card("Sovereign Gold Bonds",   p.sgb,     'sgb',     Icons.monetization_on,    Colors.amber.shade300)),
-      ...addIf('jewelry', () => card("Jewelry / Diamonds",     p.jewelry, 'jewelry', Icons.diamond,            Colors.pink.shade300)),
-      ...addIf('crypto',  () => card("Crypto",                 p.crypto,  'crypto',  Icons.currency_bitcoin,   Colors.deepOrange)),
-      ...addIf('reit',    () => card("REITs",                  p.reit,    'reit',    Icons.apartment,          Colors.tealAccent.shade700)),
-      ...addIf('p2p',     () => card("P2P Lending",            p.p2p,     'p2p',     Icons.people_alt,         Colors.lime)),
+      ...addIf('gold',    () => detailCard("Gold / Silver",        p.gold,    'gold',    Icons.grid_goldenratio,  Colors.amber,              AssetConfigs.gold)),
+      ...addIf('sgb',     () => detailCard("Sovereign Gold Bonds", p.sgb,     'sgb',     Icons.monetization_on,   Colors.amber.shade300,     AssetConfigs.sgb)),
+      ...addIf('jewelry', () => detailCard("Jewelry / Diamonds",   p.jewelry, 'jewelry', Icons.diamond,           Colors.pink.shade300,      AssetConfigs.jewelry)),
+      ...addIf('crypto',  () => detailCard("Crypto",               p.crypto,  'crypto',  Icons.currency_bitcoin,  Colors.deepOrange,         AssetConfigs.crypto)),
+      ...addIf('reit',    () => detailCard("REITs",                p.reit,    'reit',    Icons.apartment,         Colors.tealAccent.shade700,AssetConfigs.reit)),
+      ...addIf('p2p',     () => detailCard("P2P Lending",          p.p2p,     'p2p',     Icons.people_alt,        Colors.lime,               AssetConfigs.p2p)),
     ];
     if (altCards.isNotEmpty) {
       sections.add(_sectionHeader("Alternative Assets"));
@@ -530,9 +538,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     // 5. Physical Assets
     final physicalCards = <Widget>[
-      ...addIf('realEstate', () => card("Real Estate",       p.realEstate, 'realEstate', Icons.domain,       Colors.brown)),
-      ...addIf('agriLand',   () => card("Agricultural Land", p.agriLand,   'agriLand',   Icons.grass,        Colors.green)),
-      ...addIf('vehicle',    () => card("Vehicle(s)",        p.vehicle,    'vehicle',    Icons.directions_car,Colors.blueGrey.shade300)),
+      ...addIf('realEstate', () => _assetCard("Real Estate",  p.realEstate, 'realEstate', Icons.domain,         Colors.brown,            scheme, onTapOverride: () => Get.to(() => const RealEstateDetailScreen()))),
+      ...addIf('agriLand',   () => detailCard("Agricultural Land", p.agriLand, 'agriLand', Icons.grass,          Colors.green,            AssetConfigs.agriLand)),
+      ...addIf('vehicle',    () => _assetCard("Vehicle(s)",   p.vehicle,    'vehicle',    Icons.directions_car, Colors.blueGrey.shade300, scheme, onTapOverride: () => Get.to(() => const VehicleDetailScreen()))),
     ];
     if (physicalCards.isNotEmpty) {
       sections.add(_sectionHeader("Physical Assets"));
@@ -545,10 +553,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       sections.add(SizedBox(height: 20.h));
     }
 
-    // 6. Protection
+    // 6. Protection & Business
     final protectionCards = <Widget>[
-      ...addIf('insurance', () => card("Life Insurance / ULIP", p.insurance, 'insurance', Icons.health_and_safety,  Colors.pink)),
-      ...addIf('business',  () => card("Business Capital",      p.business,  'business',  Icons.business_center,    Colors.brown.shade300)),
+      ...addIf('insurance', () => _assetCard("Life Insurance / ULIP", p.insurance, 'insurance', Icons.health_and_safety, Colors.pink, scheme, onTapOverride: () => Get.to(() => const InsurancePolicyScreen()))),
+      ...addIf('business',  () => detailCard("Business Capital", p.business, 'business', Icons.business_center, Colors.brown.shade300, AssetConfigs.business)),
     ];
     if (protectionCards.isNotEmpty) {
       sections.add(_sectionHeader("Protection & Business"));
@@ -570,8 +578,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             Icons.money_off, Colors.red, scheme,
             secondaryLabel: loanCount > 0 ? "$loanCount loan${loanCount > 1 ? 's' : ''}" : null,
             onTapOverride: () => Get.to(() => const LoanTrackerScreen())),
-      ...addIf('creditCard', () => card("Credit Card Outstanding", p.creditCard, 'creditCard', Icons.credit_card,  Colors.red.shade700)),
-      ...addIf('bnpl',       () => card("BNPL / Pay Later",        p.bnpl,       'bnpl',       Icons.schedule,     Colors.deepOrange.shade700)),
+      ...addIf('creditCard', () => _assetCard("Credit Card Outstanding", p.creditCard, 'creditCard', Icons.credit_card, Colors.red.shade700, scheme,
+          onTapOverride: () => Get.to(() => const CreditCardDetailScreen()))),
+      ...addIf('bnpl', () => detailCard("BNPL / Pay Later", p.bnpl, 'bnpl', Icons.schedule, Colors.deepOrange.shade700, AssetConfigs.bnpl)),
     ];
     if (liabilityCards.isNotEmpty) {
       sections.add(_sectionHeader("Liabilities"));
@@ -763,7 +772,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             Row(
               children: [
                 Text(
-                  readOnly ? "Update Expense" : "Tap to update",
+                  readOnly ? "Update Expense" : onTapOverride != null ? "Tap to manage" : "Tap to update",
                   style: TextStyle(
                     fontSize: 10.sp,
                     color: scheme.onSurface.withValues(alpha: 0.4),

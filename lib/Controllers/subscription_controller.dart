@@ -150,6 +150,8 @@ class SubscriptionController extends GetxController {
           isAdmin.value = false;
           expiryDate.value = null;
         }
+      }, onError: (e) {
+        debugPrint('SubscriptionController stream error: $e');
       });
     } else {
       subscriptionStatus.value = SubscriptionStatus.free;

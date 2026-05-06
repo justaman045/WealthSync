@@ -80,12 +80,16 @@ class ChallengesController extends GetxController {
   }
 
   Future<bool> deleteChallenge(String id) async {
+    if (isSaving.value) return false;
+    isSaving.value = true;
     try {
       await _repo.deleteChallenge(id);
       return true;
     } catch (_) {
       ErrorHandler.showError("Failed to delete challenge.");
       return false;
+    } finally {
+      isSaving.value = false;
     }
   }
 

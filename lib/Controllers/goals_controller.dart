@@ -94,12 +94,16 @@ class GoalsController extends GetxController {
   }
 
   Future<bool> deleteGoal(String id) async {
+    if (isSaving.value) return false;
+    isSaving.value = true;
     try {
       await _repo.deleteGoal(id);
       return true;
     } catch (_) {
       ErrorHandler.showError("Failed to delete goal.");
       return false;
+    } finally {
+      isSaving.value = false;
     }
   }
 }

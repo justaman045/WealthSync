@@ -92,7 +92,7 @@ class ImportService {
 
         // Create Model — amount sign determines direction:
         // positive amount → income (recipientId = user), negative → expense (senderId = user)
-        final isExpense = amount >= 0;
+        final isExpense = amount < 0;
         final tx = TransactionModel(
           id: '',
           senderId: isExpense ? currentUserId : 'csv_import',

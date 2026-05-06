@@ -6,6 +6,7 @@ import android.net.Uri
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import kotlin.concurrent.thread
 
 class MainActivity : FlutterFragmentActivity() {
     private val UPI_CHANNEL = "money_control/upi"
@@ -17,15 +18,17 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UPI_CHANNEL)
             .setMethodCallHandler { call, result ->
                 if (call.method == "getInstallerPackageName") {
-                    val installer = try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                            packageManager.getInstallSourceInfo(packageName).installingPackageName
-                        } else {
-                            @Suppress("DEPRECATION")
-                            packageManager.getInstallerPackageName(packageName)
-                        }
-                    } catch (e: Exception) { null }
-                    result.success(installer)
+                    thread {
+                        val installer = try {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                packageManager.getInstallSourceInfo(packageName).installingPackageName
+                            } else {
+                                @Suppress("DEPRECATION")
+                                packageManager.getInstallerPackageName(packageName)
+                            }
+                        } catch (e: Exception) { null }
+                        result.success(installer)
+                    }
                 } else if (call.method == "pay") {
                     val packageName = call.argument<String>("packageName")
                     val amount     = call.argument<String>("amount") ?: ""

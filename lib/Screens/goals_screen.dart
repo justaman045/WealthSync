@@ -213,17 +213,20 @@ class GoalsScreen extends StatelessWidget {
                     ),
                   ),
                   if (goal.daysLeft != null)
-                    Text(
-                      goal.daysLeft! >= 0
-                          ? "${goal.daysLeft} days left"
-                          : "${(-goal.daysLeft!)} days overdue",
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: goal.daysLeft! < 0
-                            ? AppColors.error
-                            : theme.textTheme.bodySmall?.color,
-                      ),
-                    ),
+                    Builder(builder: (context) {
+                      final days = goal.daysLeft!;
+                      return Text(
+                        days >= 0
+                            ? "$days days left"
+                            : "${-days} days overdue",
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: days < 0
+                              ? AppColors.error
+                              : theme.textTheme.bodySmall?.color,
+                        ),
+                      );
+                    }),
                 ],
               ),
             ],
