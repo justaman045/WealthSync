@@ -402,6 +402,9 @@ Future<int> _processSmsMessages(
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return 0;
 
+    // Build category cache from past transactions before parsing
+    await SmsService.buildHistoryCache();
+
     int imported = 0;
     const uuid = Uuid();
 

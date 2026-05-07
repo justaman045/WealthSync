@@ -5,6 +5,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:money_control/Services/category_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SmsTransaction {
   final String sender;
@@ -35,6 +37,10 @@ class SmsService {
 
   // Merchant → category corrections learned from user edits (loaded on initRules)
   static Map<String, String> _correctionCache = {};
+
+  // Merchant → category learned from past Firestore transactions
+  static Map<String, String> _historyCache = {};
+  static bool _historyLoaded = false;
 
   // Default rules — also exposed statically so BackgroundWorker can use them without an instance
   static const Map<String, List<String>> defaultRules = {
@@ -191,11 +197,79 @@ class SmsService {
         }
       }
     }
-    // Fall back to user-correction cache before giving up
+    // Fall back to user-correction cache
     if (_correctionCache.containsKey(lowerMerchant)) {
       return _correctionCache[lowerMerchant]!;
     }
+    // Fall back to history-based category
+    final historyCategory = _getCategoryFromHistory(merchant);
+    if (historyCategory != null) return historyCategory;
     return 'Uncategorized';
+  }
+
+  static String? _getCategoryFromHistory(String merchant) {
+    if (!_historyLoaded || _historyCache.isEmpty) return null;
+    final lowerMerchant = merchant.toLowerCase().trim();
+    // Exact match
+    if (_historyCache.containsKey(lowerMerchant)) return _historyCache[lowerMerchant]!;
+    // Substring match: check if any cached merchant is contained in or contains the query
+    for (final entry in _historyCache.entries) {
+      final cachedMerchant = entry.key;
+      if (lowerMerchant.contains(cachedMerchant) ||
+          cachedMerchant.contains(lowerMerchant)) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  /// Build a merchant→category cache from past Firestore transactions.
+  /// Called during initRules (foreground) or by background worker before parsing.
+  static Future<void> buildHistoryCache() async {
+    if (_historyLoaded) return;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.email == null) return;
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.email)
+          .collection('transactions')
+          .orderBy('date', descending: true)
+          .limit(500)
+          .get();
+
+      final frequency = <String, Map<String, int>>{};
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final category = data['category'] as String?;
+        final recipientName = data['recipientName'] as String?;
+        if (category == null || category.isEmpty) continue;
+        if (recipientName == null || recipientName.isEmpty || recipientName == 'Unknown' || recipientName == 'External' || recipientName == 'Self') continue;
+        if (category == 'Income' || category == 'Refund' || category == 'Transfer' || category == 'Loan/EMI' || category == 'Salary') continue;
+        final key = recipientName.toLowerCase().trim();
+        frequency[key] ??= {};
+        frequency[key]![category] = (frequency[key]![category] ?? 0) + 1;
+      }
+
+      _historyCache = {};
+      frequency.forEach((merchant, catCounts) {
+        // Pick the most frequent category for this merchant
+        String? bestCat;
+        int bestCount = 0;
+        catCounts.forEach((cat, count) {
+          if (count > bestCount) {
+            bestCount = count;
+            bestCat = cat;
+          }
+        });
+        if (bestCat != null && bestCount >= 2) {
+          _historyCache[merchant] = bestCat!;
+        }
+      });
+      _historyLoaded = true;
+    } catch (e) {
+      log("Error building history cache: $e");
+    }
   }
 
   static String _getCreditCategory(String body) {
@@ -396,6 +470,8 @@ class SmsService {
         for (final s in corrections)
           (s['merchant'] as String).toLowerCase(): s['category'] as String,
       };
+      // Build category cache from past transactions
+      await buildHistoryCache();
       _rulesLoaded = true;
     } catch (e) {
       log("Error initializing rules: $e");

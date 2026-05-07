@@ -507,6 +507,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           ),
         ],
       ),
+      child: child,
     );
   }
 

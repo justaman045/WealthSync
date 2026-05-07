@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Components/skeleton_loader.dart';
+import 'package:money_control/Services/wealth_age_recommendations.dart';
 
 import 'package:intl/intl.dart';
 
@@ -42,6 +44,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   int? userAge;
   GeoResult? geoResult;
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
+  bool _ageBasedEnabled = false;
+  bool _agePromptChecked = false;
+  Set<String> _recommendedKeys = {};
 
   @override
   void initState() {
@@ -92,6 +97,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
       final age = userProfile?.calculatedAge;
 
+      // Load age-based preference and check prompt
+      final ageBasedEnabled = await WealthAgeRecommendations.isAgeBasedEnabled();
+      final promptShown = await WealthAgeRecommendations.isAgePromptShown();
+      bool showPrompt = !promptShown && age != null && !_agePromptChecked;
+
       if (mounted) {
         setState(() {
           portfolio = p;
@@ -100,8 +110,18 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           assetTargets = targets;
           userAge = age;
           geoResult = quickGeo;
+          _ageBasedEnabled = ageBasedEnabled;
+          _agePromptChecked = true;
+          _recommendedKeys = age != null
+              ? WealthAgeRecommendations.getRecommendedCardKeys(age)
+              : {};
           loading = false;
         });
+
+        // Show age prompt after initial data load
+        if (showPrompt) {
+          _showAgePromptIfEligible();
+        }
       }
 
       // Once geo resolves (may take a few seconds for GPS), refresh targets
@@ -134,6 +154,21 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _showAgePromptIfEligible() async {
+    if (userAge == null) return;
+    final enabled = await WealthAgeRecommendations.showAgePrompt(context);
+    await WealthAgeRecommendations.markAgePromptShown();
+    if (mounted) {
+      setState(() {
+        _ageBasedEnabled = enabled;
+        WealthAgeRecommendations.setAgeBasedEnabled(enabled);
+        _recommendedKeys = enabled
+            ? WealthAgeRecommendations.getRecommendedCardKeys(userAge!)
+            : {};
+      });
     }
   }
 
@@ -210,45 +245,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (userAge != null)
-                          Container(
-                            width: double.infinity,
-                            margin: EdgeInsets.only(bottom: 12.h),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 12.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF00E5FF,
-                              ).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16.r),
-                              border: Border.all(
-                                color: const Color(
-                                  0xFF00E5FF,
-                                ).withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.verified_user_outlined,
-                                  color: const Color(0xFF00E5FF),
-                                  size: 20.sp,
-                                ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: Text(
-                                    "Personalized Strategy (Age: $userAge)",
-                                    style: TextStyle(
-                                      color: const Color(0xFF00E5FF),
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          _buildAgeStrategyBanner(),
                         if (geoResult != null && geoResult!.city.isNotEmpty)
                           _buildGeoBadge(geoResult!),
                         SizedBox(height: 8.h),
@@ -258,20 +255,42 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              "Your Assets",
+                              _ageBasedEnabled ? "Recommended for You" : "Your Assets",
                               style: TextStyle(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
                                 color: scheme.onSurface,
                               ),
                             ),
-                            IconButton(
-                              onPressed: _showVisibilityDialog,
-                              icon: Icon(
-                                Icons.tune_rounded,
-                                color: scheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                              tooltip: "Manage Visibility",
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_ageBasedEnabled)
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8.r),
+                                    ),
+                                    child: Text(
+                                      "Smart Mode",
+                                      style: TextStyle(
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                if (_ageBasedEnabled) SizedBox(width: 8.w),
+                                IconButton(
+                                  onPressed: _showVisibilityDialog,
+                                  icon: Icon(
+                                    Icons.tune_rounded,
+                                    color: scheme.onSurface.withValues(alpha: 0.6),
+                                  ),
+                                  tooltip: "Manage Visibility",
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -375,6 +394,68 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     );
   }
 
+  Widget _buildAgeStrategyBanner() {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: _ageBasedEnabled
+            ? AppColors.primary.withValues(alpha: 0.1)
+            : Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(
+          color: _ageBasedEnabled
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _ageBasedEnabled ? Icons.auto_awesome : Icons.cake_outlined,
+            color: _ageBasedEnabled ? AppColors.primary : const Color(0xFF00E5FF),
+            size: 18.sp,
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              _ageBasedEnabled
+                  ? "Smart Mode · Age $userAge"
+                  : "Age $userAge · Showing all cards",
+              style: TextStyle(
+                color: _ageBasedEnabled ? AppColors.primary : Colors.white60,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 40.w,
+            height: 24.h,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Switch(
+                value: _ageBasedEnabled,
+                activeColor: AppColors.primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                onChanged: (val) {
+                  setState(() {
+                    _ageBasedEnabled = val;
+                    _recommendedKeys = (val && userAge != null)
+                        ? WealthAgeRecommendations.getRecommendedCardKeys(userAge!)
+                        : {};
+                  });
+                  WealthAgeRecommendations.setAgeBasedEnabled(val);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGeoBadge(GeoResult geo) {
     const zoneColor = Color(0xFF69F0AE);
     return Container(
@@ -451,18 +532,21 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         _assetCard(title, amount, key, icon, color, scheme,
             onTapOverride: () => Get.to(() => AssetDetailScreen(config: cfg)));
 
-    List<Widget> addIf(String key, Widget Function() builder) =>
-        p.hiddenKeys.contains(key) ? [] : [builder()];
+    List<Widget> addIf(String key, Widget Function() builder) {
+      if (p.hiddenKeys.contains(key)) return [];
+      if (_ageBasedEnabled && !_recommendedKeys.contains(key)) return [];
+      return [builder()];
+    }
 
     // ── sections ─────────────────────────────────────────────────────────────
     final sections = <Widget>[];
 
     // 1. Liquid & Fixed Income
     final liquidCards = <Widget>[
-      _assetCard("Cash / Bank", bankBalance, 'bank', Icons.account_balance, Colors.teal, scheme,
+      ...addIf('bank', () => _assetCard("Cash / Bank", bankBalance, 'bank', Icons.account_balance, Colors.teal, scheme,
           readOnly: true,
           secondaryLabel: monthlyExpense > 0 ? "Monthly Expense" : null,
-          secondaryValue: monthlyExpense > 0 ? monthlyExpense : null),
+          secondaryValue: monthlyExpense > 0 ? monthlyExpense : null)),
       ...addIf('fd',         () => detailCard("FD / RD",             p.fd,         'fd',         Icons.savings,          Colors.orange,       AssetConfigs.fd)),
       ...addIf('ppf',        () => detailCard("PPF",                 p.ppf,        'ppf',        Icons.savings_outlined,  Colors.lightBlue,    AssetConfigs.ppf)),
       ...addIf('postOffice', () => detailCard("Post Office Schemes", p.postOffice, 'postOffice', Icons.local_post_office, Colors.red.shade300, AssetConfigs.postOffice)),
@@ -573,11 +657,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final loanController = LoanController.to;
     final loanCount = loanController.loans.length;
     final liabilityCards = <Widget>[
-      if (!p.hiddenKeys.contains('loans'))
-        _assetCard("Loans / Liabilities", loanController.totalOutstanding, 'loans',
-            Icons.money_off, Colors.red, scheme,
-            secondaryLabel: loanCount > 0 ? "$loanCount loan${loanCount > 1 ? 's' : ''}" : null,
-            onTapOverride: () => Get.to(() => const LoanTrackerScreen())),
+      ...addIf('loans', () => _assetCard("Loans / Liabilities", loanController.totalOutstanding, 'loans',
+          Icons.money_off, Colors.red, scheme,
+          secondaryLabel: loanCount > 0 ? "$loanCount loan${loanCount > 1 ? 's' : ''}" : null,
+          onTapOverride: () => Get.to(() => const LoanTrackerScreen()))),
       ...addIf('creditCard', () => _assetCard("Credit Card Outstanding", p.creditCard, 'creditCard', Icons.credit_card, Colors.red.shade700, scheme,
           onTapOverride: () => Get.to(() => const CreditCardDetailScreen()))),
       ...addIf('bnpl', () => detailCard("BNPL / Pay Later", p.bnpl, 'bnpl', Icons.schedule, Colors.deepOrange.shade700, AssetConfigs.bnpl)),
@@ -635,7 +718,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     String? secondaryLabel,
     double? secondaryValue,
     VoidCallback? onTapOverride,
+    bool? recommendedOverride,
   }) {
+    final isRecommended = recommendedOverride ?? _recommendedKeys.contains(key);
     final currencyCode = CurrencyController.to.currencyCode.value;
     final symbol = CurrencyController.to.currencySymbol.value;
     final wealthTarget = assetTargets[key];
@@ -698,6 +783,16 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (_ageBasedEnabled)
+                  Container(
+                    width: 8.w,
+                    height: 8.h,
+                    margin: EdgeInsets.only(left: 4.w),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isRecommended ? AppColors.success : Colors.white24,
+                    ),
+                  ),
               ],
             ),
             SizedBox(height: 12.h),
@@ -1122,11 +1217,38 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             final key = e.key;
                             final title = e.value;
                             final isVisible = !hidden.contains(key);
+                            final isRec = _recommendedKeys.contains(key);
                             return CheckboxListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                title,
-                                style: const TextStyle(color: Colors.white70),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      title,
+                                      style: TextStyle(
+                                        color: isVisible ? Colors.white70 : Colors.white30,
+                                      ),
+                                    ),
+                                  ),
+                                  if (_ageBasedEnabled)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                                      decoration: BoxDecoration(
+                                        color: isRec
+                                            ? AppColors.success.withValues(alpha: 0.15)
+                                            : Colors.white.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(4.r),
+                                      ),
+                                      child: Text(
+                                        isRec ? "Recommended" : "Not recommended",
+                                        style: TextStyle(
+                                          fontSize: 8.sp,
+                                          color: isRec ? AppColors.success : Colors.white30,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                               value: isVisible,
                               activeColor: const Color(0xFF00E5FF),
