@@ -30,7 +30,7 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final TransactionController _transactionController = Get.find<TransactionController>();
+  late final TransactionController _transactionController;
   final TextEditingController _amount = TextEditingController();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _note = TextEditingController();
@@ -49,6 +49,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
+    _transactionController = Get.find<TransactionController>();
     _confettiController = ConfettiController(duration: const Duration(milliseconds: 800));
     // Initialize selected category if passed from widget
     if (widget.cateogary != null) {
