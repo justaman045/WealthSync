@@ -138,6 +138,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
 
   Widget _buildChallengeCard(SavingsChallengeModel c) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
     final txCtrl = Get.find<TransactionController>();
     final sym = CurrencyController.to.currencySymbol.value;
     final progress = ChallengesController.to.computeProgress(

@@ -38,7 +38,7 @@ class AnalyticsScreen extends StatefulWidget {
 // -------------------------------
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
-  final TransactionController _transactionController = Get.find();
+  late final TransactionController _transactionController;
 
   late final String uid;
   late final String? email;
@@ -77,6 +77,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
+    _transactionController = Get.find<TransactionController>();
     final user = FirebaseAuth.instance.currentUser;
     uid = user?.uid ?? "";
     email = user?.email;

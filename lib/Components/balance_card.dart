@@ -22,15 +22,26 @@ class BalanceCard extends StatefulWidget {
 }
 
 class _BalanceCardState extends State<BalanceCard> {
-  final PrivacyController _privacyController = Get.find<PrivacyController>();
-  final TransactionController _transactionController =
-      Get.find<TransactionController>();
-  final LentMoneyController _lentMoneyController = Get.find<LentMoneyController>();
-  final RecurringPaymentController _recurringPaymentController =
-      Get.find<RecurringPaymentController>();
+  late final PrivacyController _privacyController;
+  late final TransactionController _transactionController;
+  late final LentMoneyController _lentMoneyController;
+  late final RecurringPaymentController _recurringPaymentController;
   final RxBool _includeLentMoney = false.obs;
   final RxBool _subtractSubscriptions = false.obs;
   double _lastAnimatedValue = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<PrivacyController>()) Get.put(PrivacyController());
+    _privacyController = Get.find<PrivacyController>();
+    if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
+    _transactionController = Get.find<TransactionController>();
+    if (!Get.isRegistered<LentMoneyController>()) Get.put(LentMoneyController());
+    _lentMoneyController = Get.find<LentMoneyController>();
+    if (!Get.isRegistered<RecurringPaymentController>()) Get.put(RecurringPaymentController());
+    _recurringPaymentController = Get.find<RecurringPaymentController>();
+  }
 
   @override
   void dispose() {

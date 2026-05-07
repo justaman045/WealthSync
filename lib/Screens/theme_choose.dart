@@ -38,10 +38,9 @@ class ThemeController extends GetxController {
 class ThemeSettingsScreen extends StatelessWidget {
   ThemeSettingsScreen({super.key});
 
-  final themeController = Get.find<ThemeController>();
-
   @override
   Widget build(BuildContext context) {
+    final themeController = Get.find<ThemeController>();
     final scheme = Theme.of(context).colorScheme;
     final isDark = scheme.brightness == Brightness.dark;
     final surface = scheme.surface;

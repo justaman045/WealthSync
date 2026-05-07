@@ -99,6 +99,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         return;
       }
 
+      if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
       final TransactionController txController = Get.find();
       if (!txController.isLoading.value) {
         final freshTx = await _repository.getTransactionsStream().first;

@@ -20,8 +20,17 @@ class LentMoneyScreen extends StatefulWidget {
 }
 
 class _LentMoneyScreenState extends State<LentMoneyScreen> {
-  final LentMoneyController _controller = Get.find<LentMoneyController>();
-  final CurrencyController _currencyController = Get.find();
+  late final LentMoneyController _controller;
+  late final CurrencyController _currencyController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<LentMoneyController>()) Get.put(LentMoneyController());
+    _controller = Get.find<LentMoneyController>();
+    if (!Get.isRegistered<CurrencyController>()) Get.put(CurrencyController());
+    _currencyController = Get.find<CurrencyController>();
+  }
 
   @override
   Widget build(BuildContext context) {

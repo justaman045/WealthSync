@@ -45,9 +45,8 @@ class BankingHomeScreen extends StatefulWidget {
 }
 
 class _BankingHomeScreenState extends State<BankingHomeScreen> {
-  // Controllers are registered in AuthChecker (main.dart) and survive tab navigation.
-  final ProfileController _profileController = Get.find<ProfileController>();
-  final TransactionController _transactionController = Get.find<TransactionController>();
+  late final ProfileController _profileController;
+  late final TransactionController _transactionController;
 
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
@@ -63,6 +62,14 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<ProfileController>()) {
+      Get.put(ProfileController());
+    }
+    _profileController = Get.find<ProfileController>();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
+    _transactionController = Get.find<TransactionController>();
     _updateLastOpenedLocal();
 
     // Start WorkManager & Tutorial

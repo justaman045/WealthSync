@@ -44,6 +44,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   void initState() {
     super.initState();
     selectedTab = widget.initialTab;
+    if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
     final controller = Get.find<TransactionController>();
     _txWorker = ever(controller.transactions, (_) => _regroup());
     _regroup();
@@ -58,6 +59,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   void _regroup() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    if (!Get.isRegistered<TransactionController>()) return;
     final controller = Get.find<TransactionController>();
     final fm = widget.filterMonth;
     final fd = widget.filterDate;
@@ -434,8 +436,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
 
     if (confirm == true) {
-      // ignore: use_build_context_synchronously
       if (!context.mounted) return;
+      if (!Get.isRegistered<TransactionController>()) return;
       final ctrl = Get.find<TransactionController>();
       await ctrl.deleteTransaction(tx);
     }

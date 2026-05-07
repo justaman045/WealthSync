@@ -18,13 +18,17 @@ class CategoryBudgetScreen extends StatefulWidget {
 }
 
 class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
-  final BudgetController _budgetController = Get.find<BudgetController>();
+  late final BudgetController _budgetController;
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
 
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<BudgetController>()) {
+      Get.put(BudgetController());
+    }
+    _budgetController = Get.find<BudgetController>();
     _budgetController.fetchBudgetsAndSpends();
   }
 

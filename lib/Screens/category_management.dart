@@ -26,7 +26,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         category: category,
         onSave: (model) async {
           if (category == null) {
-            // Check Limit
+            if (!Get.isRegistered<SubscriptionController>()) Get.put(SubscriptionController());
+            if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
             final subCtrl = Get.find<SubscriptionController>();
             final txCtrl = Get.find<TransactionController>();
 

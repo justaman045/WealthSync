@@ -134,6 +134,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     setState(() => _isSaving = true);
     final note = _noteCtrl.text.trim().isEmpty ? "Split bill" : _noteCtrl.text.trim();
     int successCount = 0;
+    if (!Get.isRegistered<LentMoneyController>()) Get.put(LentMoneyController());
     final ctrl = Get.find<LentMoneyController>();
 
     for (final p in _participants) {

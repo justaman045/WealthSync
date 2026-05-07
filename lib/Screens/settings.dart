@@ -35,13 +35,17 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final ProfileController _profileController = Get.find<ProfileController>();
+  late final ProfileController _profileController;
   String _version = "1.0.0";
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<ProfileController>()) {
+      Get.put(ProfileController());
+    }
+    _profileController = Get.find<ProfileController>();
     _getVersion();
   }
 

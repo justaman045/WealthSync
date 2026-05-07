@@ -20,7 +20,14 @@ class QuickSendRow extends StatefulWidget {
 }
 
 class _QuickSendRowState extends State<QuickSendRow> {
-  final TransactionController _controller = Get.find<TransactionController>();
+  late final TransactionController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
+    _controller = Get.find<TransactionController>();
+  }
 
   @override
   Widget build(BuildContext context) {

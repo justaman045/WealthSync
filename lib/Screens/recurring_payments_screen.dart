@@ -21,7 +21,16 @@ class RecurringPaymentsScreen extends StatefulWidget {
 
 class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
   final RecurringService _service = RecurringService();
-  final TransactionController _txController = Get.find<TransactionController>();
+  late final TransactionController _txController;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
+    _txController = Get.find<TransactionController>();
+  }
 
   @override
   Widget build(BuildContext context) {

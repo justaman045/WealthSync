@@ -17,6 +17,9 @@ class AnalyticsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
     final txController = Get.find<TransactionController>();
     if (txController.isLoading.value) {
       // Wait for first load to complete before computing analytics.

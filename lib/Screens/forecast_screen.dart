@@ -43,6 +43,7 @@ class ForecastScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<AnalyticsController>()) Get.put(AnalyticsController());
     final controller = Get.find<AnalyticsController>();
 
     DateTime now = DateTime.now();

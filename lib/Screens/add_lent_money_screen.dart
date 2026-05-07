@@ -18,19 +18,23 @@ class AddLentMoneyScreen extends StatefulWidget {
 }
 
 class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
-  final LentMoneyController _controller = Get.find<LentMoneyController>();
-  final CurrencyController _currencyController = Get.find();
+  late final LentMoneyController _controller;
+  late final CurrencyController _currencyController;
 
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
-  String _selectedType = 'lent'; // 'lent' or 'borrowed'
+  String _selectedType = 'lent';
 
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<LentMoneyController>()) Get.put(LentMoneyController());
+    _controller = Get.find<LentMoneyController>();
+    if (!Get.isRegistered<CurrencyController>()) Get.put(CurrencyController());
+    _currencyController = Get.find<CurrencyController>();
     if (widget.existingEntry != null) {
       _amountController.text = widget.existingEntry!.amount.toString();
       _nameController.text = widget.existingEntry!.friendName;
