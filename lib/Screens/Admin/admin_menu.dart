@@ -20,15 +20,32 @@ class _AdminMenuState extends State<AdminMenu> {
   bool _isImporting = false;
 
   Future<void> _triggerSmsImport() async {
-    final status = await Permission.sms.request();
+    var status = await Permission.sms.status;
     if (!status.isGranted) {
-      Get.snackbar(
-        'Permission Denied',
-        'SMS permission is required to import transactions.',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
-      return;
+      if (status.isPermanentlyDenied) {
+        Get.snackbar(
+          'Permission Denied',
+          'SMS permission was permanently denied. Please enable it in app settings.',
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 5),
+          mainButton: TextButton(
+            onPressed: () => openAppSettings(),
+            child: const Text('Open Settings', style: TextStyle(color: Colors.white)),
+          ),
+        );
+        return;
+      }
+      status = await Permission.sms.request();
+      if (!status.isGranted) {
+        Get.snackbar(
+          'Permission Denied',
+          'SMS permission is required to import transactions.',
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+        return;
+      }
     }
 
     setState(() => _isImporting = true);

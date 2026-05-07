@@ -61,133 +61,131 @@ Future<void> gotoScreen(int index, int currentIndex) async {
           final age = doc.data()?['age'];
 
           if (age == null || (age is int && age <= 0)) {
-            if (Get.context != null) {
-              await showGeneralDialog(
-                context: Get.context!,
-                barrierDismissible: true,
-                barrierLabel: "Dismiss",
-                barrierColor: Colors.black.withValues(alpha: 0.8),
-                transitionDuration: const Duration(milliseconds: 300),
-                pageBuilder: (context, anim1, anim2) {
-                  return Center(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        width: 320.w,
-                        padding: EdgeInsets.all(24.w),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF2E1A47), Color(0xFF1A1A2E)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(28.r),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.15),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              blurRadius: 30,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
+            final overlayCtx = Get.overlayContext;
+            if (overlayCtx == null) return;
+            await showGeneralDialog(
+              context: overlayCtx,
+              barrierDismissible: true,
+              barrierLabel: "Dismiss",
+              barrierColor: Colors.black.withValues(alpha: 0.8),
+              transitionDuration: const Duration(milliseconds: 300),
+              pageBuilder: (ctx, anim1, anim2) {
+                return Center(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: 320.w,
+                      padding: EdgeInsets.all(24.w),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2E1A47), Color(0xFF1A1A2E)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(16.w),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF00E5FF,
-                                ).withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.person_rounded,
-                                color: const Color(0xFF00E5FF),
-                                size: 32.sp,
-                              ),
+                        borderRadius: BorderRadius.circular(28.r),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(16.w),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
                             ),
-                            SizedBox(height: 20.h),
-                            Text(
-                              "Setup Required",
-                              style: TextStyle(
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 0.5,
-                              ),
-                              textAlign: TextAlign.center,
+                            child: Icon(
+                              Icons.person_rounded,
+                              color: const Color(0xFF00E5FF),
+                              size: 32.sp,
                             ),
-                            SizedBox(height: 12.h),
-                            Text(
-                              "To use the Wealth Builder, we need your age to calculate financial targets.",
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                color: Colors.white70,
-                                height: 1.5,
-                              ),
-                              textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 20.h),
+                          Text(
+                            "Setup Required",
+                            style: TextStyle(
+                              fontSize: 20.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
                             ),
-                            SizedBox(height: 28.h),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text(
-                                      "Cancel",
-                                      style: TextStyle(color: Colors.white54),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 12.h),
+                          Text(
+                            "To use the Wealth Builder, we need your age to calculate financial targets.",
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.white70,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 28.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text(
+                                    "Cancel",
+                                    style: TextStyle(color: Colors.white54),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    Get.to(() => const EditProfileScreen());
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF00E5FF),
+                                    foregroundColor: Colors.black,
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12.h,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        12.r,
+                                      ),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    "Set Age",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                                SizedBox(width: 12.w),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      Get.to(() => const EditProfileScreen());
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF00E5FF),
-                                      foregroundColor: Colors.black,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 12.h,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          12.r,
-                                        ),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                    child: const Text(
-                                      "Set Age",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
-                transitionBuilder: (context, anim1, anim2, child) {
-                  return Transform.scale(
-                    scale: Curves.easeOutBack.transform(anim1.value),
-                    child: child,
-                  );
-                },
-              );
-            }
+                  ),
+                );
+              },
+              transitionBuilder: (ctx, anim1, anim2, child) {
+                return Transform.scale(
+                  scale: Curves.easeOutBack.transform(anim1.value),
+                  child: child,
+                );
+              },
+            );
             return;
           }
         } catch (e) {
@@ -243,7 +241,7 @@ TransactionResultType getTransactionTypeFromStatus(String? status) {
     case 'cancelled':
       return TransactionResultType.failed;
     default:
-      return TransactionResultType.inProgress;
+      return TransactionResultType.failed;
   }
 }
 

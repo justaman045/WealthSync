@@ -49,6 +49,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _fetchUserName() async {
     final user = FirebaseAuth.instance.currentUser;
+    if (!mounted) return;
     setState(() {
       _userName = user?.displayName?.split(' ').first ?? "User";
     });

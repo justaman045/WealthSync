@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/challenge_model.dart';
 import 'package:money_control/Models/transaction.dart';
@@ -96,6 +97,9 @@ class ChallengesController extends GetxController {
   Future<void> markComplete(SavingsChallengeModel c) async {
     try {
       await _repo.updateChallenge(c.copyWith(isCompleted: true));
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Failed to mark challenge complete: $e');
+      ErrorHandler.showError("Failed to save progress.");
+    }
   }
 }

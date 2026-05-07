@@ -110,7 +110,7 @@ class WealthPortfolio {
       'hiddenKeys': hiddenKeys,
       'lastUpdated': Timestamp.fromDate(lastUpdated),
       if (monthlyExpenseOverride != null)
-        'monthlyExpenseOverride': monthlyExpenseOverride,
+        'monthly_expense_override': monthlyExpenseOverride,
     };
   }
 
@@ -143,14 +143,28 @@ class WealthPortfolio {
       agriLand: (map['agriLand'] ?? 0).toDouble(),
       creditCard: (map['creditCard'] ?? 0).toDouble(),
       bnpl: (map['bnpl'] ?? 0).toDouble(),
-      custom: Map<String, double>.from(map['custom'] ?? {}),
-      targets: Map<String, double>.from(map['targets'] ?? {}),
-      hiddenKeys: List<String>.from(map['hiddenKeys'] ?? []),
+      custom: _toDoubleMap(map['custom']),
+      targets: _toDoubleMap(map['targets']),
+      hiddenKeys: (map['hiddenKeys'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       lastUpdated:
           (map['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
       monthlyExpenseOverride:
-          (map['monthlyExpenseOverride'] as num?)?.toDouble(),
+          (map['monthly_expense_override'] as num?)?.toDouble(),
     );
+  }
+
+  static Map<String, double> _toDoubleMap(dynamic value) {
+    if (value == null) return {};
+    final raw = value as Map;
+    return raw.map((k, v) {
+      if (v == null) return MapEntry(k.toString(), 0.0);
+      if (v is num) return MapEntry(k.toString(), v.toDouble());
+      if (v is String) return MapEntry(k.toString(), double.tryParse(v) ?? 0.0);
+      return MapEntry(k.toString(), 0.0);
+    });
   }
 
   double get totalAssets =>

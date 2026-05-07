@@ -2,16 +2,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BudgetService {
   /// Check if the new amount added to a category exceeds the user's set budget
   /// Triggers a notification if 100% is exceeded (Critical) or 90% is reached (Warning)
+  /// Deduplicates: only notifies once per category per hour to avoid spam.
   static Future<void> checkBudgetExceeded({
     required String userId,
     required String category,
-    required double newAmount, // This is the amount just added/modified
   }) async {
     try {
+      // Deduplication: skip if notified within the last hour
+      final prefs = await SharedPreferences.getInstance();
+      final dedupeKey = 'budget_notified_${userId}_$category';
+      final lastNotified = prefs.getInt(dedupeKey) ?? 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - lastNotified < const Duration(hours: 1).inMilliseconds) return;
+
       // 1. Fetch the user's Budget for this specific category
       final budgetDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -26,11 +34,11 @@ class BudgetService {
       if (budgetLimit <= 0) return; // Budget is 0, ignore
 
       // 2. Fetch Total Spend for this category for current month
-      final now = DateTime.now();
-      final startOfMonth = DateTime(now.year, now.month, 1);
+      final nowDt = DateTime.now();
+      final startOfMonth = DateTime(nowDt.year, nowDt.month, 1);
       final endOfMonth = DateTime(
-        now.year,
-        now.month + 1,
+        nowDt.year,
+        nowDt.month + 1,
         1,
       ).subtract(const Duration(seconds: 1));
 
@@ -50,16 +58,6 @@ class BudgetService {
         if (amount < 0) totalSpent += amount.abs();
       }
 
-      // If we are calling this *after* adding the new transaction, it's already in Firestore?
-      // "add_transaction" completes the future wait, then we call this.
-      // So fetch should include it.
-      // BUT consistency might lag. Let's trust the fetch or pass current total.
-      // Safer: Using the fetch is consistent if we wait enough, but since we just wrote it, Firestore local might be good.
-
-      // Let's verify spend status
-      // If totalSpent > budgetLimit -> Alert
-      // If totalSpent > 0.9 * budgetLimit -> Warning
-
       final symbol = CurrencyController.to.currencySymbol.value;
 
       if (totalSpent > budgetLimit) {
@@ -73,6 +71,7 @@ class BudgetService {
           channelId: 'budget_alerts',
           channelName: 'Budget Alerts',
         );
+        await prefs.setInt(dedupeKey, now);
       } else if (totalSpent >= (budgetLimit * 0.9)) {
         const title = "⚠️ Approaching Limit";
         final body =
@@ -84,6 +83,7 @@ class BudgetService {
           channelId: 'budget_alerts',
           channelName: 'Budget Alerts',
         );
+        await prefs.setInt(dedupeKey, now);
       }
     } catch (e) {
       log("Error checking budget: $e");

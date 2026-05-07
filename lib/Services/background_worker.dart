@@ -1,6 +1,7 @@
 import 'package:workmanager/workmanager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'dart:developer';
+import 'dart:developer' as developer;
+import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,7 @@ import 'package:money_control/firebase_options.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Services/sms_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Background worker to check inactivity and show reminder notifications
 class BackgroundWorker {
@@ -70,7 +72,7 @@ class BackgroundWorker {
       android: androidDetails,
     );
 
-    final id = DateTime.now().millisecondsSinceEpoch % 2147483647;
+    final id = Random.secure().nextInt(2147483647);
 
     await plugin.show(id, title, body, details, payload: "home");
 
@@ -89,7 +91,7 @@ class BackgroundWorker {
               'type': channelId,
             });
       } catch (e) {
-        log("Error saving background notification: $e");
+        developer.log("Error saving background notification: $e");
       }
     }
   }
@@ -110,7 +112,7 @@ void callbackDispatcher() {
         );
       } catch (e) {
         // Firebase might already be initialized
-        log("Firebase init error (ignorable): $e");
+        developer.log("Firebase init error (ignorable): $e");
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -208,7 +210,7 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
           // Mark as run for today
           await prefs.setString('last_daily_insight_run', todayStr);
         } catch (e) {
-          log("Error fetching daily insight: $e");
+          developer.log("Error fetching daily insight: $e");
         }
       }
     }
@@ -218,7 +220,7 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
 Future<double> _fetchTodayTotal(String email, {required bool isExpense}) async {
   final now = DateTime.now();
   final startOfDay = DateTime(now.year, now.month, now.day);
-  final endOfDay = DateTime(now.year, now.month, now.day + 1);
+  final endOfDay = startOfDay.add(const Duration(days: 1));
 
   double total = 0;
 
@@ -322,7 +324,7 @@ Future<void> _checkUpdate(SharedPreferences prefs) async {
       await prefs.setString('last_update_check_run', todayStr);
     }
   } catch (e) {
-    log("Update check error: $e");
+    developer.log("Update check error: $e");
   }
 }
 
@@ -359,7 +361,7 @@ Future<void> _checkRecurringPayments(SharedPreferences prefs) async {
 
       await prefs.setString('last_recurring_run', todayStr);
     } catch (e) {
-      log("Error processing recurring payments: $e");
+      developer.log("Error processing recurring payments: $e");
     }
   }
 }
@@ -370,6 +372,9 @@ Future<int> _processSmsMessages(
 }) async {
   final userEmail = prefs.getString('user_email');
   if (userEmail == null) return 0;
+
+  final smsStatus = await Permission.sms.status;
+  if (!smsStatus.isGranted) return 0;
 
   final lastScanMs = prefs.getInt('last_sms_scan_ms') ?? 0;
   final lastScanDate =
@@ -463,7 +468,7 @@ Future<int> _processSmsMessages(
     await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
     return imported;
   } catch (e) {
-    log('SMS auto-import error: $e');
+    developer.log('SMS auto-import error: $e');
     // Still update the timestamp to avoid re-scanning the same messages indefinitely.
     await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
     return 0;
@@ -536,11 +541,22 @@ Future<void> _checkWeeklyDigest(SharedPreferences prefs) async {
 
     await prefs.setString('last_weekly_digest', thisWeekStr);
   } catch (e) {
-    log('Weekly digest error: $e');
+    developer.log('Weekly digest error: $e');
   }
 }
 
 int _isoWeekNumber(DateTime date) {
-  final dayOfYear = int.parse(DateFormat('D').format(date));
-  return ((dayOfYear - date.weekday + 10) / 7).floor();
+  final d = DateTime.utc(date.year, date.month, date.day);
+  final dayOfYear = int.parse(DateFormat('D').format(d));
+  final dow = d.weekday;
+  final woy = ((dayOfYear - dow + 10) / 7).floor();
+  if (woy < 1) {
+    // Week belongs to previous year
+    final dec31 = DateTime.utc(date.year - 1, 12, 31);
+    return _isoWeekNumber(dec31);
+  }
+  if (woy > 52 && dow <= 3) {
+    return 1; // Week 1 of next year
+  }
+  return woy;
 }

@@ -41,6 +41,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
   /// Search Firestore for matching transactions
   Future<void> _performSearch(String query) async {
     if (query.trim().isEmpty) {
+      if (!mounted) return;
       setState(() {
         results = [];
         hasSearched = false;
@@ -51,6 +52,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    if (!mounted) return;
     setState(() {
       searching = true;
       hasSearched = true;
@@ -77,11 +79,13 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
             (tx.note?.toLowerCase().contains(q) ?? false);
       }).toList();
 
+      if (!mounted) return;
       setState(() => results = matched);
     } catch (e) {
       debugPrint("Search error: $e");
     }
 
+    if (!mounted) return;
     setState(() => searching = false);
   }
 

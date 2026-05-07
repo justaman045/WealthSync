@@ -33,7 +33,7 @@ class TransactionModel {
     this.recurringPaymentId,
   });
 
-  double get total => amount + tax;
+  double get total => amount < 0 ? amount - tax : amount + tax;
 
   String? get recipientAvatar => attachmentUrl;
 
@@ -55,9 +55,9 @@ class TransactionModel {
       senderId: map['senderId'] ?? '',
       recipientId: map['recipientId'] ?? '',
       recipientName: map['recipientName'] ?? '',
-      amount: (map['amount'] ?? 0).toDouble(),
+      amount: _parseNum(map['amount']),
       currency: map['currency'] ?? 'INR',
-      tax: (map['tax'] ?? 0).toDouble(),
+      tax: _parseNum(map['tax']),
       note: map['note'],
       category: map['category'],
       date: parsedDate,
@@ -68,6 +68,13 @@ class TransactionModel {
           : Timestamp.now(),
       recurringPaymentId: map['recurringPaymentId'],
     );
+  }
+
+  static double _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toMap() {

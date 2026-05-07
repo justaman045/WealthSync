@@ -43,7 +43,7 @@ class RecurringPayment {
       id: id,
       userId: map['userId'] ?? '',
       title: map['title'] ?? 'Unknown',
-      amount: (map['amount'] ?? 0).toDouble(),
+      amount: _parseNum(map['amount']),
       category: map['category'] ?? 'Other',
       frequency: RecurringFrequency.values.firstWhere(
         (e) => e.name == map['frequency'],
@@ -53,5 +53,12 @@ class RecurringPayment {
       nextDueDate: ((map['nextDueDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
       isActive: map['isActive'] ?? true,
     );
+  }
+
+  static double _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
   }
 }

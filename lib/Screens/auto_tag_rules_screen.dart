@@ -116,7 +116,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
           ),
         ],
       ),
-    );
+    ).whenComplete(() => ctrl.dispose());
   }
 
   void _removeKeyword(String category, String keyword) {
@@ -175,7 +175,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
           ),
         ],
       ),
-    );
+    ).whenComplete(() => ctrl.dispose());
   }
 
   @override

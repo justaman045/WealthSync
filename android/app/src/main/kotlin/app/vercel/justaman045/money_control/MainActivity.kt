@@ -27,9 +27,14 @@ class MainActivity : FlutterFragmentActivity() {
                                 packageManager.getInstallerPackageName(packageName)
                             }
                         } catch (e: Exception) { null }
-                        result.success(installer)
+                        runOnUiThread { result.success(installer) }
                     }
                 } else if (call.method == "pay") {
+                    if (pendingResult != null) {
+                        result.error("BUSY", "A UPI payment is already in progress", null)
+                        return@setMethodCallHandler
+                    }
+
                     val packageName = call.argument<String>("packageName")
                     val amount     = call.argument<String>("amount") ?: ""
                     val payeeName  = call.argument<String>("payeeName") ?: ""
@@ -69,5 +74,12 @@ class MainActivity : FlutterFragmentActivity() {
             pendingResult?.success(response)
             pendingResult = null
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Prevent dangling result reference if activity is destroyed mid-payment
+        pendingResult?.error("CANCELLED", "Payment cancelled (activity destroyed)", null)
+        pendingResult = null
     }
 }

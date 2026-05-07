@@ -152,7 +152,9 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
 
     if (c.trackingType == 'no_spend_category') {
       final spent = progress;
-      percent = c.targetAmount == 0 ? (spent > 0 ? 1.0 : 0.0) : (spent / c.targetAmount).clamp(0.0, 1.0);
+      percent = c.targetAmount == 0
+          ? (spent == 0 ? 1.0 : 0.0)
+          : (1 - (spent / c.targetAmount)).clamp(0.0, 1.0);
       progressLabel = "$sym${spent.toStringAsFixed(0)} spent";
       targetLabel = "Goal: ${sym}0 on ${c.trackedCategory}";
     } else {
@@ -396,7 +398,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
           },
         ),
       ),
-    );
+    ).whenComplete(() => targetCtrl.dispose());
   }
 
   void _showCustomChallengeSheet() {
@@ -441,7 +443,10 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
           },
         ),
       ),
-    );
+    ).whenComplete(() {
+      nameCtrl.dispose();
+      targetCtrl.dispose();
+    });
   }
 
   Widget _challengeSheet({

@@ -40,7 +40,7 @@ dependencies:
   share_plus: ^12.0.0
   firebase_auth: ^6.1.1
   firebase_crashlytics: ^5.0.3
-  firebase_performance: any
+  firebase_performance: ^0.11.0+3
   http: ^1.2.0
   google_sign_in: ^6.2.2
   sign_in_with_apple: ^7.0.1

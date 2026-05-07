@@ -12,6 +12,7 @@ import 'package:money_control/Components/pro_lock_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Screens/auto_tag_rules_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SmsImportScreen extends StatefulWidget {
   const SmsImportScreen({super.key});
@@ -40,19 +41,48 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
 
     try {
       final results = await _smsService.scanMessages(limit: 100);
+      if (results == null) {
+        if (!mounted) return;
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('SMS Permission Required'),
+            content: const Text(
+              'SMS permission was previously denied. '
+              'Please enable "SMS" permission in app settings to import transactions.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await openAppSettings();
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) {
+          setState(() {
+            _loading = false;
+          });
+        }
+        return;
+      }
       if (mounted) {
         setState(() {
           _transactions = results;
           _scanned = true;
-          // Auto-select all by default
           _selectedIndices.addAll(List.generate(results.length, (i) => i));
         });
       }
-      // Permission was granted — enable background auto-import
       if (results.isNotEmpty || _scanned) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('sms_auto_import_enabled', true);
-        // Seed the last scan timestamp so the worker only picks up NEW messages
         prefs.getInt('last_sms_scan_ms') == null
             ? await prefs.setInt(
                 'last_sms_scan_ms',
@@ -61,7 +91,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
             : null;
       }
     } finally {
-      if (mounted) {
+      if (mounted && _transactions.isEmpty) {
         setState(() {
           _loading = false;
         });

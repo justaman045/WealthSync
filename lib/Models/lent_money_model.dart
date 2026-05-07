@@ -35,7 +35,7 @@ class LentMoneyModel {
     return LentMoneyModel(
       id: id,
       friendName: map['friendName'] ?? '',
-      amount: (map['amount'] ?? 0).toDouble(),
+      amount: _parseNum(map['amount']),
       note: map['note'] ?? '',
       dateLent: parsedDate,
       isSettled: map['isSettled'] ?? false,
@@ -44,6 +44,13 @@ class LentMoneyModel {
           ? (map['createdAt'] as Timestamp)
           : Timestamp.now(),
     );
+  }
+
+  static double _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toMap() {

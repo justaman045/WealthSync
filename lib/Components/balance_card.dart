@@ -30,6 +30,7 @@ class _BalanceCardState extends State<BalanceCard> {
       Get.find<RecurringPaymentController>();
   final RxBool _includeLentMoney = false.obs;
   final RxBool _subtractSubscriptions = false.obs;
+  double _lastAnimatedValue = 0;
 
   @override
   void dispose() {
@@ -261,7 +262,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                   } else {
                                     return TweenAnimationBuilder<double>(
                                       tween: Tween<double>(
-                                        begin: 0,
+                                        begin: _lastAnimatedValue,
                                         end: () {
                                           double total = _transactionController
                                               .totalBalance;
@@ -278,7 +279,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                         }(),
                                       ),
                                       duration: const Duration(
-                                        milliseconds: 1500,
+                                        milliseconds: 800,
                                       ),
                                       curve: Curves.easeOutExpo,
                                       builder: (context, value, child) {
@@ -300,6 +301,24 @@ class _BalanceCardState extends State<BalanceCard> {
                                             ],
                                           ),
                                         );
+                                      },
+                                      onEnd: () {
+                                        setState(() {
+                                          _lastAnimatedValue = () {
+                                            double total = _transactionController
+                                                .totalBalance;
+                                            if (_includeLentMoney.value) {
+                                              total +=
+                                                  _lentMoneyController.netBalance;
+                                            }
+                                            if (_subtractSubscriptions.value) {
+                                              total -= _recurringPaymentController
+                                                  .pendingSubscriptions
+                                                  .value;
+                                            }
+                                            return total;
+                                          }();
+                                        });
                                       },
                                     );
                                   }
@@ -337,9 +356,8 @@ class _BalanceCardState extends State<BalanceCard> {
 
                       for (final tx in txs) {
                         final isSend = tx.senderId == uid;
-                        final isRecv = tx.recipientId == uid;
-                        if (!isSend && !isRecv) continue;
-                        final amount = isSend ? -tx.amount.abs() : tx.amount.abs();
+                        if (!isSend) continue;
+                        final amount = tx.amount.abs();
                         if (!tx.date.isBefore(startThis)) {
                           thisMonth += amount;
                         } else if (!tx.date.isBefore(startLast) && tx.date.isBefore(endLast)) {

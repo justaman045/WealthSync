@@ -45,5 +45,17 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan receipts and attach photos to transactions.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to attach images to your transactions.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs photo library access to save receipts and reports.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>This app uses Face ID to securely lock your financial data.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app uses your location to tag transactions with where they occurred.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app needs contacts access to select people for split bills.</string>
 </dict>
 </plist>

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
@@ -671,7 +672,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           );
                           return _buildPriceCard(
                             "Monthly",
-                            monthly?.price ?? "₹249",
+                            monthly?.price ?? "${CurrencyController.to.currencySymbol.value}249",
                             "/mo",
                             false,
                             "Monthly",
@@ -687,7 +688,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           );
                           return _buildPriceCard(
                             "Yearly",
-                            yearly?.price ?? "₹1,999",
+                            yearly?.price ?? "${CurrencyController.to.currencySymbol.value}1,999",
                             "/yr",
                             true,
                             "Yearly",
@@ -914,7 +915,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               children: [
                 Text('Pay via UPI', style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15.sp)),
                 SizedBox(height: 8.h),
-                Text('Send ₹$amount to:', style: TextStyle(color: Colors.white70, fontSize: 14.sp)),
+                Text('Send ${CurrencyController.to.currencySymbol.value}$amount to:', style: TextStyle(color: Colors.white70, fontSize: 14.sp)),
                 SizedBox(height: 4.h),
                 Row(
                   children: [

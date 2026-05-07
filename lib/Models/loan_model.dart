@@ -112,10 +112,10 @@ class LoanModel {
         (e) => e.name == map['loanType'],
         orElse: () => LoanType.other,
       ),
-      principalAmount: (map['principalAmount'] ?? 0).toDouble(),
-      interestRate: (map['interestRate'] ?? 0).toDouble(),
-      emiAmount: (map['emiAmount'] ?? 0).toDouble(),
-      tenureMonths: (map['tenureMonths'] as num?)?.toInt() ?? 0,
+      principalAmount: _parseNum(map['principalAmount']),
+      interestRate: _parseNum(map['interestRate']),
+      emiAmount: _parseNum(map['emiAmount']),
+      tenureMonths: _parseInt(map['tenureMonths']),
       startDate: map['startDate'] is Timestamp
           ? (map['startDate'] as Timestamp).toDate()
           : map['startDate'] is String
@@ -127,6 +127,20 @@ class LoanModel {
           ? map['createdAt'] as Timestamp
           : Timestamp.now(),
     );
+  }
+
+  static double _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toMap() {

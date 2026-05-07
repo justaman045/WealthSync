@@ -27,6 +27,7 @@ import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Controllers/auth_controller.dart';
 import 'package:money_control/Controllers/goals_controller.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
 import 'package:money_control/Controllers/challenges_controller.dart';
@@ -51,11 +52,6 @@ class ThemeController extends GetxController {
   ThemeMode get themeMode => currentTheme.value;
   StreamSubscription<DocumentSnapshot>? _themeSubscription;
 
-  @override
-  void onInit() {
-    super.onInit();
-    _listenToThemeChanges();
-  }
 
   @override
   void onClose() {
@@ -129,6 +125,7 @@ Future<void> mainCommon({bool isTest = false}) async {
   TutorialController.isTestMode = isTest;
   Get.testMode = isTest;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  themeController.resubscribe();
 
   if (!isTest) {
     // Pass all uncaught "fatal" errors from the framework to Crashlytics
@@ -157,6 +154,7 @@ Future<void> mainCommon({bool isTest = false}) async {
   // Initialize Controllers
   Get.put(PrivacyController());
   Get.put(CurrencyController());
+  Get.put(AuthController());
   Get.put(SubscriptionController());
   Get.put(PaymentConfigService());
   await WidgetService.init();

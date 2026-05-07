@@ -86,10 +86,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           .map((doc) => CategoryModel.fromMap(doc.id, doc.data()))
           .toList();
 
+      if (!mounted) return;
       setState(() {
         _categories = fetched;
-        // If selected is null but transaction has one, pick it.
-        // But wait, transaction stores String name.
         _selectedCategory ??= widget.transaction.category;
       });
     } catch (e) {
@@ -103,141 +102,142 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   Future<void> _addNewCategoryDialog() async {
     final controller = TextEditingController();
 
-    await showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder: (_) => Dialog(
-        backgroundColor: const Color(0xFF1E1E2C),
-        elevation: 0,
-        insetPadding: EdgeInsets.all(20.w),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24.r),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
+    try {
+      await showDialog(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.8),
+        builder: (_) => Dialog(
+          backgroundColor: const Color(0xFF1E1E2C),
+          elevation: 0,
+          insetPadding: EdgeInsets.all(20.w),
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24.r),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-            ],
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
           ),
-          padding: EdgeInsets.all(24.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "New Category",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24.r),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              SizedBox(height: 20.h),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "New Category",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: TextField(
-                  controller: controller,
-                  autofocus: true,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: "Category Name",
-                    hintStyle: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
+                SizedBox(height: 20.h),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  child: TextField(
+                    controller: controller,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: "Category Name",
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 24.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      "Cancel",
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 16.sp,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  GestureDetector(
-                    onTap: () async {
-                      final text = controller.text.trim();
-                      if (text.isEmpty) return;
-                      // Logic to save
-                      try {
-                        final email = FirebaseAuth.instance.currentUser?.email;
-                        if (email == null) return;
-                        await FirebaseFirestore.instance
-                            .collection("users")
-                            .doc(email)
-                            .collection("categories")
-                            .add({"name": text});
-                        await _loadCategories();
-                        setState(() => _selectedCategory = text);
-                        if (mounted) Navigator.pop(context);
-                      } catch (e) {
-                        // handle error
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.w,
-                        vertical: 12.h,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
-                        ),
-                        borderRadius: BorderRadius.circular(12.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF6C63FF,
-                            ).withValues(alpha: 0.4),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
                       child: Text(
-                        "Add",
+                        "Cancel",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 16.sp,
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    SizedBox(width: 12.w),
+                    GestureDetector(
+                      onTap: () async {
+                        final text = controller.text.trim();
+                        if (text.isEmpty) return;
+                        try {
+                          final email = FirebaseAuth.instance.currentUser?.email;
+                          if (email == null) return;
+                          await FirebaseFirestore.instance
+                              .collection("users")
+                              .doc(email)
+                              .collection("categories")
+                              .add({"name": text});
+                          await _loadCategories();
+                          setState(() => _selectedCategory = text);
+                          if (mounted) Navigator.pop(context);
+                        } catch (e) {
+                          debugPrint("Create category error: $e");
+                        }
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24.w,
+                          vertical: 12.h,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6C63FF), Color(0xFF00E5FF)],
+                          ),
+                          borderRadius: BorderRadius.circular(12.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          "Add",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.sp,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   // ------------------------------------------------------------------
@@ -311,7 +311,6 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         BudgetService.checkBudgetExceeded(
           userId: user.email!,
           category: updated.category!,
-          newAmount: updated.amount,
         );
       }
 
@@ -497,7 +496,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     return Container(
       padding: padding ?? EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05), // Dark Glass
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         boxShadow: [
@@ -508,7 +507,6 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           ),
         ],
       ),
-      child: child,
     );
   }
 

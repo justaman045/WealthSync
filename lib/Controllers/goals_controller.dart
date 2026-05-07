@@ -72,7 +72,7 @@ class GoalsController extends GetxController {
   }
 
   Future<bool> updateProgress(String id, double addAmount) async {
-    if (addAmount <= 0) return false;
+    if (isSaving.value || addAmount <= 0) return false;
     isSaving.value = true;
     try {
       final updated = await _repo.addProgress(id, addAmount);

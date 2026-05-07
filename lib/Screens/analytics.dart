@@ -2007,7 +2007,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       r'emi|loan|payoff|pay off|installment|settlement|disburs',
       caseSensitive: false,
     );
-    final candidateCredits = _filtered.where((tx) {
+    final candidateCredits = _all.where((tx) {
       if (tx.recipientId != uid) return false;
       return !nonSalaryPattern.hasMatch(tx.recipientName);
     }).toList();
@@ -2015,7 +2015,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     if (candidateCredits.length < 2) return const SizedBox.shrink();
 
     final amounts = candidateCredits.map((tx) => tx.amount.abs()).toList()..sort();
-    final median = amounts[amounts.length ~/ 2];
+    final median = amounts.length % 2 == 1
+        ? amounts[amounts.length ~/ 2]
+        : (amounts[amounts.length ~/ 2 - 1] + amounts[amounts.length ~/ 2]) / 2;
     final maxCredit = amounts.last;
 
     // Likely salary: largest credit is > 3× median

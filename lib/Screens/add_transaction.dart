@@ -84,6 +84,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _categoryAutoSelectWorker?.dispose();
     _confettiController.dispose();
     _categorySearch.dispose();
+    _amount.dispose();
+    _name.dispose();
+    _note.dispose();
+    _newCategory.dispose();
     super.dispose();
   }
 

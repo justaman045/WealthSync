@@ -36,7 +36,7 @@ class SavingsChallengeModel {
       id: id,
       name: map['name'] ?? '',
       description: map['description'] ?? '',
-      targetAmount: (map['targetAmount'] ?? 0).toDouble(),
+      targetAmount: _parseNum(map['targetAmount']),
       startDate: ((map['startDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
       endDate: ((map['endDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
       type: map['type'] ?? 'custom',
@@ -51,6 +51,13 @@ class SavingsChallengeModel {
               ? Timestamp.fromDate(DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now())
               : null,
     );
+  }
+
+  static double _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toMap() {

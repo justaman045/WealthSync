@@ -232,7 +232,14 @@ class SmsService {
       r'(?:Rs\.?|INR|MRP|Amt|Amount)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)',
       caseSensitive: false,
     );
-    final match = amountRegex.firstMatch(body);
+    var match = amountRegex.firstMatch(body);
+
+    // Fallback: match bare amount if no currency prefix found
+    if (match == null) {
+      final bareAmountRegex = RegExp(r'(?:^|[^\d])(\d{2,}(?:,\d{3})*(?:\.\d{1,2})?)(?:\b|$)');
+      match = bareAmountRegex.firstMatch(body);
+    }
+
     if (match == null) return null;
 
     String amountStr = (match.group(1) ?? '0').replaceAll(',', '');
@@ -396,13 +403,19 @@ class SmsService {
   }
 
   /// Request permissions and fetch SMS. Returns parsed transactions.
-  Future<List<SmsTransaction>> scanMessages({int limit = 50}) async {
+  /// Returns null if permission is denied (caller should show settings prompt).
+  Future<List<SmsTransaction>?> scanMessages({int limit = 50}) async {
     await initRules();
 
     var status = await Permission.sms.status;
     if (!status.isGranted) {
+      if (status.isPermanentlyDenied) {
+        return null;
+      }
       status = await Permission.sms.request();
-      if (!status.isGranted) return [];
+      if (!status.isGranted) {
+        return status.isPermanentlyDenied ? null : [];
+      }
     }
 
     try {

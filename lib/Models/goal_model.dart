@@ -58,8 +58,8 @@ class GoalModel {
     return GoalModel(
       id: id,
       name: map['name'] ?? '',
-      targetAmount: (map['targetAmount'] ?? 0).toDouble(),
-      currentAmount: (map['currentAmount'] ?? 0).toDouble(),
+      targetAmount: _parseNum(map['targetAmount']),
+      currentAmount: _parseNum(map['currentAmount']),
       description: map['description'] as String?,
       targetDate: parsedTargetDate,
       isCompleted: map['isCompleted'] ?? false,
@@ -68,6 +68,13 @@ class GoalModel {
           ? map['createdAt'] as Timestamp
           : Timestamp.now(),
     );
+  }
+
+  static double _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
   }
 
   Map<String, dynamic> toMap() {

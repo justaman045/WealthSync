@@ -663,6 +663,9 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      titleCtrl.dispose();
+      amountCtrl.dispose();
+    });
   }
 }

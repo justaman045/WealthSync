@@ -13,6 +13,8 @@ import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Repositories/transaction_repository.dart';
+import 'package:money_control/Screens/cateogary_history.dart';
 
 class AIInsightsScreen extends StatefulWidget {
   const AIInsightsScreen({super.key});
@@ -22,6 +24,7 @@ class AIInsightsScreen extends StatefulWidget {
 }
 
 class _AIInsightsScreenState extends State<AIInsightsScreen> {
+  final TransactionRepository _repository = TransactionRepository();
   bool loading = true;
   String? error;
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
@@ -82,7 +85,6 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         forecastVariable = 0;
         currentMonthSpent = 0;
         currentVariableSpent = 0;
-        currentVariableSpent = 0;
         todaySpent = 0;
         todayVariableSpent = 0;
         usualMonthAvg = 0;
@@ -98,17 +100,18 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       }
 
       final TransactionController txController = Get.find();
+      if (!txController.isLoading.value) {
+        final freshTx = await _repository.getTransactionsStream().first;
+        txController.transactions.assignAll(freshTx);
+      } else {
+        await Future.delayed(const Duration(milliseconds: 800));
+      }
+      if (!mounted) return;
 
       final now = DateTime.now();
       final currentKey = now.year * 100 + now.month;
       final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
       final daysPassed = now.day;
-
-      // Wait for the Firestore stream to deliver at least the first batch
-      if (txController.isLoading.value) {
-        await Future.delayed(const Duration(milliseconds: 800));
-      }
-      if (!mounted) return;
 
       final allTx = txController.transactions
           .where((tx) => tx.senderId == user.uid)
@@ -222,8 +225,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           if (wTotal > 0) typicalAmount = wSum / wTotal;
         }
 
-        // If already paid ≥80% of typical → assume done; else forecast the full amount.
-        if (typicalAmount > 0 && spentThisMonth >= typicalAmount * 0.8) {
+        // If already paid ≥95% of typical → assume done; else forecast the full amount.
+        if (typicalAmount > 0 && spentThisMonth >= typicalAmount * 0.95) {
           calcForecastFixed += spentThisMonth;
         } else {
           calcForecastFixed += max(spentThisMonth, typicalAmount);
@@ -337,22 +340,24 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             catForecast = catHistAvg;
           }
         } else {
-          // Variable: Use simple proportion for category forecast to avoid complexity overkill
-          smartBudget = catHistAvg > 0 ? catHistAvg : currentSpent * 1.1;
-
-          // Simple pace for category level is usually "good enough" for insights,
-          // but let's try to match the "Remaining" logic simply:
+          // Variable: Blend historical avg with current pace (same as total forecast)
           double expectedSoFar = (catHistAvg / daysInMonth) * daysPassed;
+          double catPaced = daysPassed > 0
+              ? (currentSpent / daysPassed) * daysInMonth
+              : catHistAvg;
 
-          // If we are overspending, forecast higher.
-          if (currentSpent > expectedSoFar) {
-            // Spending high? Assume we hit budget + overshoot
-            catForecast = catHistAvg + (currentSpent - expectedSoFar);
+          final double catProgress = daysPassed / daysInMonth;
+          final double catHistWeight = (1.0 - catProgress * 0.8).clamp(0.2, 1.0);
+          final double catCurrWeight = 1.0 - catHistWeight;
+
+          if (catHistAvg > 0) {
+            catForecast = catHistAvg * catHistWeight + catPaced * catCurrWeight;
           } else {
-            // Spending low? Assume we hit budget (conservative) or avg
-            catForecast = catHistAvg;
+            catForecast = catPaced > 0 ? catPaced : currentSpent * 1.1;
           }
           catForecast = max(catForecast, currentSpent);
+
+          smartBudget = catHistAvg > 0 ? catHistAvg : currentSpent * 1.1;
 
           if (currentSpent > expectedSoFar * 1.25 && catHistAvg > 500) {
             msg = "🚨 Spending on $cat is faster than usual.";
@@ -1005,12 +1010,27 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       healthColor = Colors.green.shade600;
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: scheme.surface,
+    return GestureDetector(
+      onTap: () {
+        final now = DateTime.now();
+        final start = DateTime(now.year, now.month, 1);
+        final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CategoryTransactionsScreen(
+              categoryName: c.category,
+              startDate: start,
+              endDate: end,
+            ),
+          ),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: scheme.surface,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
@@ -1155,7 +1175,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

@@ -115,11 +115,16 @@ class SubscriptionController extends GetxController {
                 final isReferred = data.containsKey('referredBy') && data['referredBy'] != null;
                 final trialDays = isReferred ? 30 : 7;
                 final trialEnd = DateTime.now().add(Duration(days: trialDays));
-                trialEndDate.value = trialEnd;
-                trialUsed.value = true;
-                _firestore.collection('users').doc(user.email).set({
-                  'trialEndDate': Timestamp.fromDate(trialEnd),
-                }, SetOptions(merge: true));
+                // Write to Firestore first, only update local state on success
+                try {
+                  await _firestore.collection('users').doc(user.email).set({
+                    'trialEndDate': Timestamp.fromDate(trialEnd),
+                  }, SetOptions(merge: true));
+                  trialEndDate.value = trialEnd;
+                  trialUsed.value = true;
+                } catch (e) {
+                  debugPrint('Failed to save trial end date: $e');
+                }
               } else {
                 trialUsed.value = true; // field exists → trial was started at some point
                 final end = (data['trialEndDate'] as Timestamp?)?.toDate();
@@ -305,10 +310,13 @@ class SubscriptionController extends GetxController {
     }
 
     final DateTime now = DateTime.now();
-    // Use calendar arithmetic instead of fixed days to handle leap years
-    final DateTime expiry = plan == 'Yearly'
-        ? DateTime(now.year + 1, now.month, now.day)
-        : DateTime(now.year, now.month + 1, now.day);
+    // Use calendar arithmetic with clamping to handle month overflow
+    final int targetMonth = now.month + (plan == 'Yearly' ? 12 : 1);
+    final int targetYear = now.year + (targetMonth - 1) ~/ 12;
+    final int clampedMonth = ((targetMonth - 1) % 12) + 1;
+    final lastDayOfMonth = DateTime(targetYear, clampedMonth + 1, 0).day;
+    final int clampedDay = now.day.clamp(1, lastDayOfMonth);
+    final DateTime expiry = DateTime(targetYear, clampedMonth, clampedDay);
 
     await _firestore.collection('users').doc(email).set({
       'subscriptionStatus': 'pro',
@@ -355,9 +363,12 @@ class SubscriptionController extends GetxController {
 
     final isMonthly = purchase.productID == 'money_control_monthly';
     final now = DateTime.now();
-    final expiry = isMonthly
-        ? DateTime(now.year, now.month + 1, now.day)
-        : DateTime(now.year + 1, now.month, now.day);
+    final int targetMonth = now.month + (isMonthly ? 1 : 12);
+    final int targetYear = now.year + (targetMonth - 1) ~/ 12;
+    final int clampedMonth = ((targetMonth - 1) % 12) + 1;
+    final lastDayOfMonth = DateTime(targetYear, clampedMonth + 1, 0).day;
+    final int clampedDay = now.day.clamp(1, lastDayOfMonth);
+    final expiry = DateTime(targetYear, clampedMonth, clampedDay);
 
     await _firestore.collection('users').doc(user.email).set({
       'subscriptionStatus': 'pro',

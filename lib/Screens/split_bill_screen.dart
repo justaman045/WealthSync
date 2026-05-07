@@ -63,8 +63,16 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     final total = double.tryParse(_totalCtrl.text) ?? 0;
     if (total <= 0 || _participants.isEmpty) return;
     final share = total / _participants.length;
-    for (final p in _participants) {
-      p.amountCtrl.text = share.toStringAsFixed(2);
+    for (int i = 0; i < _participants.length; i++) {
+      // Give the last participant the remainder to avoid rounding drift
+      if (i == _participants.length - 1) {
+        final alreadyAllocated = _participants
+            .take(i)
+            .fold<double>(0, (s, p) => s + (double.tryParse(p.amountCtrl.text) ?? 0));
+        _participants[i].amountCtrl.text = (total - alreadyAllocated).toStringAsFixed(2);
+      } else {
+        _participants[i].amountCtrl.text = share.toStringAsFixed(2);
+      }
     }
   }
 

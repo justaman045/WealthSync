@@ -13,6 +13,12 @@ class RecurringPaymentController extends GetxController {
     _bindStream();
   }
 
+  @override
+  void onClose() {
+    pendingSubscriptions.close();
+    super.onClose();
+  }
+
   void _bindStream() {
     // bindStream automatically updates the RxDouble with every new stream event!
     pendingSubscriptions.bindStream(_service.getMonthlyTotal());

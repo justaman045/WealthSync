@@ -8,8 +8,15 @@ import 'package:money_control/Components/tx_tile.dart';
 import 'package:money_control/Screens/transaction_details.dart';
 
 class CategoryTransactionsScreen extends StatefulWidget {
-  final String categoryName; // Name or id of category to filter
-  const CategoryTransactionsScreen({super.key, required this.categoryName});
+  final String categoryName;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  const CategoryTransactionsScreen({
+    super.key,
+    required this.categoryName,
+    this.startDate,
+    this.endDate,
+  });
 
   @override
   State<CategoryTransactionsScreen> createState() =>
@@ -18,6 +25,27 @@ class CategoryTransactionsScreen extends StatefulWidget {
 
 class _CategoryTransactionsScreenState
     extends State<CategoryTransactionsScreen> {
+
+  Stream<QuerySnapshot> _buildQuery(User user) {
+    final query = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.email)
+        .collection('transactions')
+        .where('category', isEqualTo: widget.categoryName)
+        .orderBy('date', descending: true);
+
+    return query.snapshots();
+  }
+
+  static String _formatDateRange(DateTime start, DateTime end) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (start.month == end.month && start.year == end.year) {
+      return '${months[start.month - 1]} ${start.year}';
+    }
+    return '${months[start.month - 1]} ${start.year} – ${months[end.month - 1]} ${end.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -52,7 +80,9 @@ class _CategoryTransactionsScreenState
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          "Transactions: ${widget.categoryName}",
+          widget.startDate != null && widget.endDate != null
+              ? "${widget.categoryName}: ${_formatDateRange(widget.startDate!, widget.endDate!)}"
+              : "Transactions: ${widget.categoryName}",
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -74,13 +104,7 @@ class _CategoryTransactionsScreenState
           ),
         ),
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.email)
-              .collection('transactions')
-              .where('category', isEqualTo: widget.categoryName)
-              .orderBy('date', descending: true)
-              .snapshots(),
+          stream: _buildQuery(user),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return const Center(
@@ -89,7 +113,21 @@ class _CategoryTransactionsScreenState
             }
 
             final docs = snapshot.data!.docs;
-            if (docs.isEmpty) {
+
+            final now = DateTime.now();
+            final startDate = widget.startDate ?? DateTime(now.year, now.month, 1);
+            final endDate = widget.endDate ?? DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+
+            final filteredDocs = docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final ts = data['date'] as Timestamp?;
+              if (ts == null) return false;
+              final d = ts.toDate();
+              return d.isAtSameMomentAs(startDate) || d.isAfter(startDate) &&
+                  (d.isAtSameMomentAs(endDate) || d.isBefore(endDate));
+            }).toList();
+
+            if (filteredDocs.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -109,7 +147,7 @@ class _CategoryTransactionsScreenState
               );
             }
 
-            final txs = docs
+            final txs = filteredDocs
                 .map(
                   (doc) => TransactionModel.fromMap(
                     doc.id,

@@ -56,6 +56,7 @@ class UserModel {
 
   Map<String, dynamic> toMap() {
     final map = <String, dynamic>{
+      'uid': uid,
       'updatedAt': FieldValue.serverTimestamp(),
     };
     if (firstName != null) map['firstName'] = firstName;

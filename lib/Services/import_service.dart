@@ -98,7 +98,7 @@ class ImportService {
           senderId: isExpense ? currentUserId : 'csv_import',
           recipientId: isExpense ? 'csv_import' : currentUserId,
           recipientName: note,
-          amount: amount.abs(),
+          amount: amount,
           currency: currency,
           tax: 0,
           note: "Imported from CSV",

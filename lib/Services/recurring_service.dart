@@ -77,15 +77,17 @@ class RecurringService {
     return getPayments().map((payments) {
       double total = 0;
       final now = DateTime.now();
+      final startOfMonth = DateTime(now.year, now.month, 1);
       for (var p in payments) {
         if (!p.isActive) continue;
 
-        // Only count if the NEXT payment falls within the current month
-        // This implies:
-        // 1. If unpaid, date is in this month -> Counted
-        // 2. If paid, date moved to next month -> Not counted
+        // Count if the next due date is within the current month, OR if it's overdue
+        // (nextDueDate is in the past but payment hasn't been made yet)
         if (p.nextDueDate.year == now.year &&
             p.nextDueDate.month == now.month) {
+          total += p.amount;
+        } else if (p.nextDueDate.isBefore(startOfMonth)) {
+          // Overdue: include in current month's obligations
           total += p.amount;
         }
       }
@@ -263,7 +265,9 @@ class RecurringService {
     } else if (payment.frequency == RecurringFrequency.weekly) {
       return d.add(const Duration(days: 7));
     } else if (payment.frequency == RecurringFrequency.yearly) {
-      return DateTime(d.year + 1, d.month, d.day);
+      final targetYear = d.year + 1;
+      final lastDay = DateTime(targetYear, d.month + 1, 0).day;
+      return DateTime(targetYear, d.month, d.day.clamp(1, lastDay));
     }
     return d;
   }

@@ -13,11 +13,29 @@ class StatsModel {
 
   factory StatsModel.fromMap(Map<String, dynamic> map) {
     return StatsModel(
-      totalIncome: (map['totalIncome'] ?? 0).toDouble(),
-      totalExpense: (map['totalExpense'] ?? 0).toDouble(),
-      incomeByDay: Map<String, double>.from(map['incomeByDay'] ?? {}),
-      expenseByDay: Map<String, double>.from(map['expenseByDay'] ?? {}),
+      totalIncome: _parseNum(map['totalIncome']),
+      totalExpense: _parseNum(map['totalExpense']),
+      incomeByDay: _toDoubleMap(map['incomeByDay']),
+      expenseByDay: _toDoubleMap(map['expenseByDay']),
     );
+  }
+
+  static double _parseNum(dynamic value) {
+    if (value == null) return 0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static Map<String, double> _toDoubleMap(dynamic value) {
+    if (value == null) return {};
+    final raw = value as Map;
+    return raw.map((k, v) {
+      if (v == null) return MapEntry(k.toString(), 0.0);
+      if (v is num) return MapEntry(k.toString(), v.toDouble());
+      if (v is String) return MapEntry(k.toString(), double.tryParse(v) ?? 0.0);
+      return MapEntry(k.toString(), 0.0);
+    });
   }
 
   Map<String, dynamic> toMap() {

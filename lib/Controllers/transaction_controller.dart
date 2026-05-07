@@ -199,10 +199,9 @@ class TransactionController extends GetxController {
     if (isSaving.value) return false;
     isSaving.value = true;
 
-    // 2. Check PRO Limit (Transactions)
+    // 2. Check PRO Limit (Transactions) — quick local check first
     if (!_subscriptionController.isPro) {
       final now = DateTime.now();
-      // Use subtract(microseconds:1) so transactions at midnight on the 1st are included.
       final startOfMonth = DateTime(now.year, now.month, 1)
           .subtract(const Duration(microseconds: 1));
       final txCount = transactions
@@ -284,7 +283,6 @@ class TransactionController extends GetxController {
       BudgetService.checkBudgetExceeded(
         userId: user.email!,
         category: category,
-        newAmount: amount, // Positive amount for budget check
       );
     }
 

@@ -114,7 +114,6 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         BudgetService.checkBudgetExceeded(
           userId: user.email!,
           category: category,
-          newAmount: amount,
         );
       }
 

@@ -305,7 +305,7 @@ class GoalsScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).whenComplete(() => amtCtrl.dispose());
   }
 
   void _showDeleteDialog(BuildContext context, GoalModel goal, GoalsController ctrl) {

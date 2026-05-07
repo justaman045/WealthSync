@@ -421,7 +421,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               borderRadius: BorderRadius.circular(8.r),
             ),
             child: Text(
-              '~₹${(geo.baselineMonthlyIncome / 1000).toStringAsFixed(0)}K/mo',
+              '~${CurrencyController.to.currencySymbol.value}${(geo.baselineMonthlyIncome / 1000).toStringAsFixed(0)}K/mo',
               style: TextStyle(
                 color: zoneColor,
                 fontSize: 11.sp,
@@ -810,7 +810,6 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final formulaVal = wealthTarget?.formula ?? 0;
 
     // For Bank, we want to show/edit the Monthly Expense, not the Total Target.
-    // Reverse calculate the expense from the target.
     double displayTargetVal = formulaVal;
     if (isBank) {
       int multiplier = 6;
@@ -828,7 +827,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       text: displayTargetVal == 0 ? '' : displayTargetVal.toStringAsFixed(0),
     );
 
-    await showGeneralDialog(
+    try {
+      await showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: "Dismiss",
@@ -1021,6 +1021,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         );
       },
     );
+    } finally {
+      valueController.dispose();
+      targetController.dispose();
+    }
   }
 
   Future<void> _showVisibilityDialog() async {
