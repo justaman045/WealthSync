@@ -11,7 +11,7 @@ void main() {
 
   testWidgets('E2E: Edit Profile Flow', (WidgetTester tester) async {
     // 1. App Launch
-    app.mainCommon(isTest: true);
+    await app.mainCommon(isTest: true);
     await tester.pumpAndSettle();
 
     // 2. Splash Screen Handling (3 Pages)

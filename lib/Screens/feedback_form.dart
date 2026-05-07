@@ -20,6 +20,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   Future<void> _loadAppVersion() async {
     final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() => _appVersion = info.version);
   }
 

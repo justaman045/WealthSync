@@ -48,14 +48,13 @@ android {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0")
+    // kotlin-stdlib-jdk7:1.8.0 removed — conflicts with Flutter's Kotlin version.
+    // google-services:4.4.2 removed — it's a Gradle plugin (in plugins {}), not a runtime dep.
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
     implementation("com.google.mlkit:text-recognition-devanagari:16.0.0")
     implementation("com.google.mlkit:text-recognition-japanese:16.0.0")
     implementation("com.google.mlkit:text-recognition-korean:16.0.0")
-    implementation("com.google.gms:google-services:4.4.2")
-
 }
 
 flutter {

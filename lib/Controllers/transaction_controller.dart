@@ -18,7 +18,7 @@ import 'package:money_control/Screens/subscription_screen.dart';
 class TransactionController extends GetxController {
   final TransactionRepository _repository = TransactionRepository();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final SubscriptionController _subscriptionController = Get.find();
+  late final SubscriptionController _subscriptionController;
 
   // State
   var transactions = <TransactionModel>[].obs;
@@ -36,8 +36,10 @@ class TransactionController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _subscriptionController = Get.find<SubscriptionController>();
     bindTransactions();
     bindCategories();
+    // Single debounce on transactions handles both sorting and widget updates.
     _categoriesWorker = debounce(
       categories,
       (_) => fetchSortedCategories(),
@@ -45,10 +47,7 @@ class TransactionController extends GetxController {
     );
     _transactionsWorker = debounce(
       transactions,
-      (_) {
-        fetchSortedCategories();
-        _updateHomeWidget();
-      },
+      (_) => _updateHomeWidget(),
       time: const Duration(milliseconds: 500),
     );
   }
@@ -203,7 +202,9 @@ class TransactionController extends GetxController {
     // 2. Check PRO Limit (Transactions)
     if (!_subscriptionController.isPro) {
       final now = DateTime.now();
-      final startOfMonth = DateTime(now.year, now.month, 1);
+      // Use subtract(microseconds:1) so transactions at midnight on the 1st are included.
+      final startOfMonth = DateTime(now.year, now.month, 1)
+          .subtract(const Duration(microseconds: 1));
       final txCount = transactions
           .where((t) => t.date.isAfter(startOfMonth))
           .length;
@@ -318,7 +319,7 @@ class TransactionController extends GetxController {
           'lastStreakDate': Timestamp.fromDate(today),
         }, SetOptions(merge: true));
         streakCount.value = 1;
-      } else if (lastDate.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
+      } else if (_isSameDay(lastDate, today.subtract(const Duration(days: 1)))) {
         // Consecutive — increment
         final newCount = count + 1;
         await db.collection('users').doc(email).set({
@@ -396,3 +397,6 @@ class TransactionController extends GetxController {
     }
   }
 }
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;

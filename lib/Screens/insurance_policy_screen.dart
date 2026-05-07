@@ -17,7 +17,7 @@ class InsurancePolicyScreen extends StatefulWidget {
 
 class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
   CollectionReference get _col {
-    final email = FirebaseAuth.instance.currentUser!.email!;
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return FirebaseFirestore.instance
         .collection('users')
         .doc(email)
@@ -34,7 +34,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
     final maturityCtrl = TextEditingController();
     DateTime? maturityDate;
 
-    await showModalBottomSheet(
+    try { await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -79,7 +79,13 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
           }
         },
       ),
-    );
+    ); } finally {
+      nameCtrl.dispose();
+      typeCtrl.dispose();
+      premiumCtrl.dispose();
+      sumCtrl.dispose();
+      maturityCtrl.dispose();
+    }
   }
 
   Future<void> _delete(String id) async {

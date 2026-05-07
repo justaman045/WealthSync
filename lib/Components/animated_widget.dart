@@ -22,13 +22,15 @@ class CAnimatedWidget extends StatelessWidget {
       transitionBuilder: (child, animation) =>
           FadeTransition(opacity: animation, child: child),
       child: image != null
-          ? Image.asset(image!, key: ValueKey(image), height: 250.r)
-          : Text(
-              title!,
-              key: ValueKey(title),
-              style: style ?? TextStyle(color: Colors.white70, fontSize: 15.r),
-              textAlign: textAlign ?? TextAlign.left,
-            ),
+          ? Image.asset(image!, key: ValueKey(image), height: 250.h)
+          : title != null
+              ? Text(
+                  title!,
+                  key: ValueKey(title),
+                  style: style ?? TextStyle(color: Colors.white70, fontSize: 15.sp),
+                  textAlign: textAlign ?? TextAlign.left,
+                )
+              : const SizedBox.shrink(),
     );
   }
 }

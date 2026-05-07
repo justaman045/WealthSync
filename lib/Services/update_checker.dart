@@ -24,8 +24,9 @@ class UpdateChecker {
 
       final data = jsonDecode(response.body);
 
-      final latestVersion = data["latest_version"] as String;
-      final updateMessage = data["update_message"] as String;
+      final latestVersion = data["latest_version"] as String? ?? '';
+      final updateMessage = data["update_message"] as String? ?? '';
+      if (latestVersion.isEmpty) return;
       final isForce = data["force"] as bool? ?? false;
 
       final package = await PackageInfo.fromPlatform();
@@ -53,8 +54,9 @@ class UpdateChecker {
   }
 
   static bool _isNewerVersion(String remote, String local) {
-    List<int> r = remote.split('.').map((s) => int.tryParse(s) ?? 0).toList();
-    List<int> l = local.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    String clean(String v) => v.split('-').first;
+    List<int> r = clean(remote).split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    List<int> l = clean(local).split('.').map((s) => int.tryParse(s) ?? 0).toList();
     while (r.length < 3) { r.add(0); }
     while (l.length < 3) { l.add(0); }
 

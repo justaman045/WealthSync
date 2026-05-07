@@ -32,6 +32,13 @@ class _BalanceCardState extends State<BalanceCard> {
   final RxBool _subtractSubscriptions = false.obs;
 
   @override
+  void dispose() {
+    _includeLentMoney.close();
+    _subtractSubscriptions.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = FirebaseAuth.instance.currentUser;

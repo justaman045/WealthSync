@@ -37,17 +37,15 @@ class IconHelper {
     Icons.category, // Default fallback
   ];
 
+  // O(1) lookup map built once at class-load time.
+  static final Map<int, IconData> _codePointMap = {
+    for (final icon in supportedIcons) icon.codePoint: icon,
+  };
+
   /// Returns the matching IconData for the given codePoint.
   /// Returns [Icons.category] if not found.
   static IconData getIconFromCode(int? codePoint) {
     if (codePoint == null) return Icons.category;
-    try {
-      return supportedIcons.firstWhere((icon) => icon.codePoint == codePoint);
-    } catch (_) {
-      // If the icon code is valid but not in our list, we have a problem
-      // if we are strictly tree-shaking. But for now, fallback to default
-      // is the safest way to prevent build errors.
-      return Icons.category;
-    }
+    return _codePointMap[codePoint] ?? Icons.category;
   }
 }

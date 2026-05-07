@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Models/cateogary.dart';
 
@@ -47,6 +48,7 @@ class TransactionRepository {
     return _userTransactionsRef
         .orderBy('createdAt', descending: true)
         .snapshots()
+        .handleError((e) => debugPrint('TransactionRepository stream error: $e'))
         .map((snapshot) {
           return snapshot.docs.map((doc) {
             return TransactionModel.fromMap(
@@ -73,7 +75,9 @@ class TransactionRepository {
   }
 
   Stream<List<CategoryModel>> getCategoriesStream() {
-    return _userCategoriesRef.snapshots().map((snapshot) {
+    return _userCategoriesRef.snapshots()
+        .handleError((e) => debugPrint('CategoriesStream error: $e'))
+        .map((snapshot) {
       return snapshot.docs.map((doc) {
         return CategoryModel.fromMap(
           doc.id,

@@ -84,6 +84,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && user.email != null) {
       await prefs.setString("user_email", user.email!);
+      await prefs.setString("user_uid", user.uid);
     }
   }
 

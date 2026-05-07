@@ -33,10 +33,16 @@ class MainActivity : FlutterFragmentActivity() {
                     val packageName = call.argument<String>("packageName")
                     val amount     = call.argument<String>("amount") ?: ""
                     val payeeName  = call.argument<String>("payeeName") ?: ""
+                    val payeeVpa   = call.argument<String>("payeeVpa") ?: ""
                     val note       = call.argument<String>("note") ?: ""
 
+                    if (payeeVpa.isEmpty()) {
+                        result.error("MISSING_VPA", "payeeVpa (pa) is required for UPI payments", null)
+                        return@setMethodCallHandler
+                    }
+
                     val uri = Uri.parse(
-                        "upi://pay?pn=${Uri.encode(payeeName)}&am=$amount&cu=INR&tn=${Uri.encode(note)}"
+                        "upi://pay?pa=${Uri.encode(payeeVpa)}&pn=${Uri.encode(payeeName)}&am=$amount&cu=INR&tn=${Uri.encode(note)}"
                     )
                     val intent = Intent(Intent.ACTION_VIEW, uri)
                     if (!packageName.isNullOrEmpty()) intent.setPackage(packageName)

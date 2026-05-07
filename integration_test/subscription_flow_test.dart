@@ -12,7 +12,7 @@ void main() {
     WidgetTester tester,
   ) async {
     // 1. App Launch
-    app.mainCommon(isTest: true);
+    await app.mainCommon(isTest: true);
     await tester.pump(const Duration(milliseconds: 1500));
 
     // 2. Splash Screen Handling

@@ -10,8 +10,7 @@ class BudgetController extends GetxController {
 
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
-  final TransactionController _transactionController =
-      Get.find<TransactionController>();
+  late final TransactionController _transactionController;
 
   RxBool isLoading = false.obs;
   RxList<BudgetCategoryItem> categoryBudgets = <BudgetCategoryItem>[].obs;
@@ -21,6 +20,7 @@ class BudgetController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _transactionController = Get.find<TransactionController>();
     _txWorker = ever(_transactionController.transactions, (_) {
       if (categoryBudgets.isNotEmpty) {
         _calculateSpending();
@@ -105,17 +105,15 @@ class BudgetController extends GetxController {
           date.isBefore(endOfMonth.add(const Duration(seconds: 1)));
     }).toList();
 
-    // Sum by category
+    // Sum only expenses (negative amounts) by category.
     Map<String, double> spendMap = {};
     for (var tx in monthlyTxs) {
-      if (tx.category != null) {
+      if (tx.category != null && tx.amount < 0) {
         spendMap[tx.category!] =
             (spendMap[tx.category!] ?? 0) + tx.amount.abs();
       }
     }
 
-    // Update items
-    categoryBudgets.refresh(); // Signal update
     for (var item in categoryBudgets) {
       item.spent = spendMap[item.categoryName] ?? 0.0;
     }

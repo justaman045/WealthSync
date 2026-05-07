@@ -665,7 +665,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     children: [
                       Expanded(
                         child: Obx(() {
-                          final iap = IapService();
+                          final iap = Get.find<IapService>();
                           final monthly = iap.products.firstWhereOrNull(
                             (p) => p.id == IapService.kMonthlyId,
                           );
@@ -681,7 +681,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       SizedBox(width: 16.w),
                       Expanded(
                         child: Obx(() {
-                          final iap = IapService();
+                          final iap = Get.find<IapService>();
                           final yearly = iap.products.firstWhereOrNull(
                             (p) => p.id == IapService.kYearlyId,
                           );
@@ -854,7 +854,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Column(
       children: [
         Obx(() {
-          final loading = IapService().isLoading.value;
+          final loading = Get.find<IapService>().isLoading.value;
           final ctrl = SubscriptionController.to;
           final trialDays = ctrl.trialEndDate.value != null
               ? ctrl.trialEndDate.value!.difference(DateTime.now()).inDays.clamp(1, 30)
@@ -881,7 +881,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         }),
         SizedBox(height: 12.h),
         TextButton(
-          onPressed: () => IapService().restorePurchases(),
+          onPressed: () => Get.find<IapService>().restorePurchases(),
           child: Text("Restore Purchases", style: TextStyle(color: Colors.white38, fontSize: 13.sp)),
         ),
         SizedBox(height: 8.h),
@@ -1102,7 +1102,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Future<void> _buySubscription() async {
+    final isUpiMode = PaymentConfigService.to.paymentMode.value == 'upi';
+    if (isUpiMode) {
+      // Scroll to UPI flow — the main screen already shows it via _buildUpiFlow()
+      Get.to(() => const SubscriptionScreen(), arguments: {'scrollToPayment': true});
+      return;
+    }
     final productId = _selectedPlan == 'Monthly' ? IapService.kMonthlyId : IapService.kYearlyId;
-    await IapService().buySubscription(productId);
+    await Get.find<IapService>().buySubscription(productId);
   }
 }

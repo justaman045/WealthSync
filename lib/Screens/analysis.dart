@@ -108,6 +108,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       if (txController.isLoading.value) {
         await Future.delayed(const Duration(milliseconds: 800));
       }
+      if (!mounted) return;
 
       final allTx = txController.transactions
           .where((tx) => tx.senderId == user.uid)

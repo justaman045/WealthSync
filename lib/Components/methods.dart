@@ -192,7 +192,7 @@ Future<void> gotoScreen(int index, int currentIndex) async {
           }
         } catch (e) {
           debugPrint("Error checking age: $e");
-          // Optionally allow access on error or show error
+          return;
         }
       }
 
@@ -254,20 +254,33 @@ Future<void> syncPendingTransactions() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null || user.email == null) return;
 
+  final txCollection = FirebaseFirestore.instance
+      .collection("users")
+      .doc(user.email)
+      .collection("transactions");
+
   for (var tx in pending) {
     try {
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.email)
-          .collection("transactions")
-          .add(tx);
+      final operation = tx['_operation'] as String? ?? 'add';
+      final id = tx['id'] as String?;
+
+      if (operation == 'delete' && id != null) {
+        await txCollection.doc(id).delete();
+      } else {
+        // Remove internal metadata field before writing to Firestore.
+        final data = Map<String, dynamic>.from(tx)..remove('_operation');
+        if (id != null) {
+          await txCollection.doc(id).set(data);
+        } else {
+          await txCollection.add(data);
+        }
+      }
+      await OfflineQueueService.removeFirst();
     } catch (e) {
-      // still no internet → stop syncing
+      // Still no internet — stop syncing; remaining items stay in queue.
       return;
     }
   }
 
-  // Clear only after successful sync
-  await OfflineQueueService.clearPending();
   log("Pending transactions synced");
 }

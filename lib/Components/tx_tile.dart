@@ -61,7 +61,7 @@ class TxTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          tx.recipientName, // or senderName for received
+                          tx.recipientName,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14.sp,

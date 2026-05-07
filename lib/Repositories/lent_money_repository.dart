@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 
 class LentMoneyRepository {
@@ -33,6 +34,7 @@ class LentMoneyRepository {
     return _userLentMoneyRef
         .orderBy('createdAt', descending: true)
         .snapshots()
+        .handleError((e) => debugPrint('LentMoneyStream error: $e'))
         .map((snapshot) {
           return snapshot.docs.map((doc) {
             return LentMoneyModel.fromMap(

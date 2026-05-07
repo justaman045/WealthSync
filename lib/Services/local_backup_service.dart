@@ -55,13 +55,9 @@ class LocalBackupService {
           .doc(userEmail)
           .collection('transactions');
 
-      final snap = await col.get(const GetOptions(source: Source.cache));
+      final snap = await col.get(const GetOptions(source: Source.server));
 
-      final docs = snap.docs.isEmpty
-          ? (await col.get(const GetOptions(source: Source.server))).docs
-          : snap.docs;
-
-      final List<Map<String, dynamic>> list = docs.map((d) {
+      final List<Map<String, dynamic>> list = snap.docs.map((d) {
         final data = _convertFirestoreTypes(d.data());
 
         return {'id': d.id, ...data};
@@ -127,6 +123,13 @@ class LocalBackupService {
         result[key] = _convertFirestoreTypes(
           Map<String, dynamic>.from(value),
         );
+      } else if (value is List) {
+        result[key] = value.map((item) {
+          if (item is Map) return _convertFirestoreTypes(Map<String, dynamic>.from(item));
+          if (item is Timestamp) return item.toDate().toIso8601String();
+          if (item is DateTime) return item.toIso8601String();
+          return item;
+        }).toList();
       } else {
         result[key] = value;
       }
@@ -135,11 +138,13 @@ class LocalBackupService {
     return result;
   }
 
-  /// Converts ISO8601 strings back to DateTime or Timestamp-friendly values
+  /// Converts ISO8601 strings back to Timestamp values, recursing into nested maps.
   static void _restoreDates(Map<String, dynamic> data) {
     data.forEach((key, value) {
       if (value is String && _looksLikeIsoDate(value)) {
-        data[key] = DateTime.parse(value);
+        data[key] = Timestamp.fromDate(DateTime.parse(value));
+      } else if (value is Map<String, dynamic>) {
+        _restoreDates(value);
       }
     });
   }

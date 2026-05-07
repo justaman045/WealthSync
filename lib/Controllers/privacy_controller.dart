@@ -23,7 +23,7 @@ class PrivacyBlur extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(PrivacyController());
+    final controller = Get.find<PrivacyController>();
 
     return Obx(() {
       if (!controller.isPrivacyMode.value || !enabled) {
@@ -71,7 +71,7 @@ class PrivacyText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(PrivacyController());
+    final controller = Get.find<PrivacyController>();
     return Obx(() {
       return Text(controller.isPrivacyMode.value ? mask : text, style: style);
     });

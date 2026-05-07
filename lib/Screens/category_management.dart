@@ -285,6 +285,12 @@ class _CategoryDialogState extends State<_CategoryDialog> {
   }
 
   @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: const Color(0xFF1E1E2C),

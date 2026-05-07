@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:developer';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'package:intl/intl.dart';
@@ -69,8 +70,7 @@ class BackgroundWorker {
       android: androidDetails,
     );
 
-    // Unique ID based on time
-    final id = DateTime.now().millisecondsSinceEpoch % 100000;
+    final id = DateTime.now().millisecondsSinceEpoch % 2147483647;
 
     await plugin.show(id, title, body, details, payload: "home");
 
@@ -195,8 +195,7 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
             isExpense: false,
           );
 
-          final symbol =
-              "₹"; // Default currency symbol or fetch from prefs if saved
+          final symbol = prefs.getString('currency_symbol') ?? '₹';
 
           await BackgroundWorker.showNotification(
             "Daily Insight 📊",
@@ -219,7 +218,7 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
 Future<double> _fetchTodayTotal(String email, {required bool isExpense}) async {
   final now = DateTime.now();
   final startOfDay = DateTime(now.year, now.month, now.day);
-  final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+  final endOfDay = DateTime(now.year, now.month, now.day + 1);
 
   double total = 0;
 
@@ -349,9 +348,10 @@ Future<void> _checkRecurringPayments(SharedPreferences prefs) async {
   if (lastRun == todayStr) return; // Already checked today
 
   final userEmail = prefs.getString('user_email');
-  if (userEmail != null) {
+  final uid = prefs.getString('user_uid');
+  if (userEmail != null && uid != null) {
     try {
-      await RecurringService.processDuePayments(userEmail);
+      await RecurringService.processDuePayments(userEmail, uid);
 
       // Notify if processed?
       // processDuePayments doesn't return count details,
@@ -394,8 +394,7 @@ Future<int> _processSmsMessages(
     }
 
     final db = FirebaseFirestore.instance;
-    final userDoc = await db.collection('users').doc(userEmail).get();
-    final uid = userDoc.data()?['uid'] as String?;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return 0;
 
     int imported = 0;
@@ -465,6 +464,8 @@ Future<int> _processSmsMessages(
     return imported;
   } catch (e) {
     log('SMS auto-import error: $e');
+    // Still update the timestamp to avoid re-scanning the same messages indefinitely.
+    await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
     return 0;
   }
 }
@@ -497,13 +498,13 @@ Future<void> _checkWeeklyDigest(SharedPreferences prefs) async {
     double thisWeekSpend = 0;
     double lastWeekSpend = 0;
 
-    final userDoc = await db.collection('users').doc(userEmail).get();
-    final uid = userDoc.data()?['uid'] ?? '';
+    final uid = prefs.getString('user_uid') ?? FirebaseAuth.instance.currentUser?.uid ?? '';
 
     for (final doc in snap.docs) {
       final data = doc.data();
       final date = (data['date'] as Timestamp?)?.toDate();
       if (date == null) continue;
+      if (date.isAfter(now)) continue; // Exclude future-dated transactions.
       final isSend = data['senderId'] == uid;
       if (!isSend) continue;
       final amount = (data['amount'] as num?)?.abs().toDouble() ?? 0;

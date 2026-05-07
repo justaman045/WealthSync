@@ -12,10 +12,30 @@ class AnalyticsController extends GetxController {
   final RxDouble forecastIncome = 0.0.obs;
   final RxDouble forecastExpense = 0.0.obs;
 
+  Worker? _txWorker;
+
   @override
   void onInit() {
     super.onInit();
-    loadMonthTransactions();
+    final txController = Get.find<TransactionController>();
+    if (txController.isLoading.value) {
+      // Wait for first load to complete before computing analytics.
+      _txWorker = ever(txController.isLoading, (loading) {
+        if (!loading) {
+          _txWorker?.dispose();
+          _txWorker = null;
+          loadMonthTransactions();
+        }
+      });
+    } else {
+      loadMonthTransactions();
+    }
+  }
+
+  @override
+  void onClose() {
+    _txWorker?.dispose();
+    super.onClose();
   }
 
   Future<void> loadMonthTransactions() async {
@@ -30,12 +50,6 @@ class AnalyticsController extends GetxController {
     try {
       final TransactionController txController = Get.find();
 
-      // Wait for transactions to be loaded if they aren't yet
-      if (txController.isLoading.value) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        // Simple retry/wait mechanism or we could listen.
-        // But usually Home loads first.
-      }
 
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month, 1);

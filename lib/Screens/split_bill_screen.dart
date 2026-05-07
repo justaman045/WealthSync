@@ -140,7 +140,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
       if (ok) successCount++;
     }
 
-    setState(() => _isSaving = false);
+    if (mounted) setState(() => _isSaving = false);
     if (successCount > 0 && mounted) {
       ErrorHandler.showSuccess("Split bill created: $successCount entries added.");
       Get.back();

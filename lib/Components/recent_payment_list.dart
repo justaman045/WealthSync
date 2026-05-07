@@ -47,6 +47,7 @@ class _RecentPaymentListState extends State<RecentPaymentList> {
         );
       }
 
+      if (!Get.isRegistered<TransactionController>()) return const SizedBox.shrink();
       final controller = Get.find<TransactionController>();
 
       if (controller.isLoading.value) {

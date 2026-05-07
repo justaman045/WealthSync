@@ -69,6 +69,7 @@ class SubscriptionController extends GetxController {
       _statusSub = _firestore.collection('users').doc(user.email).snapshots().listen((
         snapshot,
       ) async {
+        try {
         if (snapshot.exists) {
           final data = snapshot.data();
           if (data != null) {
@@ -101,7 +102,7 @@ class SubscriptionController extends GetxController {
                 if (DateTime.now().isAfter(expiry)) {
                   newStatus = SubscriptionStatus.free;
                   expiryDate.value = null;
-                  _expireSubscription(user.email!);
+                  if (user.email != null) _expireSubscription(user.email!);
                 }
               }
             } else if (!adminFlag) {
@@ -149,6 +150,9 @@ class SubscriptionController extends GetxController {
           subscriptionStatus.value = SubscriptionStatus.free;
           isAdmin.value = false;
           expiryDate.value = null;
+        }
+        } catch (e) {
+          debugPrint('SubscriptionController listener error: $e');
         }
       }, onError: (e) {
         debugPrint('SubscriptionController stream error: $e');

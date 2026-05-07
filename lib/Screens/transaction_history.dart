@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:flutter/services.dart'; // Haptic Feedback
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Components/methods.dart';
@@ -17,7 +18,6 @@ import 'package:money_control/Components/shimmer_loading.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
-import 'package:intl/intl.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   /// 0 = all, 1 = income, 2 = expense
@@ -106,23 +106,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return "${date.day} ${_monthAbbr(date.month)}";
   }
 
-  String _monthAbbr(int month) {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return months[month - 1];
-  }
+  String _monthAbbr(int month) =>
+      DateFormat('MMM').format(DateTime(2000, month));
 
   @override
   Widget build(BuildContext context) {

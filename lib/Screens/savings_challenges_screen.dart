@@ -163,8 +163,8 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
 
     final isNearComplete = percent >= 0.9 && !c.isCompleted;
     if (percent >= 1.0 && !c.isCompleted && !_completingIds.contains(c.id)) {
-      _completingIds.add(c.id);
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _completingIds.add(c.id);
         _confetti.play();
         ChallengesController.to.markComplete(c);
       });

@@ -29,7 +29,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
-        return android;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for Linux.',
+        );
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -63,6 +65,7 @@ class DefaultFirebaseOptions {
     iosBundleId: 'app.vercel.justaman045.moneyControl',
   );
 
+  // TODO: Register a dedicated macOS app in Firebase Console and replace this with macOS-specific values.
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyDaxiqIIIk47tzp1IuKhJMTZaals3FR1DU',
     appId: '1:823109031805:ios:b4d3c7df3af6e83f295e14',

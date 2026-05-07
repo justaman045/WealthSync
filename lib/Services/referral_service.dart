@@ -21,10 +21,19 @@ class ReferralService {
     try {
       final doc = await _db.collection('users').doc(user.email).get();
       if (doc.exists && (doc.data()?['referralCode'] != null)) return;
-      final code = generateReferralCode(
+      String code = generateReferralCode(
         user.displayName ?? user.email!,
         user.uid,
       );
+      // Collision check: if code already exists for another user, append uid suffix
+      final existing = await _db
+          .collection('users')
+          .where('referralCode', isEqualTo: code)
+          .limit(1)
+          .get();
+      if (existing.docs.isNotEmpty && existing.docs.first.id != user.email) {
+        code = '$code${user.uid.substring(0, 2).toUpperCase()}';
+      }
       await _db.collection('users').doc(user.email).set(
         {'referralCode': code, 'referralCount': 0},
         SetOptions(merge: true),
@@ -52,37 +61,42 @@ class ReferralService {
 
       if (query.docs.isEmpty) return false;
 
-      final referrerDoc = query.docs.first;
-      final referrerEmail = referrerDoc.id;
+      final referrerEmail = query.docs.first.id;
 
       // Don't allow self-referral
       if (referrerEmail == currentUser.email) return false;
 
-      // Mark current user as referred and grant 30-day trial
-      final trialEnd = DateTime.now().add(const Duration(days: 30));
-      await _db.collection('users').doc(currentUser.email).set(
-        {
+      final referrerRef = _db.collection('users').doc(referrerEmail);
+      final currentUserRef = _db.collection('users').doc(currentUser.email);
+
+      await _db.runTransaction((txn) async {
+        final referrerSnap = await txn.get(referrerRef);
+        final currentUserSnap = await txn.get(currentUserRef);
+
+        // Prevent double-application
+        final alreadyReferred = currentUserSnap.exists &&
+            (currentUserSnap.data()?['referredBy'] != null);
+        if (alreadyReferred) return;
+
+        final trialEnd = DateTime.now().add(const Duration(days: 30));
+        txn.set(currentUserRef, {
           'referredBy': upperCode,
           'trialEndDate': Timestamp.fromDate(trialEnd),
-        },
-        SetOptions(merge: true),
-      );
+        }, SetOptions(merge: true));
 
-      // Increment referrer count and extend their subscription by 30 days
-      final referrerData = referrerDoc.data();
-      final currentExpiry = referrerData['expiryDate'] as Timestamp?;
-      final newExpiry = currentExpiry != null
-          ? currentExpiry.toDate().add(const Duration(days: 30))
-          : DateTime.now().add(const Duration(days: 30));
+        final currentExpiry = referrerSnap.exists
+            ? (referrerSnap.data()?['trialEndDate'] as Timestamp?)?.toDate()
+            : null;
+        final newExpiry = currentExpiry != null && currentExpiry.isAfter(DateTime.now())
+            ? currentExpiry.add(const Duration(days: 30))
+            : DateTime.now().add(const Duration(days: 30));
 
-      await _db.collection('users').doc(referrerEmail).set(
-        {
+        txn.set(referrerRef, {
           'referralCount': FieldValue.increment(1),
           'subscriptionStatus': 'pro',
-          'expiryDate': Timestamp.fromDate(newExpiry),
-        },
-        SetOptions(merge: true),
-      );
+          'trialEndDate': Timestamp.fromDate(newExpiry),
+        }, SetOptions(merge: true));
+      });
 
       return true;
     } catch (e) {

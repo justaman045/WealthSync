@@ -55,20 +55,21 @@ class UserModel {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'firstName': firstName ?? '',
-      'lastName': lastName ?? '',
-      'email': email ?? '',
-      'phone': phone ?? '',
-      'address': address ?? '',
-      'role': role ?? '',
-      'profileImage': profileImage ?? '',
-      'currentBalance': currentBalance ?? 0.0,
-      'age': age,
-      'dob': dob,
-      'createdAt': createdAt,
+    final map = <String, dynamic>{
       'updatedAt': FieldValue.serverTimestamp(),
     };
+    if (firstName != null) map['firstName'] = firstName;
+    if (lastName != null) map['lastName'] = lastName;
+    if (email != null) map['email'] = email;
+    if (phone != null) map['phone'] = phone;
+    if (address != null) map['address'] = address;
+    if (role != null) map['role'] = role;
+    if (profileImage != null) map['profileImage'] = profileImage;
+    if (currentBalance != null) map['currentBalance'] = currentBalance;
+    if (age != null) map['age'] = age;
+    if (dob != null) map['dob'] = dob;
+    if (createdAt != null) map['createdAt'] = createdAt;
+    return map;
   }
 
   int? get calculatedAge {

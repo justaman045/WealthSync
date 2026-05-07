@@ -1,66 +1,78 @@
 // lib/Services/offline_queue.dart
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class OfflineQueueService {
-  // --------------------------------------------------------
-  //  FILE PATH
-  // --------------------------------------------------------
+  // Serialize concurrent saves so reads/writes don't interleave.
+  static bool _writing = false;
+  static final List<Future<void> Function()> _pending = [];
+
   static Future<File> _getFile() async {
     final dir = await getApplicationDocumentsDirectory();
     return File("${dir.path}/offline_queue.json");
   }
 
-  // --------------------------------------------------------
-  //  TIMESTAMP CLEANER → Convert to JSON-safe values
-  // --------------------------------------------------------
+  // Recursively convert Timestamp / DateTime to ISO-8601 strings.
+  static dynamic _sanitizeValue(dynamic value) {
+    if (value is Timestamp) return value.toDate().toIso8601String();
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Map<String, dynamic>) return _sanitize(value);
+    if (value is List) return value.map(_sanitizeValue).toList();
+    return value;
+  }
+
   static Map<String, dynamic> _sanitize(Map<String, dynamic> raw) {
-    final map = Map<String, dynamic>.from(raw);
-
-    // createdAt (Timestamp → String)
-    if (map["createdAt"] != null) {
-      final ts = map["createdAt"];
-      if (ts is Timestamp) {
-        map["createdAt"] = ts.toDate().toIso8601String();
-      }
-    }
-
-    // date (DateTime → String)
-    if (map["date"] != null) {
-      final dt = map["date"];
-      if (dt is DateTime) {
-        map["date"] = dt.toIso8601String();
-      } else if (dt is Timestamp) {
-        map["date"] = dt.toDate().toIso8601String();
-      }
-    }
-
-    return map;
+    return raw.map((k, v) => MapEntry(k, _sanitizeValue(v)));
   }
 
-  // --------------------------------------------------------
-  //  SAVE ONE PENDING TRANSACTION
-  // --------------------------------------------------------
-  static Future<void> savePending(Map<String, dynamic> tx) async {
-    final file = await _getFile();
-
-    List list = [];
-    if (await file.exists()) {
-      final content = await file.readAsString();
-      list = jsonDecode(content);
-    }
-
-    list.add(_sanitize(tx)); // FIX APPLIED
-
-    await file.writeAsString(jsonEncode(list));
+  // Atomic write: write to a temp file then rename to avoid partial-write corruption.
+  static Future<void> _atomicWrite(File file, List list) async {
+    final tmp = File('${file.path}.tmp');
+    await tmp.writeAsString(jsonEncode(list));
+    await tmp.rename(file.path);
   }
 
-  // --------------------------------------------------------
-  //  LOAD ALL PENDING ITEMS
-  // --------------------------------------------------------
+  // Serialize all saves through a simple async queue.
+  static Future<void> _enqueue(Future<void> Function() op) async {
+    if (_writing) {
+      final completer = Completer<void>();
+      _pending.add(() async {
+        await op();
+        completer.complete();
+      });
+      return completer.future;
+    }
+    _writing = true;
+    try {
+      await op();
+    } finally {
+      _writing = false;
+      if (_pending.isNotEmpty) {
+        final next = _pending.removeAt(0);
+        // ignore: unawaited_futures
+        _enqueue(next);
+      }
+    }
+  }
+
+  static Future<void> savePending(Map<String, dynamic> tx) {
+    return _enqueue(() async {
+      final file = await _getFile();
+      List list = [];
+      if (await file.exists()) {
+        try {
+          list = jsonDecode(await file.readAsString()) as List;
+        } catch (_) {}
+      }
+      list.add(_sanitize(tx));
+      await _atomicWrite(file, list);
+    });
+  }
+
   static Future<List<Map<String, dynamic>>> loadPending() async {
     final file = await _getFile();
     if (!await file.exists()) return [];
@@ -69,46 +81,45 @@ class OfflineQueueService {
     try {
       list = jsonDecode(await file.readAsString()) as List<dynamic>;
     } catch (_) {
-      await file.writeAsString(jsonEncode([]));
+      await _atomicWrite(file, []);
       return [];
     }
+
     return list.map((e) {
       final m = Map<String, dynamic>.from(e as Map);
       try {
         if (m['date'] is String) {
           m['date'] = Timestamp.fromDate(DateTime.parse(m['date'] as String));
         }
+      } catch (_) {
+        m['date'] = Timestamp.now();
+      }
+      try {
         if (m['createdAt'] is String) {
           m['createdAt'] =
               Timestamp.fromDate(DateTime.parse(m['createdAt'] as String));
         }
       } catch (_) {
-        m['date'] ??= Timestamp.now();
+        m['createdAt'] = Timestamp.now();
       }
       return m;
     }).toList();
   }
 
-  // --------------------------------------------------------
-  //  REMOVE FIRST PENDING ITEM (AFTER SUCCESSFUL SYNC)
-  // --------------------------------------------------------
-  static Future<void> removeFirst() async {
-    final file = await _getFile();
-    if (!await file.exists()) return;
-
-    final list = jsonDecode(await file.readAsString());
-    if (list.isNotEmpty) list.removeAt(0);
-
-    await file.writeAsString(jsonEncode(list));
+  static Future<void> removeFirst() {
+    return _enqueue(() async {
+      final file = await _getFile();
+      if (!await file.exists()) return;
+      final list = jsonDecode(await file.readAsString()) as List;
+      if (list.isNotEmpty) list.removeAt(0);
+      await _atomicWrite(file, list);
+    });
   }
 
-  // --------------------------------------------------------
-  //  CLEAR ALL PENDING ITEMS
-  // --------------------------------------------------------
-  static Future<void> clearPending() async {
-    final file = await _getFile();
-    if (await file.exists()) {
-      await file.writeAsString(jsonEncode([]));
-    }
+  static Future<void> clearPending() {
+    return _enqueue(() async {
+      final file = await _getFile();
+      await _atomicWrite(file, []);
+    });
   }
 }

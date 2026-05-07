@@ -115,8 +115,12 @@ class LoanModel {
       principalAmount: (map['principalAmount'] ?? 0).toDouble(),
       interestRate: (map['interestRate'] ?? 0).toDouble(),
       emiAmount: (map['emiAmount'] ?? 0).toDouble(),
-      tenureMonths: (map['tenureMonths'] ?? 0) as int,
-      startDate: ((map['startDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
+      tenureMonths: (map['tenureMonths'] as num?)?.toInt() ?? 0,
+      startDate: map['startDate'] is Timestamp
+          ? (map['startDate'] as Timestamp).toDate()
+          : map['startDate'] is String
+              ? DateTime.tryParse(map['startDate'] as String) ?? DateTime.now()
+              : DateTime.now(),
       isActive: map['isActive'] ?? true,
       linkedRecurringPaymentId: map['linkedRecurringPaymentId'] as String?,
       createdAt: map['createdAt'] is Timestamp

@@ -81,7 +81,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
   AssetScreenConfig get cfg => widget.config;
 
   CollectionReference get _col {
-    final email = FirebaseAuth.instance.currentUser!.email!;
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return FirebaseFirestore.instance
         .collection('users')
         .doc(email)
@@ -521,6 +521,7 @@ class _AddSheetState extends State<_AddSheet> {
     if (f.type == AssetFieldType.dropdown) {
       return StatefulBuilder(builder: (ctx, localSet) {
         return DropdownButtonFormField<String>(
+          // ignore: deprecated_member_use
           value: widget.dropdownValues[f.key],
           dropdownColor: const Color(0xFF1E1E2C),
           style: const TextStyle(color: Colors.white),

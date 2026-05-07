@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 //
 // ────────────────────────────────────────────────
@@ -65,30 +64,30 @@ ThemeData buildLightTheme() {
       error: AppColors.error,
     ),
 
-    // TYPOGRAPHY
-    textTheme: TextTheme(
+    // TYPOGRAPHY — use plain doubles; ScreenUtil is not initialized at theme-build time.
+    textTheme: const TextTheme(
       bodyMedium: TextStyle(
         color: AppColors.lightTextSecondary,
-        fontSize: 14.sp,
+        fontSize: 14,
       ),
-      bodyLarge: TextStyle(color: AppColors.lightTextPrimary, fontSize: 16.sp),
+      bodyLarge: TextStyle(color: AppColors.lightTextPrimary, fontSize: 16),
       titleLarge: TextStyle(
         color: AppColors.lightTextPrimary,
         fontWeight: FontWeight.w700,
-        fontSize: 20.sp,
+        fontSize: 20,
       ),
     ),
 
     // INPUTS
-    inputDecorationTheme: InputDecorationTheme(
+    inputDecorationTheme: const InputDecorationTheme(
       filled: true,
-      fillColor: Colors.black.withValues(alpha: 0.05),
-      hintStyle: const TextStyle(color: AppColors.lightTextSecondary),
+      fillColor: Colors.black12,
+      hintStyle: TextStyle(color: AppColors.lightTextSecondary),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.all(Radius.circular(16)),
         borderSide: BorderSide.none,
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
   );
 }
@@ -106,30 +105,30 @@ ThemeData buildDarkTheme() {
       error: AppColors.error,
     ),
 
-    // TYPOGRAPHY
-    textTheme: TextTheme(
+    // TYPOGRAPHY — use plain doubles; ScreenUtil is not initialized at theme-build time.
+    textTheme: const TextTheme(
       bodyMedium: TextStyle(
         color: AppColors.darkTextSecondary,
-        fontSize: 14.sp,
+        fontSize: 14,
       ),
-      bodyLarge: TextStyle(color: AppColors.darkTextPrimary, fontSize: 16.sp),
+      bodyLarge: TextStyle(color: AppColors.darkTextPrimary, fontSize: 16),
       titleLarge: TextStyle(
         color: AppColors.darkTextPrimary,
         fontWeight: FontWeight.w700,
-        fontSize: 20.sp,
+        fontSize: 20,
       ),
     ),
 
     // INPUTS
-    inputDecorationTheme: InputDecorationTheme(
+    inputDecorationTheme: const InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.05),
-      hintStyle: const TextStyle(color: AppColors.darkTextSecondary),
+      fillColor: Color(0x0DFFFFFF),
+      hintStyle: TextStyle(color: AppColors.darkTextSecondary),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.all(Radius.circular(16)),
         borderSide: BorderSide.none,
       ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
   );
 }

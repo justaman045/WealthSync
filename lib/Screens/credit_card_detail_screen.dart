@@ -17,7 +17,7 @@ class CreditCardDetailScreen extends StatefulWidget {
 
 class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
   CollectionReference get _col {
-    final email = FirebaseAuth.instance.currentUser!.email!;
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return FirebaseFirestore.instance
         .collection('users')
         .doc(email)
@@ -33,7 +33,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
     final dueDateCtrl = TextEditingController();
     DateTime? dueDate;
 
-    await showModalBottomSheet(
+    try { await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -77,7 +77,12 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
           }
         },
       ),
-    );
+    ); } finally {
+      nameCtrl.dispose();
+      limitCtrl.dispose();
+      outstandingCtrl.dispose();
+      dueDateCtrl.dispose();
+    }
   }
 
   Future<void> _delete(String id, double outstanding) async {

@@ -32,7 +32,7 @@ class ProfileController extends GetxController {
 
     // Bind user profile stream
     if (_auth.currentUser != null) {
-      _bindUserProfile(_auth.currentUser!.email);
+      _bindUserProfile(_auth.currentUser?.email);
     }
 
     // Re-bind if user changes (e.g. login/logout)

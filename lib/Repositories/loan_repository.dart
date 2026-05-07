@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/loan_model.dart';
 
 class LoanRepository {
@@ -18,6 +19,7 @@ class LoanRepository {
         .where('isActive', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
+        .handleError((e) => debugPrint('LoansStream error: $e'))
         .map((snap) => snap.docs
             .map((doc) =>
                 LoanModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))

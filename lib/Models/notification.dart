@@ -20,11 +20,11 @@ class AppNotification {
   factory AppNotification.fromMap(String id, Map<String, dynamic> map) {
     return AppNotification(
       id: id,
-      userId: map['userId'],
-      title: map['title'],
-      body: map['body'],
-      isRead: map['isRead'] ?? false,
-      createdAt: map['createdAt'],
+      userId: map['userId'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      body: map['body'] as String? ?? '',
+      isRead: map['isRead'] as bool? ?? false,
+      createdAt: map['createdAt'] as Timestamp? ?? Timestamp.now(),
     );
   }
 

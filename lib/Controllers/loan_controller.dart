@@ -7,6 +7,7 @@ import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Repositories/loan_repository.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/recurring_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Services/wealth_service.dart';
 
 class LoanController extends GetxController {
@@ -55,7 +56,9 @@ class LoanController extends GetxController {
   Future<void> _syncToWealth() async {
     try {
       await WealthService.updateAsset('loans', totalOutstanding);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('LoanController: _syncToWealth failed: $e');
+    }
   }
 
   Future<bool> addLoan({
@@ -120,10 +123,10 @@ class LoanController extends GetxController {
   Future<bool> deleteLoan(String id) async {
     try {
       final loan = loans.firstWhereOrNull((l) => l.id == id);
+      await _repo.deleteLoan(id);
       if (loan?.linkedRecurringPaymentId != null) {
         await _recurringService.deletePayment(loan!.linkedRecurringPaymentId!);
       }
-      await _repo.deleteLoan(id);
       return true;
     } catch (_) {
       ErrorHandler.showError("Failed to remove loan.");

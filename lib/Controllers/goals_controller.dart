@@ -72,16 +72,12 @@ class GoalsController extends GetxController {
   }
 
   Future<bool> updateProgress(String id, double addAmount) async {
-    final idx = goals.indexWhere((g) => g.id == id);
-    if (idx == -1 || addAmount <= 0) return false;
+    if (addAmount <= 0) return false;
     isSaving.value = true;
     try {
-      final goal = goals[idx];
-      final newAmount = (goal.currentAmount + addAmount).clamp(0.0, goal.targetAmount);
-      final completed = newAmount >= goal.targetAmount;
-      final updated = goal.copyWith(currentAmount: newAmount, isCompleted: completed);
-      await _repo.updateGoal(updated);
-      if (completed) {
+      final updated = await _repo.addProgress(id, addAmount);
+      if (updated == null) return false;
+      if (updated.isCompleted) {
         ErrorHandler.showSuccess("Goal achieved! 🎉");
       }
       return true;

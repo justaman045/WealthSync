@@ -47,8 +47,7 @@ class BiometricService extends GetxController {
           canAuthenticateWithBiometrics || await auth.isDeviceSupported();
 
       if (!canAuthenticate) {
-        // Device not supported, assume authenticated or handle gracefully
-        return true;
+        return false;
       }
 
       final bool didAuthenticate = await auth.authenticate(
@@ -71,12 +70,9 @@ class BiometricService extends GetxController {
     await _loadSettings();
     if (isBiometricEnabled.value) {
       isAuthenticated.value = false;
-      final success = await authenticate();
-      if (!success) {
-        // If failed, close app or show full screen error?
-        // For now, we will handle it in the UI (e.g. show a "Unlock" button overlay)
-        SystemNavigator.pop(); // Close app if critical failure, or let specific UI handle it
-      }
+      // Authentication result is handled by the UI overlay (lock screen widget in RootApp).
+      // Do not pop the navigator — the user can retry via the lock screen.
+      await authenticate();
     } else {
       isAuthenticated.value = true;
     }

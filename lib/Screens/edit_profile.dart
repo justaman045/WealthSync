@@ -133,6 +133,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
 

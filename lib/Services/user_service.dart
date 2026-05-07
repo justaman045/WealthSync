@@ -5,44 +5,58 @@ class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // All subcollections that must be deleted before the user document.
+  static const _subcollections = [
+    'transactions',
+    'recurring_payments',
+    'wealth',
+    'categories',
+    'budgets',
+    'notifications',
+    'goals',
+    'loans',
+    'challenges',
+    'lent_money',
+    'sms_rules',
+  ];
+
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("No user logged in");
 
+    final email = user.email;
+    if (email == null) throw Exception("User has no email");
+
+    // 1. Delete all subcollections first. If any fail, throw before touching auth.
+    for (final sub in _subcollections) {
+      await _deleteCollection('users/$email/$sub');
+    }
+
+    // 2. Delete the user document.
+    await _db.collection('users').doc(email).delete();
+
+    // 3. Delete auth account only after all Firestore data is gone.
     try {
-      // 1. Delete Sub-Collections (Firestore doesn't auto-delete subcollections)
-      // We need to fetch and batch delete.
-      await _deleteCollection(
-        'users/${user.email}/transactions',
-      ); // Main Transactions
-      await _deleteCollection(
-        'users/${user.email}/recurring_payments',
-      ); // Recurring Payments
-      await _deleteCollection('users/${user.email}/wealth'); // Wealth items
-
-      // 2. Delete User Document
-      await _db.collection('users').doc(user.email).delete();
-
-      // (Optional) Clean up backups if any
-      // LocalBackupService.deleteBackups(user.email!);
-
-      // 3. Delete Auth Account
       await user.delete();
-    } catch (e) {
-      if (e is FirebaseAuthException && e.code == 'requires-recent-login') {
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
         throw Exception(
           "Security Check: Please log out and log in again to delete your account.",
         );
       }
-      throw Exception("Failed to delete account: $e");
+      throw Exception("Failed to delete auth account: $e");
     }
   }
 
+  // Paginated deletion to handle collections with >10 000 documents.
   Future<void> _deleteCollection(String path) async {
     final collection = _db.collection(path);
-    final snapshots = await collection.get();
-    for (var doc in snapshots.docs) {
-      await doc.reference.delete();
+    while (true) {
+      final snap = await collection.limit(500).get();
+      if (snap.docs.isEmpty) break;
+      for (final doc in snap.docs) {
+        await doc.reference.delete();
+      }
     }
   }
 }

@@ -351,7 +351,7 @@ class WealthService {
         insights.add({
           'type': 'warning',
           'message':
-              "💳 High CC Debt: ₹${portfolio.creditCard.toStringAsFixed(0)} outstanding. Pay this off first — credit card rates (36–48% p.a.) beat any investment return.",
+              "💳 High CC Debt: ${CurrencyController.to.currencySymbol.value}${portfolio.creditCard.toStringAsFixed(0)} outstanding. Pay this off first — credit card rates (36–48% p.a.) beat any investment return.",
         });
       }
 

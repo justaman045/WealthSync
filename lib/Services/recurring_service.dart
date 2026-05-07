@@ -142,6 +142,7 @@ class RecurringService {
   }
 
   // Manually link/mark as paid -> Advance due date & optionally create txn
+  // Both the date update and optional transaction creation are batched atomically.
   Future<void> markAsPaid(
     RecurringPayment payment, {
     bool createTransaction = false,
@@ -149,54 +150,49 @@ class RecurringService {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // 1. Advance Date
-    DateTime nextDate = payment.nextDueDate;
-    if (payment.frequency == RecurringFrequency.monthly) {
-      nextDate = _clampedNextMonth(nextDate);
-    } else if (payment.frequency == RecurringFrequency.weekly) {
-      nextDate = nextDate.add(const Duration(days: 7));
-    } else if (payment.frequency == RecurringFrequency.yearly) {
-      nextDate = DateTime(nextDate.year + 1, nextDate.month, nextDate.day);
-    }
+    DateTime nextDate = _advanceDate(payment);
 
-    await _db
+    final batch = _db.batch();
+
+    final paymentRef = _db
         .collection('users')
         .doc(user.email)
         .collection('recurring_payments')
-        .doc(payment.id)
-        .update({'nextDueDate': Timestamp.fromDate(nextDate)});
+        .doc(payment.id);
+    batch.update(paymentRef, {'nextDueDate': Timestamp.fromDate(nextDate)});
 
-    // 2. Create Transaction if requested
     if (createTransaction) {
       final txId = const Uuid().v4();
-      final uid = user.uid;
-
-      final newTx = {
+      final txRef = _db
+          .collection('users')
+          .doc(user.email)
+          .collection('transactions')
+          .doc(txId);
+      batch.set(txRef, {
         'id': txId,
         'amount': -payment.amount,
         'recipientName': payment.title,
         'recipientId': 'External',
-        'senderId': uid,
-        'date': Timestamp.fromDate(payment.nextDueDate),
+        'senderId': user.uid,
+        'date': Timestamp.fromDate(DateTime.now()),
         'createdAt': FieldValue.serverTimestamp(),
         'category': payment.category,
         'status': 'success',
         'type': 'debit',
         'note': 'Manual payment for ${payment.title}',
         'recurringPaymentId': payment.id,
-      };
-
-      await _db
-          .collection('users')
-          .doc(user.email)
-          .collection('transactions')
-          .doc(txId)
-          .set(newTx);
+      });
     }
+
+    await batch.commit();
   }
 
-  // Process Due Payments (To be called by Background Worker mostly, but helper is here)
-  static Future<void> processDuePayments(String userEmail) async {
+  // Process Due Payments (called by Background Worker). uid is passed explicitly
+  // because FirebaseAuth.currentUser may be null in a background isolate.
+  static Future<void> processDuePayments(
+    String userEmail,
+    String uid,
+  ) async {
     final db = FirebaseFirestore.instance;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -208,9 +204,6 @@ class RecurringService {
         .where('isActive', isEqualTo: true)
         .where('nextDueDate', isLessThanOrEqualTo: Timestamp.fromDate(today))
         .get();
-
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
 
     for (var doc in snapshot.docs) {
       final payment = RecurringPayment.fromMap(doc.id, doc.data());
@@ -226,43 +219,52 @@ class RecurringService {
           .get();
       if (existingSnap.docs.isNotEmpty) continue;
 
-      // 1. Create Transaction
+      final nextDate = _advanceDateStatic(payment);
+
+      // Atomically create transaction + advance due date in one batch.
+      final batch = db.batch();
+
       final txId = const Uuid().v4();
-      final newTx = {
+      final txRef = db
+          .collection('users')
+          .doc(userEmail)
+          .collection('transactions')
+          .doc(txId);
+      batch.set(txRef, {
         'id': txId,
         'amount': -payment.amount,
         'recipientName': payment.title,
         'recipientId': 'External',
         'senderId': uid,
-        'date': Timestamp.fromDate(payment.nextDueDate),
+        'date': Timestamp.fromDate(DateTime.now()),
         'createdAt': FieldValue.serverTimestamp(),
         'category': payment.category,
         'status': 'success',
         'type': 'debit',
         'note': 'Auto-payment for ${payment.title}',
         'recurringPaymentId': payment.id,
-      };
+      });
 
-      await db
-          .collection('users')
-          .doc(userEmail)
-          .collection('transactions')
-          .doc(txId)
-          .set(newTx);
-
-      // 2. Update Next Due Date
-      DateTime nextDate = payment.nextDueDate;
-      if (payment.frequency == RecurringFrequency.monthly) {
-        nextDate = _clampedNextMonth(nextDate);
-      } else if (payment.frequency == RecurringFrequency.weekly) {
-        nextDate = nextDate.add(const Duration(days: 7));
-      } else if (payment.frequency == RecurringFrequency.yearly) {
-        nextDate = DateTime(nextDate.year + 1, nextDate.month, nextDate.day);
-      }
-
-      await doc.reference.update({
+      batch.update(doc.reference, {
         'nextDueDate': Timestamp.fromDate(nextDate),
       });
+
+      await batch.commit();
     }
+  }
+
+  DateTime _advanceDate(RecurringPayment payment) =>
+      _advanceDateStatic(payment);
+
+  static DateTime _advanceDateStatic(RecurringPayment payment) {
+    final d = payment.nextDueDate;
+    if (payment.frequency == RecurringFrequency.monthly) {
+      return _clampedNextMonth(d);
+    } else if (payment.frequency == RecurringFrequency.weekly) {
+      return d.add(const Duration(days: 7));
+    } else if (payment.frequency == RecurringFrequency.yearly) {
+      return DateTime(d.year + 1, d.month, d.day);
+    }
+    return d;
   }
 }

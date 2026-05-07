@@ -16,7 +16,7 @@ class VehicleDetailScreen extends StatefulWidget {
 
 class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
   CollectionReference get _col {
-    final email = FirebaseAuth.instance.currentUser!.email!;
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return FirebaseFirestore.instance
         .collection('users')
         .doc(email)
@@ -32,7 +32,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     final valueCtrl = TextEditingController();
     final emiCtrl = TextEditingController();
 
-    await showModalBottomSheet(
+    try { await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -65,7 +65,13 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
           }
         },
       ),
-    );
+    ); } finally {
+      makeCtrl.dispose();
+      modelCtrl.dispose();
+      yearCtrl.dispose();
+      valueCtrl.dispose();
+      emiCtrl.dispose();
+    }
   }
 
   Future<void> _delete(String id) async {

@@ -12,7 +12,7 @@ class CategoryInitialsIcon extends StatelessWidget {
 
   String _getInitials(String name) {
     final words = name.trim().split(' ').where((w) => w.isNotEmpty).toList();
-    if (words.isEmpty) return '';
+    if (words.isEmpty) return '?';
     if (words.length == 1) return words[0].substring(0, 1).toUpperCase();
     return (words[0][0] + words[1][0]).toUpperCase();
   }

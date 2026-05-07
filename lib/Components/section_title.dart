@@ -29,17 +29,18 @@ class SectionTitle extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        GestureDetector(
-          onTap: onTap,
-          child: Text(
-            'View All',
-            style: TextStyle(
-              color: accentColor ?? scheme.primary,
-              fontWeight: FontWeight.w600,
-              fontSize: 12.sp,
+        if (onTap != null)
+          GestureDetector(
+            onTap: onTap,
+            child: Text(
+              'View All',
+              style: TextStyle(
+                color: accentColor ?? scheme.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
             ),
           ),
-        ),
       ],
     );
   }

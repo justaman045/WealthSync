@@ -48,7 +48,7 @@ class IapService {
     isLoading.value = true;
     final param = PurchaseParam(productDetails: product);
     try {
-      await _iap.buyNonConsumable(purchaseParam: param);
+      await _iap.buyNonConsumable(purchaseParam: param); // in_app_purchase uses buyNonConsumable for Play subscriptions; the plugin manages subscription type internally.
       // isLoading is reset in _handlePurchases after outcome is known
     } catch (e) {
       isLoading.value = false;
@@ -58,7 +58,11 @@ class IapService {
 
   Future<void> restorePurchases() async {
     isLoading.value = true;
-    await _iap.restorePurchases();
+    try {
+      await _iap.restorePurchases();
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<void> _handlePurchases(List<PurchaseDetails> purchases) async {

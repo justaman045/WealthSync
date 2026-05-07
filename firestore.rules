@@ -2,17 +2,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: only the authenticated user matching the doc owner can read/write
     function isOwner(email) {
       return request.auth != null && request.auth.token.email == email;
     }
 
-    // Users collection: each user can only access their own document and sub-collections
+    function isAdmin() {
+      let adminDoc = get(/databases/$(database)/documents/users/$(request.auth.token.email));
+      return request.auth != null
+          && adminDoc != null
+          && adminDoc.data != null
+          && adminDoc.data.isAdmin == true;
+    }
+
+    function validTransaction() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['amount', 'date', 'senderId', 'recipientId'])
+          && d.amount is number
+          && d.date is timestamp;
+    }
+
     match /users/{userEmail} {
-      allow read, write: if isOwner(userEmail);
+      allow read: if isOwner(userEmail) || isAdmin();
+      allow write: if isOwner(userEmail);
 
       match /transactions/{txId} {
-        allow read, write: if isOwner(userEmail);
+        allow read: if isOwner(userEmail) || isAdmin();
+        allow write: if isOwner(userEmail) && (request.method == 'delete' || validTransaction());
       }
 
       match /categories/{catId} {
@@ -42,12 +57,18 @@ service cloud.firestore {
       match /category_rules/{ruleId} {
         allow read, write: if isOwner(userEmail);
       }
-    }
 
-    // Admin: only admin users (isAdmin == true in their own doc) can read all users
-    match /users/{userEmail} {
-      allow read: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.isAdmin == true;
+      match /goals/{goalId} {
+        allow read, write: if isOwner(userEmail);
+      }
+
+      match /loans/{loanId} {
+        allow read, write: if isOwner(userEmail);
+      }
+
+      match /challenges/{challengeId} {
+        allow read, write: if isOwner(userEmail);
+      }
     }
 
     // Deny everything else by default

@@ -107,13 +107,13 @@ class GeneralSettingsScreen extends StatelessWidget {
   }
 
   Widget _buildCurrencyTile(BuildContext context) {
-    return _SettingsTile(
+    return Obx(() => _SettingsTile(
       icon: Icons.currency_exchange,
       title: "Currency (${CurrencyController.to.currencyCode.value})",
       onTap: () {
         _showCurrencyDialog(context);
       },
-    );
+    ));
   }
 
   void _showCurrencyDialog(BuildContext context) {

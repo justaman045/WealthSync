@@ -46,8 +46,8 @@ class DataSupportSettingsScreen extends StatelessWidget {
 
   Future<void> _handleRestore(BuildContext context) async {
     // Similar restore logic to original settings
-    final user = FirebaseAuth.instance.currentUser;
-    if (user?.email == null) return;
+    final userEmail = FirebaseAuth.instance.currentUser?.email;
+    if (userEmail == null) return;
 
     Get.defaultDialog(
       title: "Restore Data",
@@ -59,7 +59,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
       onConfirm: () async {
         Navigator.of(context).pop(); // close dialog
         try {
-          await LocalBackupService.restoreUserTransactions(user!.email!);
+          await LocalBackupService.restoreUserTransactions(userEmail);
           Get.snackbar(
             "Restore Success",
             "Data restored from backup",

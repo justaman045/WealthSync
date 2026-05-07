@@ -45,7 +45,11 @@ class SavingsChallengeModel {
       isActive: map['isActive'] ?? true,
       trackingType: map['trackingType'] ?? 'savings',
       trackedCategory: map['trackedCategory'] as String?,
-      createdAt: map['createdAt'] as Timestamp?,
+      createdAt: map['createdAt'] is Timestamp
+          ? map['createdAt'] as Timestamp
+          : map['createdAt'] is String
+              ? Timestamp.fromDate(DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now())
+              : null,
     );
   }
 

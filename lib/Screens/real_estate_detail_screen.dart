@@ -16,7 +16,7 @@ class RealEstateDetailScreen extends StatefulWidget {
 
 class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
   CollectionReference get _col {
-    final email = FirebaseAuth.instance.currentUser!.email!;
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return FirebaseFirestore.instance
         .collection('users')
         .doc(email)
@@ -32,7 +32,7 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
     final valueCtrl = TextEditingController();
     final emiCtrl = TextEditingController();
 
-    await showModalBottomSheet(
+    try { await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -65,7 +65,13 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
           }
         },
       ),
-    );
+    ); } finally {
+      nameCtrl.dispose();
+      typeCtrl.dispose();
+      locationCtrl.dispose();
+      valueCtrl.dispose();
+      emiCtrl.dispose();
+    }
   }
 
   Future<void> _delete(String id) async {

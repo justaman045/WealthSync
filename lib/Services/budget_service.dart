@@ -73,7 +73,6 @@ class BudgetService {
           channelId: 'budget_alerts',
           channelName: 'Budget Alerts',
         );
-        await _saveNotification(userId, title, body, "budget_alert");
       } else if (totalSpent >= (budgetLimit * 0.9)) {
         const title = "⚠️ Approaching Limit";
         final body =
@@ -85,34 +84,10 @@ class BudgetService {
           channelId: 'budget_alerts',
           channelName: 'Budget Alerts',
         );
-        await _saveNotification(userId, title, body, "budget_alert");
       }
     } catch (e) {
       log("Error checking budget: $e");
     }
   }
 
-  /// Save notification to Firestore for history
-  static Future<void> _saveNotification(
-    String userId,
-    String title,
-    String body,
-    String type,
-  ) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('notifications')
-          .add({
-            'title': title,
-            'body': body,
-            'date': FieldValue.serverTimestamp(),
-            'type': type,
-            'read': false,
-          });
-    } catch (e) {
-      log("Error saving notification: $e");
-    }
-  }
 }

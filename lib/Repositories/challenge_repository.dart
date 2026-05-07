@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/challenge_model.dart';
 
 class ChallengeRepository {
@@ -17,6 +18,7 @@ class ChallengeRepository {
         .where('isActive', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .snapshots()
+        .handleError((e) => debugPrint('ChallengesStream error: $e'))
         .map((snap) => snap.docs
             .map((d) => SavingsChallengeModel.fromMap(d.id, d.data()))
             .toList());

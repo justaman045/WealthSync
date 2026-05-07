@@ -25,8 +25,9 @@ class _ImportScreenState extends State<ImportScreen> {
   String? _categoryColumn;
 
   Future<void> _pickFile() async {
-    setState(() => _isLoading = true);
+    if (mounted) setState(() => _isLoading = true);
     final data = await ImportService.pickAndParseCSV();
+    if (!mounted) return;
 
     if (data != null && data.isNotEmpty) {
       setState(() {
@@ -52,7 +53,7 @@ class _ImportScreenState extends State<ImportScreen> {
         _categoryColumn = _findSimilarHeader(['category', 'tag', 'type']);
       });
     }
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   String? _findSimilarHeader(List<String> keywords) {

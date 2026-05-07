@@ -95,7 +95,6 @@ class AuthController extends GetxController {
   Future<void> _updateUserData(User user, String provider) async {
     await _firestore.collection('users').doc(user.email).set({
       'email': user.email,
-      'uid': user.uid,
       'provider': provider,
       'lastLogin': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));

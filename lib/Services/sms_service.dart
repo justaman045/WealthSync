@@ -259,17 +259,23 @@ class SmsService {
     } else if (hasCreditSignal) {
       isDebit = false;
     } else if (lower.contains('received')) {
-      // "received by MERCHANT" → debit (merchant received money from you)
-      // "received in/to/into/from" → credit (money came into your account)
+      // "received by MERCHANT" → debit (merchant received money FROM you)
+      // "received by you" / "received in/to/into/from" → credit (money came INTO your account)
       if (lower.contains('received by')) {
-        isDebit = true;
+        final afterBy = lower.split('received by').last.trimLeft();
+        final creditSelf = afterBy.startsWith('you') ||
+            afterBy.startsWith('your') ||
+            afterBy.startsWith('me');
+        isDebit = !creditSelf;
       } else if (lower.contains('received in') ||
           lower.contains('received to') ||
           lower.contains('received into') ||
           lower.contains('received from')) {
         isDebit = false;
+      } else {
+        // bare "received" → credit (you received money)
+        isDebit = false;
       }
-      // bare "received" with no preposition: leave as default isDebit = true
     }
 
     String merchant = 'Unknown';

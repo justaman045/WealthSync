@@ -82,6 +82,12 @@ class ThemeController extends GetxController {
     }
   }
 
+  void resubscribe() {
+    _themeSubscription?.cancel();
+    _themeSubscription = null;
+    _listenToThemeChanges();
+  }
+
   void _listenToThemeChanges() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && user.email != null) {
@@ -106,11 +112,11 @@ class ThemeController extends GetxController {
   }
 }
 
-final ThemeController themeController = Get.put(ThemeController());
+// Accessed via Get.find<ThemeController>() after mainCommon() registers it.
+late final ThemeController themeController;
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-// ---- MAIN ----
 // ---- MAIN ----
 void main() {
   mainCommon();
@@ -118,6 +124,8 @@ void main() {
 
 Future<void> mainCommon({bool isTest = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Must be registered after ensureInitialized so GetX platform channels work.
+  themeController = Get.put(ThemeController());
   TutorialController.isTestMode = isTest;
   Get.testMode = isTest;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -152,7 +160,7 @@ Future<void> mainCommon({bool isTest = false}) async {
   Get.put(SubscriptionController());
   Get.put(PaymentConfigService());
   await WidgetService.init();
-  await IapService().init();
+  await Get.put(IapService()).init();
   final bioService = Get.put(BiometricService());
 
   // await _loadThemeFromFirebase(); // Handled by ThemeController listener
@@ -325,6 +333,7 @@ class _AuthCheckerState extends State<AuthChecker> {
         ) ??
         false;
     if (user != null && (user.emailVerified || isOAuthUser)) {
+      Get.find<ThemeController>().resubscribe();
       if (!Get.isRegistered<TransactionController>()) {
         Get.put(TransactionController());
       }
@@ -409,8 +418,12 @@ class _AuthCheckerState extends State<AuthChecker> {
         }
 
         final user = snapshot.data;
+        final isOAuth = user?.providerData.any(
+              (p) => p.providerId == 'google.com' || p.providerId == 'apple.com',
+            ) ??
+            false;
 
-        if (user != null && user.emailVerified) {
+        if (user != null && (user.emailVerified || isOAuth)) {
           return FutureBuilder<SharedPreferences>(
             future: SharedPreferences.getInstance(),
             builder: (context, prefsSnapshot) {
