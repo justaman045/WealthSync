@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/import_service.dart';
+import 'package:money_control/Components/colors.dart';
 
 class ImportScreen extends StatefulWidget {
   const ImportScreen({super.key});
@@ -104,15 +105,17 @@ class _ImportScreenState extends State<ImportScreen> {
       if (mounted) {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1A1A2E),
+          builder: (context) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return AlertDialog(
+              backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
             title: const Text(
               "Success",
               style: TextStyle(color: Color(0xFF00E5FF)),
             ),
             content: Text(
               "Imported ${transactions.length} transactions successfully.",
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
             ),
             actions: [
               TextButton(
@@ -123,7 +126,8 @@ class _ImportScreenState extends State<ImportScreen> {
                 },
               ),
             ],
-          ),
+            );
+          },
         );
       }
     } catch (e) {
@@ -140,13 +144,12 @@ class _ImportScreenState extends State<ImportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
-          ],
+          colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -158,11 +161,11 @@ class _ImportScreenState extends State<ImportScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             onPressed: () => Navigator.pop(context),
           ),
           titleTextStyle: TextStyle(
-            color: Colors.white,
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
           ),
@@ -195,7 +198,7 @@ class _ImportScreenState extends State<ImportScreen> {
                         child: Text(
                           "Match CSV headers to app fields",
                           style: TextStyle(
-                            color: Colors.white38,
+                            color: isDark ? Colors.white38 : AppColors.lightTextSecondary,
                             fontSize: 12.sp,
                           ),
                         ),
@@ -231,7 +234,7 @@ class _ImportScreenState extends State<ImportScreen> {
                         child: Text(
                           "Previewing first 5 rows:",
                           style: TextStyle(
-                            color: Colors.white54,
+                            color: isDark ? Colors.white54 : AppColors.lightTextPrimary,
                             fontSize: 14.sp,
                             fontWeight: FontWeight.bold,
                           ),
@@ -248,6 +251,7 @@ class _ImportScreenState extends State<ImportScreen> {
   }
 
   Widget _buildStepHeader(String title, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         Icon(icon, color: const Color(0xFF00E5FF), size: 18.sp),
@@ -255,7 +259,7 @@ class _ImportScreenState extends State<ImportScreen> {
         Text(
           title,
           style: TextStyle(
-            color: Colors.white,
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
             fontSize: 16.sp,
             fontWeight: FontWeight.bold,
           ),
@@ -270,6 +274,7 @@ class _ImportScreenState extends State<ImportScreen> {
     required VoidCallback onTap,
     bool isHighlight = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -278,12 +283,12 @@ class _ImportScreenState extends State<ImportScreen> {
         decoration: BoxDecoration(
           color: isHighlight
               ? const Color(0xFF00E5FF).withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.05),
+              : isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isHighlight
                 ? const Color(0xFF00E5FF)
-                : Colors.white.withValues(alpha: 0.1),
+                : isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5),
             width: isHighlight ? 1.5 : 1,
           ),
         ),
@@ -291,14 +296,14 @@ class _ImportScreenState extends State<ImportScreen> {
           children: [
             Icon(
               icon,
-              color: isHighlight ? const Color(0xFF00E5FF) : Colors.white70,
+              color: isHighlight ? const Color(0xFF00E5FF) : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
               size: 30.sp,
             ),
             SizedBox(height: 10.h),
             Text(
               title,
               style: TextStyle(
-                color: isHighlight ? const Color(0xFF00E5FF) : Colors.white70,
+                color: isHighlight ? const Color(0xFF00E5FF) : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -313,32 +318,33 @@ class _ImportScreenState extends State<ImportScreen> {
     String? value,
     Function(String?) onChanged,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               label,
-              style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 14.sp),
             ),
             DropdownButton<String>(
               value: _headers.contains(value) ? value : null,
-              dropdownColor: const Color(0xFF1E1E2C),
+              dropdownColor: isDark ? const Color(0xFF1E1E2C) : AppColors.lightSurface,
               icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF00E5FF)),
               underline: const SizedBox(),
               hint: Text(
                 "Select Column",
-                style: TextStyle(color: Colors.white24, fontSize: 12.sp),
+                style: TextStyle(color: isDark ? Colors.white24 : AppColors.lightTextSecondary, fontSize: 12.sp),
               ),
-              style: TextStyle(color: Colors.white, fontSize: 14.sp),
+              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 14.sp),
               items: _headers
                   .map((h) => DropdownMenuItem(value: h, child: Text(h)))
                   .toList(),
@@ -391,6 +397,8 @@ class _ImportScreenState extends State<ImportScreen> {
   Widget _buildPreviewTable() {
     if (_csvData == null || _csvData!.isEmpty) return const SizedBox();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Show top 5 rows
     final previewRows = _csvData!.take(6).toList();
 
@@ -402,8 +410,8 @@ class _ImportScreenState extends State<ImportScreen> {
           fontWeight: FontWeight.bold,
           fontSize: 12.sp,
         ),
-        dataTextStyle: TextStyle(color: Colors.white70, fontSize: 12.sp),
-        border: TableBorder.all(color: Colors.white10),
+        dataTextStyle: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 12.sp),
+        border: TableBorder.all(color: isDark ? Colors.white10 : AppColors.lightBorder.withValues(alpha: 0.5)),
         columns: _headers.map((h) => DataColumn(label: Text(h))).toList(),
         rows: previewRows.skip(1).map((row) {
           return DataRow(

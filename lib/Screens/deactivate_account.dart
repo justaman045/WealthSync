@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Screens/loginscreen.dart';
-
 import 'package:money_control/Services/user_service.dart';
 
 class DeactivateAccountScreen extends StatefulWidget {

@@ -33,7 +33,7 @@ class SmsService {
   final CategoryRulesRepository _rulesRepository = CategoryRulesRepository();
 
   Map<String, List<String>> _currentRules = {};
-  bool _rulesLoaded = false;
+  static bool _rulesLoaded = false;
 
   // Merchant → category corrections learned from user edits (loaded on initRules)
   static Map<String, String> _correctionCache = {};
@@ -161,6 +161,14 @@ class SmsService {
 
   SmsService() {
     _currentRules = Map.from(defaultRules);
+  }
+
+  /// Reset all static caches (call on signOut to prevent cross-user data leak).
+  static void resetCache() {
+    _correctionCache.clear();
+    _historyCache.clear();
+    _historyLoaded = false;
+    _rulesLoaded = false;
   }
 
   // ---- Static helpers used by BackgroundWorker (no plugin/Firebase deps) ----

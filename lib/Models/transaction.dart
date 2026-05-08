@@ -33,7 +33,7 @@ class TransactionModel {
     this.recurringPaymentId,
   });
 
-  double get total => amount < 0 ? amount - tax : amount + tax;
+  double get total => amount - tax;
 
   String? get recipientAvatar => attachmentUrl;
 

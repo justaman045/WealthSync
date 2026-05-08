@@ -17,7 +17,9 @@ class OfflineQueueService {
   }
 
   // Recursively convert Timestamp / DateTime to ISO-8601 strings.
+  // Strips FieldValue sentinels (serverTimestamp, delete, etc.) that break jsonEncode.
   static dynamic _sanitizeValue(dynamic value) {
+    if (value is FieldValue) return Timestamp.now().toDate().toIso8601String();
     if (value is Timestamp) return value.toDate().toIso8601String();
     if (value is DateTime) return value.toIso8601String();
     if (value is Map<String, dynamic>) return _sanitize(value);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -47,15 +48,20 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   bool _ageBasedEnabled = false;
   bool _agePromptChecked = false;
   Set<String> _recommendedKeys = {};
+  StreamSubscription<WealthPortfolio>? _portfolioSub;
 
   @override
   void initState() {
     super.initState();
+    _portfolioSub = WealthService.streamPortfolio().listen((p) {
+      if (mounted) setState(() => portfolio = p);
+    });
     _loadData();
   }
 
   @override
   void dispose() {
+    _portfolioSub?.cancel();
     _isBottomBarVisible.dispose();
     super.dispose();
   }
@@ -437,7 +443,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               fit: BoxFit.scaleDown,
               child: Switch(
                 value: _ageBasedEnabled,
-                activeColor: AppColors.primary,
+                activeThumbColor: AppColors.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 onChanged: (val) {
                   setState(() {
@@ -675,10 +681,93 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ));
     }
 
+    // 8. Custom Assets
+    if (p.custom.isNotEmpty) {
+      final customCards = p.custom.entries
+          .where((e) => !p.hiddenKeys.contains(e.key))
+          .map((e) => _assetCard(
+                e.key,
+                e.value,
+                e.key,
+                Icons.category,
+                Colors.grey.shade500,
+                scheme,
+                onTapOverride: () => _showCustomAssetDialog(e.key, e.value),
+              ))
+          .toList();
+      if (customCards.isNotEmpty) {
+        sections.add(_sectionHeader("Custom Assets"));
+        sections.add(GridView.count(
+          crossAxisCount: 2, shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+          children: customCards,
+        ));
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: sections,
     );
+  }
+
+  void _showCustomAssetDialog(String key, double value) {
+    final nameCtrl = TextEditingController(text: key);
+    final valueCtrl = TextEditingController(text: value.toStringAsFixed(0));
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Custom Asset"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: "Name"),
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : null),
+            ),
+            SizedBox(height: 8.h),
+            TextField(
+              controller: valueCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Value"),
+              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : null),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await WealthService.deleteCustomAsset(key);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newName = nameCtrl.text.trim();
+              final newVal = double.tryParse(valueCtrl.text.trim()) ?? 0;
+              if (newName.isNotEmpty && newVal > 0) {
+                if (newName != key) {
+                  await WealthService.deleteCustomAsset(key);
+                }
+                await WealthService.setCustomAsset(newName, newVal);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    ).whenComplete(() {
+      nameCtrl.dispose();
+      valueCtrl.dispose();
+    });
   }
 
   Widget _sectionHeader(String label) {
@@ -896,6 +985,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }) async {
     final symbol = CurrencyController.to.currencySymbol.value;
     final isBank = key == 'bank';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final valueController = TextEditingController(
       text: currentVal == 0 ? '' : currentVal.toStringAsFixed(0),
@@ -938,8 +1028,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               padding: EdgeInsets.all(24.w),
               decoration: BoxDecoration(
                 // ... same premium decoration
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2E1A47), Color(0xFF1A1A2E)],
+                gradient: LinearGradient(
+                  colors: isDark ? [Color(0xFF2E1A47), Color(0xFF1A1A2E)] : AppColors.lightGradient,
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -1123,6 +1213,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Future<void> _showVisibilityDialog() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final Map<String, String> assets = {
       // Liquid & Fixed Income
       'bank':        "Cash / Bank",
@@ -1180,8 +1271,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   constraints: BoxConstraints(maxHeight: 600.h),
                   padding: EdgeInsets.all(24.w),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF2E1A47), Color(0xFF1A1A2E)],
+                    gradient: LinearGradient(
+                      colors: isDark ? [Color(0xFF2E1A47), Color(0xFF1A1A2E)] : AppColors.lightGradient,
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

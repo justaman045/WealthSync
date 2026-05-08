@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/transaction.dart';
 
@@ -162,13 +163,11 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1A1A2E), // Midnight Void
-            const Color(0xFF16213E).withValues(alpha: 0.95),
-          ],
+          colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -234,7 +233,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedCategory,
-                          dropdownColor: const Color(0xFF16213E),
+                          dropdownColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : AppColors.lightSurface,
                           icon: const Icon(
                             Icons.keyboard_arrow_down,
                             color: Colors.white,
@@ -270,12 +269,12 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                     Expanded(
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _selectedRange,
-                          dropdownColor: const Color(0xFF16213E),
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.white,
-                          ),
+                      value: _selectedRange,
+                      dropdownColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : AppColors.lightSurface,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Colors.white,
+                      ),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.sp,

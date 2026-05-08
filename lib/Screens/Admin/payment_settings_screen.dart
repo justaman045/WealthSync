@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/payment_config_service.dart';
+import 'package:money_control/Components/colors.dart';
 
 class PaymentSettingsScreen extends StatefulWidget {
   const PaymentSettingsScreen({super.key});
@@ -52,10 +53,13 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+          colors: isDark
+              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)]
+              : AppColors.lightGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

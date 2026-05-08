@@ -11,6 +11,7 @@ import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/empty_state.dart'; // Empty State
+import 'package:money_control/Components/colors.dart';
 
 class TransactionSearchPage extends StatefulWidget {
   const TransactionSearchPage({super.key});
@@ -91,6 +92,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -109,12 +111,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(
-                0xFF16213E,
-              ).withValues(alpha: 0.95), // Deep Blue Bottom
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

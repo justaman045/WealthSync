@@ -238,12 +238,13 @@ class GoalsScreen extends StatelessWidget {
 
   void _showAddProgressSheet(BuildContext context, GoalModel goal, GoalsController ctrl) {
     if (goal.isCompleted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final sym = CurrencyController.to.currencySymbol.value;
     final amtCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E1E2C),
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       isScrollControlled: true,
       builder: (_) => Padding(
@@ -309,10 +310,11 @@ class GoalsScreen extends StatelessWidget {
   }
 
   void _showDeleteDialog(BuildContext context, GoalModel goal, GoalsController ctrl) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2C),
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text("Delete Goal?", style: TextStyle(color: Colors.white, fontSize: 17.sp)),
         content: Text(

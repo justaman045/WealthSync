@@ -6,6 +6,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Models/user_model.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class WealthTarget {
   final double effective;
@@ -27,44 +28,8 @@ class WealthService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // ── Age-milestone tables ────────────────────────────────────────────────
-  // Values are multiples of annual expense at each age bracket.
-  // Source: Fidelity lifecycle model adapted for India, SEBI/AMFI guidelines.
-  // Linear interpolation is used between brackets.
-
-  static const _sipM        = {22:0.0, 25:0.5,  30:2.0,  35:5.0,  40:10.0, 50:20.0, 60:35.0};
-  static const _stocksM     = {22:0.0, 25:0.3,  30:1.0,  35:3.0,  40:6.0,  50:12.0, 60:20.0};
-  static const _etfM        = {22:0.0, 25:0.2,  30:0.8,  35:2.0,  40:4.0,  50:8.0,  60:12.0};
-  static const _foreignM    = {22:0.0, 25:0.0,  30:0.5,  35:1.0,  40:2.0,  50:4.0,  60:6.0};
-  static const _startupM    = {22:0.0, 25:0.1,  30:0.3,  35:0.5,  40:0.5,  50:0.5,  60:0.5};
-  static const _pfM         = {22:0.5, 25:0.8,  30:1.5,  35:3.0,  40:6.0,  50:12.0, 60:18.0};
-  static const _ppfM        = {22:0.3, 25:0.5,  30:1.5,  35:3.0,  40:6.0,  50:10.0, 60:15.0};
-  static const _vpfM        = {22:0.0, 25:0.0,  30:0.5,  35:1.0,  40:2.0,  50:4.0,  60:7.0};
-  static const _npsM        = {22:0.0, 25:0.0,  30:0.5,  35:1.5,  40:3.0,  50:7.0,  60:12.0};
-  static const _bondsM      = {22:0.0, 25:0.0,  30:0.5,  35:1.0,  40:2.0,  50:5.0,  60:10.0};
-  static const _goldM       = {22:0.2, 25:0.3,  30:0.5,  35:0.7,  40:1.0,  50:1.2,  60:1.5};
-  static const _sgbM        = {22:0.0, 25:0.1,  30:0.3,  35:0.5,  40:0.7,  50:1.0,  60:1.2};
-  static const _cryptoM     = {22:0.0, 25:0.1,  30:0.2,  35:0.2,  40:0.2,  50:0.1,  60:0.0};
-  static const _reitM       = {22:0.0, 25:0.0,  30:0.3,  35:0.7,  40:1.5,  50:3.0,  60:4.0};
-  static const _p2pM        = {22:0.0, 25:0.1,  30:0.3,  35:0.5,  40:0.7,  50:1.0,  60:1.0};
-  // Insurance target rises to 10× then tapers as retirement approaches and
-  // dependents reduce. Expressed as × annual expense (proxy for annual income).
-  static const _insuranceM  = {22:5.0, 25:8.0,  30:10.0, 35:10.0, 40:10.0, 50:8.0,  60:5.0};
-
-  /// Linearly interpolates between the two bracketing entries in [milestones].
-  /// [age] is clamped to the table's min/max range.
-  static double _milestone(int age, Map<int, double> milestones) {
-    final keys = milestones.keys.toList()..sort();
-    if (age <= keys.first) return milestones[keys.first]!;
-    if (age >= keys.last)  return milestones[keys.last]!;
-    int lo = keys.first, hi = keys.last;
-    for (final k in keys) {
-      if (k <= age) lo = k;
-      if (k >= age && k < hi) hi = k;
-    }
-    if (lo == hi) return milestones[lo]!;
-    final t = (age - lo) / (hi - lo);
-    return milestones[lo]! + t * (milestones[hi]! - milestones[lo]!);
-  }
+  // Values sourced from lib/Utils/wealth_math.dart (Fidelity model for India).
+  // Linear interpolation via milestone() in the same file.
 
   static DocumentReference get _portfolioRef {
     final user = _auth.currentUser;
@@ -98,6 +63,32 @@ class WealthService {
       }, SetOptions(merge: true));
     } catch (e) {
       log("Error updating asset $key: $e");
+      rethrow;
+    }
+  }
+
+  /// Add or update a custom asset entry in the custom map
+  static Future<void> setCustomAsset(String key, double value) async {
+    try {
+      await _portfolioRef.set({
+        'custom.$key': value,
+        'lastUpdated': Timestamp.now(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      log("Error setting custom asset $key: $e");
+      rethrow;
+    }
+  }
+
+  /// Remove a custom asset entry from the custom map
+  static Future<void> deleteCustomAsset(String key) async {
+    try {
+      await _portfolioRef.set({
+        'custom.$key': FieldValue.delete(),
+        'lastUpdated': Timestamp.now(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      log("Error deleting custom asset $key: $e");
       rethrow;
     }
   }
@@ -398,32 +389,9 @@ class WealthService {
           userProfile?.calculatedAge; // Use getter if available or logic
       final int age = (userAge is int && userAge > 0) ? userAge : 30;
 
-      // Fetch portfolio settings for override (Still need one read for Portfolio if not passed fully,
-      // but 'portfolio' arg contains 'targets' and 'custom'.
-      // However 'monthly_expense_override' might be separate field in doc?
-      // WealthPortfolio model doesn't seem to have 'monthly_expense_override' based on previous file view.
-      // Let's check WealthPortfolio definition again.
-      // It has 'custom'. Maybe it's there?
-      // The previous code fetched _portfolioRef.get() again.
-      // To strictly avoid read, we should ensure WealthPortfolio has this field.
-      // Based on previous file view of WealthData, it does NOT have it explicitly named.
-      // But it has `custom` map.
-      // Let's assume for now we might need 1 read for override if it's not in portfolio model,
-      // OR we can add it to model.
-      // For now, I'll keep the single read for override if strictly necessary, or better yet,
-      // I'll check if I can assume it's in `custom` or just accept 1 read is better than 4.
-      // Actually, wait, `getPortfolio` returns full doc data map passed to `fromMap`.
-      // If `monthly_expense_override` is in doc, it should be in map.
-      // Let's check `WealthPortfolio.fromMap`... it doesn't seem to map it.
-      // Okay, I will add a quick read here just for the override value if needed,
-      // BUT `calculateAssetTargets` is called AFTER `getPortfolio`.
-      // If we pass the snapshot data or update model...
-      // Let's keep the read for `monthly_expense_override` for now to be safe,
-      // as modifying Model might be larger scope.
-      // Optimization: It's just 1 doc read (Portfolio) which we likely just read in `getPortfolio`?
-      // Actually `getPortfolio` reads it. If we could cache it...
-      // Use the location's average income as the baseline when no transaction
-      // history exists. Real transaction data always takes priority.
+      // Use monthlyExpenseOverride from the portfolio doc, or fall back to
+      // computed monthly expense from transactions. If neither has data, use
+      // geo-baseline (passed as baselineMonthlyIncome).
       final double rawMonthlyExpense =
           portfolio.monthlyExpenseOverride ?? monthlyExpense;
       final bool usingEstimate = rawMonthlyExpense <= 0;
@@ -434,10 +402,10 @@ class WealthService {
       // Age-based emergency fund multiplier (months)
       final int cashMonths = age < 30 ? 3 : age > 50 ? 12 : 6;
 
-      // Every target = _milestone(age, table) × annualExpense.
+      // Every target = milestone(age, table) × annualExpense.
       // Targets grow with age, NOT with net worth.
       double m(Map<int, double> table) =>
-          _milestone(age, table) * annualExpense;
+          milestone(age, table) * annualExpense;
 
       final formulaTargets = {
         // ── Liquidity (expense × months, geo-scaled) ──────────────────────
@@ -446,22 +414,22 @@ class WealthService {
         'postOffice': effectiveMonthlyExpense * 2,
 
         // ── Age-milestone investments (× annual expense) ───────────────────
-        'sip':           m(_sipM),
-        'stocks':        m(_stocksM),
-        'etf':           m(_etfM),
-        'foreignStocks': m(_foreignM),
-        'startupEquity': m(_startupM),
-        'pf':            m(_pfM),
-        'ppf':           m(_ppfM),
-        'vpf':           m(_vpfM),
-        'nps':           m(_npsM),
-        'bonds':         m(_bondsM),
-        'gold':          m(_goldM),
-        'sgb':           m(_sgbM),
-        'crypto':        m(_cryptoM),
-        'reit':          m(_reitM),
-        'p2p':           m(_p2pM),
-        'insurance':     m(_insuranceM),
+        'sip':           m(sipM),
+        'stocks':        m(stocksM),
+        'etf':           m(etfM),
+        'foreignStocks': m(foreignM),
+        'startupEquity': m(startupM),
+        'pf':            m(pfM),
+        'ppf':           m(ppfM),
+        'vpf':           m(vpfM),
+        'nps':           m(npsM),
+        'bonds':         m(bondsM),
+        'gold':          m(goldM),
+        'sgb':           m(sgbM),
+        'crypto':        m(cryptoM),
+        'reit':          m(reitM),
+        'p2p':           m(p2pM),
+        'insurance':     m(insuranceM),
 
         // ── Tracked only — no prescriptive target ─────────────────────────
         'realEstate':  0.0,

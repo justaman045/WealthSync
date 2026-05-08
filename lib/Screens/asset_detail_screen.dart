@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 // ─── Field types ──────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ class AssetDetailScreen extends StatefulWidget {
 
 class _AssetDetailScreenState extends State<AssetDetailScreen> {
   bool _saving = false;
+  bool _syncedEmpty = false;
 
   AssetScreenConfig get cfg => widget.config;
 
@@ -98,57 +100,23 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
     await WealthService.updateAsset(cfg.assetKey, total);
   }
 
-  Future<void> _addEntry() async {
-    final controllers = <String, TextEditingController>{};
-    final dropdownValues = <String, String>{};
-    final dateValues = <String, DateTime>{};
-
-    for (final f in cfg.fields) {
-      if (f.type == AssetFieldType.dropdown) {
-        dropdownValues[f.key] = f.options!.first;
-      } else {
-        controllers[f.key] = TextEditingController();
-      }
-    }
-
+  Future<void> _addOrEditEntry({String? id, Map<String, dynamic>? existingData}) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _AddSheet(
         config: cfg,
-        controllers: controllers,
-        dropdownValues: dropdownValues,
-        dateValues: dateValues,
-        onSave: () async {
-          // Validate required fields
-          for (final f in cfg.fields) {
-            if (f.required) {
-              if (f.type == AssetFieldType.number || f.type == AssetFieldType.text) {
-                if (controllers[f.key]?.text.trim().isEmpty ?? true) return;
-              }
-            }
-          }
-          final amountKey = cfg.amountField.key;
-          final amountVal = double.tryParse(controllers[amountKey]?.text.trim() ?? '') ?? 0;
-          if (amountVal <= 0) return;
-
+        existingId: id,
+        existingData: existingData,
+        onSave: (data) async {
           setState(() => _saving = true);
           try {
-            final data = <String, dynamic>{'createdAt': Timestamp.now()};
-            for (final f in cfg.fields) {
-              if (f.type == AssetFieldType.number) {
-                data[f.key] = double.tryParse(controllers[f.key]?.text.trim() ?? '') ?? 0;
-              } else if (f.type == AssetFieldType.date) {
-                final d = dateValues[f.key];
-                data[f.key] = d != null ? Timestamp.fromDate(d) : null;
-              } else if (f.type == AssetFieldType.dropdown) {
-                data[f.key] = dropdownValues[f.key];
-              } else {
-                data[f.key] = controllers[f.key]?.text.trim() ?? '';
-              }
+            if (id != null) {
+              await _col.doc(id).update(data);
+            } else {
+              await _col.add(data);
             }
-            await _col.add(data);
             final snap = await _col.get();
             await _syncTotal(snap);
           } finally {
@@ -157,20 +125,22 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
         },
       ),
     );
-
-    for (final c in controllers.values) {
-      c.dispose();
-    }
   }
 
   Future<void> _delete(String id) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Remove entry?"),
-        content: const Text("This will delete this item permanently."),
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        title: Text("Remove entry?",
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
+        content: Text("This will delete this item permanently.",
+          style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+            child: Text("Cancel",
+              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text("Delete", style: TextStyle(color: Colors.red))),
@@ -212,7 +182,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
         floatingActionButton: _saving
             ? const SizedBox.shrink()
             : FloatingActionButton.extended(
-                onPressed: _addEntry,
+                onPressed: () => _addOrEditEntry(),
                 backgroundColor: cfg.accentColor,
                 icon: const Icon(Icons.add, color: Colors.white),
                 label: Text(
@@ -228,6 +198,10 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
             }
             final docs = snap.data?.docs ?? [];
             if (docs.isEmpty) {
+              if (!_syncedEmpty) {
+                _syncedEmpty = true;
+                WealthService.updateAsset(cfg.assetKey, 0);
+              }
               return _buildEmpty(isDark);
             }
 
@@ -351,65 +325,68 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
       }
     }
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: cfg.accentColor.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(10.w),
-            decoration: BoxDecoration(
-              color: cfg.accentColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () => _addOrEditEntry(id: id, existingData: data),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: cfg.accentColor.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: cfg.accentColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(cfg.icon, color: cfg.accentColor, size: 20.sp),
             ),
-            child: Icon(cfg.icon, color: cfg.accentColor, size: 20.sp),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15.sp,
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  "$symbol${_compact(amountVal)}",
-                  style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: cfg.accentColor),
-                ),
-                if (extraRows.isNotEmpty) ...[
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15.sp,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                  ),
                   SizedBox(height: 4.h),
-                  ...extraRows.take(2).map((row) => Text(
-                        row,
-                        style: TextStyle(fontSize: 11.sp, color: Colors.grey),
-                      )),
+                  Text(
+                    "$symbol${_compact(amountVal)}",
+                    style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: cfg.accentColor),
+                  ),
+                  if (extraRows.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    ...extraRows.take(2).map((row) => Text(
+                          row,
+                          style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                        )),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () => _delete(id),
-            iconSize: 20.sp,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _delete(id),
+              iconSize: 20.sp,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -437,16 +414,14 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
 
 class _AddSheet extends StatefulWidget {
   final AssetScreenConfig config;
-  final Map<String, TextEditingController> controllers;
-  final Map<String, String> dropdownValues;
-  final Map<String, DateTime> dateValues;
-  final Future<void> Function() onSave;
+  final String? existingId;
+  final Map<String, dynamic>? existingData;
+  final Future<void> Function(Map<String, dynamic> data) onSave;
 
   const _AddSheet({
     required this.config,
-    required this.controllers,
-    required this.dropdownValues,
-    required this.dateValues,
+    this.existingId,
+    this.existingData,
     required this.onSave,
   });
 
@@ -456,14 +431,90 @@ class _AddSheet extends StatefulWidget {
 
 class _AddSheetState extends State<_AddSheet> {
   bool _saving = false;
+  late final Map<String, TextEditingController> _controllers;
+  late final Map<String, String> _dropdownValues;
+  late final Map<String, DateTime> _dateValues;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = {};
+    _dropdownValues = {};
+    _dateValues = {};
+    for (final f in widget.config.fields) {
+      if (f.type == AssetFieldType.dropdown) {
+        _dropdownValues[f.key] = widget.existingData?[f.key]?.toString() ?? f.options!.first;
+      } else {
+        final existing = widget.existingData?[f.key];
+        String initialValue = '';
+        if (existing != null) {
+          if (f.type == AssetFieldType.date && existing is Timestamp) {
+            initialValue = DateFormat('dd MMM yyyy').format(existing.toDate());
+            _dateValues[f.key] = existing.toDate();
+          } else {
+            initialValue = existing.toString();
+          }
+        }
+        _controllers[f.key] = TextEditingController(text: initialValue);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    // Validate required fields
+    for (final f in widget.config.fields) {
+      if (f.required) {
+        if (f.type == AssetFieldType.number || f.type == AssetFieldType.text) {
+          if (_controllers[f.key]?.text.trim().isEmpty ?? true) return;
+        }
+      }
+    }
+    final amountKey = widget.config.amountField.key;
+    final amountVal = double.tryParse(_controllers[amountKey]?.text.trim() ?? '') ?? 0;
+    if (amountVal <= 0) return;
+
+    setState(() => _saving = true);
+    try {
+      final data = <String, dynamic>{};
+      if (widget.existingId == null) {
+        data['createdAt'] = Timestamp.now();
+      }
+      for (final f in widget.config.fields) {
+        if (f.type == AssetFieldType.number) {
+          data[f.key] = double.tryParse(_controllers[f.key]?.text.trim() ?? '') ?? 0;
+        } else if (f.type == AssetFieldType.date) {
+          final d = _dateValues[f.key];
+          data[f.key] = d != null ? Timestamp.fromDate(d) : null;
+        } else if (f.type == AssetFieldType.dropdown) {
+          data[f.key] = _dropdownValues[f.key];
+        } else {
+          data[f.key] = _controllers[f.key]?.text.trim() ?? '';
+        }
+      }
+      await widget.onSave(data);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1E2C),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 32.h),
@@ -472,33 +523,23 @@ class _AddSheetState extends State<_AddSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.config.fabLabel,
+              widget.existingId != null ? "Edit ${widget.config.title}" : widget.config.fabLabel,
               style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 18.sp),
             ),
             SizedBox(height: 16.h),
             ...widget.config.fields.map((f) => Padding(
                   padding: EdgeInsets.only(bottom: 12.h),
-                  child: _buildField(f),
+                  child: _buildField(f, isDark),
                 )),
             SizedBox(height: 8.h),
             SizedBox(
               width: double.infinity,
               height: 50.h,
               child: ElevatedButton(
-                onPressed: _saving
-                    ? null
-                    : () async {
-                        setState(() => _saving = true);
-                        try {
-                          await widget.onSave();
-                          if (context.mounted) Navigator.pop(context);
-                        } finally {
-                          if (mounted) setState(() => _saving = false);
-                        }
-                      },
+                onPressed: _saving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.config.accentColor,
                   shape: RoundedRectangleBorder(
@@ -517,21 +558,20 @@ class _AddSheetState extends State<_AddSheet> {
     );
   }
 
-  Widget _buildField(AssetFieldDef f) {
+  Widget _buildField(AssetFieldDef f, bool isDark) {
     if (f.type == AssetFieldType.dropdown) {
       return StatefulBuilder(builder: (ctx, localSet) {
         return DropdownButtonFormField<String>(
-          // ignore: deprecated_member_use
-          value: widget.dropdownValues[f.key],
-          dropdownColor: const Color(0xFF1E1E2C),
-          style: const TextStyle(color: Colors.white),
-          decoration: _inputDecoration(f.label),
+          value: _dropdownValues[f.key],
+          dropdownColor: isDark ? const Color(0xFF1E1E2C) : AppColors.lightSurface,
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
+          decoration: _inputDecoration(f.label, isDark),
           items: f.options!
               .map((o) => DropdownMenuItem(value: o, child: Text(o)))
               .toList(),
           onChanged: (v) {
             if (v != null) {
-              setState(() => widget.dropdownValues[f.key] = v);
+              localSet(() => _dropdownValues[f.key] = v);
             }
           },
         );
@@ -539,12 +579,12 @@ class _AddSheetState extends State<_AddSheet> {
     }
 
     if (f.type == AssetFieldType.date) {
-      final ctrl = widget.controllers[f.key] ?? TextEditingController();
+      final ctrl = _controllers[f.key];
       return TextField(
         controller: ctrl,
         readOnly: true,
-        style: const TextStyle(color: Colors.white),
-        decoration: _inputDecoration(f.label),
+        style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
+        decoration: _inputDecoration(f.label, isDark),
         onTap: () async {
           final picked = await showDatePicker(
             context: context,
@@ -554,8 +594,8 @@ class _AddSheetState extends State<_AddSheet> {
           );
           if (picked != null) {
             setState(() {
-              widget.dateValues[f.key] = picked;
-              ctrl.text = DateFormat('dd MMM yyyy').format(picked);
+              _dateValues[f.key] = picked;
+              ctrl?.text = DateFormat('dd MMM yyyy').format(picked);
             });
           }
         },
@@ -563,24 +603,24 @@ class _AddSheetState extends State<_AddSheet> {
     }
 
     return TextField(
-      controller: widget.controllers[f.key],
+      controller: _controllers[f.key],
       keyboardType: f.type == AssetFieldType.number
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
       inputFormatters: f.type == AssetFieldType.number
           ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
           : null,
-      style: const TextStyle(color: Colors.white),
-      decoration: _inputDecoration(f.label),
+      style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
+      decoration: _inputDecoration(f.label, isDark),
     );
   }
 
-  InputDecoration _inputDecoration(String label) {
+  InputDecoration _inputDecoration(String label, bool isDark) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white54),
+      labelStyle: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.08),
+      fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.withValues(alpha: 0.1),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12.r),
         borderSide: BorderSide.none,
@@ -589,11 +629,6 @@ class _AddSheetState extends State<_AddSheet> {
   }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helper re-exported from wealth_math for backwards compat ────────────────
 
-String _compact(double v) {
-  if (v >= 10000000) return "${(v / 10000000).toStringAsFixed(1)}Cr";
-  if (v >= 100000) return "${(v / 100000).toStringAsFixed(1)}L";
-  if (v >= 1000) return "${(v / 1000).toStringAsFixed(0)}K";
-  return v.toStringAsFixed(0);
-}
+String _compact(double v) => compact(v);

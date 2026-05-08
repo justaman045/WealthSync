@@ -14,7 +14,7 @@ class AddGoalScreen extends StatefulWidget {
 }
 
 class _AddGoalScreenState extends State<AddGoalScreen> {
-  final _ctrl = GoalsController.to;
+  late final GoalsController _ctrl;
   final _nameCtrl = TextEditingController();
   final _amountCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -62,11 +62,12 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   }
 
   @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _amountCtrl.dispose();
-    _descCtrl.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<GoalsController>()) {
+      Get.put(GoalsController());
+    }
+    _ctrl = GoalsController.to;
   }
 
   @override

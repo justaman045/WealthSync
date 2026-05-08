@@ -13,6 +13,7 @@ import 'package:money_control/Screens/settings.dart';
 import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Screens/edit_profile.dart'; // Added import
 import 'package:money_control/Services/offline_queue.dart';
+import 'package:money_control/Components/colors.dart';
 
 Curve curve = Curves.easeOutCubic;
 Transition transition = Transition.cupertino;
@@ -77,8 +78,8 @@ Future<void> gotoScreen(int index, int currentIndex) async {
                       width: 320.w,
                       padding: EdgeInsets.all(24.w),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF2E1A47), Color(0xFF1A1A2E)],
+                        gradient: LinearGradient(
+                          colors: Get.isDarkMode ? AppColors.darkGradient : AppColors.lightGradient,
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),

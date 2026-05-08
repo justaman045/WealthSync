@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Components/colors.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -15,12 +16,13 @@ class NotificationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (user == null) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF1A1A2E),
+      return Scaffold(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         body: Center(
-          child: Text("Not logged in", style: TextStyle(color: Colors.white)),
+          child: Text("Not logged in", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
         ),
       );
     }
@@ -33,7 +35,7 @@ class NotificationsScreen extends StatelessWidget {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new,
-            color: Colors.white,
+            color: isDark ? Colors.white : Colors.black,
             size: 20.sp,
           ),
           onPressed: () => Navigator.of(context).maybePop(),
@@ -43,7 +45,7 @@ class NotificationsScreen extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18.sp,
-            color: Colors.white,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         centerTitle: true,
@@ -52,10 +54,7 @@ class NotificationsScreen extends StatelessWidget {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void
-              const Color(0xFF16213E).withValues(alpha: 0.95),
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

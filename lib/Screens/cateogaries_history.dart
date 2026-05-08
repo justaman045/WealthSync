@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:get/get.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
+import 'package:money_control/Components/colors.dart';
 
 import 'package:money_control/Screens/cateogary_history.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
@@ -42,6 +43,9 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
     if (!Get.isRegistered<BudgetController>()) Get.put(BudgetController());
     final BudgetController budgetController = Get.find<BudgetController>();
     if (budgetController.categoryBudgets.isEmpty) {
@@ -60,6 +64,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -69,7 +74,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              color: const Color(0xFF1A1A2E).withValues(alpha: 0.8),
+              color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
             ),
           ),
         ),
@@ -90,12 +95,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(
-                0xFF16213E,
-              ).withValues(alpha: 0.95), // Deep Blue Bottom
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

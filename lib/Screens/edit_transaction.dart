@@ -17,6 +17,7 @@ import 'package:money_control/Services/budget_service.dart';
 import 'package:money_control/Utils/icon_helper.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/category_service.dart';
+import 'package:money_control/Components/colors.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -107,7 +108,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         context: context,
         barrierColor: Colors.black.withValues(alpha: 0.8),
         builder: (_) => Dialog(
-          backgroundColor: const Color(0xFF1E1E2C),
+          backgroundColor: Get.isDarkMode ? AppColors.darkSurface : AppColors.lightSurface,
           elevation: 0,
           insetPadding: EdgeInsets.all(20.w),
           shape: RoundedRectangleBorder(
@@ -117,8 +118,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24.r),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+              gradient: LinearGradient(
+                colors: Get.isDarkMode ? AppColors.darkGradient : AppColors.lightGradient,
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -349,6 +350,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -366,12 +368,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(
-                0xFF16213E,
-              ).withValues(alpha: 0.95), // Deep Blue Bottom
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

@@ -6,6 +6,7 @@ import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Services/biometric_service.dart';
 import 'package:money_control/Screens/deactivate_account.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class SecuritySettingsScreen extends StatelessWidget {
   const SecuritySettingsScreen({super.key});
@@ -23,6 +24,7 @@ class SecuritySettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final PrivacyController privacyController = Get.find();
     final BiometricService bioService = Get.find();
 
@@ -47,10 +49,7 @@ class SecuritySettingsScreen extends StatelessWidget {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void
-              const Color(0xFF16213E).withValues(alpha: 0.95),
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

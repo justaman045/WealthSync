@@ -7,6 +7,7 @@ import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Components/cateogary_initial_icon.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Controllers/budget_controller.dart';
 
@@ -25,6 +26,9 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
     if (!Get.isRegistered<BudgetController>()) {
       Get.put(BudgetController());
     }

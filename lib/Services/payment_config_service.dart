@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 class PaymentConfigService extends GetxController {
@@ -16,11 +18,16 @@ class PaymentConfigService extends GetxController {
     _sub = FirebaseFirestore.instance
         .collection('app_config')
         .doc('payment_settings')
-        .snapshots()
+        .snapshots(includeMetadataChanges: true)
         .listen((snap) {
-      final data = snap.data() ?? {};
-      paymentMode.value = data['paymentMode'] as String? ?? 'google_play';
-      upiId.value = data['upiId'] as String? ?? '';
+      final exists = snap.exists && snap.data() != null;
+      if (exists) {
+        final data = snap.data()!;
+        paymentMode.value = data['paymentMode'] as String? ?? 'google_play';
+        upiId.value = data['upiId'] as String? ?? '';
+      }
+    }, onError: (e) {
+      debugPrint('PaymentConfigService: using defaults ($e)');
     });
   }
 
@@ -31,6 +38,11 @@ class PaymentConfigService extends GetxController {
   }
 
   Future<void> save({required String mode, required String upi}) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      debugPrint('PaymentConfigService: cannot save, not authenticated');
+      return;
+    }
     await FirebaseFirestore.instance
         .collection('app_config')
         .doc('payment_settings')

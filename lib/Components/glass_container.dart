@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'dart:ui'; // Needed for BackdropFilter
+import 'dart:ui';
+import 'package:money_control/Components/colors.dart';
 
 class GlassContainer extends StatelessWidget {
   final Widget child;
@@ -41,16 +42,14 @@ class GlassContainer extends StatelessWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.black.withValues(alpha: 0.2)
-                : Colors.white.withValues(alpha: 0.3),
+                : AppColors.lightSurface.withValues(alpha: 0.85),
             borderRadius: rBorderRadius,
             border:
                 border ??
                 Border.all(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.1) // Increased opacity
-                      : Colors.white.withValues(
-                          alpha: 0.5,
-                        ), // Increased opacity
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : AppColors.lightBorder.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
             boxShadow: [

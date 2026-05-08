@@ -6,16 +6,14 @@ import 'package:money_control/Screens/category_management.dart';
 import 'package:money_control/Screens/notification_history.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/main.dart'; // For ThemeController
+import 'package:money_control/Components/colors.dart';
 
 class GeneralSettingsScreen extends StatelessWidget {
   const GeneralSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Theme logic access
-    // Note: We need a way to rebuild on theme change or use Obx locally if needed.
-    // Since ThemeController is global in main.dart:
-    // final isDark = Theme.of(context).brightness == Brightness.dark; (Unused)
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -38,10 +36,7 @@ class GeneralSettingsScreen extends StatelessWidget {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E),
-              const Color(0xFF16213E).withValues(alpha: 0.95),
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -117,6 +112,7 @@ class GeneralSettingsScreen extends StatelessWidget {
   }
 
   void _showCurrencyDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<Map<String, String>> currencies = [
       {'code': 'INR', 'symbol': '₹'},
       {'code': 'USD', 'symbol': '\$'},
@@ -128,7 +124,7 @@ class GeneralSettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        backgroundColor: const Color(0xFF1E1E2C),
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20.r),
         ),

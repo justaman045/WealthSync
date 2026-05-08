@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class NotificationHistoryScreen extends StatelessWidget {
   const NotificationHistoryScreen({super.key});
@@ -11,7 +12,7 @@ class NotificationHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    // final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -21,17 +22,17 @@ class NotificationHistoryScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: isDark ? Colors.white : Colors.black,
           fontWeight: FontWeight.bold,
           fontSize: 18.sp,
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.white),
+            icon: Icon(Icons.delete_outline, color: isDark ? Colors.white : Colors.black),
             onPressed: () => _confirmClearAll(context, user?.email),
           ),
         ],
@@ -40,10 +41,7 @@ class NotificationHistoryScreen extends StatelessWidget {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void
-              const Color(0xFF16213E).withValues(alpha: 0.95),
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -75,13 +73,13 @@ class NotificationHistoryScreen extends StatelessWidget {
                             Icon(
                               Icons.notifications_off_outlined,
                               size: 64.sp,
-                              color: Colors.white24,
+                              color: isDark ? Colors.white24 : AppColors.lightTextSecondary.withValues(alpha: 0.4),
                             ),
                             SizedBox(height: 16.h),
                             Text(
                               "No notifications yet",
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                                 fontSize: 16.sp,
                               ),
                             ),
@@ -120,23 +118,24 @@ class NotificationHistoryScreen extends StatelessWidget {
 
   Future<void> _confirmClearAll(BuildContext context, String? email) async {
     if (email == null) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2C),
-        title: const Text(
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        title: Text(
           "Clear History?",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
         ),
-        content: const Text(
+        content: Text(
           "This will delete all your notification history.",
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
+            child: Text("Cancel", style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -185,30 +184,31 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     IconData icon;
     Color color;
 
     switch (type) {
       case 'budget_alert':
         icon = Icons.warning_amber_rounded;
-        color = const Color(0xFFFF2975); // Hot Pink/Red
+        color = const Color(0xFFFF2975);
         break;
       case 'reminder':
         icon = Icons.alarm_on_rounded;
-        color = const Color(0xFF00E5FF); // Cyan
+        color = const Color(0xFF00E5FF);
         break;
       default:
         icon = Icons.info_outline_rounded;
-        color = const Color(0xFF6C63FF); // Blurple
+        color = const Color(0xFF6C63FF);
     }
 
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.15)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +233,7 @@ class _NotificationTile extends StatelessWidget {
                       child: Text(
                         title,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 15.sp,
                         ),
@@ -241,7 +241,7 @@ class _NotificationTile extends StatelessWidget {
                     ),
                     Text(
                       _formatDate(date),
-                      style: TextStyle(color: Colors.white38, fontSize: 11.sp),
+                      style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextSecondary, fontSize: 11.sp),
                     ),
                   ],
                 ),
@@ -249,7 +249,7 @@ class _NotificationTile extends StatelessWidget {
                 Text(
                   body,
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                     fontSize: 13.sp,
                     height: 1.4,
                   ),

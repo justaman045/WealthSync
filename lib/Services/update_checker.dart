@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:http/http.dart' as http;
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/update_page.dart';
@@ -89,17 +90,18 @@ class UpdateChecker {
               margin: EdgeInsets.symmetric(horizontal: 24),
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF2E1A47), // Deep Violet
-                    Color(0xFF1A1A2E), // Dark Blue
-                  ],
+                gradient: LinearGradient(
+                  colors: Get.isDarkMode
+                      ? [const Color(0xFF2E1A47), const Color(0xFF1A1A2E)]
+                      : AppColors.lightGradient,
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Get.isDarkMode
+                      ? Colors.white.withValues(alpha: 0.15)
+                      : AppColors.lightBorder.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
                 boxShadow: [
@@ -133,7 +135,9 @@ class UpdateChecker {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Get.isDarkMode
+                          ? Colors.white
+                          : AppColors.lightTextPrimary,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -150,7 +154,9 @@ class UpdateChecker {
                   Container(
                     padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: Get.isDarkMode
+                          ? Colors.white.withValues(alpha: 0.05)
+                          : Colors.black.withValues(alpha: 0.03),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -158,7 +164,9 @@ class UpdateChecker {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white70,
+                        color: Get.isDarkMode
+                            ? Colors.white70
+                            : AppColors.lightTextSecondary,
                         height: 1.5,
                       ),
                     ),
@@ -171,7 +179,9 @@ class UpdateChecker {
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
                             style: TextButton.styleFrom(
-                              foregroundColor: Colors.white54,
+                              foregroundColor: Get.isDarkMode
+                                  ? Colors.white54
+                                  : AppColors.lightTextSecondary,
                               padding: EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: const Text("Later"),

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Components/nav_item.dart';
+import 'package:money_control/Components/colors.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -14,20 +15,20 @@ class BottomNavBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final containerColor = isDark
-        ? const Color(0xFF161622).withValues(alpha: 0.8) // Deep Dark Glass
-        : Colors.white.withValues(alpha: 0.9); // White Glass for Light Mode
+        ? const Color(0xFF161622).withValues(alpha: 0.8)
+        : Colors.white.withValues(alpha: 0.95);
 
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
-        : Colors.grey.withValues(alpha: 0.2);
+        : AppColors.lightBorder;
 
     final shadowColor = isDark
         ? Colors.black.withValues(alpha: 0.4)
-        : Colors.black.withValues(alpha: 0.1);
+        : Colors.black.withValues(alpha: 0.12);
 
     final glowColor = isDark
-        ? const Color(0xFF00E5FF) // Neon Cyan
-        : const Color(0xFF6C63FF); // Blurple
+        ? const Color(0xFF00E5FF)
+        : AppColors.primary;
 
     return Container(
       margin: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:money_control/Components/colors.dart';
 
 class UpdatePage extends StatefulWidget {
   const UpdatePage({super.key});
@@ -87,6 +88,8 @@ class _UpdatePageState extends State<UpdatePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -100,12 +103,11 @@ class _UpdatePageState extends State<UpdatePage> {
         leading: const BackButton(color: Colors.white),
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF2E1A47), // Deep Violet
-              Color(0xFF1A1A2E), // Dark Blue
-            ],
+            colors: isDark
+                ? [const Color(0xFF2E1A47), ...AppColors.darkGradient]
+                : [const Color(0xFFE8E0F0), ...AppColors.lightGradient],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

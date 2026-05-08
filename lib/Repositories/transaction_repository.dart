@@ -44,6 +44,10 @@ class TransactionRepository {
     await _userTransactionsRef.doc(id).delete();
   }
 
+  DocumentReference transactionRef(String id) {
+    return _userTransactionsRef.doc(id);
+  }
+
   Stream<List<TransactionModel>> getTransactionsStream() {
     return _userTransactionsRef
         .orderBy('createdAt', descending: true)

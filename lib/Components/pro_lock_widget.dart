@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 
 class ProLockWidget extends StatelessWidget {
@@ -15,6 +16,7 @@ class ProLockWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Get.isDarkMode;
     return Center(
       child: Padding(
         padding: EdgeInsets.all(24.w),
@@ -26,7 +28,7 @@ class ProLockWidget extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontSize: 24.sp,
                 fontWeight: FontWeight.bold,
               ),
@@ -35,7 +37,7 @@ class ProLockWidget extends StatelessWidget {
             Text(
               description,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 16.sp),
+              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 16.sp),
             ),
             SizedBox(height: 32.h),
             ElevatedButton(

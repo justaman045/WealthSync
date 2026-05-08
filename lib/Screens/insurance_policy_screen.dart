@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class InsurancePolicyScreen extends StatefulWidget {
   const InsurancePolicyScreen({super.key});
@@ -25,67 +26,58 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
   }
 
   bool _saving = false;
+  bool _syncedEmpty = false;
 
   Future<void> _add() async {
-    final nameCtrl = TextEditingController();
-    final typeCtrl = TextEditingController();
-    final premiumCtrl = TextEditingController();
-    final sumCtrl = TextEditingController();
-    final maturityCtrl = TextEditingController();
-    DateTime? maturityDate;
+    await _showSheet();
+  }
 
-    try { await showModalBottomSheet(
+  Future<void> _edit(String id, Map<String, dynamic> data) async {
+    await _showSheet(id: id, existingData: data);
+  }
+
+  Future<void> _showSheet({String? id, Map<String, dynamic>? existingData}) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _Sheet(
-        title: "Add Policy",
-        fields: [
-          _F("Policy name / insurer", nameCtrl, TextInputType.text),
-          _F("Type (Life / ULIP / Term / Endowment)", typeCtrl, TextInputType.text),
-          _F("Annual premium", premiumCtrl, TextInputType.number),
-          _F("Sum assured / corpus", sumCtrl, TextInputType.number),
-          _F("Maturity date (optional)", maturityCtrl, TextInputType.datetime,
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: ctx,
-                  initialDate: DateTime.now().add(const Duration(days: 365)),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2060),
-                );
-                if (picked != null) {
-                  maturityDate = picked;
-                  maturityCtrl.text = DateFormat('dd MMM yyyy').format(picked);
-                }
-              }),
+        title: id != null ? "Edit Policy" : "Add Policy",
+        fields: const [
+          _FieldDef("Policy name / insurer", TextInputType.text),
+          _FieldDef("Type (Life / ULIP / Term / Endowment)", TextInputType.text),
+          _FieldDef("Annual premium", TextInputType.number),
+          _FieldDef("Sum assured / corpus", TextInputType.number),
+          _FieldDef("Maturity date (optional)", TextInputType.datetime),
         ],
-        onSave: () async {
-          final name = nameCtrl.text.trim();
-          final sumAssured = double.tryParse(sumCtrl.text.trim()) ?? 0;
+        existingData: existingData,
+        onSave: (values, dateValues) async {
+          final name = values["Policy name / insurer"] ?? '';
+          final sumAssured = double.tryParse(values["Sum assured / corpus"] ?? '') ?? 0;
           if (name.isEmpty || sumAssured <= 0) return;
+          final maturityDate = dateValues["Maturity date (optional)"];
           setState(() => _saving = true);
           try {
-            await _col.add({
+            final docData = {
               'name': name,
-              'type': typeCtrl.text.trim(),
-              'annualPremium': double.tryParse(premiumCtrl.text.trim()) ?? 0,
+              'type': values["Type (Life / ULIP / Term / Endowment)"] ?? '',
+              'annualPremium': double.tryParse(values["Annual premium"] ?? '') ?? 0,
               'sumAssured': sumAssured,
-              'maturityDate': maturityDate != null ? Timestamp.fromDate(maturityDate!) : null,
-              'createdAt': Timestamp.now(),
-            });
+              'maturityDate': maturityDate != null ? Timestamp.fromDate(maturityDate) : null,
+            };
+            if (id != null) {
+              await _col.doc(id).update(docData);
+            } else {
+              docData['createdAt'] = Timestamp.now();
+              await _col.add(docData);
+            }
             await _syncTotal();
           } finally {
             if (mounted) setState(() => _saving = false);
           }
         },
       ),
-    ); } finally {
-      nameCtrl.dispose();
-      typeCtrl.dispose();
-      premiumCtrl.dispose();
-      sumCtrl.dispose();
-      maturityCtrl.dispose();
-    }
+    );
   }
 
   Future<void> _delete(String id) async {
@@ -149,6 +141,10 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
             }
             final docs = snap.data?.docs ?? [];
             if (docs.isEmpty) {
+              if (!_syncedEmpty) {
+                _syncedEmpty = true;
+                WealthService.updateAsset('insurance', 0);
+              }
               return _buildEmpty();
             }
             double totalCorpus = 0;
@@ -238,7 +234,13 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
     required String symbol,
     required bool isDark,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: () => _edit(id, {
+        'name': name, 'type': type, 'annualPremium': premium,
+        'sumAssured': sumAssured,
+        'maturityDate': maturity != null ? Timestamp.fromDate(maturity) : null,
+      }),
+      child: Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -297,6 +299,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -332,12 +335,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
   }
 }
 
-String _compact(double v) {
-  if (v >= 10000000) return "${(v / 10000000).toStringAsFixed(1)}Cr";
-  if (v >= 100000) return "${(v / 100000).toStringAsFixed(1)}L";
-  if (v >= 1000) return "${(v / 1000).toStringAsFixed(0)}K";
-  return v.toStringAsFixed(0);
-}
+String _compact(double v) => compact(v);
 
 Future<bool> _confirm(BuildContext context) async {
   final r = await showDialog<bool>(
@@ -356,33 +354,100 @@ Future<bool> _confirm(BuildContext context) async {
   return r ?? false;
 }
 
-class _F {
+class _FieldDef {
   final String label;
-  final TextEditingController ctrl;
   final TextInputType type;
-  final VoidCallback? onTap;
-  const _F(this.label, this.ctrl, this.type, {this.onTap});
+  const _FieldDef(this.label, this.type);
 }
 
 class _Sheet extends StatefulWidget {
   final String title;
-  final List<_F> fields;
-  final Future<void> Function() onSave;
-  const _Sheet({required this.title, required this.fields, required this.onSave});
+  final List<_FieldDef> fields;
+  final Map<String, dynamic>? existingData;
+  final Future<void> Function(Map<String, String> values, Map<String, DateTime?> dateValues) onSave;
+  const _Sheet({required this.title, required this.fields, this.existingData, required this.onSave});
   @override
   State<_Sheet> createState() => _SheetState();
 }
 
 class _SheetState extends State<_Sheet> {
   bool _saving = false;
+  late final List<TextEditingController> _ctrls;
+  final _dateValues = <String, DateTime?>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrls = widget.fields.map((f) {
+      final existing = widget.existingData;
+      if (existing != null) {
+        final key = _fieldKey(f.label);
+        if (key == 'maturityDate' && existing['maturityDate'] is Timestamp) {
+          final d = (existing['maturityDate'] as Timestamp).toDate();
+          _dateValues[f.label] = d;
+          return TextEditingController(text: DateFormat('dd MMM yyyy').format(d));
+        }
+        final raw = existing[key];
+        if (raw != null) return TextEditingController(text: raw.toString());
+      }
+      return TextEditingController();
+    }).toList();
+  }
+
+  String _fieldKey(String label) {
+    if (label == "Policy name / insurer") return 'name';
+    if (label == "Type (Life / ULIP / Term / Endowment)") return 'type';
+    if (label == "Annual premium") return 'annualPremium';
+    if (label == "Sum assured / corpus") return 'sumAssured';
+    if (label == "Maturity date (optional)") return 'maturityDate';
+    return label;
+  }
+
+  @override
+  void dispose() {
+    for (final c in _ctrls) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _pickDate(int i) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 365)),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2060),
+    );
+    if (picked != null) {
+      setState(() {
+        _ctrls[i].text = DateFormat('dd MMM yyyy').format(picked);
+        _dateValues[widget.fields[i].label] = picked;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final values = <String, String>{};
+    for (int i = 0; i < widget.fields.length; i++) {
+      values[widget.fields[i].label] = _ctrls[i].text.trim();
+    }
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(values, _dateValues);
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1E2C),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: EdgeInsets.all(24.w),
@@ -396,45 +461,39 @@ class _SheetState extends State<_Sheet> {
                     fontWeight: FontWeight.bold,
                     fontSize: 18.sp)),
             SizedBox(height: 16.h),
-            ...widget.fields.map((f) => Padding(
-                  padding: EdgeInsets.only(bottom: 12.h),
-                  child: TextField(
-                    controller: f.ctrl,
-                    keyboardType: f.type,
-                    readOnly: f.onTap != null,
-                    onTap: f.onTap,
-                    inputFormatters: f.type == TextInputType.number
-                        ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
-                        : null,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: f.label,
-                      labelStyle: const TextStyle(color: Colors.white54),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.08),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
+            ...List.generate(widget.fields.length, (i) {
+              final f = widget.fields[i];
+              final isDate = f.type == TextInputType.datetime;
+              return Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: TextField(
+                  controller: _ctrls[i],
+                  keyboardType: isDate ? TextInputType.text : f.type,
+                  readOnly: isDate,
+                  onTap: isDate ? () => _pickDate(i) : null,
+                  inputFormatters: f.type == TextInputType.number
+                      ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
+                      : null,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: f.label,
+                    labelStyle: const TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                )),
+                ),
+              );
+            }),
             SizedBox(height: 8.h),
             SizedBox(
               width: double.infinity,
               height: 50.h,
               child: ElevatedButton(
-                onPressed: _saving
-                    ? null
-                    : () async {
-                        setState(() => _saving = true);
-                        try {
-                          await widget.onSave();
-                          if (context.mounted) Navigator.pop(context);
-                        } finally {
-                          if (mounted) setState(() => _saving = false);
-                        }
-                      },
+                onPressed: _saving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(

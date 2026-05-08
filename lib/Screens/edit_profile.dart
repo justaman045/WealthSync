@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -78,8 +79,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           "Success",
           "Profile updated successfully",
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFF1A1A2E).withValues(alpha: 0.9),
-          colorText: Colors.white,
+          backgroundColor: (Get.isDarkMode ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.9),
+          colorText: Get.isDarkMode ? Colors.white : Colors.black,
           margin: EdgeInsets.all(20.w),
           borderRadius: 20.r,
           borderColor: Colors.white.withValues(alpha: 0.1),
@@ -91,8 +92,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           duration: const Duration(seconds: 3),
           forwardAnimationCurve: Curves.easeOutBack,
-          backgroundGradient: const LinearGradient(
-            colors: [Color(0xFF2E1A47), Color(0xFF1A1A2E)],
+          backgroundGradient: LinearGradient(
+            colors: Get.isDarkMode ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -115,7 +116,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "Error saving profile: $e",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
-        colorText: Colors.white,
+        colorText: Get.isDarkMode ? Colors.white : AppColors.lightTextPrimary,
         margin: EdgeInsets.all(20.w),
         borderRadius: 20.r,
         borderColor: Colors.redAccent.withValues(alpha: 0.3),
@@ -148,14 +149,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1A1A2E), // Midnight Void Top
-            const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
-          ],
+          colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -166,18 +165,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           titleSpacing: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
           title: Text(
             "Edit Profile",
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontSize: 18.sp,
               letterSpacing: 0.5,
             ),
           ),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, size: 19.sp, color: Colors.white),
+            icon: Icon(Icons.arrow_back_ios, size: 19.sp, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           centerTitle: true,
@@ -224,8 +223,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     : const AssetImage('assets/profile.png')
                                           as ImageProvider,
                                 child: isLoading
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
+                                    ? CircularProgressIndicator(
+                                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                       )
                                     : null,
                               ),
@@ -261,14 +260,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _buildGlassTextField(
                       label: "First Name",
                       controller: _firstNameController,
+                      isDark: isDark,
                     ),
                     _buildGlassTextField(
                       label: "Last Name",
                       controller: _lastNameController,
+                      isDark: isDark,
                     ),
                     _buildDatePickerField(
                       label: "Date of Birth",
                       selectedDate: _dob,
+                      isDark: isDark,
                       onTap: () async {
                         final picked = await showDatePicker(
                           context: context,
@@ -276,16 +278,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           firstDate: DateTime(1900),
                           lastDate: DateTime.now(),
                           builder: (context, child) {
+                            final isDark = Get.isDarkMode;
                             return Theme(
                               data: Theme.of(context).copyWith(
-                                colorScheme: const ColorScheme.dark(
-                                  primary: Color(0xFF00E5FF),
-                                  onPrimary: Colors.black,
-                                  surface: Color(0xFF1E1E2C),
-                                  onSurface: Colors.white,
-                                ),
+                                colorScheme: isDark
+                                    ? const ColorScheme.dark(
+                                        primary: AppColors.secondary,
+                                        onPrimary: Colors.black,
+                                        surface: AppColors.darkSurface,
+                                        onSurface: AppColors.darkTextPrimary,
+                                      )
+                                    : const ColorScheme.light(
+                                        primary: AppColors.primary,
+                                        onPrimary: Colors.white,
+                                        surface: AppColors.lightSurface,
+                                        onSurface: AppColors.lightTextPrimary,
+                                      ),
                                 dialogTheme: DialogThemeData(
-                                  backgroundColor: const Color(0xFF1E1E2C),
+                                  backgroundColor:
+                                      isDark ? AppColors.darkSurface : AppColors.lightSurface,
                                 ),
                               ),
                               child: child!,
@@ -320,14 +331,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       label: "Email",
                       value: user?.email ?? '',
                       enabled: false,
+                      isDark: isDark,
                     ),
                     _buildGlassTextField(
                       label: "Phone Number",
                       controller: _phoneController,
+                      isDark: isDark,
                     ),
                     _buildGlassTextField(
                       label: "Address",
                       controller: _addressController,
+                      isDark: isDark,
                     ),
 
                     SizedBox(height: 32.h),
@@ -396,7 +410,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Text(
                           "Change Password",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontWeight: FontWeight.w600,
                             fontSize: 15.sp,
                           ),
@@ -417,6 +431,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     TextEditingController? controller,
     String? value,
     bool enabled = true,
+    bool isDark = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +439,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white70,
+            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -432,9 +447,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         SizedBox(height: 8.h),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2)),
           ),
           child: TextFormField(
             controller: controller,
@@ -442,7 +457,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             initialValue: controller == null ? value ?? '' : null,
             style: TextStyle(
               fontSize: 16.sp,
-              color: enabled ? Colors.white : Colors.white38,
+              color: enabled
+                  ? (isDark ? Colors.white : AppColors.lightTextPrimary)
+                  : (isDark ? Colors.white38 : AppColors.lightTextSecondary),
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
@@ -467,6 +484,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String label,
     required DateTime? selectedDate,
     required VoidCallback onTap,
+    bool isDark = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,7 +492,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white70,
+            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -486,9 +504,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -499,13 +517,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       : "Select Date",
                   style: TextStyle(
                     fontSize: 16.sp,
-                    color: selectedDate != null ? Colors.white : Colors.white38,
+                    color: selectedDate != null
+                        ? (isDark ? Colors.white : AppColors.lightTextPrimary)
+                        : (isDark ? Colors.white38 : AppColors.lightTextSecondary),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Icon(
                   Icons.calendar_today_rounded,
-                  color: Colors.white70,
+                  color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                   size: 20.sp,
                 ),
               ],

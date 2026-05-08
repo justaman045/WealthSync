@@ -414,18 +414,22 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
   Future<void> _confirmDelete(BuildContext context, TransactionModel tx) async {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        title: Text(l10n.delete),
-        content: const Text(
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        title: Text(l10n.delete,
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
+        content: Text(
           "Are you sure you want to delete this transaction?",
+          style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
+            child: Text("Cancel",
+              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),

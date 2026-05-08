@@ -62,8 +62,8 @@ class WealthAgeRecommendations {
     WealthCardRecommendation(
       key: 'bonds', name: 'Bonds (Govt/Corp)',
       icon: Icons.receipt_long, color: Colors.blueGrey,
-      minAge: 25, maxAge: 65,
-      reason: 'Stable income with moderate risk. Best during active earning years.',
+      minAge: 18, maxAge: 70,
+      reason: 'Safe, regular income. Good for capital preservation at any age.',
     ),
     WealthCardRecommendation(
       key: 'chitFund', name: 'Chit Fund',
@@ -76,8 +76,8 @@ class WealthAgeRecommendations {
     WealthCardRecommendation(
       key: 'stocks', name: 'Stocks',
       icon: Icons.show_chart, color: Colors.purple,
-      minAge: 21, maxAge: 60,
-      reason: 'Higher risk, higher reward. Young investors have time to recover from downturns.',
+      minAge: 18, maxAge: 55,
+      reason: 'Higher risk, higher reward. Start early and reduce exposure as retirement nears.',
     ),
     WealthCardRecommendation(
       key: 'sip', name: 'Mutual Funds (SIP)',
@@ -88,20 +88,20 @@ class WealthAgeRecommendations {
     WealthCardRecommendation(
       key: 'etf', name: 'ETFs',
       icon: Icons.stacked_line_chart, color: Colors.cyan,
-      minAge: 21, maxAge: 60,
-      reason: 'Low-cost index tracking. Great diversification for active investors.',
+      minAge: 18, maxAge: 55,
+      reason: 'Low-cost index tracking. Great diversification for long-term investors.',
     ),
     WealthCardRecommendation(
       key: 'foreignStocks', name: 'Foreign Stocks',
       icon: Icons.language, color: Colors.deepPurple,
-      minAge: 25, maxAge: 55,
-      reason: 'Geographic diversification. Best when you already have a strong domestic portfolio.',
+      minAge: 25, maxAge: 50,
+      reason: 'Geographic diversification. Best during peak earning years with a strong domestic base.',
     ),
     WealthCardRecommendation(
       key: 'startupEquity', name: 'Angel / Startup',
       icon: Icons.rocket_launch, color: Colors.orange,
-      minAge: 28, maxAge: 55,
-      reason: 'Very high risk. Only for experienced investors with surplus capital.',
+      minAge: 30, maxAge: 50,
+      reason: 'Very high risk. Only for experienced investors with significant surplus capital.',
     ),
 
     // ── Retirement ─────────────────────────────────────────────────
@@ -128,13 +128,13 @@ class WealthAgeRecommendations {
     WealthCardRecommendation(
       key: 'gold', name: 'Gold / Silver',
       icon: Icons.grid_goldenratio, color: Colors.amber,
-      minAge: 18, maxAge: 100,
+      minAge: 0, maxAge: 100,
       reason: 'Hedge against inflation and uncertainty. Cultural and financial safety net.',
     ),
     WealthCardRecommendation(
       key: 'sgb', name: 'Sovereign Gold Bonds',
       icon: Icons.monetization_on, color: Colors.amber.shade300,
-      minAge: 21, maxAge: 65,
+      minAge: 18, maxAge: 65,
       reason: 'Gold exposure with 2.5% interest. Better than physical gold for investors.',
     ),
     WealthCardRecommendation(
@@ -158,7 +158,7 @@ class WealthAgeRecommendations {
     WealthCardRecommendation(
       key: 'p2p', name: 'P2P Lending',
       icon: Icons.people_alt, color: Colors.lime,
-      minAge: 25, maxAge: 55,
+      minAge: 25, maxAge: 50,
       reason: 'High-yield, high-risk lending. Diversify carefully and never over-allocate.',
     ),
 
@@ -178,8 +178,8 @@ class WealthAgeRecommendations {
     WealthCardRecommendation(
       key: 'vehicle', name: 'Vehicle(s)',
       icon: Icons.directions_car, color: Colors.blueGrey,
-      minAge: 0, maxAge: 100,
-      reason: 'Depreciating asset but essential. Track for accurate net worth.',
+      minAge: 18, maxAge: 100,
+      reason: 'Depreciating asset but valuable. Track for accurate net worth.',
     ),
 
     // ── Protection & Business ──────────────────────────────────────

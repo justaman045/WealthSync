@@ -788,6 +788,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _showUpiAppSelector(BuildContext context) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final amount = double.tryParse(_amount.text.replaceAll(',', '')) ?? 0;
     if (amount <= 0) {
       ErrorHandler.showError("Enter amount before paying via UPI.");
@@ -802,7 +803,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E1E2C),
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
@@ -953,11 +954,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     bool pending = false,
   }) {
     if (!mounted) return;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2C),
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         content: Column(
           mainAxisSize: MainAxisSize.min,

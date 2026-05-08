@@ -8,6 +8,7 @@ import 'package:money_control/Screens/Admin/admin_user_list.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Screens/Admin/payment_settings_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class AdminMenu extends StatefulWidget {
   const AdminMenu({super.key});
@@ -74,6 +75,7 @@ class _AdminMenuState extends State<AdminMenu> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!Get.find<SubscriptionController>().isAdmin.value) {
       return Scaffold(
         body: Center(
@@ -89,13 +91,11 @@ class _AdminMenuState extends State<AdminMenu> {
       );
     }
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF0F2027),
-            Color(0xFF203A43),
-            Color(0xFF2C5364),
-          ],
+          colors: isDark
+              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)]
+              : AppColors.lightGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

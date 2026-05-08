@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Screens/auto_tag_rules_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class SmsImportScreen extends StatefulWidget {
   const SmsImportScreen({super.key});
@@ -45,26 +46,33 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
         if (!mounted) return;
         await showDialog<void>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('SMS Permission Required'),
-            content: const Text(
-              'SMS permission was previously denied. '
-              'Please enable "SMS" permission in app settings to import transactions.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+          builder: (ctx) {
+            final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
+            return AlertDialog(
+              backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
+              title: Text('SMS Permission Required',
+                style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
+              content: Text(
+                'SMS permission was previously denied. '
+                'Please enable "SMS" permission in app settings to import transactions.',
+                style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary),
               ),
-              FilledButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  await openAppSettings();
-                },
-                child: const Text('Open Settings'),
-              ),
-            ],
-          ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Cancel',
+                    style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await openAppSettings();
+                  },
+                  child: const Text('Open Settings'),
+                ),
+              ],
+            );
+          },
         );
         if (mounted) {
           setState(() {
@@ -156,20 +164,21 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
   @override
   Widget build(BuildContext context) {
     final SubscriptionController subscriptionController = Get.find();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E), // Premium Dark
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           "Import from SMS",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: Colors.white),
+        leading: BackButton(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         actions: [
           IconButton(
-            icon: const Icon(Icons.rule, color: Colors.white),
+            icon: Icon(Icons.rule, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             tooltip: "Auto-tag rules",
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AutoTagRulesScreen())),
           ),
@@ -214,11 +223,11 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.sms_failed, size: 60, color: Colors.white24),
+                    Icon(Icons.sms_failed, size: 60, color: isDark ? Colors.white24 : AppColors.lightTextSecondary.withValues(alpha: 0.4)),
                     SizedBox(height: 16.h),
                     Text(
                       "No bank transactions found.",
-                      style: TextStyle(color: Colors.white54),
+                      style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
                     ),
                     SizedBox(height: 16.h),
                     TextButton(onPressed: _scanSms, child: Text("Retry")),
@@ -231,7 +240,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                     padding: EdgeInsets.all(16.w),
                     child: Text(
                       "Found ${_transactions.length} transactions",
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
                     ),
                   ),
                   Expanded(
@@ -265,7 +274,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                   child: Text(
                                     tx.merchant,
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                       fontWeight: FontWeight.bold,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -290,7 +299,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                     'dd MMM yyyy, hh:mm a',
                                   ).format(tx.date),
                                   style: TextStyle(
-                                    color: Colors.white54,
+                                    color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                                     fontSize: 12.sp,
                                   ),
                                 ),
@@ -300,7 +309,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: Colors.white30,
+                                    color: isDark ? Colors.white30 : AppColors.lightTextSecondary.withValues(alpha: 0.6),
                                     fontSize: 10.sp,
                                   ),
                                 ),
@@ -323,7 +332,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                   Container(
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      color: Color(0xFF1A1A2E),
+                      color: isDark ? AppColors.darkBackground : AppColors.lightBackground,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black26,

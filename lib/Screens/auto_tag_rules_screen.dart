@@ -71,11 +71,12 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
   }
 
   void _addKeyword(String category) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final ctrl = TextEditingController();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2C),
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(
           "Add keyword to $category",
@@ -136,11 +137,12 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
   }
 
   void _addCategory() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final ctrl = TextEditingController();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E2C),
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text("New category", style: TextStyle(color: Colors.white, fontSize: 16.sp)),
         content: TextField(

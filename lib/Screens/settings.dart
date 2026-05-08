@@ -25,6 +25,7 @@ import 'package:money_control/Screens/lent_money_screen.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Services/referral_service.dart';
+import 'package:money_control/Services/sms_service.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -336,6 +337,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       width: double.infinity,
       child: TextButton(
         onPressed: () async {
+          SmsService.resetCache();
+          Get.reset();
           await FirebaseAuth.instance.signOut();
           Get.offAll(() => const LoginScreen());
         },

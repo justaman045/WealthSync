@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:money_control/Controllers/analytics_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/l10n/app_localizations.dart';
@@ -43,6 +44,9 @@ class ForecastScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
     if (!Get.isRegistered<AnalyticsController>()) Get.put(AnalyticsController());
     final controller = Get.find<AnalyticsController>();
 

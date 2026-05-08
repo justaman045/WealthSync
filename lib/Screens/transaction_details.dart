@@ -17,6 +17,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 // ----------------------------------------------------------------------
 
@@ -43,6 +44,7 @@ class TransactionResultScreen extends StatefulWidget {
 
 class _TransactionResultScreenState extends State<TransactionResultScreen> {
   final ScreenshotController _ssController = ScreenshotController();
+  bool isDark = false;
 
   // ----------------------------------------------------------------------
   // DELETE TRANSACTION (OFFLINE SAFE)
@@ -50,22 +52,24 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
   Future<void> _deleteTransaction() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Transaction"),
-        content: const Text(
-          "Are you sure you want to delete this transaction?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete"),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
+          title: Text("Delete Transaction", style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
+          content: Text("Are you sure you want to delete this transaction?", style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text("Cancel", style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text("Delete", style: TextStyle(color: AppColors.error)),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm != true) return;
@@ -175,14 +179,11 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
   // ----------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    // Midnight Void Gradient Background
+    isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            const Color(0xFF1A1A2E), // Midnight Void Top
-            const Color(0xFF16213E).withValues(alpha: 0.95), // Deep Blue Bottom
-          ],
+          colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -190,17 +191,17 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text(
+          title: Text(
             "Transaction Details",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
           actions: [
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
+              icon: Icon(Icons.edit, color: isDark ? Colors.white : AppColors.lightTextPrimary),
               onPressed: () async {
                 await Get.to(
                   () => TransactionEditScreen(transaction: widget.transaction),
@@ -209,7 +210,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.white),
+              icon: Icon(Icons.delete_outline, color: isDark ? Colors.white : AppColors.lightTextPrimary),
               onPressed: _deleteTransaction,
             ),
           ],
@@ -394,7 +395,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       style: TextStyle(
         fontSize: 20.sp,
         fontWeight: FontWeight.bold,
-        color: Colors.white,
+        color: isDark ? Colors.white : AppColors.lightTextPrimary,
         letterSpacing: 0.5,
       ),
     );
@@ -418,7 +419,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       textAlign: TextAlign.center,
       style: TextStyle(
         fontSize: 14.sp,
-        color: Colors.white.withValues(alpha: 0.6),
+        color: isDark ? Colors.white60 : AppColors.lightTextSecondary,
       ),
     );
   }
@@ -431,12 +432,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     required VoidCallback onTap,
   }) {
     return Container(
-      height: 48.h, // Slightly taller
+      height: 48.h,
       width: 140.w,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08), // Dark Glass
+        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
@@ -457,12 +458,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                 icon,
                 color: const Color(0xFF8E99F3),
                 size: 20.sp,
-              ), // Soft Purple
+              ),
               SizedBox(width: 8.w),
               Text(
                 label,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontWeight: FontWeight.w600,
                   fontSize: 14.sp,
                 ),
@@ -478,9 +479,9 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05), // Dark Glass
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.lightBorder.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
@@ -497,11 +498,11 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: isDark ? Colors.white : AppColors.lightTextPrimary,
             ),
           ),
           SizedBox(height: 16.h),
-          Divider(color: Colors.white.withValues(alpha: 0.15)),
+          Divider(color: isDark ? Colors.white.withValues(alpha: 0.15) : AppColors.lightDivider),
           SizedBox(height: 16.h),
           _detailRow("Transaction ID", tx.id),
           _detailRow("Date", tx.date.toLocal().toString().split('.')[0]),
@@ -556,7 +557,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             child: Text(
               name,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: isDark ? Colors.white60 : AppColors.lightTextSecondary,
                 fontSize: 13.5.sp,
               ),
             ),
@@ -569,9 +570,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               style: TextStyle(
                 fontSize: bold ? 15.sp : 13.5.sp,
                 fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-                color:
-                    valueColor ??
-                    (bold ? Colors.white : Colors.white.withValues(alpha: 0.9)),
+                color: valueColor ??
+                    (bold
+                        ? (isDark ? Colors.white : AppColors.lightTextPrimary)
+                        : (isDark
+                            ? Colors.white.withValues(alpha: 0.9)
+                            : AppColors.lightTextPrimary.withValues(alpha: 0.9))),
                 letterSpacing: 0.3,
               ),
             ),

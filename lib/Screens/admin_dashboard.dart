@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -19,6 +20,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!SubscriptionController.to.isAdmin.value) {
       return Scaffold(
         body: Center(
@@ -34,13 +36,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       );
     }
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF0F2027), // Deep Space
-            Color(0xFF203A43), // Tealish
-            Color(0xFF2C5364), // Slate
-          ],
+          colors: isDark
+              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)]
+              : AppColors.lightGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -242,13 +242,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void _showDebugDialog(BuildContext context) {
     final TextEditingController emailController = TextEditingController();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        title: Text(
           "Debug: Force Expiry",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,

@@ -7,6 +7,7 @@ import 'package:money_control/Utils/icon_helper.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
+import 'package:money_control/Components/colors.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -35,7 +36,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               Navigator.pop(context); // Close dialog
               showModalBottomSheet(
                 context: context,
-                backgroundColor: const Color(0xFF1A1A2E),
+                backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBackground : AppColors.lightBackground,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(24.r),
@@ -60,30 +61,142 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   }
 
   void _deleteCategory(CategoryModel category) {
-    final navigator = Navigator.of(context);
-    Get.defaultDialog(
-      title: "Delete Category",
-      middleText: "Are you sure you want to delete '${category.name}'?",
-      textConfirm: "Delete",
-      textCancel: "Cancel",
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.red,
-      onConfirm: () async {
-        await _categoryService.deleteCategory(category.id);
-        navigator.pop();
-      },
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
+    final txCtrl = Get.find<TransactionController>();
+    final usageCount = txCtrl.getCategoryUsageCount(category.name);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (usageCount == 0) {
+      final navigator = Navigator.of(context);
+      Get.defaultDialog(
+        title: "Delete Category",
+        middleText: "Are you sure you want to delete '${category.name}'?",
+        textConfirm: "Delete",
+        textCancel: "Cancel",
+        confirmTextColor: Colors.white,
+        buttonColor: Colors.red,
+        onConfirm: () async {
+          await _categoryService.deleteCategory(category.id);
+          navigator.pop();
+        },
+      );
+      return;
+    }
+
+    final otherCategories = txCtrl.categories
+        .where((c) => c.id != category.id)
+        .map((c) => c.name)
+        .toList();
+    final selected = otherCategories.firstOrNull ?? ''.obs;
+    final selectedName = selected is RxString ? selected : RxString('');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final currentSelected = selectedName.value;
+          return AlertDialog(
+            backgroundColor: Theme.of(ctx).brightness == Brightness.dark ? AppColors.darkSurface : AppColors.lightSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20.r),
+            ),
+            title: Text(
+              "Category in Use",
+              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 18.sp),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "'${category.name}' is used by $usageCount transaction${usageCount == 1 ? '' : 's'}.",
+                  style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
+                ),
+                SizedBox(height: 16.h),
+                Text(
+                  "Migrate to:",
+                  style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 14.sp),
+                ),
+                SizedBox(height: 8.h),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: isDark ? Colors.white24 : AppColors.lightBorder),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: currentSelected.isEmpty ? null : currentSelected,
+                      hint: Text("Select category",
+                          style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary)),
+                      dropdownColor: Theme.of(ctx).brightness == Brightness.dark ? const Color(0xFF2A2A3E) : AppColors.lightSurface,
+                      style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                      isExpanded: true,
+                      items: otherCategories
+                          .map((name) => DropdownMenuItem(
+                                value: name,
+                                child: Text(name),
+                              ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => selectedName.value = val);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await _categoryService.deleteCategory(category.id);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+                child: const Text("Delete Anyway",
+                    style: TextStyle(color: Colors.red)),
+              ),
+              ElevatedButton(
+                onPressed: currentSelected.isEmpty
+                    ? null
+                    : () async {
+                        await txCtrl.migrateTransactions(
+                            category.name, currentSelected);
+                        await _categoryService.deleteCategory(category.id);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6C63FF),
+                ),
+                child: const Text("Migrate & Delete",
+                    style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           "Manage Categories",
           style: TextStyle(
-            color: Colors.white,
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18.sp,
           ),
@@ -92,17 +205,14 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.lightTextPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E),
-              const Color(0xFF16213E).withValues(alpha: 0.95),
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -115,7 +225,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 return Center(
                   child: Text(
                     "Error loading categories",
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                 );
               }
@@ -129,7 +239,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 return Center(
                   child: Text(
                     "No categories found",
-                    style: TextStyle(color: Colors.white54),
+                    style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
                   ),
                 );
               }
@@ -161,6 +271,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   }
 
   Widget _buildCategoryTile(CategoryModel cat) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = cat.color != null
         ? Color(cat.color!)
         : const Color(0xFF6C63FF);
@@ -191,7 +302,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               cat.name,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontWeight: FontWeight.w600,
                 fontSize: 12.sp,
               ),
@@ -293,8 +404,10 @@ class _CategoryDialogState extends State<_CategoryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
-      backgroundColor: const Color(0xFF1E1E2C),
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       child: SingleChildScrollView(
         padding: EdgeInsets.all(20.w),
@@ -305,7 +418,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
             Text(
               widget.category == null ? "New Category" : "Edit Category",
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontSize: 20.sp,
                 fontWeight: FontWeight.bold,
               ),
@@ -314,12 +427,12 @@ class _CategoryDialogState extends State<_CategoryDialog> {
             SizedBox(height: 20.h),
             TextField(
               controller: _nameController,
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
               decoration: InputDecoration(
                 labelText: "Category Name",
-                labelStyle: TextStyle(color: Colors.white54),
+                labelStyle: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white24),
+                  borderSide: BorderSide(color: isDark ? Colors.white24 : AppColors.lightBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Color(_selectedColor)),
@@ -327,7 +440,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               ),
             ),
             SizedBox(height: 20.h),
-            Text("Color", style: TextStyle(color: Colors.white70)),
+            Text("Color", style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
             SizedBox(height: 10.h),
             Wrap(
               spacing: 8.w,
@@ -342,7 +455,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                       color: Color(c),
                       shape: BoxShape.circle,
                       border: _selectedColor == c
-                          ? Border.all(color: Colors.white, width: 3)
+                          ? Border.all(color: isDark ? Colors.white : AppColors.lightTextPrimary, width: 3)
                           : null,
                     ),
                   ),
@@ -350,7 +463,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               }).toList(),
             ),
             SizedBox(height: 20.h),
-            Text("Icon", style: TextStyle(color: Colors.white70)),
+            Text("Icon", style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
             SizedBox(height: 10.h),
             SizedBox(
               height: 200.h,
@@ -370,7 +483,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                       decoration: BoxDecoration(
                         color: _selectedIconCode == icon.codePoint
                             ? Color(_selectedColor).withValues(alpha: 0.3)
-                            : Colors.white.withValues(alpha: 0.05),
+                            : isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(8.r),
                         border: _selectedIconCode == icon.codePoint
                             ? Border.all(color: Color(_selectedColor))
@@ -380,7 +493,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                         icon,
                         color: _selectedIconCode == icon.codePoint
                             ? Color(_selectedColor)
-                            : Colors.white54,
+                            : isDark ? Colors.white54 : AppColors.lightTextSecondary,
                         size: 24.sp,
                       ),
                     ),
@@ -410,7 +523,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               child: Text(
                 "Save",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

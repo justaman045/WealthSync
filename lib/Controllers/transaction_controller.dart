@@ -32,6 +32,8 @@ class TransactionController extends GetxController {
 
   late final Worker _categoriesWorker;
   late final Worker _transactionsWorker;
+  StreamSubscription? _txSub;
+  StreamSubscription? _catSub;
 
   @override
   void onInit() {
@@ -56,6 +58,8 @@ class TransactionController extends GetxController {
   void onClose() {
     _categoriesWorker.dispose();
     _transactionsWorker.dispose();
+    _txSub?.cancel();
+    _catSub?.cancel();
     super.onClose();
   }
 
@@ -92,7 +96,10 @@ class TransactionController extends GetxController {
   }
 
   void bindTransactions() {
-    transactions.bindStream(_repository.getTransactionsStream());
+    _txSub?.cancel();
+    _txSub = _repository.getTransactionsStream().listen(
+      (txList) => transactions.value = txList,
+    );
   }
 
   void _updateHomeWidget() {
@@ -103,7 +110,10 @@ class TransactionController extends GetxController {
   }
 
   void bindCategories() {
-    categories.bindStream(_repository.getCategoriesStream());
+    _catSub?.cancel();
+    _catSub = _repository.getCategoriesStream().listen(
+      (catList) => categories.value = catList,
+    );
   }
 
   void fetchSortedCategories() {
@@ -169,6 +179,21 @@ class TransactionController extends GetxController {
       _handleFirestoreError(e, "Failed to add category");
       return false;
     }
+  }
+
+  int getCategoryUsageCount(String categoryName) {
+    return transactions.where((t) => t.category == categoryName).length;
+  }
+
+  Future<void> migrateTransactions(String oldCategory, String newCategory) async {
+    final batch = FirebaseFirestore.instance.batch();
+    for (var tx in transactions) {
+      if (tx.category == oldCategory) {
+        final ref = _repository.transactionRef(tx.id);
+        batch.update(ref, {'category': newCategory});
+      }
+    }
+    await batch.commit();
   }
 
   Future<bool> deleteCategory(CategoryModel category) async {

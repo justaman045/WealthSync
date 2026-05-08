@@ -21,9 +21,16 @@ service cloud.firestore {
           && d.date is timestamp;
     }
 
+    function isReferralAllowed() {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      let isReferralFields = affected.hasOnly(['referralCount', 'subscriptionStatus', 'trialEndDate']);
+      let targetHasCode = resource.data.keys().hasAny(['referralCode']);
+      return request.auth != null && targetHasCode && isReferralFields;
+    }
+
     match /users/{userEmail} {
       allow read: if isOwner(userEmail) || isAdmin();
-      allow write: if isOwner(userEmail);
+      allow write: if isOwner(userEmail) || isReferralAllowed();
 
       match /transactions/{txId} {
         allow read: if isOwner(userEmail) || isAdmin();
@@ -69,6 +76,35 @@ service cloud.firestore {
       match /challenges/{challengeId} {
         allow read, write: if isOwner(userEmail);
       }
+
+      // Per-asset subcollections for AssetDetailScreen
+      match /{collection}/{docId} {
+        allow read, write: if isOwner(userEmail) && collection in [
+          // Liquid & Fixed Income
+          'fd_accounts', 'ppf_accounts', 'post_office_schemes',
+          'bonds', 'chit_funds',
+          // Equity & Growth
+          'stock_holdings', 'sip_holdings', 'etf_holdings',
+          'foreign_stocks', 'startup_investments',
+          // Retirement
+          'pf_accounts', 'vpf_accounts', 'nps_accounts',
+          // Alternative Assets
+          'gold_holdings', 'sgb_holdings', 'jewelry_items',
+          'crypto_holdings', 'reit_holdings', 'p2p_loans',
+          // Physical Assets
+          'agri_land', 'properties', 'vehicles',
+          // Protection & Business
+          'insurance_policies', 'business_assets',
+          // Liabilities
+          'bnpl_entries', 'credit_cards',
+        ];
+      }
+    }
+
+    // App Config — allow all authenticated users to read SMS rules, payment settings, etc.
+    match /app_config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     // Deny everything else by default

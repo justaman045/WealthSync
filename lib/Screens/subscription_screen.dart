@@ -8,6 +8,7 @@ import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:money_control/main.dart' show rootScaffoldMessengerKey;
+import 'package:money_control/Components/colors.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -32,14 +33,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     // Premium Gradient Background
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(0xFF1A1A2E), // Midnight Void
-            Color(0xFF16213E), // Deep Blue
-            Color(0xFF0F3460), // Royal Blue
+            ...(isDark ? AppColors.darkGradient : AppColors.lightGradient),
+            isDark ? const Color(0xFF0F3460) : const Color(0xFFCBD5E1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1009,10 +1011,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _showUpiAppSelector(String amount, String upiId, StateSetter setLocal) {
-    final apps = [
-      (name: 'GPay',    pkg: 'com.google.android.apps.nbu.paisa.user'),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const apps = [
+      (name: 'GPay',   pkg: 'com.google.android.apps.nbu.paisa.user'),
       (name: 'PhonePe', pkg: 'com.phonepe.app'),
-      (name: 'Paytm',   pkg: 'net.one97.paytm'),
+      (name: 'Paytm',  pkg: 'net.one97.paytm'),
       (name: 'BHIM',    pkg: 'in.org.npci.upiapp'),
       (name: 'CRED',    pkg: 'com.dreamplug.androidapp'),
       (name: 'Any UPI', pkg: ''),
@@ -1020,18 +1023,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       builder: (_) => Padding(
         padding: EdgeInsets.all(24.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Choose UPI App', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+            Text('Choose UPI App', style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
             SizedBox(height: 20.h),
             ...apps.map((app) => ListTile(
-              title: Text(app.name, style: const TextStyle(color: Colors.white)),
-              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14),
+              title: Text(app.name, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
+              trailing: Icon(Icons.arrow_forward_ios, color: isDark ? Colors.white24 : AppColors.lightBorder, size: 14),
               onTap: () {
                 Navigator.pop(context);
                 _initiateUpiPayment(app.pkg, amount, upiId, setLocal);

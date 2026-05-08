@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Components/tx_tile.dart';
 import 'package:money_control/Screens/transaction_details.dart';
@@ -61,6 +62,7 @@ class _CategoryTransactionsScreenState
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -70,7 +72,7 @@ class _CategoryTransactionsScreenState
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
-              color: const Color(0xFF1A1A2E).withValues(alpha: 0.8),
+              color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
             ),
           ),
         ),
@@ -93,12 +95,7 @@ class _CategoryTransactionsScreenState
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void Top
-              const Color(
-                0xFF16213E,
-              ).withValues(alpha: 0.95), // Deep Blue Bottom
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

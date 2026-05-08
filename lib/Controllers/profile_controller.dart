@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,11 +24,13 @@ class ProfileController extends GetxController {
 
   late final Worker _workerUpdateUser;
   late final Worker _workerBindProfile;
+  StreamSubscription? _userSub;
+  StreamSubscription? _profileSub;
 
   @override
   void onInit() {
     super.onInit();
-    currentUser.bindStream(_auth.userChanges());
+    _userSub = _auth.userChanges().listen((user) => currentUser.value = user);
     _workerUpdateUser = ever(currentUser, _updateUser);
 
     // Bind user profile stream
@@ -49,19 +52,25 @@ class ProfileController extends GetxController {
   void onClose() {
     _workerUpdateUser.dispose();
     _workerBindProfile.dispose();
+    _userSub?.cancel();
+    _profileSub?.cancel();
     super.onClose();
   }
 
   void _bindUserProfile(String? email) {
     if (email == null) return;
-    userProfile.bindStream(
-      _firestore.collection('users').doc(email).snapshots().map((snapshot) {
-        if (snapshot.exists) {
-          return UserModel.fromMap(snapshot.id, snapshot.data());
-        }
-        return null;
-      }),
-    );
+    _profileSub?.cancel();
+    _profileSub = _firestore
+        .collection('users')
+        .doc(email)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        userProfile.value = UserModel.fromMap(snapshot.id, snapshot.data());
+      } else {
+        userProfile.value = null;
+      }
+    });
   }
 
   void _updateUser(User? user) {

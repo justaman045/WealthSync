@@ -25,64 +25,57 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
   }
 
   bool _saving = false;
+  bool _syncedEmpty = false;
 
   Future<void> _add() async {
-    final nameCtrl = TextEditingController();
-    final limitCtrl = TextEditingController();
-    final outstandingCtrl = TextEditingController();
-    final dueDateCtrl = TextEditingController();
-    DateTime? dueDate;
+    await _showSheet();
+  }
 
-    try { await showModalBottomSheet(
+  Future<void> _edit(String id, Map<String, dynamic> data) async {
+    await _showSheet(id: id, existingData: data);
+  }
+
+  Future<void> _showSheet({String? id, Map<String, dynamic>? existingData}) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _AddSheet(
-        title: "Add Credit Card",
-        fields: [
-          _FieldDef("Card / Bank name", nameCtrl, TextInputType.text),
-          _FieldDef("Credit limit", limitCtrl, TextInputType.number),
-          _FieldDef("Outstanding balance", outstandingCtrl, TextInputType.number),
-          _FieldDef("Payment due date (optional)", dueDateCtrl, TextInputType.datetime,
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: ctx,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 60)),
-                );
-                if (picked != null) {
-                  dueDate = picked;
-                  dueDateCtrl.text = DateFormat('dd MMM yyyy').format(picked);
-                }
-              }),
+        title: id != null ? "Edit Credit Card" : "Add Credit Card",
+        fields: const [
+          _FieldDef("Card / Bank name", TextInputType.text),
+          _FieldDef("Credit limit", TextInputType.number),
+          _FieldDef("Outstanding balance", TextInputType.number),
+          _FieldDef("Payment due date (optional)", TextInputType.datetime),
         ],
-        onSave: () async {
-          final name = nameCtrl.text.trim();
-          final limit = double.tryParse(limitCtrl.text.trim()) ?? 0;
-          final outstanding = double.tryParse(outstandingCtrl.text.trim()) ?? 0;
+        existingData: existingData,
+        onSave: (values, dateValues) async {
+          final name = values["Card / Bank name"] ?? '';
+          final outstanding = double.tryParse(values["Outstanding balance"] ?? '') ?? 0;
           if (name.isEmpty || outstanding <= 0) return;
+          final limit = double.tryParse(values["Credit limit"] ?? '') ?? 0;
+          final dueDate = dateValues["Payment due date (optional)"];
           setState(() => _saving = true);
           try {
-            await _col.add({
+            final docData = {
               'name': name,
               'limit': limit,
               'outstanding': outstanding,
-              'dueDate': dueDate != null ? Timestamp.fromDate(dueDate!) : null,
-              'createdAt': Timestamp.now(),
-            });
+              'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null,
+            };
+            if (id != null) {
+              await _col.doc(id).update(docData);
+            } else {
+              docData['createdAt'] = Timestamp.now();
+              await _col.add(docData);
+            }
             await _syncTotal();
           } finally {
             if (mounted) setState(() => _saving = false);
           }
         },
       ),
-    ); } finally {
-      nameCtrl.dispose();
-      limitCtrl.dispose();
-      outstandingCtrl.dispose();
-      dueDateCtrl.dispose();
-    }
+    );
   }
 
   Future<void> _delete(String id, double outstanding) async {
@@ -146,6 +139,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
             }
             final docs = snap.data?.docs ?? [];
             if (docs.isEmpty) {
+              if (!_syncedEmpty) {
+                _syncedEmpty = true;
+                WealthService.updateAsset('creditCard', 0);
+              }
               return _buildEmpty(isDark);
             }
             double totalOutstanding = 0;
@@ -225,7 +222,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
   }) {
     final usage = limit > 0 ? (outstanding / limit).clamp(0.0, 1.0) : 0.0;
     final formatter = DateFormat('dd MMM');
-    return Container(
+    return GestureDetector(
+      onTap: () => _edit(id, {'name': name, 'limit': limit, 'outstanding': outstanding, 'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null}),
+      child: Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -329,6 +328,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
           ],
         ],
       ),
+      ),
     );
   }
 
@@ -375,20 +375,20 @@ Future<bool> _confirmDelete(BuildContext context) async {
 
 class _FieldDef {
   final String label;
-  final TextEditingController ctrl;
   final TextInputType keyboardType;
-  final VoidCallback? onTap;
-  const _FieldDef(this.label, this.ctrl, this.keyboardType, {this.onTap});
+  const _FieldDef(this.label, this.keyboardType);
 }
 
 class _AddSheet extends StatefulWidget {
   final String title;
   final List<_FieldDef> fields;
-  final Future<void> Function() onSave;
+  final Map<String, dynamic>? existingData;
+  final Future<void> Function(Map<String, String> values, Map<String, DateTime?> dateValues) onSave;
 
   const _AddSheet({
     required this.title,
     required this.fields,
+    this.existingData,
     required this.onSave,
   });
 
@@ -398,14 +398,81 @@ class _AddSheet extends StatefulWidget {
 
 class _AddSheetState extends State<_AddSheet> {
   bool _saving = false;
+  late final List<TextEditingController> _ctrls;
+  final _dateValues = <String, DateTime?>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrls = widget.fields.map((f) {
+      final existing = widget.existingData;
+      if (existing != null) {
+        final key = _fieldKey(f.label);
+        if (key == 'dueDate' && existing['dueDate'] is Timestamp) {
+          final d = (existing['dueDate'] as Timestamp).toDate();
+          _dateValues[f.label] = d;
+          return TextEditingController(text: DateFormat('dd MMM yyyy').format(d));
+        }
+        final raw = existing[key];
+        if (raw != null) return TextEditingController(text: raw.toString());
+      }
+      return TextEditingController();
+    }).toList();
+  }
+
+  String _fieldKey(String label) {
+    if (label == "Card / Bank name") return 'name';
+    if (label == "Credit limit") return 'limit';
+    if (label == "Outstanding balance") return 'outstanding';
+    if (label == "Payment due date (optional)") return 'dueDate';
+    return label;
+  }
+
+  @override
+  void dispose() {
+    for (final c in _ctrls) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _pickDate(int i) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 60)),
+    );
+    if (picked != null) {
+      setState(() {
+        _ctrls[i].text = DateFormat('dd MMM yyyy').format(picked);
+        _dateValues[widget.fields[i].label] = picked;
+      });
+    }
+  }
+
+  Future<void> _save() async {
+    final values = <String, String>{};
+    for (int i = 0; i < widget.fields.length; i++) {
+      values[widget.fields[i].label] = _ctrls[i].text.trim();
+    }
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(values, _dateValues);
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1E2C),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: EdgeInsets.all(24.w),
@@ -419,45 +486,39 @@ class _AddSheetState extends State<_AddSheet> {
                     fontWeight: FontWeight.bold,
                     fontSize: 18.sp)),
             SizedBox(height: 16.h),
-            ...widget.fields.map((f) => Padding(
-                  padding: EdgeInsets.only(bottom: 12.h),
-                  child: TextField(
-                    controller: f.ctrl,
-                    keyboardType: f.keyboardType,
-                    readOnly: f.onTap != null,
-                    onTap: f.onTap,
-                    inputFormatters: f.keyboardType == TextInputType.number
-                        ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
-                        : null,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: f.label,
-                      labelStyle: const TextStyle(color: Colors.white54),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.08),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
+            ...List.generate(widget.fields.length, (i) {
+              final f = widget.fields[i];
+              final isDate = f.keyboardType == TextInputType.datetime;
+              return Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: TextField(
+                  controller: _ctrls[i],
+                  keyboardType: isDate ? TextInputType.text : f.keyboardType,
+                  readOnly: isDate,
+                  onTap: isDate ? () => _pickDate(i) : null,
+                  inputFormatters: f.keyboardType == TextInputType.number
+                      ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
+                      : null,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: f.label,
+                    labelStyle: const TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                )),
+                ),
+              );
+            }),
             SizedBox(height: 8.h),
             SizedBox(
               width: double.infinity,
               height: 50.h,
               child: ElevatedButton(
-                onPressed: _saving
-                    ? null
-                    : () async {
-                        setState(() => _saving = true);
-                        try {
-                          await widget.onSave();
-                          if (context.mounted) Navigator.pop(context);
-                        } finally {
-                          if (mounted) setState(() => _saving = false);
-                        }
-                      },
+                onPressed: _saving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(

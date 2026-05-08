@@ -60,3 +60,4 @@ service_account.json
 # for AI Agents
 CLAUDE.md
 GEMINI.md
+*.jks

@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class RealEstateDetailScreen extends StatefulWidget {
   const RealEstateDetailScreen({super.key});
@@ -24,54 +25,57 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
   }
 
   bool _saving = false;
+  bool _syncedEmpty = false;
 
   Future<void> _add() async {
-    final nameCtrl = TextEditingController();
-    final typeCtrl = TextEditingController();
-    final locationCtrl = TextEditingController();
-    final valueCtrl = TextEditingController();
-    final emiCtrl = TextEditingController();
+    await _showSheet();
+  }
 
-    try { await showModalBottomSheet(
+  Future<void> _edit(String id, Map<String, dynamic> data) async {
+    await _showSheet(id: id, existingData: data);
+  }
+
+  Future<void> _showSheet({String? id, Map<String, dynamic>? existingData}) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _Sheet(
-        title: "Add Property",
-        fields: [
-          _F("Property name / description", nameCtrl, TextInputType.text),
-          _F("Type (Flat / Plot / Villa / Shop)", typeCtrl, TextInputType.text),
-          _F("Location / city", locationCtrl, TextInputType.text),
-          _F("Current market value", valueCtrl, TextInputType.number),
-          _F("Monthly home loan EMI (0 if none)", emiCtrl, TextInputType.number),
+        title: id != null ? "Edit Property" : "Add Property",
+        fields: const [
+          _FieldDef("Property name / description", TextInputType.text),
+          _FieldDef("Type (Flat / Plot / Villa / Shop)", TextInputType.text),
+          _FieldDef("Location / city", TextInputType.text),
+          _FieldDef("Current market value", TextInputType.number),
+          _FieldDef("Monthly home loan EMI (0 if none)", TextInputType.number),
         ],
-        onSave: () async {
-          final name = nameCtrl.text.trim();
-          final currentValue = double.tryParse(valueCtrl.text.trim()) ?? 0;
+        existingData: existingData,
+        onSave: (values) async {
+          final name = values["Property name / description"] ?? '';
+          final currentValue = double.tryParse(values["Current market value"] ?? '') ?? 0;
           if (name.isEmpty || currentValue <= 0) return;
           setState(() => _saving = true);
           try {
-            await _col.add({
+            final docData = {
               'name': name,
-              'type': typeCtrl.text.trim(),
-              'location': locationCtrl.text.trim(),
+              'type': values["Type (Flat / Plot / Villa / Shop)"] ?? '',
+              'location': values["Location / city"] ?? '',
               'currentValue': currentValue,
-              'monthlyEmi': double.tryParse(emiCtrl.text.trim()) ?? 0,
-              'createdAt': Timestamp.now(),
-            });
+              'monthlyEmi': double.tryParse(values["Monthly home loan EMI (0 if none)"] ?? '') ?? 0,
+            };
+            if (id != null) {
+              await _col.doc(id).update(docData);
+            } else {
+              docData['createdAt'] = Timestamp.now();
+              await _col.add(docData);
+            }
             await _syncTotal();
           } finally {
             if (mounted) setState(() => _saving = false);
           }
         },
       ),
-    ); } finally {
-      nameCtrl.dispose();
-      typeCtrl.dispose();
-      locationCtrl.dispose();
-      valueCtrl.dispose();
-      emiCtrl.dispose();
-    }
+    );
   }
 
   Future<void> _delete(String id) async {
@@ -135,6 +139,10 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
             }
             final docs = snap.data?.docs ?? [];
             if (docs.isEmpty) {
+              if (!_syncedEmpty) {
+                _syncedEmpty = true;
+                WealthService.updateAsset('realEstate', 0);
+              }
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -235,7 +243,12 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
     required String symbol,
     required bool isDark,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: () => _edit(id, {
+        'name': name, 'type': type, 'location': location,
+        'currentValue': value, 'monthlyEmi': emi,
+      }),
+      child: Container(
       margin: EdgeInsets.only(bottom: 12.h),
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -294,16 +307,12 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 }
 
-String _compact(double v) {
-  if (v >= 10000000) return "${(v / 10000000).toStringAsFixed(1)}Cr";
-  if (v >= 100000) return "${(v / 100000).toStringAsFixed(1)}L";
-  if (v >= 1000) return "${(v / 1000).toStringAsFixed(0)}K";
-  return v.toStringAsFixed(0);
-}
+String _compact(double v) => compact(v);
 
 Future<bool> _confirm(BuildContext context) async {
   final r = await showDialog<bool>(
@@ -322,32 +331,79 @@ Future<bool> _confirm(BuildContext context) async {
   return r ?? false;
 }
 
-class _F {
+class _FieldDef {
   final String label;
-  final TextEditingController ctrl;
   final TextInputType type;
-  const _F(this.label, this.ctrl, this.type);
+  const _FieldDef(this.label, this.type);
 }
 
 class _Sheet extends StatefulWidget {
   final String title;
-  final List<_F> fields;
-  final Future<void> Function() onSave;
-  const _Sheet({required this.title, required this.fields, required this.onSave});
+  final List<_FieldDef> fields;
+  final Map<String, dynamic>? existingData;
+  final Future<void> Function(Map<String, String> values) onSave;
+  const _Sheet({required this.title, required this.fields, this.existingData, required this.onSave});
   @override
   State<_Sheet> createState() => _SheetState();
 }
 
 class _SheetState extends State<_Sheet> {
   bool _saving = false;
+  late final List<TextEditingController> _ctrls;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrls = widget.fields.map((f) {
+      final existing = widget.existingData;
+      if (existing != null) {
+        final key = _fieldKey(f.label);
+        final raw = existing[key];
+        if (raw != null) return TextEditingController(text: raw.toString());
+      }
+      return TextEditingController();
+    }).toList();
+  }
+
+  String _fieldKey(String label) {
+    if (label == "Property name / description") return 'name';
+    if (label == "Type (Flat / Plot / Villa / Shop)") return 'type';
+    if (label == "Location / city") return 'location';
+    if (label == "Current market value") return 'currentValue';
+    if (label == "Monthly home loan EMI (0 if none)") return 'monthlyEmi';
+    return label;
+  }
+
+  @override
+  void dispose() {
+    for (final c in _ctrls) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final values = <String, String>{};
+    for (int i = 0; i < widget.fields.length; i++) {
+      values[widget.fields[i].label] = _ctrls[i].text.trim();
+    }
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(values);
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1E2C),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: EdgeInsets.all(24.w),
@@ -361,43 +417,36 @@ class _SheetState extends State<_Sheet> {
                     fontWeight: FontWeight.bold,
                     fontSize: 18.sp)),
             SizedBox(height: 16.h),
-            ...widget.fields.map((f) => Padding(
-                  padding: EdgeInsets.only(bottom: 12.h),
-                  child: TextField(
-                    controller: f.ctrl,
-                    keyboardType: f.type,
-                    inputFormatters: f.type == TextInputType.number
-                        ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
-                        : null,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: f.label,
-                      labelStyle: const TextStyle(color: Colors.white54),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.08),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                        borderSide: BorderSide.none,
-                      ),
+            ...List.generate(widget.fields.length, (i) {
+              final f = widget.fields[i];
+              return Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: TextField(
+                  controller: _ctrls[i],
+                  keyboardType: f.type,
+                  inputFormatters: f.type == TextInputType.number
+                      ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
+                      : null,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: f.label,
+                    labelStyle: const TextStyle(color: Colors.white54),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                )),
+                ),
+              );
+            }),
             SizedBox(height: 8.h),
             SizedBox(
               width: double.infinity,
               height: 50.h,
               child: ElevatedButton(
-                onPressed: _saving
-                    ? null
-                    : () async {
-                        setState(() => _saving = true);
-                        try {
-                          await widget.onSave();
-                          if (context.mounted) Navigator.pop(context);
-                        } finally {
-                          if (mounted) setState(() => _saving = false);
-                        }
-                      },
+                onPressed: _saving ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(

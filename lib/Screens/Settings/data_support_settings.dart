@@ -6,6 +6,7 @@ import 'package:money_control/Screens/about_application.dart';
 import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/terms_and_policy.dart';
 import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Screens/import_screen.dart';
 
 class DataSupportSettingsScreen extends StatelessWidget {
@@ -76,6 +77,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -97,10 +99,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              const Color(0xFF1A1A2E), // Midnight Void
-              const Color(0xFF16213E).withValues(alpha: 0.95),
-            ],
+            colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

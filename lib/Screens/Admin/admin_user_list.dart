@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/colors.dart';
 
 class AdminUserListScreen extends StatefulWidget {
   const AdminUserListScreen({super.key});
@@ -25,14 +26,13 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF0F2027), // Deep Space
-            Color(0xFF203A43), // Tealish
-            Color(0xFF2C5364), // Slate
-          ],
+          colors: isDark
+              ? [const Color(0xFF0F2027), const Color(0xFF203A43), const Color(0xFF2C5364)]
+              : AppColors.lightGradient,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -193,15 +193,16 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
         ? currentExpiry.toDate()
         : DateTime.now();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            backgroundColor: const Color(0xFF1A1A2E),
+            backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
             title: Text(
               "Manage Subscription",
-              style: TextStyle(color: Colors.white, fontSize: 18.sp),
+              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 18.sp),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -239,13 +240,14 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2030),
                         builder: (context, child) {
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
                           return Theme(
                             data: ThemeData.dark().copyWith(
-                              colorScheme: const ColorScheme.dark(
+                              colorScheme: ColorScheme.dark(
                                 primary: Colors.cyanAccent,
                                 onPrimary: Colors.black,
-                                surface: Color(0xFF1A1A2E),
-                                onSurface: Colors.white,
+                                surface: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                                onSurface: isDark ? Colors.white : AppColors.lightTextPrimary,
                               ),
                             ),
                             child: child!,
