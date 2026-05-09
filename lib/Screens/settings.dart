@@ -11,7 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
-import 'package:money_control/Screens/loginscreen.dart';
+import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Screens/Settings/general_settings.dart';
 import 'package:money_control/Screens/Settings/security_settings.dart';
 import 'package:money_control/Screens/Settings/data_support_settings.dart';
@@ -338,9 +338,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: TextButton(
         onPressed: () async {
           SmsService.resetCache();
-          Get.reset();
           await FirebaseAuth.instance.signOut();
-          Get.offAll(() => const LoginScreen());
+          Get.offAll(() => const AnimatedSplashScreen());
         },
         style: TextButton.styleFrom(
           padding: EdgeInsets.symmetric(vertical: 16.h),

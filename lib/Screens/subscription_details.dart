@@ -58,9 +58,11 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               if (!snapshot.hasData || !snapshot.data!.exists) {
                 return const SizedBox();
               }
+              final data = snapshot.data!.data();
+              if (data == null) return const SizedBox();
               final paymentData = RecurringPayment.fromMap(
                 snapshot.data!.id,
-                snapshot.data!.data() as Map<String, dynamic>,
+                data as Map<String, dynamic>,
               );
 
               return PopupMenuButton<String>(
@@ -214,9 +216,13 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             return const Center(child: Text("Subscription not found"));
           }
 
+          final data = snapshot.data!.data();
+          if (data == null) {
+            return const Center(child: Text("Subscription data not found"));
+          }
           final paymentData = RecurringPayment.fromMap(
             snapshot.data!.id,
-            snapshot.data!.data() as Map<String, dynamic>,
+            data as Map<String, dynamic>,
           );
 
           return SingleChildScrollView(

@@ -34,6 +34,7 @@ class _UpdatePageState extends State<UpdatePage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           releaseData = data;
           loading = false;
@@ -45,12 +46,14 @@ class _UpdatePageState extends State<UpdatePage> {
           fetchAnalysis(tagName);
         }
       } else {
+        if (!mounted) return;
         setState(() {
           error = true;
           loading = false;
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         error = true;
         loading = false;

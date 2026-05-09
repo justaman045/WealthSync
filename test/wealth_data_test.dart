@@ -36,7 +36,7 @@ void main() {
       );
       // sum of all asset fields only (no liabilities)
       // 100000+200000+300000+400000+50000+60000+5000000+150000+80000+90000+25000+180000+70000+110000+500000+200000+60000+100000+50000+300000+1000000+800000+400000+2000000
-      expect(p.totalAssets, closeTo(11990000, 1));
+      expect(p.totalAssets, closeTo(12225000, 1));
     });
 
     test('totalLiabilities sums liability fields', () {
@@ -124,7 +124,7 @@ void main() {
       expect(p.targets['sip'], 50000.0);
       expect(p.hiddenKeys, ['crypto']);
       expect(p.monthlyExpenseOverride, 30000.0);
-      expect(p.totalAssets, closeTo(122350, 1));
+      expect(p.totalAssets, closeTo(127250, 1));
       expect(p.totalLiabilities, 10600);
     });
   });

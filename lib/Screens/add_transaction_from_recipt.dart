@@ -203,7 +203,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
           title: Text(
             "Receipt Scanner",
             style: TextStyle(
-              color: Colors.white,
+              color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 18.sp,
               letterSpacing: 0.5,
@@ -212,7 +212,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         body: Padding(
           padding: EdgeInsets.all(20.w),
@@ -224,10 +224,10 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                 flex: 2,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.035),
                     borderRadius: BorderRadius.circular(24.r),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -247,13 +247,13 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                                 Icon(
                                   Icons.image_search_rounded,
                                   size: 48.sp,
-                                  color: Colors.white24,
+                                  color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
                                 ),
                                 SizedBox(height: 16.h),
                                 Text(
                                   "No image selected",
                                   style: TextStyle(
-                                    color: Colors.white38,
+                                    color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
                                     fontSize: 14.sp,
                                   ),
                                 ),
@@ -298,7 +298,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(20.r),
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(color: isDark ? Colors.white12 : AppColors.lightBorder.withValues(alpha: 0.12)),
                   ),
                   child: _scanning
                       ? const Center(
@@ -311,8 +311,8 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                             _recognizedText ?? "Scanned text will appear here.",
                             style: TextStyle(
                               color: _recognizedText == null
-                                  ? Colors.white38
-                                  : Colors.white70,
+                                  ? (isDark ? Colors.white38 : AppColors.lightTextTertiary)
+                                  : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
                               fontSize: 14.sp,
                               height: 1.5,
                             ),
@@ -348,7 +348,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                   child: Text(
                     "SAVE TRANSACTION",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp,
                       letterSpacing: 1.5,
@@ -369,14 +369,15 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 50.h,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
+          color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -386,7 +387,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
             Text(
               label,
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontWeight: FontWeight.w600,
                 fontSize: 14.sp,
               ),

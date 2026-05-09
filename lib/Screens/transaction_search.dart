@@ -98,11 +98,11 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         title: Text(
           "Search Transactions",
           style: TextStyle(
-            color: Colors.white,
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 20.sp,
           ),
@@ -142,22 +142,22 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                     child: TextField(
                       controller: _search,
                       onChanged: _onSearchChanged,
-                      style: TextStyle(color: Colors.white, fontSize: 15.sp),
+                      style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp),
                       cursorColor: const Color(0xFF00E5FF),
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.search,
-                          color: Colors.white70,
+                          color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                         ),
                         hintText: "Search by name, amount, category...",
                         hintStyle: TextStyle(
-                          color: Colors.white38,
+                          color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
                           fontSize: 14.sp,
                         ),
                         filled: true,
-                        fillColor: Colors.white.withValues(
+                        fillColor: isDark ? Colors.white.withValues(
                           alpha: 0.08,
-                        ), // Glass
+                        ) : Colors.black.withValues(alpha: 0.056), // Glass
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 20.w,
                           vertical: 16.h,
@@ -169,7 +169,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.r),
                           borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -213,13 +213,13 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                 Icon(
                                   Icons.manage_search_rounded,
                                   size: 80.sp,
-                                  color: Colors.white.withValues(alpha: 0.1),
+                                  color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.07),
                                 ),
                                 SizedBox(height: 16.h),
                                 Text(
                                   "Search your transactions",
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.3),
+                                    color: isDark ? Colors.white.withValues(alpha: 0.3) : AppColors.lightTextTertiary,
                                     fontSize: 16.sp,
                                   ),
                                 ),
@@ -242,12 +242,12 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                               ),
                               padding: EdgeInsets.all(16.w),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(
+                                color: isDark ? Colors.white.withValues(
                                   alpha: 0.05,
-                                ), // Dark Glass
+                                ) : Colors.black.withValues(alpha: 0.035),
                                 borderRadius: BorderRadius.circular(20.r),
                                 border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.08),
+                                  color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.lightBorder.withValues(alpha: 0.08),
                                 ),
                               ),
                               child: Row(
@@ -285,7 +285,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                         Text(
                                           tx.recipientName,
                                           style: TextStyle(
-                                            color: Colors.white,
+                                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                             fontWeight: FontWeight.w600,
                                             fontSize: 15.sp,
                                           ),
@@ -294,7 +294,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                         Text(
                                           tx.category ?? "Uncategorized",
                                           style: TextStyle(
-                                            color: Colors.white54,
+                                            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                                             fontSize: 12.sp,
                                           ),
                                         ),
@@ -308,7 +308,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                       Text(
                                         "${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15.sp,
                                         ),
@@ -317,7 +317,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                       Text(
                                         _formatDate(tx.date),
                                         style: TextStyle(
-                                          color: Colors.white38,
+                                          color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
                                           fontSize: 11.sp,
                                         ),
                                       ),

@@ -30,6 +30,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
     _setWorking(true);
     await LocalBackupService.backupUserTransactions(user.email!);
+    if (!mounted) return;
     _setWorking(false);
 
     ErrorHandler.showSuccess("Backup completed successfully!");
@@ -56,6 +57,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     // ignore: deprecated_member_use
     await Share.shareXFiles([XFile(file.path)], text: "Finance Control Backup");
 
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text("Backup exported!")));
@@ -108,12 +110,14 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
       await batch.commit();
 
+      if (!mounted) return;
       _setWorking(false);
 
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Restore successful!")));
     } catch (e) {
+      if (!mounted) return;
       _setWorking(false);
       ScaffoldMessenger.of(
         context,

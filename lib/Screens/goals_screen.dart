@@ -37,10 +37,10 @@ class GoalsScreen extends StatelessWidget {
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => Get.to(() => const AddGoalScreen()),
           backgroundColor: AppColors.primary,
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
+          icon: Icon(Icons.add, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+          label: Text(
             "New Goal",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold),
           ),
         ),
         body: Obx(() {
@@ -122,7 +122,7 @@ class GoalsScreen extends StatelessWidget {
             border: Border.all(
               color: goal.isCompleted
                   ? AppColors.success.withValues(alpha: 0.4)
-                  : Colors.white.withValues(alpha: 0.1),
+                  : isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1),
             ),
             boxShadow: [
               BoxShadow(
@@ -260,21 +260,21 @@ class GoalsScreen extends StatelessWidget {
           children: [
             Text(
               "Add to ${goal.emoji} ${goal.name}",
-              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700, color: Colors.white),
+              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
             SizedBox(height: 16.h),
             TextField(
               controller: amtCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               autofocus: true,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
               decoration: InputDecoration(
                 prefixText: "$sym ",
-                prefixStyle: TextStyle(color: Colors.white70, fontSize: 16.sp),
+                prefixStyle: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 16.sp),
                 hintText: "Amount to add",
-                hintStyle: const TextStyle(color: Colors.white38),
+                hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.07),
+                fillColor: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.049),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14.r),
                   borderSide: BorderSide.none,
@@ -299,8 +299,8 @@ class GoalsScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
                 ),
                 child: ctrl.isSaving.value
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text("Add Progress", style: TextStyle(color: Colors.white, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
+                    : Text("Add Progress", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
               )),
             ),
           ],
@@ -316,10 +316,10 @@ class GoalsScreen extends StatelessWidget {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text("Delete Goal?", style: TextStyle(color: Colors.white, fontSize: 17.sp)),
+        title: Text("Delete Goal?", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 17.sp)),
         content: Text(
           "Delete \"${goal.name}\"? This cannot be undone.",
-          style: const TextStyle(color: Colors.white70),
+          style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
         ),
         actions: [
           TextButton(
@@ -339,6 +339,7 @@ class GoalsScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -366,7 +367,7 @@ class GoalsScreen extends StatelessWidget {
             label: const Text("Add your first goal"),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: isDark ? Colors.white : AppColors.lightTextPrimary,
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
             ),

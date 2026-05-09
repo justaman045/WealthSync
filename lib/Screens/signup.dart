@@ -70,6 +70,7 @@ class _AuthScreenState extends State<AuthScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
+      if (!mounted) return;
       setState(() => _isLoading = false);
 
       Get.snackbar(
@@ -83,6 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
       await Future.delayed(const Duration(seconds: 2));
       goBack();
     } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = e.message ?? 'Sign up failed';
@@ -100,7 +102,7 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        // User cancelled
+        if (!mounted) return;
         setState(() => _isLoading = false);
         return;
       }
@@ -124,9 +126,11 @@ class _AuthScreenState extends State<AuthScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
+      if (!mounted) return;
       setState(() => _isLoading = false);
       Get.offAll(() => const OnboardingScreen());
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = 'Google sign-up failed or cancelled';

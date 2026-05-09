@@ -197,7 +197,7 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
             isExpense: false,
           );
 
-          final symbol = prefs.getString('currency_symbol') ?? '₹';
+          final symbol = prefs.getString('currency_symbol') ?? '\$';
 
           await BackgroundWorker.showNotification(
             "Daily Insight 📊",
@@ -523,7 +523,7 @@ Future<void> _checkWeeklyDigest(SharedPreferences prefs) async {
       }
     }
 
-    final symbol = prefs.getString('currency_symbol') ?? '₹';
+    final symbol = prefs.getString('currency_symbol') ?? '\$';
     String body;
     if (lastWeekSpend > 0) {
       final pct = ((thisWeekSpend - lastWeekSpend) / lastWeekSpend * 100).abs();

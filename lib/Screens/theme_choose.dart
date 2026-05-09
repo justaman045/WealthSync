@@ -36,7 +36,7 @@ class ThemeController extends GetxController {
 }
 
 class ThemeSettingsScreen extends StatelessWidget {
-  ThemeSettingsScreen({super.key});
+  const ThemeSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -150,7 +150,7 @@ class WealthPortfolio {
               .toList() ??
           [],
       lastUpdated:
-          (map['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          (map['lastUpdated'] as dynamic)?.toDate() ?? DateTime.now(),
       monthlyExpenseOverride:
           (map['monthly_expense_override'] as num?)?.toDouble(),
     );

@@ -293,7 +293,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               child: Text(
                 "Back",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontWeight: FontWeight.w600,
                   fontSize: 16.sp,
                 ),
@@ -371,9 +371,9 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
           padding: EdgeInsets.all(4.r),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
+            border: Border.all(color: isDark ? Colors.white : AppColors.lightTextPrimary, width: 2),
           ),
-          child: Icon(icon, size: 40.sp, color: Colors.white),
+          child: Icon(icon, size: 40.sp, color: isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
       ),
     );

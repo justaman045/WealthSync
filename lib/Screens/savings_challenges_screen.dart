@@ -763,8 +763,11 @@ class _CustomChallengeSheetState extends State<_CustomChallengeSheet> {
     setState(() => _submitting = true);
     final ok = await ChallengesController.to.addChallenge(challenge);
     if (!mounted) return;
-    if (ok) Navigator.of(context).pop();
-    else setState(() => _submitting = false);
+    if (ok) {
+      Navigator.of(context).pop();
+    } else {
+      setState(() => _submitting = false);
+    }
   }
 
   @override

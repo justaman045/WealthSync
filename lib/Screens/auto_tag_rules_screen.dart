@@ -80,17 +80,17 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(
           "Add keyword to $category",
-          style: TextStyle(color: Colors.white, fontSize: 16.sp),
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 16.sp),
         ),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
           decoration: InputDecoration(
             hintText: "e.g. amazon, swiggy",
-            hintStyle: const TextStyle(color: Colors.white38),
+            hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.07),
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.049),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
@@ -144,16 +144,16 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text("New category", style: TextStyle(color: Colors.white, fontSize: 16.sp)),
+        title: Text("New category", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 16.sp)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
           decoration: InputDecoration(
             hintText: "e.g. Healthcare",
-            hintStyle: const TextStyle(color: Colors.white38),
+            hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
             filled: true,
-            fillColor: Colors.white.withValues(alpha: 0.07),
+            fillColor: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.049),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
@@ -250,12 +250,12 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                                           style: TextStyle(
                                             fontSize: 13.sp,
                                             fontWeight: FontWeight.w700,
-                                            color: Colors.white,
+                                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                           ),
                                         ),
                                         Text(
                                           "Categorized as $category ($count times)",
-                                          style: TextStyle(fontSize: 11.sp, color: Colors.white60),
+                                          style: TextStyle(fontSize: 11.sp, color: isDark ? Colors.white60 : AppColors.lightTextSecondary),
                                         ),
                                       ],
                                     ),
@@ -266,7 +266,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                                   ),
                                   GestureDetector(
                                     onTap: () => _dismissSuggestion(merchant),
-                                    child: Icon(Icons.close, size: 16.sp, color: Colors.white38),
+                                    child: Icon(Icons.close, size: 16.sp, color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
                                   ),
                                 ],
                               ),
@@ -320,9 +320,9 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.8),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightSurfaceCard,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.lightBorder.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,16 +363,16 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                 return GestureDetector(
                   onLongPress: () => _removeKeyword(category, kw),
                   child: Chip(
-                    label: Text(kw, style: TextStyle(fontSize: 12.sp, color: isDefault ? Colors.white70 : Colors.white)),
+                    label: Text(kw, style: TextStyle(fontSize: 12.sp, color: isDefault ? (isDark ? Colors.white70 : AppColors.lightTextSecondary) : (isDark ? Colors.white : AppColors.lightTextPrimary))),
                     backgroundColor: isDefault
-                        ? Colors.white.withValues(alpha: 0.1)
+                        ? (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.07))
                         : AppColors.primary.withValues(alpha: 0.3),
                     side: BorderSide(
-                      color: isDefault ? Colors.white.withValues(alpha: 0.15) : AppColors.primary.withValues(alpha: 0.5),
+                      color: isDefault ? (isDark ? Colors.white.withValues(alpha: 0.15) : AppColors.lightBorder.withValues(alpha: 0.15)) : AppColors.primary.withValues(alpha: 0.5),
                     ),
                     deleteIcon: isDefault
                         ? null
-                        : Icon(Icons.close, size: 14.sp, color: Colors.white70),
+                        : Icon(Icons.close, size: 14.sp, color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
                     onDeleted: isDefault ? null : () => _removeKeyword(category, kw),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.symmetric(horizontal: 4.w),

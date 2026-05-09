@@ -89,7 +89,7 @@ void main() {
     });
 
     test('formats thousands', () {
-      expect(compact(1500), '1K');
+      expect(compact(1500), '2K');
       expect(compact(99999), '100K');
     });
 

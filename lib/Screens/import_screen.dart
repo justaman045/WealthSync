@@ -138,7 +138,7 @@ class _ImportScreenState extends State<ImportScreen> {
         colorText: Colors.white,
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

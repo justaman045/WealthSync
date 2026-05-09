@@ -190,7 +190,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       child: Text(
                         AppLocalizations.of(context)!.add,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 16.sp,
                         ),
@@ -208,6 +208,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _deleteCategory(CategoryModel category) async {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final confirm = await showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -230,7 +231,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: Text(
               AppLocalizations.of(context)!.delete,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
           ),
         ],
@@ -344,6 +345,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 _dateSelector(theme),
                 SizedBox(height: 40.h),
                 _submitButton(
+                  context: context,
                   label: widget.type == PaymentType.send
                       ? AppLocalizations.of(context)!.send
                       : AppLocalizations.of(context)!.receive,
@@ -693,7 +695,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _submitButton({required String label, required VoidCallback onTap}) {
+  Widget _submitButton({required BuildContext context, required String label, required VoidCallback onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Obx(
       () => GestureDetector(
         onTap: _transactionController.isSaving.value
@@ -722,18 +725,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           alignment: Alignment.center,
           child: _transactionController.isSaving.value
-              ? const SizedBox(
+              ? SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
-                    color: Colors.white,
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
                     strokeWidth: 2,
                   ),
                 )
               : Text(
                   label.toUpperCase(),
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 16.sp,
                     letterSpacing: 1.5,
@@ -757,13 +760,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   ];
 
   Widget _upiPayButton(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () => _showUpiAppSelector(context),
       child: Container(
         width: double.infinity,
         height: 50.h,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.07),
+          color: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.049),
           borderRadius: BorderRadius.circular(27.r),
           border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
         ),
@@ -817,7 +821,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Text(
                 "Choose UPI App",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontSize: 17.sp,
                   fontWeight: FontWeight.w700,
                 ),
@@ -825,7 +829,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               SizedBox(height: 4.h),
               Text(
                 name.isEmpty ? "$sym$amountStr" : "Pay $sym$amountStr to $name",
-                style: TextStyle(color: Colors.white60, fontSize: 13.sp),
+                style: TextStyle(color: isDark ? Colors.white60 : AppColors.lightTextSecondary, fontSize: 13.sp),
               ),
               SizedBox(height: 16.h),
               ..._upiApps.map((app) => Padding(
@@ -838,10 +842,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.06),
+                      color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.042),
                       borderRadius: BorderRadius.circular(14.r),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
+                        color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.lightBorder.withValues(alpha: 0.08),
                       ),
                     ),
                     child: Row(
@@ -857,7 +861,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           child: Text(
                             app.icon,
                             style: TextStyle(
-                              color: Colors.white,
+                              color: isDark ? Colors.white : AppColors.lightTextPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 13.sp,
                             ),
@@ -867,7 +871,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         Text(
                           app.name,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w500,
                           ),
@@ -875,7 +879,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         const Spacer(),
                         Icon(
                           Icons.arrow_forward_ios,
-                          color: Colors.white24,
+                          color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
                           size: 14.sp,
                         ),
                       ],
@@ -973,7 +977,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Text(
               pending ? 'Payment Pending' : 'Payment Successful',
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontSize: 17.sp,
                 fontWeight: FontWeight.w700,
               ),
@@ -981,15 +985,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
             SizedBox(height: 6.h),
             Text(
               'via $appName',
-              style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+              style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary, fontSize: 12.sp),
             ),
             if (txnId.isNotEmpty) ...[
               SizedBox(height: 16.h),
-              _resultRow('Transaction ID', txnId),
+              _resultRow(context, 'Transaction ID', txnId),
             ],
             if (approvalRef.isNotEmpty) ...[
               SizedBox(height: 8.h),
-              _resultRow('Approval Ref', approvalRef),
+              _resultRow(context, 'Approval Ref', approvalRef),
             ],
           ],
         ),
@@ -999,7 +1003,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Close',
-              style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+              style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary, fontSize: 14.sp),
             ),
           ),
           ElevatedButton(
@@ -1020,7 +1024,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: Text(
               'Save Transaction',
               style: TextStyle(
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w600,
               ),
@@ -1031,23 +1035,28 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _resultRow(String label, String value) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        '$label: ',
-        style: TextStyle(color: Colors.white54, fontSize: 12.sp),
-      ),
-      Expanded(
-        child: Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w500,
+  Widget _resultRow(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary, fontSize: 12.sp),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.lightTextPrimary,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
+
+

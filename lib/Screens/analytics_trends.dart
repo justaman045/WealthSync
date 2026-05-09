@@ -175,14 +175,14 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text(
+          title: Text(
             "Category Trends",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            icon: Icon(Icons.arrow_back_ios, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -200,6 +200,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
   }
 
   Widget _buildContent(List<FlSpot> spots, double maxY) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Ensure selected category matches available categories
     final cats = _categories;
     if (_selectedCategory == null || !cats.contains(_selectedCategory)) {
@@ -214,9 +215,9 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
             ),
             child: Column(
               children: [
@@ -225,7 +226,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                   children: [
                     Icon(
                       Icons.category_outlined,
-                      color: Colors.white70,
+                      color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                       size: 20.sp,
                     ),
                     SizedBox(width: 12.w),
@@ -234,12 +235,12 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                         child: DropdownButton<String>(
                           value: _selectedCategory,
                           dropdownColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : AppColors.lightSurface,
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.keyboard_arrow_down,
-                            color: Colors.white,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                           ),
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontSize: 16.sp,
                           ),
                           items: _categories.map((c) {
@@ -259,24 +260,24 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                   ],
                 ),
                 SizedBox(height: 12.h),
-                Divider(color: Colors.white.withValues(alpha: 0.1)),
+                Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
                 SizedBox(height: 12.h),
                 // Range Filter
                 Row(
                   children: [
-                    Icon(Icons.date_range, color: Colors.white70, size: 20.sp),
+                    Icon(Icons.date_range, color: isDark ? Colors.white70 : AppColors.lightTextSecondary, size: 20.sp),
                     SizedBox(width: 12.w),
                     Expanded(
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                       value: _selectedRange,
                       dropdownColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : AppColors.lightSurface,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.keyboard_arrow_down,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       ),
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontSize: 16.sp,
                           ),
                           items: _rangeOptions.map((r) {
@@ -306,9 +307,9 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
             child: Container(
               padding: EdgeInsets.fromLTRB(16.w, 32.h, 24.w, 16.h),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05), // Dark Glass
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04), // Dark Glass
                 borderRadius: BorderRadius.circular(24.r),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.2),
@@ -331,7 +332,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                       Text(
                         "Spending Over Time",
                         style: TextStyle(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
                           fontSize: 16.sp,
                           fontWeight: FontWeight.bold,
                         ),
@@ -345,7 +346,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                             child: Text(
                               "Not enough data",
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                                 fontSize: 14.sp,
                               ),
                             ),
@@ -357,7 +358,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                 drawVerticalLine: false,
                                 horizontalInterval: maxY / 5,
                                 getDrawingHorizontalLine: (value) => FlLine(
-                                  color: Colors.white.withValues(alpha: 0.05),
+                                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                                   strokeWidth: 1,
                                 ),
                               ),
@@ -384,9 +385,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                           _getMonthLabel(idx),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.5,
-                                            ),
+                                            color: isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.lightTextSecondary,
                                             fontSize: 10.sp,
                                           ),
                                         ),
@@ -403,9 +402,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                       return Text(
                                         "${(val / 1000).toStringAsFixed(1)}k",
                                         style: TextStyle(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.5,
-                                          ),
+                                          color: isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.lightTextSecondary,
                                           fontSize: 10.sp,
                                         ),
                                       );

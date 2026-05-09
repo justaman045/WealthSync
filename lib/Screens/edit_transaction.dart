@@ -1,5 +1,3 @@
-// lib/Screens/edit_transaction.dart
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -102,6 +100,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
   Future<void> _addNewCategoryDialog() async {
     final controller = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     try {
       await showDialog(
@@ -113,7 +112,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           insetPadding: EdgeInsets.all(20.w),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24.r),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            side: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
           ),
           child: Container(
             decoration: BoxDecoration(
@@ -139,7 +138,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                 Text(
                   "New Category",
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
@@ -151,19 +150,19 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                     color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(16.r),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1),
                     ),
                   ),
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: TextField(
                     controller: controller,
                     autofocus: true,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
                     decoration: InputDecoration(
                       border: InputBorder.none,
                       hintText: "Category Name",
                       hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: isDark ? Colors.white.withValues(alpha: 0.3) : AppColors.lightTextTertiary,
                       ),
                     ),
                   ),
@@ -177,7 +176,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                       child: Text(
                         "Cancel",
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: isDark ? Colors.white.withValues(alpha: 0.6) : AppColors.lightTextSecondary,
                           fontSize: 16.sp,
                         ),
                       ),
@@ -222,7 +221,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         child: Text(
                           "Add",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: 16.sp,
                           ),
@@ -264,9 +263,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     }
 
     double rawAmount = double.tryParse(_amountController.text.trim()) ?? 0;
-    rawAmount = rawAmount.abs(); // Ensure positive input
+    rawAmount = rawAmount.abs();
 
-    // Determine if expense
     final isExpense = user.uid == widget.transaction.senderId;
     final finalAmount = isExpense ? -rawAmount : rawAmount;
 
@@ -291,7 +289,6 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     final txMap = updated.toMap();
 
     try {
-      // Try online save with timeout
       await FirebaseFirestore.instance
           .collection("users")
           .doc(user.email)
@@ -300,14 +297,12 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           .set(txMap)
           .timeout(const Duration(seconds: 3));
 
-      // JSON backup (non-blocking)
       if (user.email != null) {
         LocalBackupService.backupUserTransactions(user.email!);
       }
 
       _saving = false;
 
-      // Check Budget Limit
       if (updated.category != null && user.email != null) {
         BudgetService.checkBudgetExceeded(
           userId: user.email!,
@@ -318,27 +313,18 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       ErrorHandler.showSuccess("Transaction Updated");
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      // ----------------- OFFLINE PATH: queue update -----------------
-      // final Map<String, dynamic> updateJson = {
-      //   "operation": "update",
-      //   "transactionId": updated.id,
-      //   "user": user.email,
-      //   "newData": txMap,
-      // };
-
-      await OfflineQueueService.savePending(
-        txMap,
-      ); // Using savePending from backup service logic mostly or direct offline queue
+      await OfflineQueueService.savePending(txMap);
 
       _saving = false;
 
       if (mounted) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         Get.snackbar(
           "Offline",
           "Saved locally",
           snackPosition: SnackPosition.BOTTOM,
-          colorText: Colors.white,
-          icon: const Icon(Icons.wifi_off, color: Colors.white),
+          colorText: isDark ? Colors.white : Colors.black,
+          icon: Icon(Icons.wifi_off, color: isDark ? Colors.white : Colors.black),
         );
         Navigator.pop(context, true);
       }
@@ -359,11 +345,11 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: isDark ? Colors.white : AppColors.lightTextPrimary,
           fontWeight: FontWeight.bold,
           fontSize: 18.sp,
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -447,15 +433,15 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         child: Container(
                           alignment: Alignment.center,
                           child: _saving
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
+                              ? CircularProgressIndicator(
+                                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                 )
                               : Text(
                                   'Save Changes',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18.sp,
-                                    color: Colors.white,
+                                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                   ),
                                 ),
                         ),
@@ -476,12 +462,13 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
 
   Widget _fieldLabel(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
       child: Text(
         text,
         style: TextStyle(
-          color: Colors.white70,
+          color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
           fontSize: 14.sp,
           fontWeight: FontWeight.w500,
         ),
@@ -490,12 +477,13 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _glassBox({required Widget child, EdgeInsetsGeometry? padding}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: padding ?? EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.035),
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -509,6 +497,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _amountField(TextEditingController c) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return _glassBox(
       child: Row(
         children: [
@@ -525,7 +514,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             child: Text(
               widget.transaction.currency,
               style: TextStyle(
-                color: const Color(0xFF6C63FF), // Blurple
+                color: const Color(0xFF6C63FF),
                 fontWeight: FontWeight.w800,
                 fontSize: 15.sp,
               ),
@@ -539,14 +528,14 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               ),
               style: TextStyle(
                 fontSize: 22.sp,
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1,
               ),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: "0.00",
-                hintStyle: TextStyle(color: Colors.white24, fontSize: 22.sp),
+                hintStyle: TextStyle(color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2), fontSize: 22.sp),
               ),
               validator: (val) {
                 if (val == null || val.isEmpty) return "Required";
@@ -567,6 +556,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     bool isNumber = false,
     String? Function(String?)? validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return _glassBox(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
       child: TextFormField(
@@ -578,14 +568,14 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         validator: validator,
         style: TextStyle(
           fontSize: 16.sp,
-          color: Colors.white,
+          color: isDark ? Colors.white : AppColors.lightTextPrimary,
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,
           hintStyle: TextStyle(
-            color: Colors.white24,
+            color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
             fontSize: 16.sp,
             fontWeight: FontWeight.w500,
           ),
@@ -595,6 +585,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _categorySelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -606,7 +597,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                 : const Color(0xFF00E5FF);
             final borderColor = isSelected
                 ? catColor
-                : Colors.white.withValues(alpha: 0.1);
+                : isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1);
 
             return Padding(
               padding: EdgeInsets.only(right: 12.w),
@@ -629,7 +620,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? catColor.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.05),
+                        : isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.035),
                     borderRadius: BorderRadius.circular(30.r),
                     border: Border.all(color: borderColor),
                     boxShadow: isSelected
@@ -647,14 +638,14 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         Icon(
                           IconHelper.getIconFromCode(cat.iconCode),
                           size: 18.sp,
-                          color: isSelected ? catColor : Colors.white70,
+                          color: isSelected ? catColor : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
                         ),
                         SizedBox(width: 8.w),
                       ],
                       Text(
                         cat.name,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white70,
+                          color: isSelected ? (isDark ? Colors.white : AppColors.lightTextPrimary) : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
                           fontWeight: FontWeight.w600,
                           fontSize: 14.sp,
                         ),
@@ -665,7 +656,6 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               ),
             );
           }),
-          // Add Button
           GestureDetector(
             onTap: _addNewCategoryDialog,
             child: Container(
@@ -703,6 +693,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _dateSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () async {
         final picked = await showDatePicker(
@@ -737,7 +728,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
               style: TextStyle(
                 fontSize: 16.sp,
-                color: Colors.white,
+                color: isDark ? Colors.white : AppColors.lightTextPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),

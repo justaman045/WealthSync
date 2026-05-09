@@ -35,7 +35,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Premium Gradient Background
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -53,13 +52,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(Icons.close, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
         body: SafeArea(
           child: Obx(() {
-            // ── TRIAL VIEW ──────────────────────────────────────────────────
             if (SubscriptionController.to.isTrial) {
               final days = SubscriptionController.to.daysLeftInTrial;
               return SingleChildScrollView(
@@ -88,7 +86,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -112,15 +110,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Text(
                       "You have full Pro access during your trial. Subscribe before it ends to keep everything.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 15.sp, color: Colors.white70, height: 1.5),
+                      style: TextStyle(fontSize: 15.sp, color: isDark ? Colors.white70 : AppColors.lightTextSecondary, height: 1.5),
                     ),
                     SizedBox(height: 32.h),
-                    _buildFeatureRow("Unlimited Transactions", "No monthly limits on your activity."),
-                    _buildFeatureRow("Unlimited Categories", "Create as many categories as you need."),
-                    _buildFeatureRow("AI SMS Tracking", "Automated expense tracking from bank SMS."),
-                    _buildFeatureRow("Smart Budgeting", "Set limits and get alerts before overspending."),
-                    _buildFeatureRow("Data Export", "Download CSV & PDF reports for tax & analysis."),
-                    _buildFeatureRow("Advanced Analytics", "Lifetime history and deep trend insights."),
+                    _buildFeatureRow("Unlimited Transactions", "No monthly limits on your activity.", isDark),
+                    _buildFeatureRow("Unlimited Categories", "Create as many categories as you need.", isDark),
+                    _buildFeatureRow("AI SMS Tracking", "Automated expense tracking from bank SMS.", isDark),
+                    _buildFeatureRow("Smart Budgeting", "Set limits and get alerts before overspending.", isDark),
+                    _buildFeatureRow("Data Export", "Download CSV & PDF reports for tax & analysis.", isDark),
+                    _buildFeatureRow("Advanced Analytics", "Lifetime history and deep trend insights.", isDark),
                     SizedBox(height: 32.h),
                     SizedBox(
                       width: double.infinity,
@@ -162,13 +160,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     SizedBox(height: 16.h),
                                     Text(
                                       "End Free Trial?",
-                                      style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.bold),
+                                      style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 20.sp, fontWeight: FontWeight.bold),
                                     ),
                                     SizedBox(height: 12.h),
                                     Text(
                                       "You will lose Pro access immediately. This cannot be undone.",
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.white70, fontSize: 15.sp, height: 1.5),
+                                      style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 15.sp, height: 1.5),
                                     ),
                                     SizedBox(height: 32.h),
                                     Row(
@@ -182,7 +180,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                                 "Trial Ended",
                                                 "Your free trial has been ended.",
                                                 backgroundColor: Colors.redAccent.withValues(alpha: 0.85),
-                                                colorText: Colors.white,
+                                                colorText: isDark ? Colors.white : Colors.black,
                                               );
                                             },
                                             child: Text("End Trial", style: TextStyle(color: Colors.redAccent, fontSize: 16.sp, fontWeight: FontWeight.w600)),
@@ -212,7 +210,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       },
                       child: Text(
                         "End Trial",
-                        style: TextStyle(color: Colors.white38, fontSize: 14.sp),
+                        style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 14.sp),
                       ),
                     ),
                     SizedBox(height: 40.h),
@@ -221,7 +219,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               );
             }
 
-            // ── PAID PRO VIEW ────────────────────────────────────────────────
             if (SubscriptionController.to.isPro) {
               return SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
@@ -254,24 +251,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       ),
                     ),
                     SizedBox(height: 12.h),
                     Text(
                       "Enjoy unlimited access to all premium features.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16.sp, color: Colors.white70),
+                      style: TextStyle(fontSize: 16.sp, color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
                     ),
                     SizedBox(height: 40.h),
                     Container(
                       width: double.infinity,
                       padding: EdgeInsets.all(20.w),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(20.r),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
+                          color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5),
                         ),
                       ),
                       child: Column(
@@ -279,7 +276,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           Text(
                             "Current Plan",
                             style: TextStyle(
-                              color: Colors.white54,
+                              color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                               fontSize: 14.sp,
                             ),
                           ),
@@ -306,7 +303,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             return Text(
                               label,
                               style: TextStyle(
-                                color: Colors.white30,
+                                color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3),
                                 fontSize: 12.sp,
                               ),
                             );
@@ -348,7 +345,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     Text(
                                       "Cancel Subscription?",
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                         fontSize: 20.sp,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -358,7 +355,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                       "Are you sure you want to cancel? You will lose access to Pro features at the end of the billing period.",
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
-                                        color: Colors.white70,
+                                        color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                                         fontSize: 15.sp,
                                         height: 1.5,
                                       ),
@@ -381,7 +378,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                                           .withValues(
                                                             alpha: 0.85,
                                                           ),
-                                                  colorText: Colors.white,
+                                                  colorText: isDark ? Colors.white : Colors.black,
                                                 );
                                               }
                                             },
@@ -490,7 +487,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       ),
                     ),
                     SizedBox(height: 16.h),
@@ -499,7 +496,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16.sp,
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                         height: 1.5,
                       ),
                     ),
@@ -509,7 +506,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white30),
+                          side: BorderSide(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3)),
                           padding: EdgeInsets.symmetric(vertical: 16.h),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.r),
@@ -518,7 +515,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         child: Text(
                           "Go Back",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
                           ),
@@ -535,7 +532,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Header Icon
                   Container(
                     padding: EdgeInsets.all(20.w),
                     decoration: BoxDecoration(
@@ -557,13 +553,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ),
                   SizedBox(height: 24.h),
 
-                  // Title
                   Text(
                     "Unlock Pro Access",
                     style: TextStyle(
                       fontSize: 28.sp,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       letterSpacing: 1,
                     ),
                   ),
@@ -573,11 +568,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16.sp,
-                      color: Colors.white70,
+                      color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                       height: 1.5,
                     ),
                   ),
-                  // Trial banner / expired-trial notice
                   Obx(() {
                     final sub = SubscriptionController.to;
                     if (sub.isTrial) {
@@ -635,35 +629,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                   SizedBox(height: 40.h),
 
-                  // Features List
                   _buildFeatureRow(
                     "Unlimited Transactions",
                     "No monthly limits on your activity.",
+                    isDark,
                   ),
                   _buildFeatureRow(
                     "Unlimited Categories",
                     "Create as many categories as you need.",
+                    isDark,
                   ),
                   _buildFeatureRow(
                     "AI SMS Tracking",
                     "Automated expense tracking from bank SMS.",
+                    isDark,
                   ),
                   _buildFeatureRow(
                     "Smart Budgeting",
                     "Set limits and get alerts before overspending.",
+                    isDark,
                   ),
                   _buildFeatureRow(
                     "Data Export",
                     "Download CSV & PDF reports for tax & analysis.",
+                    isDark,
                   ),
                   _buildFeatureRow(
                     "Advanced Analytics",
                     "Lifetime history and deep trend insights.",
+                    isDark,
                   ),
 
                   SizedBox(height: 40.h),
 
-                  // Pricing Cards
                   Row(
                     children: [
                       Expanded(
@@ -678,6 +676,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             "/mo",
                             false,
                             "Monthly",
+                            isDark,
                           );
                         }),
                       ),
@@ -694,6 +693,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             "/yr",
                             true,
                             "Yearly",
+                            isDark,
                           );
                         }),
                       ),
@@ -702,10 +702,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                   SizedBox(height: 40.h),
 
-                  // Subscribe area — switches between Google Play and UPI mode
                   Obx(() {
                     final isUpiMode = PaymentConfigService.to.paymentMode.value == 'upi';
-                    return isUpiMode ? _buildUpiFlow() : _buildIapFlow();
+                    return isUpiMode ? _buildUpiFlow(isDark) : _buildIapFlow(isDark);
                   }),
                   SizedBox(height: 20.h),
                 ],
@@ -717,7 +716,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _buildFeatureRow(String title, String subtitle) {
+  Widget _buildFeatureRow(String title, String subtitle, bool isDark) {
     return Padding(
       padding: EdgeInsets.only(bottom: 20.h),
       child: Row(
@@ -739,7 +738,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 16.sp,
                   ),
@@ -747,7 +746,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 SizedBox(height: 4.h),
                 Text(
                   subtitle,
-                  style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+                  style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary, fontSize: 14.sp),
                 ),
               ],
             ),
@@ -763,6 +762,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     String period,
     bool isBestValue,
     String planId,
+    bool isDark,
   ) {
     final isSelected = _selectedPlan == planId;
 
@@ -773,12 +773,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? Colors.cyan.withValues(alpha: 0.15)
-              : Colors.white.withValues(alpha: 0.05),
+              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isSelected
                 ? Colors.cyanAccent
-                : Colors.white.withValues(alpha: 0.1),
+                : (isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5)),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -822,7 +822,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Text(
               title,
               style: TextStyle(
-                color: Colors.white70,
+                color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
               ),
@@ -834,14 +834,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   TextSpan(
                     text: price,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 24.sp,
                     ),
                   ),
                   TextSpan(
                     text: period,
-                    style: TextStyle(color: Colors.white54, fontSize: 14.sp),
+                    style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary, fontSize: 14.sp),
                   ),
                 ],
               ),
@@ -852,8 +852,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  // ── Google Play IAP flow ─────────────────────────────────────────────────
-  Widget _buildIapFlow() {
+  Widget _buildIapFlow(bool isDark) {
     return Column(
       children: [
         Obx(() {
@@ -885,16 +884,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         SizedBox(height: 12.h),
         TextButton(
           onPressed: () => Get.find<IapService>().restorePurchases(),
-          child: Text("Restore Purchases", style: TextStyle(color: Colors.white38, fontSize: 13.sp)),
+          child: Text("Restore Purchases", style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 13.sp)),
         ),
         SizedBox(height: 8.h),
-        Text("Cancel anytime. No questions asked.", style: TextStyle(color: Colors.white30, fontSize: 12.sp)),
+        Text("Cancel anytime. No questions asked.", style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 12.sp)),
       ],
     );
   }
 
-  // ── Manual UPI flow ──────────────────────────────────────────────────────
-  Widget _buildUpiFlow() {
+  Widget _buildUpiFlow(bool isDark) {
     final upiId = PaymentConfigService.to.upiId.value;
     final amount = _selectedPlan == 'Monthly' ? '249' : '1,999';
     final amountRaw = _selectedPlan == 'Monthly' ? '249.00' : '1999.00';
@@ -903,7 +901,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Info box
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(16.w),
@@ -917,11 +914,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               children: [
                 Text('Pay via UPI', style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15.sp)),
                 SizedBox(height: 8.h),
-                Text('Send ${CurrencyController.to.currencySymbol.value}$amount to:', style: TextStyle(color: Colors.white70, fontSize: 14.sp)),
+                Text('Send ${CurrencyController.to.currencySymbol.value}$amount to:', style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 14.sp)),
                 SizedBox(height: 4.h),
                 Row(
                   children: [
-                    Expanded(child: Text(upiId.isNotEmpty ? upiId : '—', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16.sp))),
+                    Expanded(child: Text(upiId.isNotEmpty ? upiId : '—', style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 16.sp))),
                     if (upiId.isNotEmpty)
                       IconButton(
                         icon: const Icon(Icons.copy, color: Colors.cyanAccent, size: 18),
@@ -929,19 +926,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           Clipboard.setData(ClipboardData(text: upiId));
                           Get.snackbar('Copied', 'UPI ID copied to clipboard.',
                               backgroundColor: Colors.cyanAccent.withValues(alpha: 0.2),
-                              colorText: Colors.white, snackPosition: SnackPosition.BOTTOM);
+                              colorText: isDark ? Colors.white : Colors.black, snackPosition: SnackPosition.BOTTOM);
                         },
                       ),
                   ],
                 ),
                 SizedBox(height: 4.h),
-                Text('Note: Money Control Pro - $_selectedPlan', style: TextStyle(color: Colors.white38, fontSize: 12.sp)),
+                Text('Note: Money Control Pro - $_selectedPlan', style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 12.sp)),
               ],
             ),
           ),
           SizedBox(height: 16.h),
 
-          // Pay via UPI app button
           if (upiId.isNotEmpty)
             SizedBox(
               width: double.infinity,
@@ -959,25 +955,25 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
 
           SizedBox(height: 16.h),
-          Text('Enter Transaction ID', style: TextStyle(color: Colors.white70, fontSize: 13.sp)),
+          Text('Enter Transaction ID', style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 13.sp)),
           SizedBox(height: 8.h),
           GlassContainer(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
             borderRadius: BorderRadius.circular(14.r),
             child: TextField(
               controller: _txnController,
-              style: TextStyle(color: Colors.white, fontSize: 15.sp),
+              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: _upiTxnId ?? 'Paste UPI transaction ID here',
-                hintStyle: TextStyle(color: Colors.white38, fontSize: 14.sp),
+                hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 14.sp),
                 prefixIcon: const Icon(Icons.receipt_long_rounded, color: Colors.cyanAccent),
               ),
               onChanged: (_) => setLocal(() {}),
             ),
           ),
           SizedBox(height: 8.h),
-          Text('The transaction ID is shown in your UPI app after payment.', style: TextStyle(color: Colors.white30, fontSize: 11.sp)),
+          Text('The transaction ID is shown in your UPI app after payment.', style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 11.sp)),
           SizedBox(height: 20.h),
 
           SizedBox(
@@ -1000,7 +996,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
           SizedBox(height: 12.h),
           Text('Your request will be reviewed by the admin. You will be notified once approved.',
-              textAlign: TextAlign.center, style: TextStyle(color: Colors.white30, fontSize: 12.sp)),
+              textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 12.sp)),
         ],
       );
     });
@@ -1034,7 +1030,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             SizedBox(height: 20.h),
             ...apps.map((app) => ListTile(
               title: Text(app.name, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
-              trailing: Icon(Icons.arrow_forward_ios, color: isDark ? Colors.white24 : AppColors.lightBorder, size: 14),
+              trailing: Icon(Icons.arrow_forward_ios, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2), size: 14),
               onTap: () {
                 Navigator.pop(context);
                 _initiateUpiPayment(app.pkg, amount, upiId, setLocal);
@@ -1058,7 +1054,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _parseUpiResponse(response, setLocal);
     } catch (e) {
       if (pkg.isNotEmpty) {
-        // App not installed — retry with system chooser
         _initiateUpiPayment('', amount, upiId, setLocal);
       } else {
         _showMessengerSnackBar('No UPI App Found', 'Please install a UPI app and try again.', Colors.redAccent);
@@ -1086,8 +1081,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _showMessengerSnackBar(String title, String message, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     rootScaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
-      content: Text('$title\n$message', style: const TextStyle(color: Colors.white)),
+      content: Text('$title\n$message', style: TextStyle(color: isDark ? Colors.white : Colors.black)),
       backgroundColor: color,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 4),
@@ -1108,7 +1104,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _buySubscription() async {
     final isUpiMode = PaymentConfigService.to.paymentMode.value == 'upi';
     if (isUpiMode) {
-      // Scroll to UPI flow — the main screen already shows it via _buildUpiFlow()
       Get.to(() => const SubscriptionScreen(), arguments: {'scrollToPayment': true});
       return;
     }

@@ -273,7 +273,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              emailController.dispose();
+              Navigator.pop(context);
+            },
             child: const Text("Cancel"),
           ),
           ElevatedButton(
@@ -292,6 +295,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ErrorHandler.showSuccess("Expiry set to yesterday! Restart app to test.", title: "Test Mode");
                 if (context.mounted) Navigator.pop(context);
               }
+              emailController.dispose();
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             child: const Text("Expire Now"),

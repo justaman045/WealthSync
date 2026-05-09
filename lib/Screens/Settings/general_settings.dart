@@ -23,11 +23,11 @@ class GeneralSettingsScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.lightTextPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: isDark ? Colors.white : AppColors.lightTextPrimary,
           fontWeight: FontWeight.bold,
           fontSize: 18.sp,
         ),
@@ -136,7 +136,7 @@ class GeneralSettingsScreen extends StatelessWidget {
               Text(
                 "Select Currency",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -146,7 +146,7 @@ class GeneralSettingsScreen extends StatelessWidget {
                 (c) => ListTile(
                   title: Text(
                     "${c['code']} (${c['symbol']})",
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                   onTap: () {
                     CurrencyController.to.setCurrency(c['code']!, c['symbol']!);
@@ -173,6 +173,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: 15.h, top: 10.h, left: 5.w),
       child: Align(
@@ -180,7 +181,7 @@ class _SectionHeader extends StatelessWidget {
         child: Text(
           title.toUpperCase(),
           style: TextStyle(
-            color: Colors.white54,
+            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
             fontSize: 12.sp,
             fontWeight: FontWeight.bold,
             letterSpacing: 1.2,
@@ -194,9 +195,10 @@ class _SectionHeader extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Divider(color: Colors.white.withValues(alpha: 0.1)),
+      child: Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
     );
   }
 }
@@ -216,6 +218,7 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
       child: Material(
@@ -227,9 +230,9 @@ class _SettingsTile extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.035),
               borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightBorder.withValues(alpha: 0.05)),
             ),
             child: Row(
               children: [
@@ -252,7 +255,7 @@ class _SettingsTile extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       fontSize: 15.sp,
                       fontWeight: FontWeight.w600,
                     ),
@@ -263,7 +266,7 @@ class _SettingsTile extends StatelessWidget {
                 else
                   Icon(
                     Icons.arrow_forward_ios_rounded,
-                    color: Colors.white24,
+                    color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
                     size: 16.sp,
                   ),
               ],

@@ -264,9 +264,9 @@ class SmsService {
         // Pick the most frequent category for this merchant
         String? bestCat;
         int bestCount = 0;
-        catCounts.forEach((cat, count) {
-          if (count > bestCount) {
-            bestCount = count;
+        catCounts.forEach((cat, cnt) {
+          if (cnt > bestCount) {
+            bestCount = cnt;
             bestCat = cat;
           }
         });
