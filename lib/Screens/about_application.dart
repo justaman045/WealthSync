@@ -176,7 +176,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           ),
           SizedBox(height: 14.h),
           Text(
-            "Money Control",
+            "WealthSync",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 20.sp,
@@ -196,7 +196,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           Divider(color: border),
           SizedBox(height: 12.h),
           Text(
-            "Empower your financial journey with Money Control. Seamlessly track expenses, visualize income streams, and gain profound insights into your spending habits with our AI-powered analytics. Crafted for elegance, designed for control.",
+            "Empower your financial journey with WealthSync. Seamlessly track expenses, visualize income streams, and gain profound insights into your spending habits with our AI-powered analytics. Crafted for elegance, designed for control.",
             textAlign: TextAlign.center,
             style: TextStyle(
               color: textColor.withValues(alpha: 0.85),
@@ -310,7 +310,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
               ),
               SizedBox(width: 6.w),
               Text(
-                "2025 Money Control",
+                "${DateTime.now().year} WealthSync",
                 style: TextStyle(color: secondary, fontSize: 13.sp),
               ),
             ],

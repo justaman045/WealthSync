@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Models/cateogary.dart';
+import 'package:money_control/Services/sms_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CategoryService {
-  static const _correctionsKey = 'category_corrections';
+  static const correctionsKey = 'category_corrections';
 
   // Records a merchant→category correction. After 2+ corrections for the same
   // merchant we surface a "create rule" suggestion.
@@ -16,7 +17,7 @@ class CategoryService {
     final key = merchant.trim().toLowerCase();
     if (key.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_correctionsKey);
+    final raw = prefs.getString(correctionsKey);
     final Map<String, dynamic> map =
         raw != null ? Map<String, dynamic>.from(jsonDecode(raw) as Map) : {};
     final existing = map[key] as Map<String, dynamic>?;
@@ -25,7 +26,9 @@ class CategoryService {
     } else {
       map[key] = {'category': category, 'count': 1};
     }
-    await prefs.setString(_correctionsKey, jsonEncode(map));
+    await prefs.setString(correctionsKey, jsonEncode(map));
+    // Live-update the SMS parser's in-memory cache so corrections take effect immediately.
+    SmsService.addCorrection(merchant, category);
   }
 
   // Returns the user-corrected category for a merchant, if any.
@@ -33,7 +36,7 @@ class CategoryService {
     final key = merchant.trim().toLowerCase();
     if (key.isEmpty) return null;
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_correctionsKey);
+    final raw = prefs.getString(correctionsKey);
     if (raw == null) return null;
     final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
     final entry = map[key] as Map<String, dynamic>?;
@@ -44,7 +47,7 @@ class CategoryService {
   // Returns merchants corrected 2+ times (candidates to become rules).
   static Future<List<Map<String, dynamic>>> getPendingSuggestions() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_correctionsKey);
+    final raw = prefs.getString(correctionsKey);
     if (raw == null) return [];
     final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
     final result = <Map<String, dynamic>>[];
@@ -66,11 +69,11 @@ class CategoryService {
   static Future<void> removeSuggestion(String merchant) async {
     final key = merchant.trim().toLowerCase();
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_correctionsKey);
+    final raw = prefs.getString(correctionsKey);
     if (raw == null) return;
     final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
     map.remove(key);
-    await prefs.setString(_correctionsKey, jsonEncode(map));
+    await prefs.setString(correctionsKey, jsonEncode(map));
   }
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

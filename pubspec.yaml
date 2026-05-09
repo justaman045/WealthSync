@@ -1,5 +1,5 @@
 name: money_control
-description: "A Cross Platform App to control and track you money and expenses."
+description: "WealthSync — Track expenses, build wealth & automate finances."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

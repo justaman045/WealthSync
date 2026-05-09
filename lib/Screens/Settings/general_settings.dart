@@ -7,9 +7,38 @@ import 'package:money_control/Screens/notification_history.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/main.dart'; // For ThemeController
 import 'package:money_control/Components/colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class GeneralSettingsScreen extends StatelessWidget {
+class GeneralSettingsScreen extends StatefulWidget {
   const GeneralSettingsScreen({super.key});
+
+  @override
+  State<GeneralSettingsScreen> createState() => _GeneralSettingsScreenState();
+}
+
+class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
+  bool _autoImport = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreference();
+  }
+
+  Future<void> _loadPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _autoImport = prefs.getBool('sms_auto_import_enabled') == true;
+    });
+  }
+
+  Future<void> _toggleAutoImport(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sms_auto_import_enabled', val);
+    if (!mounted) return;
+    setState(() => _autoImport = val);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,15 +90,22 @@ class GeneralSettingsScreen extends StatelessWidget {
                 _SettingsTile(
                   icon: Icons.notifications_none_rounded,
                   title: "Notifications",
-                  // Currently this just opened system settings or internal permissions
-                  // For now, let's keep it simple or remove if unused in main settings code
-                  // The original settings code didn't have a direct Notifications logic other than permission request on startup
-                  // Let's keep it as a placeholder or remove if redundant.
-                  // Wait, user requested to "categorize these settings". Let's verify what was there.
-                  // Original had Profile, Biometric, Privacy, Password, Currency, Budget, Manage Cat, Notifications(placeholder?), Dark Mode, Backup.
                   onTap: () {
                     Get.to(() => const NotificationHistoryScreen());
                   },
+                ),
+
+                _Divider(),
+
+                _SectionHeader("Automation"),
+                _SettingsTile(
+                  icon: Icons.smart_toy_outlined,
+                  title: "Auto-Import SMS",
+                  trailing: Switch(
+                    value: _autoImport,
+                    activeThumbColor: const Color(0xFF00E5FF),
+                    onChanged: _toggleAutoImport,
+                  ),
                 ),
 
                 _Divider(),
@@ -88,7 +124,6 @@ class GeneralSettingsScreen extends StatelessWidget {
                       activeThumbColor: const Color(0xFF00E5FF),
                       onChanged: (val) {
                         themeController.setTheme(val);
-                        // Persist logic handles itself in main/controller
                       },
                     ),
                   );

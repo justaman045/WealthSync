@@ -298,7 +298,54 @@ Pinned to **v6.2.2** (`pubspec.yaml: google_sign_in: ^6.2.2`). Do **not** upgrad
 7. **One-shot dashboard fetch** — Always use `streamPortfolio()` (not `getPortfolio()`) so amounts update immediately after adding entries and navigating back.
 8. **Referral rules blocking cross-user writes** — `firestore.rules` must have `isReferralAllowed()` exception on `users/{userEmail}` write rule.
 9. **Salary detection false positives** — In `analytics.dart _buildSalaryDetection`, filter EMI/loan transactions out of the candidate pool BEFORE computing median/max. Only check `recipientName` for exclusion keywords — `note` and `category` can legitimately be "Transfer"/"NEFT" for real salary.
+10. **Test expected values must match field sums** — When new asset fields are added to `WealthPortfolio`, update `totalAssets` expected values in both `wealth_data_test.dart` tests. The test data comment is also prone to drift — recompute from actual values.
+11. **`fromMap` Timestamp cast in tests** — `(map['lastUpdated'] as Timestamp?)?.toDate()` fails with mocked `Timestamp`. Use `(map['lastUpdated'] as dynamic)?.toDate()` instead, which works with both real Timestamp and test mocks.
+12. **`compact()` rounds, doesn't truncate** — `toStringAsFixed()` applies rounding. `compact(1500)` returns `"2K"` (1.5 → 2), not `"1K`. Tests expecting truncation will fail.
 10. **APK download URL** — Always construct from release tag: `releases/download/$tag/app-release.apk`. Do NOT scan `assets[]` — GitHub lists `.aab` alphabetically first.
+13. **Don't mix GetX dialogs with Flutter navigator** — `Get.dialog()` + `Navigator.pop()` + `Get.snackbar()` causes `LateInitializationError` because `Get.back()` tries to close snackbar queue with uninitialized `_controller`. Use pure Flutter: `showDialog()` + `Navigator.of(context, rootNavigator: true).pop()` + `ScaffoldMessenger.showSnackBar()`.
+14. **`FilePicker.saveFile()` returns content:// URI on Android** — You CANNOT call `File(result).writeAsString()` on it. Must pass `bytes: Uint8List.fromList(utf8.encode(csv))` to `saveFile()`.
+15. **`showDialog` + `Navigator.pop` navigator mismatch** — `showDialog()` uses `useRootNavigator: true` by default. `Navigator.of(context)` (without rootNavigator) finds a different navigator. Always use `Navigator.of(context, rootNavigator: true).pop()`.
+
+## CSV Export (`lib/Screens/Settings/data_support_settings.dart`)
+
+### Safe Pattern (Pure Flutter APIs Only — No GetX)
+
+```dart
+final nav = Navigator.of(context, rootNavigator: true);
+showDialog<void>(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+
+bool dialogClosed = false;
+try {
+  // ... fetch data, build CSV rows, convert to csv string ...
+  final bytes = Uint8List.fromList(utf8.encode(csv));
+
+  if (!context.mounted) return;
+  nav.pop();
+  dialogClosed = true;
+
+  final result = await FilePicker.platform.saveFile(
+    fileName: 'export.csv',
+    bytes: bytes,  // REQUIRED on Android (content:// URI)
+  );
+  if (result == null) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Exported to: $result")));
+} catch (e) {
+  if (!context.mounted) return;
+  if (!dialogClosed) nav.pop();
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Export Failed: $e")));
+}
+```
+
+### Why Not GetX
+- `Get.back()` calls `closeCurrentSnackbar()` internally, crashing if snackbar `_controller` is uninitialized
+- `Get.snackbar()` uses GetX overlay which may not be available after `Navigator.pop()`
+- Pure Flutter APIs (`showDialog`, `Navigator.pop`, `ScaffoldMessenger`) are consistent and avoid these issues
+
+### Why `bytes:` is Required
+- `FilePicker.platform.saveFile()` on Android returns a `content://` URI (SAF document URI)
+- You cannot `File(contentUri).writeAsString()` — `File` only works with file:// paths
+- Pass `bytes: Uint8List.fromList(utf8.encode(csv))` and file_picker handles the write
 
 ## UPI Payments (`lib/Screens/add_transaction.dart` + `MainActivity.kt`)
 

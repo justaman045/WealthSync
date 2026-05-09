@@ -62,7 +62,7 @@ class BackgroundWorker {
         AndroidNotificationDetails(
           channelId,
           channelName,
-          channelDescription: 'Money Control Notifications',
+          channelDescription: 'WealthSync Notifications',
           importance: Importance.max,
           priority: Priority.high,
           styleInformation: BigTextStyleInformation(''),
@@ -402,7 +402,8 @@ Future<int> _processSmsMessages(
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return 0;
 
-    // Build category cache from past transactions before parsing
+    // Load correction cache + history cache before parsing
+    await SmsService.loadCorrectionCache();
     await SmsService.buildHistoryCache();
 
     int imported = 0;

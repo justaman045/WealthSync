@@ -1048,8 +1048,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         if (pkg.isNotEmpty) 'packageName': pkg,
         'pa': upiId,
         'amount': amount,
-        'payeeName': 'Money Control',
-        'note': 'Money Control Pro - $_selectedPlan',
+        'payeeName': 'WealthSync',
+        'note': 'WealthSync Pro - $_selectedPlan',
       });
       _parseUpiResponse(response, setLocal);
     } catch (e) {

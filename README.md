@@ -1,96 +1,144 @@
-# Money Control
-### Your Complete Wealth & Expense Manager 🚀
+<div align="center">
+  <img src="assets/app_logo.png" alt="WealthSync Logo" width="96" height="96"/>
+  <h1>WealthSync</h1>
+  <p><b>Your Pocket CFO</b> — track expenses, build wealth, automate finances</p>
 
-[![Release](https://img.shields.io/github/v/release/justaman045/Finance-Control?color=blue&style=flat-square)](https://github.com/justaman045/Finance-Control/releases)
-[![License](https://img.shields.io/github/license/justaman045/Finance-Control?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Android-green?style=flat-square)](https://github.com/justaman045/Finance-Control/releases)
-
-**Track. Analyze. Grow.**
-*Privacy-first financial tracking with AI-powered SMS automation and comprehensive wealth management.*
-
-[Features](#-features) • [Download](#-download) • [Pro Plan](#-pro-features)
-
+  [![Release](https://img.shields.io/github/v/release/justaman045/Finance-Control?color=6C5CE7&style=flat-square)](https://github.com/justaman045/Finance-Control/releases)
+  [![Tests](https://github.com/justaman045/Finance-Control/actions/workflows/flutter_build.yml/badge.svg)](https://github.com/justaman045/Finance-Control/actions/workflows/flutter_build.yml)
+  [![License](https://img.shields.io/github/license/justaman045/Finance-Control?style=flat-square)](LICENSE)
+  [![Platform](https://img.shields.io/badge/Android-73C36A?style=flat-square&logo=android)](https://github.com/justaman045/Finance-Control/releases)
+  [![Flutter](https://img.shields.io/badge/Flutter-3.35-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
+  [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 </div>
 
----
-
-## 🌟 Why Money Control?
-
-Most finance apps are cluttered, invasive, or just plain ugly. **Money Control** is different. We built a modern, privacy-first financial companion that combines beautiful design with powerful automation and wealth tracking.
-
-### 🔒 Privacy First
-Your financial data belongs to you. Money Control works **offline-first**, storing your data securely on your device. We don't sell your data to advertisers.
-
-### 🤖 Intelligent Automation (Pro)
-Stop manually entering every coffee you buy. Our **Pro** tier uses advanced on-device machine learning to read your bank SMS and automatically categorize your transactions. It's magic.
-
-### 📈 Wealth Management
-Go beyond expenses. Track your entire net worth—including Stocks, Real Estate, Gold, and Crypto—in one beautiful dashboard with smart allocation insights.
-
-### 🎨 Beautiful by Design
-Enjoy a stunning, glassmorphic interface that makes managing money a delight, not a chore. With smooth animations and full support for Dark Mode, it looks good at any time of day.
+<p align="center">
+  <b>Privacy-first</b> • <b>Offline-ready</b> • <b>AI-powered</b> • <b>24 asset types</b>
+</p>
 
 ---
 
-## ✨ Features
+## Why WealthSync?
 
-### Core Experience (Free Forever)
-*   **Smart Dashboard:** See your monthly balance and spending trends at a glance.
-*   **Wealth Builder:** Track net worth across Stocks, Real Estate, Crypto, and Gold.
-*   **Intuitive Tracking:** Add income and expenses in seconds with our streamlined UI.
-*   **Visual Analytics:** Understand where your money goes with clear, interactive charts.
-*   **Custom Categories:** Organize your spending your way.
-*   **Offline Support:** No internet? No problem. Add transactions anywhere.
-*   **Secure & Private:** biometric lock support to keep your data safe.
+Most finance apps are cluttered, invasive, or ugly. **WealthSync** is a modern, privacy-first financial companion that combines beautiful design with powerful automation and complete wealth tracking.
 
-### 💎 Pro Features (Unlock Potential)
-Upgrade to **Money Control Pro** to automate your financial life:
-
-| Feature | Free | Pro 💎 |
-| :--- | :---: | :---: |
-| **Transaction Limits** | 150/mo | **Unlimited** |
-| **Categories** | 10 | **Unlimited** |
-| **SMS Auto-Tracking** | ❌ | **✅ AI Powered** |
-| **Budgeting & Alerts** | ❌ | **✅ Smart Alerts** |
-| **Data Export** | ❌ | **✅ PDF / CSV** |
-| **Advanced Analytics** | Basic | **✅ Lifetime History** |
-| **Priority Support** | Standard | **✅ Priority** |
-| **Monthly Price** | **Free** | **₹249** |
+| | |
+|---|---|
+| **🔒 Privacy First** | Your data stays yours. Offline-first architecture with biometric lock. No data sold. |
+| **🤖 AI Automation** | Pro tier reads bank SMS via on-device ML and auto-categorizes transactions. |
+| **📊 Wealth Management** | Track 24 asset types — stocks, real estate, crypto, gold, PF, NPS, and more. |
+| **🎨 Beautiful Design** | Glassmorphic UI with smooth animations. Full dark mode support. |
+| **📱 UPI Payments** | Native UPI integration — send money directly from the app. |
 
 ---
 
-## 📥 Download
+## Features
 
-Experience the app today. We release frequent updates with new features and improvements.
+### Free Forever
 
-### 📲 Latest Android APK
-Get the latest build directly from GitHub:
+- **Dashboard** — Monthly balance, spending trends, quick insights
+- **Expense Tracking** — Add income/expenses in seconds
+- **Visual Analytics** — Interactive charts (fl_chart)
+- **Wealth Portfolio** — 24 asset types, custom entries, targets
+- **Custom Categories** — Organize spending your way
+- **Offline Support** — Full functionality without internet
+- **Biometric Lock** — Fingerprint / face unlock
+- **Budgeting** — Monthly budgets with alerts
+- **Savings Goals** — Track and visualize progress
+- **Recurring Payments** — Auto-track subscriptions and EMIs
+- **Lent Money Tracking** — Track loans between friends
+- **Savings Challenges** — Gamified saving streaks
+- **CSV/PDF Export** — Export your data
 
-> **[Download Latest APK (v2.0.88)](https://github.com/justaman045/Finance-Control/releases/download/v2.0.100/app-release.apk
+### Pro 💎
 
-**Installation Instructions:**
-1. Download the `.apk` file from the link above.
-2. Open the file on your Android device.
-3. Allow installation from unknown sources if prompted.
-4. Enjoy financial freedom!
+| Feature | Free | Pro |
+|---|---|---|
+| Transactions/mo | 150 | Unlimited |
+| Categories | 10 | Unlimited |
+| SMS Auto-Tracking | ❌ | ✅ AI-powered |
+| Smart Budget Alerts | ❌ | ✅ |
+| Advanced Analytics | Basic | Lifetime history |
+| Receipt OCR | ❌ | ✅ |
+| Priority Support | Standard | Priority |
+| **Price** | **Free** | **₹249/mo** |
 
 ---
 
-## 🔧 Technical Overview
+## Screenshots
 
-For developers and contributors, Money Control is built with a modern tech stack ensuring performance and scalability.
+<!-- TODO: Add light/dark mode screenshots -->
+<!-- 
+| Dashboard | Wealth | Analytics | SMS Import |
+|:---:|:---:|:---:|:---:|
+| ![Dashboard](screenshots/dashboard.png) | ![Wealth](screenshots/wealth.png) | ![Analytics](screenshots/analytics.png) | ![SMS](screenshots/sms.png) |
+-->
 
-*   **Framework:** Flutter (Dart)
-*   **State Management:** GetX
-*   **Backend:** Firebase (Auth, Firestore, Crashlytics)
-*   **Architecture:** MVC-Service-Repository pattern
-*   **Key Libraries:** `flutter_screenutil`, `fl_chart`, `google_ml_kit` (for OCR/SMS)
+---
 
-### Contributing
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) to get started.
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Framework** | Flutter (Dart SDK ^3.9.2) |
+| **State Management** | GetX |
+| **Backend** | Firebase Auth, Firestore, Crashlytics, Messaging, Storage, Performance |
+| **Architecture** | MVC-Service-Repository |
+| **SMS / OCR** | google_mlkit_text_recognition |
+| **Charts** | fl_chart |
+| **Payments** | UPI via Kotlin MethodChannel |
+| **Auth** | Email/Password, Google Sign-In, Apple Sign-In |
+| **Responsive** | flutter_screenutil (390×844 reference) |
+
+---
+
+## Quick Start
+
+```bash
+# Clone
+git clone https://github.com/justaman045/Finance-Control.git
+cd Finance-Control
+
+# Install dependencies
+flutter pub get
+
+# Run tests
+flutter test
+
+# Analyze
+flutter analyze
+
+# Run app
+flutter run
+
+# Build release APK
+flutter build apk --release
+```
+
+---
+
+## Download
+
+**Latest APK:** https://github.com/justaman045/Finance-Control/releases/download/v2.0.100/app-release.apk
+
+*Installation:* Download the `.apk` on your Android device, open it, and allow installation from unknown sources.
+
+---
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+
+- Found a bug? [Open an issue](https://github.com/justaman045/Finance-Control/issues/new?labels=bug)
+- Have an idea? [Open a feature request](https://github.com/justaman045/Finance-Control/issues/new?labels=enhancement)
+
+---
+
+## License
+
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
-Made with ❤️ by the Money Control Team
+  Made with ❤️
 </div>

@@ -1,7 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/about_application.dart';
 import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/terms_and_policy.dart';
@@ -77,6 +84,87 @@ class DataSupportSettingsScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _handleExportCsv(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.email == null) return;
+
+    final nav = Navigator.of(context, rootNavigator: true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    bool dialogClosed = false;
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.email)
+          .collection('transactions')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final transactions = snap.docs.map((doc) =>
+          TransactionModel.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+
+      final rows = <List<dynamic>>[
+        ["ID", "Date", "Sender ID", "Recipient ID", "Recipient Name", "Amount", "Tax", "Total", "Currency", "Category", "Status", "Note", "Attachment URL", "Created At"],
+        ...transactions.map((tx) => [
+          tx.id,
+          tx.date.toIso8601String(),
+          tx.senderId,
+          tx.recipientId,
+          tx.recipientName,
+          tx.amount,
+          tx.tax,
+          tx.total,
+          tx.currency,
+          tx.category ?? '',
+          tx.status ?? '',
+          tx.note ?? '',
+          tx.attachmentUrl ?? '',
+          tx.createdAt?.toDate().toIso8601String() ?? '',
+        ]),
+      ];
+
+      final csv = const ListToCsvConverter().convert(rows);
+      final bytes = Uint8List.fromList(utf8.encode(csv));
+
+      if (!context.mounted) return;
+      nav.pop();
+      dialogClosed = true;
+
+      final result = await FilePicker.platform.saveFile(
+        fileName: 'WealthSync_transactions_export.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        bytes: bytes,
+      );
+
+      if (result == null) return;
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Exported to: $result"),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      if (!dialogClosed) nav.pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Export Failed: $e"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -126,6 +214,11 @@ class DataSupportSettingsScreen extends StatelessWidget {
                   icon: Icons.upload_file,
                   title: "Import Data (CSV)",
                   onTap: () => Get.to(() => const ImportScreen()),
+                ),
+                _SettingsTile(
+                  icon: Icons.download,
+                  title: "Export Data (CSV)",
+                  onTap: () => _handleExportCsv(context),
                 ),
 
                 _Divider(),

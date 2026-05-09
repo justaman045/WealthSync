@@ -327,7 +327,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                 extentRatio: 0.25,
                                 children: [
                                   SlidableAction(
-                                    onPressed: (context) => _confirmDelete(context, tx),
+                                    onPressed: (_) => _confirmDelete(tx),
                                     backgroundColor: const Color(0xFFFE4A49),
                                     foregroundColor: Colors.white,
                                     icon: Icons.delete,
@@ -412,7 +412,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, TransactionModel tx) async {
+  Future<void> _confirmDelete(TransactionModel tx) async {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final confirm = await showDialog<bool>(
@@ -440,7 +440,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     );
 
     if (confirm == true) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       if (!Get.isRegistered<TransactionController>()) return;
       final ctrl = Get.find<TransactionController>();
       await ctrl.deleteTransaction(tx);

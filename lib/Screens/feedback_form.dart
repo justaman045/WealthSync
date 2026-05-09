@@ -159,7 +159,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Help me improve Money Control",
+                    "Help me improve WealthSync",
                     style: TextStyle(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,

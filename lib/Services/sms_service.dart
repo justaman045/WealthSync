@@ -4,7 +4,6 @@ import 'dart:developer';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
-import 'package:money_control/Services/category_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -37,6 +36,13 @@ class SmsService {
 
   // Merchant → category corrections learned from user edits (loaded on initRules)
   static Map<String, String> _correctionCache = {};
+  static bool _correctionCacheLoaded = false;
+
+  /// Add a single correction to the in-memory cache (no persistence).
+  /// Callers should persist via [CategoryService.recordCorrection] separately.
+  static void addCorrection(String merchant, String category) {
+    _correctionCache[merchant.trim().toLowerCase()] = category;
+  }
 
   // Merchant → category learned from past Firestore transactions
   static Map<String, String> _historyCache = {};
@@ -166,6 +172,7 @@ class SmsService {
   /// Reset all static caches (call on signOut to prevent cross-user data leak).
   static void resetCache() {
     _correctionCache.clear();
+    _correctionCacheLoaded = false;
     _historyCache.clear();
     _historyLoaded = false;
     _rulesLoaded = false;
@@ -458,6 +465,26 @@ class SmsService {
     await prefs.setString(_userRulesKey, jsonEncode(rules));
   }
 
+  /// Load merchant→category corrections from local storage (all counts).
+  /// Safe to call from anywhere (static, no instance needed).
+  static Future<void> loadCorrectionCache() async {
+    if (_correctionCacheLoaded) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('category_corrections');
+      if (raw != null) {
+        final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+        _correctionCache = {
+          for (final entry in map.entries)
+            entry.key.toLowerCase(): (entry.value as Map)['category'] as String,
+        };
+      }
+      _correctionCacheLoaded = true;
+    } catch (e) {
+      log("Error loading correction cache: $e");
+    }
+  }
+
   Future<void> initRules() async {
     if (_rulesLoaded) return;
     try {
@@ -473,11 +500,7 @@ class SmsService {
         _currentRules[key] = [...(_currentRules[key] ?? []), ...keywords];
       });
       // Load correction cache for merchant-level fallback
-      final corrections = await CategoryService.getPendingSuggestions();
-      _correctionCache = {
-        for (final s in corrections)
-          (s['merchant'] as String).toLowerCase(): s['category'] as String,
-      };
+      await loadCorrectionCache();
       // Build category cache from past transactions
       await buildHistoryCache();
       _rulesLoaded = true;

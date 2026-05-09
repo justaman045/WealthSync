@@ -12,7 +12,7 @@
         android:id="@+id/widget_app_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="💰 Money Control"
+        android:text="💰 WealthSync"
         android:textColor="#99FFFFFF"
         android:textSize="11sp"
         android:letterSpacing="0.05" />

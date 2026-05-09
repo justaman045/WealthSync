@@ -36,7 +36,9 @@ class ExportService {
       [
         "ID",
         "Date",
-        "Recipient",
+        "Sender ID",
+        "Recipient ID",
+        "Recipient Name",
         "Amount",
         "Tax",
         "Total",
@@ -44,11 +46,15 @@ class ExportService {
         "Category",
         "Status",
         "Note",
+        "Attachment URL",
+        "Created At",
       ],
       ...list.map(
         (tx) => [
           tx.id,
           tx.date.toIso8601String(),
+          tx.senderId,
+          tx.recipientId,
           tx.recipientName,
           tx.amount,
           tx.tax,
@@ -57,6 +63,8 @@ class ExportService {
           tx.category ?? '',
           tx.status ?? '',
           tx.note ?? '',
+          tx.attachmentUrl ?? '',
+          tx.createdAt?.toDate().toIso8601String() ?? '',
         ],
       ),
     ];

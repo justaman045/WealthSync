@@ -264,7 +264,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
           scaffoldMessengerKey: rootScaffoldMessengerKey,
           // navigatorKey is properly handled by GetX internally
           debugShowCheckedModeBanner: false,
-          title: "Money Control",
+          title: "WealthSync",
           defaultTransition: Transition.fadeIn,
           transitionDuration: const Duration(milliseconds: 300),
           themeMode: themeController.themeMode,

@@ -19,7 +19,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="Money Control"
+        android:label="WealthSync"
         android:icon="@mipmap/ic_launcher">
 
         <!-- Main Activity -->

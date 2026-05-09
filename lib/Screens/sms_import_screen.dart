@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -26,14 +28,34 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
   final SmsService _smsService = SmsService();
   List<SmsTransaction> _transactions = [];
   final Set<int> _selectedIndices = {};
+  Set<int> _importedIndices = {};
   bool _loading = false;
   bool _scanned = false;
+  Set<String> _importedKeys = {};
 
   @override
   void initState() {
     super.initState();
+    _loadImported();
     _scanSms();
   }
+
+  Future<void> _loadImported() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('imported_sms_keys');
+    if (raw != null) {
+      _importedKeys = (jsonDecode(raw) as List).cast<String>().toSet();
+    }
+  }
+
+  Future<void> _saveImported() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('imported_sms_keys', jsonEncode(_importedKeys.toList()));
+  }
+
+  /// Matches background_worker.dart dedup format: sender + epoch-minute + amount.
+  String _smsDedupeKey(SmsTransaction tx) =>
+      '${tx.sender}_${(tx.date.millisecondsSinceEpoch ~/ 60000)}_${tx.amount}';
 
   Future<void> _scanSms() async {
     setState(() {
@@ -81,11 +103,41 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
         }
         return;
       }
+      final db = FirebaseFirestore.instance;
+      final user = FirebaseAuth.instance.currentUser;
+      final firestoreKeys = <String>{};
+      if (user?.email != null) {
+        final dedupKeys = results.map(_smsDedupeKey).toList();
+        for (int i = 0; i < dedupKeys.length; i += 30) {
+          final chunk = dedupKeys.sublist(i, (i + 30).clamp(0, dedupKeys.length));
+          final snap = await db
+              .collection('users')
+              .doc(user!.email)
+              .collection('transactions')
+              .where('smsDedupeKey', whereIn: chunk)
+              .get();
+          for (final doc in snap.docs) {
+            firestoreKeys.add(doc['smsDedupeKey'] as String);
+          }
+        }
+      }
+      final allImported = {..._importedKeys, ...firestoreKeys};
+      final importedIdx = <int>{};
+      for (int i = 0; i < results.length; i++) {
+        if (allImported.contains(_smsDedupeKey(results[i]))) {
+          importedIdx.add(i);
+        }
+      }
       if (mounted) {
         setState(() {
           _transactions = results;
+          _importedIndices = importedIdx;
           _scanned = true;
-          _selectedIndices.addAll(List.generate(results.length, (i) => i));
+          _loading = false;
+          _selectedIndices.addAll(
+            List.generate(results.length, (i) => i)
+                .where((i) => !importedIdx.contains(i)),
+          );
         });
       }
       if (results.isNotEmpty || _scanned) {
@@ -99,7 +151,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
             : null;
       }
     } finally {
-      if (mounted && _transactions.isEmpty) {
+      if (mounted) {
         setState(() {
           _loading = false;
         });
@@ -108,6 +160,41 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
   }
 
   Future<void> _importSelected() async {
+    final selectedList = _selectedIndices.toList();
+    final reimporting = selectedList.where((i) => _importedIndices.contains(i)).toList();
+
+    if (reimporting.isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) {
+          final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
+          return AlertDialog(
+            backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
+            title: Text('Re-import Transactions',
+              style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
+            content: Text(
+              '${reimporting.length} transaction${reimporting.length == 1 ? '' : 's'} '
+              'already imported. Create duplicates?',
+              style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel',
+                  style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
+                child: const Text('Import Anyway'),
+              ),
+            ],
+          );
+        },
+      );
+      if (confirmed != true) return;
+    }
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.email == null) return;
 
@@ -118,7 +205,6 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
         .doc(user.email)
         .collection('transactions');
 
-    final selectedList = _selectedIndices.toList();
     const chunkSize = 499;
     int count = 0;
 
@@ -141,18 +227,24 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
           currency: 'INR',
           tax: 0,
           date: smsTx.date,
-          note: "Imported from SMS: ${smsTx.body}",
+          note: "Imported from SMS",
           category: smsTx.category,
           status: 'success',
           createdAt: Timestamp.now(),
         );
 
         batch.set(docRef, tx.toMap());
+        batch.update(docRef, {'smsDedupeKey': _smsDedupeKey(smsTx)});
         count++;
       }
 
       await batch.commit();
     }
+
+    for (final i in selectedList) {
+      _importedKeys.add(_smsDedupeKey(_transactions[i]));
+    }
+    await _saveImported();
 
     ErrorHandler.showSuccess("Imported $count transactions!");
     if (mounted) {
@@ -216,6 +308,8 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
           );
         }
 
+        final freshCount = _transactions.length - _importedIndices.length;
+
         return _loading && !_scanned
             ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
             : _transactions.isEmpty
@@ -223,14 +317,18 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.sms_failed, size: 60, color: isDark ? Colors.white24 : AppColors.lightTextSecondary.withValues(alpha: 0.4)),
+                    Icon(
+                      Icons.sms_failed,
+                      size: 60,
+                      color: isDark ? Colors.white24 : AppColors.lightTextSecondary.withValues(alpha: 0.4),
+                    ),
                     SizedBox(height: 16.h),
                     Text(
                       "No bank transactions found.",
                       style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
                     ),
                     SizedBox(height: 16.h),
-                    TextButton(onPressed: _scanSms, child: Text("Retry")),
+                    TextButton(onPressed: _scanSms, child: Text("Scan Again")),
                   ],
                 ),
               )
@@ -239,7 +337,9 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                   Padding(
                     padding: EdgeInsets.all(16.w),
                     child: Text(
-                      "Found ${_transactions.length} transactions",
+                      _importedIndices.length == _transactions.length
+                          ? "All ${_transactions.length} transactions already imported"
+                          : "Found $freshCount new of ${_transactions.length} transactions",
                       style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
                     ),
                   ),
@@ -249,81 +349,148 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                       itemBuilder: (context, index) {
                         final tx = _transactions[index];
                         final isSelected = _selectedIndices.contains(index);
+                        final isImported = _importedIndices.contains(index);
                         return Container(
                           margin: EdgeInsets.symmetric(
                             horizontal: 16.w,
                             vertical: 8.h,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: isImported
+                                ? Colors.white.withValues(alpha: 0.02)
+                                : Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12.r),
                             border: Border.all(
                               color: isSelected
                                   ? Colors.cyan
-                                  : Colors.transparent,
+                                  : isImported
+                                      ? Colors.white10
+                                      : Colors.transparent,
                             ),
                           ),
-                          child: CheckboxListTile(
-                            value: isSelected,
-                            activeColor: Colors.cyan,
-                            checkColor: Colors.black,
-                            title: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    tx.merchant,
+                          child: Opacity(
+                            opacity: isImported ? 0.55 : 1.0,
+                            child: CheckboxListTile(
+                              value: isSelected,
+                              activeColor: Colors.cyan,
+                              checkColor: Colors.black,
+                              title: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            tx.merchant,
+                                            style: TextStyle(
+                                              color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isImported) ...[
+                                          SizedBox(width: 8.w),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                            decoration: BoxDecoration(
+                                              color: Colors.cyan.withValues(alpha: 0.15),
+                                              borderRadius: BorderRadius.circular(4.r),
+                                            ),
+                                            child: Text(
+                                              "Imported",
+                                              style: TextStyle(
+                                                color: Colors.cyan,
+                                                fontSize: 9.sp,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    "${tx.isDebit ? '-' : '+'} ${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
                                     style: TextStyle(
-                                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                                      color: tx.isDebit
+                                          ? Colors.redAccent
+                                          : Colors.greenAccent,
                                       fontWeight: FontWeight.bold,
                                     ),
+                                  ),
+                                ],
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    DateFormat(
+                                      'dd MMM yyyy, hh:mm a',
+                                    ).format(tx.date),
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
+                                      fontSize: 12.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    tx.body,
+                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white30 : AppColors.lightTextSecondary.withValues(alpha: 0.6),
+                                      fontSize: 10.sp,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  "${tx.isDebit ? '-' : '+'} ${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
-                                  style: TextStyle(
-                                    color: tx.isDebit
-                                        ? Colors.redAccent
-                                        : Colors.greenAccent,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  DateFormat(
-                                    'dd MMM yyyy, hh:mm a',
-                                  ).format(tx.date),
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                                    fontSize: 12.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 4.h),
-                                Text(
-                                  tx.body,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white30 : AppColors.lightTextSecondary.withValues(alpha: 0.6),
-                                    fontSize: 10.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  _selectedIndices.add(index);
+                                ],
+                              ),
+                              onChanged: (val) {
+                                if (isImported && val == true) {
+                                  showDialog<void>(
+                                    context: context,
+                                    builder: (ctx) {
+                                      final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
+                                      return AlertDialog(
+                                        backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
+                                        title: Text('Already Imported',
+                                          style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
+                                        content: Text(
+                                          'This transaction was already imported. Create a duplicate?',
+                                          style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx),
+                                            child: Text('Cancel',
+                                              style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () {
+                                              Navigator.pop(ctx);
+                                              setState(() {
+                                                _selectedIndices.add(index);
+                                              });
+                                            },
+                                            style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
+                                            child: const Text('Import Anyway'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
                                 } else {
-                                  _selectedIndices.remove(index);
+                                  setState(() {
+                                    if (val == true) {
+                                      _selectedIndices.add(index);
+                                    } else {
+                                      _selectedIndices.remove(index);
+                                    }
+                                  });
                                 }
-                              });
-                            },
+                              },
+                            ),
                           ),
                         );
                       },

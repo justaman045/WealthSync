@@ -549,7 +549,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
     SharePlus.instance.share(
       ShareParams(
         text:
-            "Use my code **$_code** to get 1 month free on Money Control! 💰\n\n"
+            "Use my code **$_code** to get 1 month free on WealthSync! 💰\n\n"
             "Track your expenses, budgets, loans & wealth — all in one app.\n\n"
             "📲 Download here: $downloadUrl",
       ),
