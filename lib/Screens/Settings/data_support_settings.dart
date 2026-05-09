@@ -106,7 +106,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
           .get();
 
       final transactions = snap.docs.map((doc) =>
-          TransactionModel.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+          TransactionModel.fromMap(doc.id, doc.data())).toList();
 
       final rows = <List<dynamic>>[
         ["ID", "Date", "Sender ID", "Recipient ID", "Recipient Name", "Amount", "Tax", "Total", "Currency", "Category", "Status", "Note", "Attachment URL", "Created At"],
