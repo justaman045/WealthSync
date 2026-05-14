@@ -1,16 +1,21 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/challenge_model.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Repositories/challenge_repository.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
 
 class ChallengesController extends GetxController {
   static ChallengesController get to => Get.find();
 
   final _repo = ChallengeRepository();
-  StreamSubscription<List<SavingsChallengeModel>>? _sub;
+  final _auth = FirebaseAuth.instance;
+
+  String? get _userEmail => _auth.currentUser?.email;
+  String get _cacheKey => 'challenges_${_userEmail ?? ''}';
 
   RxList<SavingsChallengeModel> challenges = <SavingsChallengeModel>[].obs;
   RxBool isLoading = true.obs;
@@ -19,23 +24,38 @@ class ChallengesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _bind();
+    _loadFromCache();
+    _fetchFromFirestore();
   }
 
-  @override
-  void onClose() {
-    _sub?.cancel();
-    super.onClose();
+  void _loadFromCache() {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      challenges.value = (cached as List).map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
+        final id = map.remove('_id') as String? ?? '';
+        return SavingsChallengeModel.fromMap(id, map);
+      }).toList();
+      isLoading.value = false;
+    }
   }
 
-  void _bind() {
-    _sub = _repo.getChallengesStream().listen(
-      (list) {
-        challenges.value = list;
-        isLoading.value = false;
-      },
-      onError: (_) => isLoading.value = false,
-    );
+  Future<void> _fetchFromFirestore() async {
+    try {
+      final list = await _repo.getChallenges();
+      challenges.value = list;
+      if (_userEmail != null) {
+        final cacheData = list.map((t) {
+          final map = t.toMap();
+          map['_id'] = t.id;
+          return LocalCacheService.hiveSafe(map);
+        }).toList();
+        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+      }
+    } catch (_) {
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   double computeProgress(
@@ -71,6 +91,8 @@ class ChallengesController extends GetxController {
     isSaving.value = true;
     try {
       await _repo.addChallenge(challenge);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       return true;
     } catch (_) {
       ErrorHandler.showError("Failed to save challenge.");
@@ -85,6 +107,8 @@ class ChallengesController extends GetxController {
     isSaving.value = true;
     try {
       await _repo.deleteChallenge(id);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       return true;
     } catch (_) {
       ErrorHandler.showError("Failed to delete challenge.");
@@ -97,6 +121,8 @@ class ChallengesController extends GetxController {
   Future<void> markComplete(SavingsChallengeModel c) async {
     try {
       await _repo.updateChallenge(c.copyWith(isCompleted: true));
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
     } catch (e) {
       debugPrint('Failed to mark challenge complete: $e');
       ErrorHandler.showError("Failed to save progress.");

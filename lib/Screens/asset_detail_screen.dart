@@ -191,10 +191,13 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                 ),
               ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _col.orderBy('createdAt', descending: true).snapshots(),
+          stream: _col.orderBy('createdAt', descending: true).limit(25).snapshots(),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
+            }
+            if (snap.hasError) {
+              return Center(child: Text("Error: ${snap.error}"));
             }
             final docs = snap.data?.docs ?? [];
             if (docs.isEmpty) {
@@ -562,7 +565,7 @@ class _AddSheetState extends State<_AddSheet> {
     if (f.type == AssetFieldType.dropdown) {
       return StatefulBuilder(builder: (ctx, localSet) {
         return DropdownButtonFormField<String>(
-          value: _dropdownValues[f.key],
+          initialValue: _dropdownValues[f.key],
           dropdownColor: isDark ? const Color(0xFF1E1E2C) : AppColors.lightSurface,
           style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
           decoration: _inputDecoration(f.label, isDark),

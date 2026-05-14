@@ -75,6 +75,9 @@ class NotificationsScreen extends StatelessWidget {
                   child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
                 );
               }
+              if (snapshot.hasError) {
+                return Center(child: Text("Error: ${snapshot.error}"));
+              }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
                   child: Column(

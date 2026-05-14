@@ -55,6 +55,9 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 .doc(widget.payment.id)
                 .snapshots(),
             builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const SizedBox();
+              }
               if (!snapshot.hasData || !snapshot.data!.exists) {
                 return const SizedBox();
               }
@@ -208,11 +211,14 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             .collection('recurring_payments')
             .doc(widget.payment.id)
             .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            }
+            if (!snapshot.hasData || !snapshot.data!.exists) {
             return const Center(child: Text("Subscription not found"));
           }
 
@@ -416,11 +422,14 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           .where('recurringPaymentId', isEqualTo: widget.payment.id)
           .orderBy('date', descending: true)
           .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(
             child: Padding(
               padding: EdgeInsets.all(32.w),

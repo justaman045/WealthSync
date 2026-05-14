@@ -305,6 +305,7 @@ Pinned to **v6.2.2** (`pubspec.yaml: google_sign_in: ^6.2.2`). Do **not** upgrad
 13. **Don't mix GetX dialogs with Flutter navigator** — `Get.dialog()` + `Navigator.pop()` + `Get.snackbar()` causes `LateInitializationError` because `Get.back()` tries to close snackbar queue with uninitialized `_controller`. Use pure Flutter: `showDialog()` + `Navigator.of(context, rootNavigator: true).pop()` + `ScaffoldMessenger.showSnackBar()`.
 14. **`FilePicker.saveFile()` returns content:// URI on Android** — You CANNOT call `File(result).writeAsString()` on it. Must pass `bytes: Uint8List.fromList(utf8.encode(csv))` to `saveFile()`.
 15. **`showDialog` + `Navigator.pop` navigator mismatch** — `showDialog()` uses `useRootNavigator: true` by default. `Navigator.of(context)` (without rootNavigator) finds a different navigator. Always use `Navigator.of(context, rootNavigator: true).pop()`.
+16. **`QueryDocumentSnapshot.data()` already non-nullable** — In cloud_firestore 4.x, `QueryDocumentSnapshot.data()` returns `Map<String, dynamic>` (non-nullable). Do NOT add `as Map<String, dynamic>` — it triggers `unnecessary_cast` warning and fails CI with `--no-fatal-infos` (still treats warnings as errors).
 
 ## CSV Export (`lib/Screens/Settings/data_support_settings.dart`)
 

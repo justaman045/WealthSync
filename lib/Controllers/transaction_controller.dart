@@ -4,6 +4,7 @@ import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Repositories/transaction_repository.dart';
 import 'package:money_control/Services/budget_service.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/offline_queue.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +20,10 @@ class TransactionController extends GetxController {
   final TransactionRepository _repository = TransactionRepository();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late final SubscriptionController _subscriptionController;
+
+  // Cache
+  String? get _userEmail => _auth.currentUser?.email;
+  String get _cacheKey => 'transactions_${_userEmail ?? ''}';
 
   // State
   var transactions = <TransactionModel>[].obs;
@@ -39,6 +44,7 @@ class TransactionController extends GetxController {
   void onInit() {
     super.onInit();
     _subscriptionController = Get.find<SubscriptionController>();
+    _loadFromCache();
     bindTransactions();
     bindCategories();
     // Single debounce on transactions handles both sorting and widget updates.
@@ -52,6 +58,18 @@ class TransactionController extends GetxController {
       (_) => _updateHomeWidget(),
       time: const Duration(milliseconds: 500),
     );
+  }
+
+  void _loadFromCache() {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      transactions.value = (cached as List).map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
+        final id = map.remove('_id') as String? ?? '';
+        return TransactionModel.fromMap(id, map);
+      }).toList();
+    }
+    LocalCacheService.invalidate(_cacheKey);
   }
 
   @override
@@ -98,7 +116,17 @@ class TransactionController extends GetxController {
   void bindTransactions() {
     _txSub?.cancel();
     _txSub = _repository.getTransactionsStream().listen(
-      (txList) => transactions.value = txList,
+      (txList) {
+        transactions.value = txList;
+        if (_userEmail != null) {
+          final cacheData = txList.map((t) {
+            final map = t.toMap();
+            map['_id'] = t.id;
+            return LocalCacheService.hiveSafe(map);
+          }).toList();
+          LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.txs30);
+        }
+      },
     );
   }
 
@@ -298,12 +326,15 @@ class TransactionController extends GetxController {
       return false;
     }
 
-    // 3. Local Backup
+    // 3. Invalidate cache so next cold load is fresh
+    LocalCacheService.invalidate(_cacheKey);
+
+    // 4. Local Backup
     if (user.email != null) {
       LocalBackupService.backupUserTransactions(user.email!);
     }
 
-    // 4. Budget Check (Side Effect)
+    // 5. Budget Check (Side Effect)
     if (isSend && user.email != null) {
       BudgetService.checkBudgetExceeded(
         userId: user.email!,
@@ -371,6 +402,9 @@ class TransactionController extends GetxController {
       await _repository
           .deleteTransaction(tx.id)
           .timeout(const Duration(seconds: 5));
+
+      // Invalidate cache
+      LocalCacheService.invalidate(_cacheKey);
 
       // Local Backup
       if (user.email != null) {

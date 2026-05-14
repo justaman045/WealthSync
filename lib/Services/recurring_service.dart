@@ -46,6 +46,30 @@ class RecurringService {
         .delete();
   }
 
+  // One-shot fetch of subscriptions
+  Future<List<RecurringPayment>> getPaymentsOnce() async {
+    final user = _auth.currentUser;
+    if (user == null) return [];
+
+    final snap = await _db
+        .collection('users')
+        .doc(user.email)
+        .collection('recurring_payments')
+        .get();
+
+    final list = snap.docs.map((doc) {
+      return RecurringPayment.fromMap(doc.id, doc.data());
+    }).toList();
+
+    list.sort((a, b) {
+      int dateComp = a.nextDueDate.compareTo(b.nextDueDate);
+      if (dateComp != 0) return dateComp;
+      return b.amount.compareTo(a.amount);
+    });
+
+    return list;
+  }
+
   // Stream of subscriptions
   Stream<List<RecurringPayment>> getPayments() {
     final user = _auth.currentUser;

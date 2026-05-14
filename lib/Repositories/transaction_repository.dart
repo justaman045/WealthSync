@@ -48,10 +48,18 @@ class TransactionRepository {
     return _userTransactionsRef.doc(id);
   }
 
-  Stream<List<TransactionModel>> getTransactionsStream() {
-    return _userTransactionsRef
-        .orderBy('createdAt', descending: true)
-        .snapshots()
+  Future<List<TransactionModel>> getTransactions({int? limit}) {
+    var query = _userTransactionsRef.orderBy('createdAt', descending: true);
+    if (limit != null) query = query.limit(limit);
+    return query.get().then((snapshot) => snapshot.docs.map((doc) {
+      return TransactionModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    }).toList());
+  }
+
+  Stream<List<TransactionModel>> getTransactionsStream({int? limit}) {
+    var query = _userTransactionsRef.orderBy('createdAt', descending: true);
+    if (limit != null) query = query.limit(limit);
+    return query.snapshots()
         .handleError((e) => debugPrint('TransactionRepository stream error: $e'))
         .map((snapshot) {
           return snapshot.docs.map((doc) {

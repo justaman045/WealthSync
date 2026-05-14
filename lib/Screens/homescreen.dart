@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Components/balance_card.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Components/animated_bottom_nav.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/methods.dart';
@@ -283,6 +283,11 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
 
           toolbarHeight: 64.h,
         ),
+        bottomNavigationBar: AnimatedBottomNav(
+          currentIndex: 0,
+          isVisible: _isBottomBarVisible,
+          navBarKey: _keyNavBar,
+        ),
         body: NotificationListener<UserScrollNotification>(
           onNotification: (notification) {
             if (notification.direction == rendering.ScrollDirection.reverse) {
@@ -374,17 +379,6 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         extendBody: true,
-        bottomNavigationBar: ValueListenableBuilder<bool>(
-          valueListenable: _isBottomBarVisible,
-          builder: (context, visible, child) {
-            return AnimatedSlide(
-              duration: const Duration(milliseconds: 200),
-              offset: visible ? Offset.zero : const Offset(0, 1),
-              child: child,
-            );
-          },
-          child: BottomNavBar(key: _keyNavBar, currentIndex: 0),
-        ),
       ),
     );
   }

@@ -174,13 +174,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                         Expanded(
                                           child: TextButton(
                                             onPressed: () async {
+                                              final messenger = ScaffoldMessenger.of(ctx);
                                               Navigator.of(ctx).pop();
                                               await SubscriptionController.to.cancelSubscription();
-                                              Get.snackbar(
-                                                "Trial Ended",
-                                                "Your free trial has been ended.",
-                                                backgroundColor: Colors.redAccent.withValues(alpha: 0.85),
-                                                colorText: isDark ? Colors.white : Colors.black,
+                                              messenger.showSnackBar(
+                                                SnackBar(
+                                                  content: const Text("Your free trial has been ended."),
+                                                  backgroundColor: Colors.redAccent,
+                                                  behavior: SnackBarBehavior.floating,
+                                                ),
                                               );
                                             },
                                             child: Text("End Trial", style: TextStyle(color: Colors.redAccent, fontSize: 16.sp, fontWeight: FontWeight.w600)),
@@ -366,21 +368,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                         Expanded(
                                           child: TextButton(
                                             onPressed: () async {
+                                              final messenger = ScaffoldMessenger.of(context);
                                               Navigator.of(context).pop();
                                               await SubscriptionController.to
                                                   .cancelSubscription();
-                                              if (Get.context != null) {
-                                                Get.snackbar(
-                                                  "Subscription Cancelled",
-                                                  "Your Pro subscription has been cancelled.",
-                                                  backgroundColor:
-                                                      Colors.redAccent
-                                                          .withValues(
-                                                            alpha: 0.85,
-                                                          ),
-                                                  colorText: isDark ? Colors.white : Colors.black,
-                                                );
-                                              }
+                                              messenger.showSnackBar(
+                                                SnackBar(
+                                                  content: const Text("Your Pro subscription has been cancelled."),
+                                                  backgroundColor: Colors.redAccent,
+                                                  behavior: SnackBarBehavior.floating,
+                                                ),
+                                              );
                                             },
                                             style: TextButton.styleFrom(
                                               padding: EdgeInsets.symmetric(

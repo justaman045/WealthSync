@@ -25,12 +25,31 @@ service cloud.firestore {
       let affected = request.resource.data.diff(resource.data).affectedKeys();
       let isReferralFields = affected.hasOnly(['referralCount', 'subscriptionStatus', 'trialEndDate']);
       let targetHasCode = resource.data.keys().hasAny(['referralCode']);
-      return request.auth != null && targetHasCode && isReferralFields;
+      let d = request.resource.data;
+      let validValues = true;
+      if (affected.hasAny(['referralCount'])) {
+        validValues = validValues && d.referralCount is number && d.referralCount >= 0 && d.referralCount < 10000;
+      }
+      if (affected.hasAny(['trialEndDate'])) {
+        validValues = validValues && d.trialEndDate is timestamp;
+      }
+      if (affected.hasAny(['subscriptionStatus'])) {
+        validValues = validValues && d.subscriptionStatus in ['free', 'pending', 'pro'];
+      }
+      return request.auth != null && targetHasCode && isReferralFields && validValues;
+    }
+
+    function isPrivilegeElevation() {
+      let affected = request.resource.data.diff(resource.data).affectedKeys();
+      let blocked = ['isAdmin', 'referralCount', 'subscriptionStatus', 'trialEndDate', 'referredBy'];
+      return affected.hasAny(blocked);
     }
 
     match /users/{userEmail} {
       allow read: if isOwner(userEmail) || isAdmin();
-      allow write: if isOwner(userEmail) || isReferralAllowed();
+      allow create: if isOwner(userEmail);
+      allow update: if (isOwner(userEmail) && !isPrivilegeElevation()) || isReferralAllowed();
+      allow delete: if isOwner(userEmail);
 
       match /transactions/{txId} {
         allow read: if isOwner(userEmail) || isAdmin();

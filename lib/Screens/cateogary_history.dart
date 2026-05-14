@@ -103,9 +103,14 @@ class _CategoryTransactionsScreenState
         child: StreamBuilder<QuerySnapshot>(
           stream: _buildQuery(user),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
+              );
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text("Error: ${snapshot.error}"),
               );
             }
 

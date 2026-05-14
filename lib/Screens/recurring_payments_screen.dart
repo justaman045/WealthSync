@@ -191,6 +191,12 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                       child: const Center(child: CircularProgressIndicator()),
                     );
                   }
+                  if (snapshot.hasError) {
+                    return SizedBox(
+                      height: 400.h,
+                      child: Center(child: Text("Error: ${snapshot.error}")),
+                    );
+                  }
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return SizedBox(
                       height: 500.h,

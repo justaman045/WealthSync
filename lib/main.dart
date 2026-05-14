@@ -43,6 +43,8 @@ import 'package:money_control/Services/payment_config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:money_control/Screens/add_transaction.dart';
+import 'package:money_control/Services/cache_service.dart';
+import 'package:money_control/Services/sms_service.dart';
 
 // ---- THEME CONTROLLER ----
 class ThemeController extends GetxController {
@@ -120,6 +122,7 @@ void main() {
 
 Future<void> mainCommon({bool isTest = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
+  await LocalCacheService.init();
   // Must be registered after ensureInitialized so GetX platform channels work.
   themeController = Get.put(ThemeController());
   TutorialController.isTestMode = isTest;
@@ -161,7 +164,6 @@ Future<void> mainCommon({bool isTest = false}) async {
   await Get.put(IapService()).init();
   final bioService = Get.put(BiometricService());
 
-  // await _loadThemeFromFirebase(); // Handled by ThemeController listener
   await BackgroundWorker.init();
 
   if (!isTest) {
@@ -391,11 +393,29 @@ class _AuthCheckerState extends State<AuthChecker> {
       if (Get.isRegistered<RecurringPaymentController>()) {
         Get.delete<RecurringPaymentController>(force: true);
       }
+      SmsService.resetCache();
+      LocalCacheService.clearAll();
       _didInitialBackup = false;
       if (user != null && !user.emailVerified && !isOAuthUser) {
         FirebaseAuth.instance.signOut();
       }
     }
+  }
+
+  Future<bool> _checkOnboardingStatus(String email) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(email)
+          .get();
+      if (doc.exists && doc.data()?['is_onboarded'] == true) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_onboarded', true);
+        return true;
+      }
+    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('is_onboarded') ?? false;
   }
 
   @override
@@ -422,16 +442,15 @@ class _AuthCheckerState extends State<AuthChecker> {
             false;
 
         if (user != null && (user.emailVerified || isOAuth)) {
-          return FutureBuilder<SharedPreferences>(
-            future: SharedPreferences.getInstance(),
-            builder: (context, prefsSnapshot) {
-              if (prefsSnapshot.connectionState == ConnectionState.waiting) {
+          return FutureBuilder<bool>(
+            future: _checkOnboardingStatus(user.email!),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              final isOnboarded =
-                  prefsSnapshot.data?.getBool('is_onboarded') ?? false;
+              final isOnboarded = snapshot.data ?? false;
 
               if (isOnboarded) {
                 return const BankingHomeScreen();

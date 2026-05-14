@@ -222,8 +222,12 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
           id: docRef.id,
           senderId: isDebit ? user.uid : 'External',
           recipientId: isDebit ? 'External' : user.uid,
-          recipientName: isDebit ? smsTx.merchant : 'Self',
-          amount: smsTx.amount,
+          recipientName: isDebit
+              ? smsTx.merchant
+              : (smsTx.merchant != 'Unknown' && smsTx.merchant.isNotEmpty
+                  ? smsTx.merchant
+                  : (smsTx.sender.isNotEmpty ? smsTx.sender : 'Self')),
+          amount: isDebit ? -smsTx.amount : smsTx.amount,
           currency: 'INR',
           tax: 0,
           date: smsTx.date,

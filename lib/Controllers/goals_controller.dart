@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Repositories/goals_repository.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
 
 class GoalsController extends GetxController {
   static GoalsController get to => Get.find();
 
   final _repo = GoalsRepository();
-  StreamSubscription<List<GoalModel>>? _goalsSub;
+  final _auth = FirebaseAuth.instance;
+
+  String? get _userEmail => _auth.currentUser?.email;
+  String get _cacheKey => 'goals_${_userEmail ?? ''}';
 
   RxList<GoalModel> goals = <GoalModel>[].obs;
   RxBool isLoading = true.obs;
@@ -20,25 +25,36 @@ class GoalsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _bindGoals();
+    _loadFromCache();
+    _fetchFromFirestore();
   }
 
-  @override
-  void onClose() {
-    _goalsSub?.cancel();
-    super.onClose();
+  void _loadFromCache() {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      goals.value = (cached as List).map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
+        final id = map.remove('_id') as String? ?? '';
+        return GoalModel.fromMap(id, map);
+      }).toList();
+      isLoading.value = false;
+    }
   }
 
-  void _bindGoals() {
+  Future<void> _fetchFromFirestore() async {
     try {
-      _goalsSub = _repo.getGoalsStream().listen(
-        (list) {
-          goals.value = list;
-          isLoading.value = false;
-        },
-        onError: (_) => isLoading.value = false,
-      );
+      final list = await _repo.getGoals();
+      goals.value = list;
+      if (_userEmail != null) {
+        final cacheData = list.map((t) {
+          final map = t.toMap();
+          map['_id'] = t.id;
+          return LocalCacheService.hiveSafe(map);
+        }).toList();
+        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+      }
     } catch (_) {
+    } finally {
       isLoading.value = false;
     }
   }
@@ -62,6 +78,8 @@ class GoalsController extends GetxController {
         emoji: emoji,
       );
       await _repo.addGoal(goal);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       return true;
     } catch (_) {
       ErrorHandler.showError("Failed to save goal. Please try again.");
@@ -94,6 +112,8 @@ class GoalsController extends GetxController {
     isSaving.value = true;
     try {
       await _repo.deleteGoal(id);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       return true;
     } catch (_) {
       ErrorHandler.showError("Failed to delete goal.");

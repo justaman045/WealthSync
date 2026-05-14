@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Models/user_model.dart';
+import 'package:money_control/Services/cache_service.dart';
 
 class ProfileController extends GetxController {
   static ProfileController get to => Get.find();
@@ -17,15 +18,16 @@ class ProfileController extends GetxController {
   final _storage = FirebaseStorage.instance;
   final _picker = ImagePicker();
 
+  String? get _userEmail => _auth.currentUser?.email;
+  String get _cacheKey => 'profile_${_userEmail ?? ''}';
+
   Rxn<User> currentUser = Rxn<User>();
-  Rxn<UserModel> userProfile = Rxn<UserModel>(); // Added userProfile
+  Rxn<UserModel> userProfile = Rxn<UserModel>();
   RxString photoURL = ''.obs;
   RxBool isLoading = false.obs;
 
-  late final Worker _workerUpdateUser;
-  late final Worker _workerBindProfile;
   StreamSubscription? _userSub;
-  StreamSubscription? _profileSub;
+  late final Worker _workerUpdateUser;
 
   @override
   void onInit() {
@@ -33,44 +35,38 @@ class ProfileController extends GetxController {
     _userSub = _auth.userChanges().listen((user) => currentUser.value = user);
     _workerUpdateUser = ever(currentUser, _updateUser);
 
-    // Bind user profile stream
-    if (_auth.currentUser != null) {
-      _bindUserProfile(_auth.currentUser?.email);
+    _loadFromCache();
+    if (_auth.currentUser != null && _auth.currentUser?.email != null) {
+      _fetchFromFirestore(_auth.currentUser!.email!);
     }
-
-    // Re-bind if user changes (e.g. login/logout)
-    _workerBindProfile = ever(currentUser, (user) {
-      if (user != null) {
-        _bindUserProfile(user.email);
-      } else {
-        userProfile.value = null;
-      }
-    });
   }
 
   @override
   void onClose() {
     _workerUpdateUser.dispose();
-    _workerBindProfile.dispose();
     _userSub?.cancel();
-    _profileSub?.cancel();
     super.onClose();
   }
 
-  void _bindUserProfile(String? email) {
-    if (email == null) return;
-    _profileSub?.cancel();
-    _profileSub = _firestore
-        .collection('users')
-        .doc(email)
-        .snapshots()
-        .listen((snapshot) {
-      if (snapshot.exists) {
+  void _loadFromCache() {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(cached as Map));
+      userProfile.value = UserModel.fromMap(map['_id'] as String? ?? '', map);
+    }
+  }
+
+  Future<void> _fetchFromFirestore(String email) async {
+    try {
+      final snapshot = await _firestore.collection('users').doc(email).get();
+      if (snapshot.exists && snapshot.data() != null) {
         userProfile.value = UserModel.fromMap(snapshot.id, snapshot.data());
-      } else {
-        userProfile.value = null;
+        final cacheMap = LocalCacheService.hiveSafe(snapshot.data()!);
+        cacheMap['_id'] = snapshot.id;
+        LocalCacheService.put(_cacheKey, cacheMap, ttl: LocalCacheService.slow5m);
       }
-    });
+    } catch (_) {
+    }
   }
 
   void _updateUser(User? user) {

@@ -64,7 +64,9 @@ class NotificationHistoryScreen extends StatelessWidget {
                         ),
                       );
                     }
-
+                    if (snapshot.hasError) {
+                      return Center(child: Text("Error: ${snapshot.error}"));
+                    }
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return Center(
                         child: Column(

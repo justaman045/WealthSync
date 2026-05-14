@@ -48,7 +48,7 @@ class TxTile extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(18.r),
               child: CategoryInitialsIcon(
-                categoryName: received ? tx.senderId : tx.recipientName,
+                categoryName: tx.recipientName,
                 size: 40.r,
               ),
             ),
@@ -61,7 +61,7 @@ class TxTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          received ? (tx.senderId.isEmpty ? 'Bank' : tx.senderId) : tx.recipientName,
+                          tx.recipientName.isEmpty ? 'Unknown' : tx.recipientName,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14.sp,

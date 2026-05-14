@@ -303,10 +303,9 @@ class SubscriptionController extends GetxController {
   Future<void> approveUpgrade(String email) async {
     final doc = await _firestore.collection('users').doc(email).get();
     String plan = 'Monthly';
-    if (doc.exists &&
-        doc.data() != null &&
-        doc.data()!.containsKey('requestedPlan')) {
-      plan = doc.data()!['requestedPlan'];
+    final data = doc.data();
+    if (doc.exists && data != null && data.containsKey('requestedPlan')) {
+      plan = data['requestedPlan'] as String;
     }
 
     final DateTime now = DateTime.now();

@@ -41,12 +41,8 @@ class OfflineQueueService {
   // Serialize all saves through a simple async queue.
   static Future<void> _enqueue(Future<void> Function() op) async {
     if (_writing) {
-      final completer = Completer<void>();
-      _pending.add(() async {
-        await op();
-        completer.complete();
-      });
-      return completer.future;
+      _pending.add(op);
+      return;
     }
     _writing = true;
     try {
@@ -55,8 +51,7 @@ class OfflineQueueService {
       _writing = false;
       if (_pending.isNotEmpty) {
         final next = _pending.removeAt(0);
-        // ignore: unawaited_futures
-        _enqueue(next);
+        await _enqueue(next);
       }
     }
   }

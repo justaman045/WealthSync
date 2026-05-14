@@ -86,7 +86,9 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                       ),
                     );
                   }
-
+                  if (snapshot.hasError) {
+                    return Center(child: Text("Error: ${snapshot.error}"));
+                  }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(
                       child: Text(
@@ -196,7 +198,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
+      builder: (_) => StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
             backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,

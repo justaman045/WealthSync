@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Services/cache_service.dart';
 
 class BudgetController extends GetxController {
   static BudgetController get to => Get.find();
@@ -11,6 +12,9 @@ class BudgetController extends GetxController {
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
   late final TransactionController _transactionController;
+
+  String? get _userEmail => _auth.currentUser?.email;
+  String get _cacheKey => 'budgets_${_userEmail ?? ''}';
 
   RxBool isLoading = false.obs;
   RxList<BudgetCategoryItem> categoryBudgets = <BudgetCategoryItem>[].obs;
@@ -21,6 +25,7 @@ class BudgetController extends GetxController {
   void onInit() {
     super.onInit();
     _transactionController = Get.find<TransactionController>();
+    _loadFromCache();
     _txWorker = ever(_transactionController.transactions, (_) {
       if (categoryBudgets.isNotEmpty) {
         _calculateSpending();
@@ -32,6 +37,21 @@ class BudgetController extends GetxController {
   void onClose() {
     _txWorker?.dispose();
     super.onClose();
+  }
+
+  void _loadFromCache() {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      categoryBudgets.assignAll((cached as List).map((e) {
+        final map = e as Map<String, dynamic>;
+        return BudgetCategoryItem(
+          categoryName: map['categoryName'] as String? ?? '',
+          budget: (map['budget'] as num?)?.toDouble() ?? 0,
+          spent: (map['spent'] as num?)?.toDouble() ?? 0,
+        );
+      }));
+      _calculateSpending();
+    }
   }
 
   Future<void> fetchBudgetsAndSpends() async {
@@ -68,8 +88,6 @@ class BudgetController extends GetxController {
         final catName = doc['name'] ?? doc.id;
         final budgetAmount = budgetsMap[catName] ?? 0;
 
-        // Controller will be managed by the widget or here.
-        // For simplicity in GetX, we can keep the value here and UI handles text controller if needed
         items.add(
           BudgetCategoryItem(
             categoryName: catName,
@@ -81,6 +99,14 @@ class BudgetController extends GetxController {
 
       categoryBudgets.assignAll(items);
       _calculateSpending();
+      if (_userEmail != null) {
+        final cacheData = items.map((i) => {
+          'categoryName': i.categoryName,
+          'budget': i.budget,
+          'spent': i.spent,
+        }).toList();
+        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+      }
     } catch (e) {
       debugPrint("Error fetching budgets: $e");
       Get.snackbar("Error", "Failed to load budgets");
@@ -141,6 +167,8 @@ class BudgetController extends GetxController {
         categoryBudgets[index].budget = amount;
         categoryBudgets.refresh();
       }
+
+      LocalCacheService.invalidate(_cacheKey);
 
       Get.snackbar(
         "Success",

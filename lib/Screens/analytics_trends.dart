@@ -15,12 +15,19 @@ class AnalyticsTrendsScreen extends StatefulWidget {
 }
 
 class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
-  final TransactionController _controller = Get.find();
+  late final TransactionController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
+    _controller = Get.find<TransactionController>();
+  }
 
   // Filter State
   String? _selectedCategory = "All Categories";
-  // ignore: unused_field
-  final String _defaultCategory = "All Categories";
 
   String _selectedRange = "6 Months";
   final List<String> _rangeOptions = [
@@ -112,7 +119,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
     for (var tx in expenses) {
       if (cat == "All Categories" || tx.category == cat) {
         final key = tx.date.year * 100 + tx.date.month;
-        monthlySum[key] = (monthlySum[key] ?? 0) + tx.amount;
+        monthlySum[key] = (monthlySum[key] ?? 0) + tx.amount.abs();
       }
     }
     final sortedKeys = monthlySum.keys.toList()..sort();

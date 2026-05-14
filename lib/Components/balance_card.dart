@@ -43,6 +43,17 @@ class _BalanceCardState extends State<BalanceCard> {
     _recurringPaymentController = Get.find<RecurringPaymentController>();
   }
 
+  double _computeTotal() {
+    double total = _transactionController.totalBalance;
+    if (_includeLentMoney.value) {
+      total += _lentMoneyController.netBalance;
+    }
+    if (_subtractSubscriptions.value) {
+      total -= _recurringPaymentController.pendingSubscriptions.value;
+    }
+    return total;
+  }
+
   @override
   void dispose() {
     _includeLentMoney.close();
@@ -274,20 +285,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                     return TweenAnimationBuilder<double>(
                                       tween: Tween<double>(
                                         begin: _lastAnimatedValue,
-                                        end: () {
-                                          double total = _transactionController
-                                              .totalBalance;
-                                          if (_includeLentMoney.value) {
-                                            total +=
-                                                _lentMoneyController.netBalance;
-                                          }
-                                          if (_subtractSubscriptions.value) {
-                                            total -= _recurringPaymentController
-                                                .pendingSubscriptions
-                                                .value;
-                                          }
-                                          return total;
-                                        }(),
+                                        end: _computeTotal(),
                                       ),
                                       duration: const Duration(
                                         milliseconds: 800,
@@ -315,20 +313,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                       },
                                       onEnd: () {
                                         setState(() {
-                                          _lastAnimatedValue = () {
-                                            double total = _transactionController
-                                                .totalBalance;
-                                            if (_includeLentMoney.value) {
-                                              total +=
-                                                  _lentMoneyController.netBalance;
-                                            }
-                                            if (_subtractSubscriptions.value) {
-                                              total -= _recurringPaymentController
-                                                  .pendingSubscriptions
-                                                  .value;
-                                            }
-                                            return total;
-                                          }();
+                                          _lastAnimatedValue = _computeTotal();
                                         });
                                       },
                                     );

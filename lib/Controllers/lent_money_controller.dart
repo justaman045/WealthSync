@@ -3,6 +3,7 @@ import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Repositories/lent_money_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'dart:async';
 
@@ -10,29 +11,47 @@ class LentMoneyController extends GetxController {
   final LentMoneyRepository _repository = LentMoneyRepository();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  String? get _userEmail => _auth.currentUser?.email;
+  String get _cacheKey => 'lent_money_${_userEmail ?? ''}';
+
   var entries = <LentMoneyModel>[].obs;
   var isLoading = false.obs;
   var isSaving = false.obs;
 
-  StreamSubscription? _entriesSub;
-
   @override
   void onInit() {
     super.onInit();
-    bindEntries();
+    _loadFromCache();
+    _fetchFromFirestore();
   }
 
-  @override
-  void onClose() {
-    _entriesSub?.cancel();
-    super.onClose();
+  void _loadFromCache() {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      entries.value = (cached as List).map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
+        final id = map.remove('_id') as String? ?? '';
+        return LentMoneyModel.fromMap(id, map);
+      }).toList();
+    }
   }
 
-  void bindEntries() {
-    _entriesSub?.cancel();
-    _entriesSub = _repository.getEntriesStream().listen((list) {
+  Future<void> _fetchFromFirestore() async {
+    try {
+      final list = await _repository.getEntries();
       entries.value = list;
-    });
+      if (_userEmail != null) {
+        final cacheData = list.map((t) {
+          final map = t.toMap();
+          map['_id'] = t.id;
+          return LocalCacheService.hiveSafe(map);
+        }).toList();
+        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+      }
+    } catch (_) {
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   double get totalPendingReceivables {
@@ -98,6 +117,8 @@ class LentMoneyController extends GetxController {
 
     try {
       await _repository.addEntry(entry).timeout(const Duration(seconds: 5));
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       isSaving.value = false;
       return true;
     } catch (e) {
@@ -139,6 +160,8 @@ class LentMoneyController extends GetxController {
 
     try {
       await _repository.updateEntry(updatedEntry);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       isSaving.value = false;
       return true;
     } catch (e) {
@@ -161,6 +184,8 @@ class LentMoneyController extends GetxController {
         createdAt: entry.createdAt,
       );
       await _repository.updateEntry(updatedEntry);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       return true;
     } catch (e) {
       ErrorHandler.showError("Failed to mark as settled: $e");
@@ -171,6 +196,8 @@ class LentMoneyController extends GetxController {
   Future<bool> deleteEntry(String id) async {
     try {
       await _repository.deleteEntry(id);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       return true;
     } catch (e) {
       ErrorHandler.showError("Failed to delete entry: $e");

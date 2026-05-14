@@ -38,6 +38,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final doc = await _firestore.collection('users').doc(user.email).get();
       if (doc.exists) {
         final data = doc.data()!;
+
+
         if (mounted) {
           setState(() {
             _firstNameController.text = data['firstName'] ?? user.displayName;
@@ -45,8 +47,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _phoneController.text = data['phone'] ?? '';
             _addressController.text = data['address'] ?? '';
 
-            if (data['dob'] != null) {
-              _dob = (data['dob'] as Timestamp).toDate();
+            final dob = data['dob'];
+            if (dob is Timestamp) {
+              _dob = dob.toDate();
             }
           });
         }

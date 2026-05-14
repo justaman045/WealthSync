@@ -4,6 +4,35 @@ import 'dart:ui';
 import 'package:money_control/Components/colors.dart';
 
 class GlassContainer extends StatelessWidget {
+  static BoxDecoration glassDecoration({
+    required bool isDark,
+    double borderRadius = 24,
+    Color? customColor,
+    List<BoxShadow>? customShadow,
+  }) {
+    return BoxDecoration(
+      color: customColor ??
+          (isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : AppColors.lightSurface),
+      borderRadius: BorderRadius.circular(borderRadius.r),
+      border: Border.all(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.1)
+            : AppColors.lightBorder,
+      ),
+      boxShadow: customShadow ??
+          [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+    );
+  }
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;

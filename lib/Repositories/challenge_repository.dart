@@ -13,6 +13,16 @@ class ChallengeRepository {
     return _db.collection('users').doc(email).collection('challenges');
   }
 
+  Future<List<SavingsChallengeModel>> getChallenges() async {
+    final snap = await _col
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs
+        .map((d) => SavingsChallengeModel.fromMap(d.id, d.data()))
+        .toList();
+  }
+
   Stream<List<SavingsChallengeModel>> getChallengesStream() {
     return _col
         .where('isActive', isEqualTo: true)

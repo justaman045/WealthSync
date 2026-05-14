@@ -14,6 +14,13 @@ class GoalsRepository {
     return _firestore.collection('users').doc(_userEmail).collection('goals');
   }
 
+  Future<List<GoalModel>> getGoals() async {
+    final snap = await _ref.orderBy('createdAt', descending: true).get();
+    return snap.docs
+        .map((doc) => GoalModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+        .toList();
+  }
+
   Stream<List<GoalModel>> getGoalsStream() {
     return _ref
         .orderBy('createdAt', descending: true)

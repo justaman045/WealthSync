@@ -14,6 +14,16 @@ class LoanRepository {
     return _firestore.collection('users').doc(_userEmail).collection('loans');
   }
 
+  Future<List<LoanModel>> getLoans() async {
+    final snap = await _ref
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs
+        .map((doc) => LoanModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+        .toList();
+  }
+
   Stream<List<LoanModel>> getLoansStream() {
     return _ref
         .where('isActive', isEqualTo: true)

@@ -9,7 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/rendering.dart' as rendering;
 import 'package:money_control/Components/skeleton_loader.dart';
 
-import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Components/animated_bottom_nav.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
@@ -431,16 +431,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _runInsights),
         ],
       ),
-      bottomNavigationBar: ValueListenableBuilder<bool>(
-        valueListenable: _isBottomBarVisible,
-        builder: (context, visible, child) {
-          return AnimatedSlide(
-            duration: const Duration(milliseconds: 200),
-            offset: visible ? Offset.zero : const Offset(0, 1),
-            child: child,
-          );
-        },
-        child: const BottomNavBar(currentIndex: 2),
+      bottomNavigationBar: AnimatedBottomNav(
+        currentIndex: 2,
+        isVisible: _isBottomBarVisible,
       ),
       extendBody: true,
       body: NotificationListener<UserScrollNotification>(

@@ -6,6 +6,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Models/user_model.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
 
 class WealthTarget {
@@ -27,6 +28,9 @@ class WealthService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  static String? get _userEmail => _auth.currentUser?.email;
+  static String get _cacheKey => 'portfolio_${_userEmail ?? ''}';
+
   // ── Age-milestone tables ────────────────────────────────────────────────
   // Values sourced from lib/Utils/wealth_math.dart (Fidelity model for India).
   // Linear interpolation via milestone() in the same file.
@@ -43,10 +47,17 @@ class WealthService {
 
   /// Fetch the current portfolio, or return a default empty one if not found.
   static Future<WealthPortfolio> getPortfolio() async {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(cached as Map));
+      return WealthPortfolio.fromMap(map);
+    }
     try {
       final doc = await _portfolioRef.get();
       if (doc.exists && doc.data() != null) {
-        return WealthPortfolio.fromMap(doc.data() as Map<String, dynamic>);
+        final data = doc.data() as Map<String, dynamic>;
+        LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
+        return WealthPortfolio.fromMap(data);
       }
     } catch (e) {
       log("Error fetching portfolio: $e");
@@ -61,9 +72,9 @@ class WealthService {
         key: value,
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
+      LocalCacheService.invalidate(_cacheKey);
     } catch (e) {
       log("Error updating asset $key: $e");
-      rethrow;
     }
   }
 
@@ -74,9 +85,9 @@ class WealthService {
         'custom.$key': value,
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
+      LocalCacheService.invalidate(_cacheKey);
     } catch (e) {
       log("Error setting custom asset $key: $e");
-      rethrow;
     }
   }
 
@@ -87,9 +98,9 @@ class WealthService {
         'custom.$key': FieldValue.delete(),
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
+      LocalCacheService.invalidate(_cacheKey);
     } catch (e) {
       log("Error deleting custom asset $key: $e");
-      rethrow;
     }
   }
 
@@ -100,9 +111,9 @@ class WealthService {
         'targets': {key: targetValue},
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
+      LocalCacheService.invalidate(_cacheKey);
     } catch (e) {
       log("Error updating asset target $key: $e");
-      rethrow;
     }
   }
 
@@ -116,9 +127,9 @@ class WealthService {
         data['monthly_expense_override'] = value;
       }
       await _portfolioRef.set(data, SetOptions(merge: true));
+      LocalCacheService.invalidate(_cacheKey);
     } catch (e) {
       log("Error updating monthly expense override: $e");
-      rethrow;
     }
   }
 
@@ -129,9 +140,9 @@ class WealthService {
         'hiddenKeys': keys,
         'lastUpdated': Timestamp.now(),
       }, SetOptions(merge: true));
+      LocalCacheService.invalidate(_cacheKey);
     } catch (e) {
       log("Error updating hidden assets: $e");
-      rethrow;
     }
   }
 
@@ -148,7 +159,9 @@ class WealthService {
         .snapshots()
         .map((doc) {
           if (doc.exists && doc.data() != null) {
-            return WealthPortfolio.fromMap(doc.data() as Map<String, dynamic>);
+            final data = doc.data() as Map<String, dynamic>;
+            LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
+            return WealthPortfolio.fromMap(data);
           }
           return WealthPortfolio(lastUpdated: DateTime.now());
         });

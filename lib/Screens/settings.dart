@@ -16,7 +16,7 @@ import 'package:money_control/Screens/Settings/general_settings.dart';
 import 'package:money_control/Screens/Settings/security_settings.dart';
 import 'package:money_control/Screens/Settings/data_support_settings.dart';
 import 'package:money_control/Screens/edit_profile.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Components/animated_bottom_nav.dart';
 import 'package:money_control/Screens/sms_import_screen.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
@@ -240,16 +240,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         extendBody: true,
-        bottomNavigationBar: ValueListenableBuilder<bool>(
-          valueListenable: _isBottomBarVisible,
-          builder: (context, visible, child) {
-            return AnimatedSlide(
-              duration: const Duration(milliseconds: 200),
-              offset: visible ? Offset.zero : const Offset(0, 1),
-              child: child,
-            );
-          },
-          child: const BottomNavBar(currentIndex: 4),
+        bottomNavigationBar: AnimatedBottomNav(
+          currentIndex: 4,
+          isVisible: _isBottomBarVisible,
         ),
       ),
     );

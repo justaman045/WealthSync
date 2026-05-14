@@ -42,7 +42,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                     top: Radius.circular(24.r),
                   ),
                 ),
-                builder: (context) => const ProLockWidget(
+                builder: (_) => const ProLockWidget(
                   title: "Category Limit Reached",
                   description:
                       "Free users can create up to 10 categories. Upgrade to Pro for unlimited categories.",
@@ -69,18 +69,26 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (usageCount == 0) {
-      final navigator = Navigator.of(context);
-      Get.defaultDialog(
-        title: "Delete Category",
-        middleText: "Are you sure you want to delete '${category.name}'?",
-        textConfirm: "Delete",
-        textCancel: "Cancel",
-        confirmTextColor: Colors.white,
-        buttonColor: Colors.red,
-        onConfirm: () async {
-          await _categoryService.deleteCategory(category.id);
-          navigator.pop();
-        },
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Delete Category"),
+          content: Text("Are you sure you want to delete '${category.name}'?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _categoryService.deleteCategory(category.id);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text("Delete"),
+            ),
+          ],
+        ),
       );
       return;
     }

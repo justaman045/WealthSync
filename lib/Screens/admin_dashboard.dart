@@ -70,7 +70,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 child: CircularProgressIndicator(color: Colors.cyanAccent),
               );
             }
-
+            if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return Center(
                 child: Column(
@@ -245,7 +247,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         title: Text(
           "Debug: Force Expiry",

@@ -137,6 +137,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
+            if (snap.hasError) {
+              return Center(child: Text("Error: ${snap.error}"));
+            }
             final docs = snap.data?.docs ?? [];
             if (docs.isEmpty) {
               if (!_syncedEmpty) {

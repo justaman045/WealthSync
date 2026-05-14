@@ -11,7 +11,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
+import 'package:money_control/Components/animated_bottom_nav.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/analytics_trends.dart';
 import 'package:money_control/Screens/transaction_history.dart';
@@ -550,16 +550,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
         backgroundColor: Colors.transparent,
         extendBody: true,
-        bottomNavigationBar: ValueListenableBuilder<bool>(
-          valueListenable: _isBottomBarVisible,
-          builder: (context, visible, child) {
-            return AnimatedSlide(
-              duration: const Duration(milliseconds: 200),
-              offset: visible ? Offset.zero : const Offset(0, 1),
-              child: child,
-            );
-          },
-          child: const BottomNavBar(currentIndex: 1),
+        bottomNavigationBar: AnimatedBottomNav(
+          currentIndex: 1,
+          isVisible: _isBottomBarVisible,
         ),
         body: NotificationListener<UserScrollNotification>(
           onNotification: (notification) {
@@ -777,7 +770,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const AnalyticsTrendsScreen(),
+                      builder: (_) => const AnalyticsTrendsScreen(),
                     ),
                   );
                 },

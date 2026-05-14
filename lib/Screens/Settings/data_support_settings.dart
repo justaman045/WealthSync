@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseFirestore, Timestamp;
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,68 +20,178 @@ class DataSupportSettingsScreen extends StatelessWidget {
   const DataSupportSettingsScreen({super.key});
 
   Future<void> _handleBackup(BuildContext context) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = FirebaseAuth.instance.currentUser;
     if (user?.email == null) return;
 
-    try {
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
+    final nav = Navigator.of(context, rootNavigator: true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
 
+    try {
       await LocalBackupService.backupUserTransactions(user!.email!);
 
       if (!context.mounted) return;
-      Navigator.of(context).pop(); // close loading
-      // Defer past the dialog-pop frame so GetX overlay is ready
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.snackbar(
-          "Backup Success",
-          "Data backed up securely",
-          snackPosition: SnackPosition.BOTTOM,
+      nav.pop();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Data backed up securely"),
           backgroundColor: Colors.green,
-          colorText: isDark ? Colors.white : Colors.black,
-        );
-      });
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.of(context).pop();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Get.snackbar("Error", "Backup failed: $e");
-      });
+      nav.pop();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Backup failed: $e"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   Future<void> _handleRestore(BuildContext context) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Similar restore logic to original settings
     final userEmail = FirebaseAuth.instance.currentUser?.email;
     if (userEmail == null) return;
 
-    Get.defaultDialog(
-      title: "Restore Data",
-      middleText:
-          "This handles restoring from local cache. Overwrite current data?",
-      textConfirm: "Restore",
-      textCancel: "Cancel",
-      confirmTextColor: isDark ? Colors.white : Colors.black,
-      onConfirm: () async {
-        Navigator.of(context).pop(); // close dialog
-        try {
-          await LocalBackupService.restoreUserTransactions(userEmail);
-          Get.snackbar(
-            "Restore Success",
-            "Data restored from backup",
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.green,
-            colorText: isDark ? Colors.white : Colors.black,
-          );
-        } catch (e) {
-          Get.snackbar("Error", "Restore failed: $e");
-        }
-      },
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Restore Data"),
+        content: const Text(
+            "This handles restoring from local cache. Overwrite current data?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text("Restore"),
+          ),
+        ],
+      ),
     );
+
+    if (confirmed != true) return;
+
+    try {
+      await LocalBackupService.restoreUserTransactions(userEmail);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Data restored from backup"),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Restore failed: $e"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGdprExport(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.email == null) return;
+
+    const collections = [
+      'transactions', 'categories', 'budgets', 'goals', 'loans', 'challenges',
+      'lent_money', 'recurring_payments', 'sms_rules', 'category_rules',
+      'fd_accounts', 'ppf_accounts', 'post_office_schemes', 'bonds', 'chit_funds',
+      'stock_holdings', 'sip_holdings', 'etf_holdings', 'foreign_stocks',
+      'startup_investments', 'pf_accounts', 'vpf_accounts', 'nps_accounts',
+      'gold_holdings', 'sgb_holdings', 'jewelry_items', 'crypto_holdings',
+      'reit_holdings', 'p2p_loans', 'agri_land', 'properties', 'vehicles',
+      'insurance_policies', 'business_assets', 'bnpl_entries', 'credit_cards',
+    ];
+
+    final nav = Navigator.of(context, rootNavigator: true);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    bool dialogClosed = false;
+
+    try {
+      final data = <String, dynamic>{};
+      data['exported_at'] = DateTime.now().toUtc().toIso8601String();
+      data['user_email'] = user!.email;
+
+      // Fetch wealth portfolio document
+      final wealthDoc = await FirebaseFirestore.instance
+          .doc('users/${user.email}/wealth/portfolio')
+          .get();
+      data['wealth_portfolio'] = wealthDoc.exists ? wealthDoc.data() : null;
+
+      // Fetch all subcollections
+      for (final col in collections) {
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.email)
+            .collection(col)
+            .get();
+        data[col] = snap.docs.map((d) {
+          final m = d.data();
+          m['_id'] = d.id;
+          return m;
+        }).toList();
+      }
+
+      // Serialize with Timestamp handling
+      final json = jsonEncode(data, toEncodable: (o) {
+        if (o is Timestamp) return o.toDate().toIso8601String();
+        return o.toString();
+      });
+      final bytes = Uint8List.fromList(utf8.encode(json));
+
+      if (!context.mounted) return;
+      nav.pop();
+      dialogClosed = true;
+
+      final result = await FilePicker.platform.saveFile(
+        fileName: 'WealthSync_gdpr_export.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        bytes: bytes,
+      );
+
+      if (result == null) return;
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("GDPR export saved to: $result"),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      if (!dialogClosed) nav.pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("GDPR Export Failed: $e"),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _handleExportCsv(BuildContext context) async {
@@ -217,8 +327,13 @@ class DataSupportSettingsScreen extends StatelessWidget {
                 ),
                 _SettingsTile(
                   icon: Icons.download,
-                  title: "Export Data (CSV)",
+                  title: "Export Transactions (CSV)",
                   onTap: () => _handleExportCsv(context),
+                ),
+                _SettingsTile(
+                  icon: Icons.cloud_download,
+                  title: "Export All Data (GDPR)",
+                  onTap: () => _handleGdprExport(context),
                 ),
 
                 _Divider(),

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:money_control/Models/loan_model.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Repositories/loan_repository.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:flutter/foundation.dart';
@@ -15,7 +16,10 @@ class LoanController extends GetxController {
 
   final _repo = LoanRepository();
   final _recurringService = RecurringService();
-  StreamSubscription<List<LoanModel>>? _sub;
+  final _auth = FirebaseAuth.instance;
+
+  String? get _userEmail => _auth.currentUser?.email;
+  String get _cacheKey => 'loans_${_userEmail ?? ''}';
 
   RxList<LoanModel> loans = <LoanModel>[].obs;
   RxBool isLoading = true.obs;
@@ -29,26 +33,37 @@ class LoanController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _bindLoans();
+    _loadFromCache();
+    _fetchFromFirestore();
   }
 
-  @override
-  void onClose() {
-    _sub?.cancel();
-    super.onClose();
+  void _loadFromCache() {
+    final cached = LocalCacheService.get(_cacheKey);
+    if (cached != null) {
+      loans.value = (cached as List).map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
+        final id = map.remove('_id') as String? ?? '';
+        return LoanModel.fromMap(id, map);
+      }).toList();
+      isLoading.value = false;
+    }
   }
 
-  void _bindLoans() {
+  Future<void> _fetchFromFirestore() async {
     try {
-      _sub = _repo.getLoansStream().listen(
-        (list) {
-          loans.value = list;
-          isLoading.value = false;
-          _syncToWealth();
-        },
-        onError: (_) => isLoading.value = false,
-      );
+      final list = await _repo.getLoans();
+      loans.value = list;
+      if (_userEmail != null) {
+        final cacheData = list.map((t) {
+          final map = t.toMap();
+          map['_id'] = t.id;
+          return LocalCacheService.hiveSafe(map);
+        }).toList();
+        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+      }
+      _syncToWealth();
     } catch (_) {
+    } finally {
       isLoading.value = false;
     }
   }
@@ -87,6 +102,8 @@ class LoanController extends GetxController {
         startDate: startDate,
       );
       final docRef = await _repo.addLoan(loan);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
 
       if (createRecurring) {
         final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -124,6 +141,8 @@ class LoanController extends GetxController {
     try {
       final loan = loans.firstWhereOrNull((l) => l.id == id);
       await _repo.deleteLoan(id);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       if (loan?.linkedRecurringPaymentId != null) {
         await _recurringService.deletePayment(loan!.linkedRecurringPaymentId!);
       }

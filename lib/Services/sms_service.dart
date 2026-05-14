@@ -318,14 +318,14 @@ class SmsService {
     final lower = body.toLowerCase();
 
     final amountRegex = RegExp(
-      r'(?:Rs\.?|INR|MRP|Amt|Amount)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)',
+      r'(?:Rs\.?|INR|MRP|Amt|Amount|debited by|credited by|by Rs\.?)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)',
       caseSensitive: false,
     );
     var match = amountRegex.firstMatch(body);
 
     // Fallback: match bare amount if no currency prefix found
     if (match == null) {
-      final bareAmountRegex = RegExp(r'(?:^|[^\d])(\d{2,}(?:,\d{3})*(?:\.\d{1,2})?)(?:\b|$)');
+      final bareAmountRegex = RegExp(r'(?:^|[^\d])(\d{2,}(?:\.\d{1,2})?)(?:\b|$)');
       match = bareAmountRegex.firstMatch(body);
     }
 

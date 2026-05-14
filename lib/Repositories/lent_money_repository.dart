@@ -30,6 +30,15 @@ class LentMoneyRepository {
     await _userLentMoneyRef.doc(id).delete();
   }
 
+  Future<List<LentMoneyModel>> getEntries() async {
+    final snap = await _userLentMoneyRef
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snap.docs.map((doc) {
+      return LentMoneyModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+    }).toList();
+  }
+
   Stream<List<LentMoneyModel>> getEntriesStream() {
     return _userLentMoneyRef
         .orderBy('createdAt', descending: true)
