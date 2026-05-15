@@ -386,7 +386,8 @@ class _SheetState extends State<_Sheet> {
       if (existing != null) {
         final key = _fieldKey(f.label);
         if (key == 'maturityDate' && existing['maturityDate'] is Timestamp) {
-          final d = (existing['maturityDate'] as Timestamp).toDate();
+          final d = (existing['maturityDate'] as Timestamp?)?.toDate();
+          if (d == null) return TextEditingController();
           _dateValues[f.label] = d;
           return TextEditingController(text: DateFormat('dd MMM yyyy').format(d));
         }

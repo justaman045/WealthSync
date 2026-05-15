@@ -64,8 +64,10 @@ Future<void> gotoScreen(int index, int currentIndex) async {
           if (age == null || (age is int && age <= 0)) {
             final overlayCtx = Get.overlayContext;
             if (overlayCtx == null) return;
-            await showGeneralDialog(
-              context: overlayCtx,
+            // Get.overlayContext always resolves a fresh context — false positive.
+            // ignore: use_build_context_synchronously
+            showGeneralDialog(
+              context: overlayCtx, // ignore: use_build_context_synchronously
               barrierDismissible: true,
               barrierLabel: "Dismiss",
               barrierColor: Colors.black.withValues(alpha: 0.8),

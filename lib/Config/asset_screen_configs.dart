@@ -270,7 +270,7 @@ class AssetConfigs {
         options: ["Vested", "IndMoney", "Stockal", "INDmoney", "Winvesta", "Other"],
       ),
       AssetFieldDef(
-          label: "Current value (₹ equivalent)",
+          label: "Current value (local currency equivalent)",
           key: "currentValue",
           type: AssetFieldType.number,
           required: true,
@@ -504,7 +504,7 @@ class AssetConfigs {
           key: "quantity",
           type: AssetFieldType.number),
       AssetFieldDef(
-          label: "Current value (₹)",
+          label: "Current value",
           key: "currentValue",
           type: AssetFieldType.number,
           required: true,

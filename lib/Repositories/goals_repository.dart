@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/goal_model.dart';
 
 class GoalsRepository {
@@ -19,16 +18,6 @@ class GoalsRepository {
     return snap.docs
         .map((doc) => GoalModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
         .toList();
-  }
-
-  Stream<List<GoalModel>> getGoalsStream() {
-    return _ref
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .handleError((e) => debugPrint('GoalsStream error: $e'))
-        .map((snap) => snap.docs
-            .map((doc) => GoalModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
   }
 
   Future<DocumentReference> addGoal(GoalModel goal) => _ref.add(goal.toMap());

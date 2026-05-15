@@ -31,8 +31,7 @@ class LoanRepository {
         .snapshots()
         .handleError((e) => debugPrint('LoansStream error: $e'))
         .map((snap) => snap.docs
-            .map((doc) =>
-                LoanModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .map((doc) => LoanModel.fromMap(doc.id, doc.data() as Map<String, dynamic>))
             .toList());
   }
 

@@ -95,6 +95,13 @@ class GoalsController extends GetxController {
     try {
       final updated = await _repo.addProgress(id, addAmount);
       if (updated == null) return false;
+      // Reflect the new progress in the local list immediately.
+      final idx = goals.indexWhere((g) => g.id == id);
+      if (idx != -1) {
+        goals[idx] = updated;
+        goals.refresh();
+      }
+      LocalCacheService.invalidate(_cacheKey);
       if (updated.isCompleted) {
         ErrorHandler.showSuccess("Goal achieved! 🎉");
       }

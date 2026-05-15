@@ -109,10 +109,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
           ),
         ),
         body: RefreshIndicator(
-          onRefresh: () async {
-            // Simulate refresh delay
-            await Future.delayed(const Duration(seconds: 1));
-          },
+          onRefresh: () => _txController.refreshData(),
           color: const Color(0xFF00E5FF),
           backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
           child: ListView(

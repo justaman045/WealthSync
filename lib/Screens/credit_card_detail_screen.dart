@@ -412,7 +412,8 @@ class _AddSheetState extends State<_AddSheet> {
       if (existing != null) {
         final key = _fieldKey(f.label);
         if (key == 'dueDate' && existing['dueDate'] is Timestamp) {
-          final d = (existing['dueDate'] as Timestamp).toDate();
+          final d = (existing['dueDate'] as Timestamp?)?.toDate();
+          if (d == null) return TextEditingController();
           _dateValues[f.label] = d;
           return TextEditingController(text: DateFormat('dd MMM yyyy').format(d));
         }

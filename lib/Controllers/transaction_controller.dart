@@ -342,10 +342,10 @@ class TransactionController extends GetxController {
       );
     }
 
-    // 5. Update cached sorted categories
+    // 6. Update cached sorted categories
     fetchSortedCategories();
 
-    // 6. Update spending streak
+    // 7. Update spending streak
     if (user.email != null) _updateStreak(user.email!);
 
     isSaving.value = false;
@@ -414,8 +414,8 @@ class TransactionController extends GetxController {
     } on TimeoutException {
       // Offline fallback
       final deleteJson = {
-        "operation": "delete",
-        "transactionId": tx.id,
+        "_operation": "delete",
+        "id": tx.id,
         "user": user.email,
       };
       await OfflineQueueService.savePending(deleteJson);

@@ -186,11 +186,6 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                   onTap: () {
                     CurrencyController.to.setCurrency(c['code']!, c['symbol']!);
                     Navigator.of(context).pop();
-                    // Force rebuild ?? Controller is reactive, title should update next build or if Obx
-                    // The screen title above uses .value so it might not update instantly without Obx.
-                    // Let's rely on GetX to handle state or rebuild.
-                    // Actually wrapped component isn't Obx, so title won't update.
-                    // Ideally wrap the Currency Tile text in Obx.
                   },
                 ),
               ),
