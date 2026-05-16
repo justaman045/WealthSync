@@ -118,7 +118,7 @@ flutter build apk --release
 
 ## Download
 
-**Latest APK:** https://github.com/justaman045/Finance-Control/releases/download/v2.0.100/app-release.apk
+**Latest APK:** https://github.com/justaman045/Finance-Control/releases/download/v2.0.121/app-release.apk
 
 *Installation:* Download the `.apk` on your Android device, open it, and allow installation from unknown sources.
 
