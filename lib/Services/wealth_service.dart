@@ -54,8 +54,8 @@ class WealthService {
     }
     try {
       final doc = await _portfolioRef.get();
-      if (doc.exists && doc.data() != null) {
-        final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data() as Map<String, dynamic>?;
+      if (doc.exists && data != null) {
         LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
         return WealthPortfolio.fromMap(data);
       }
@@ -158,8 +158,8 @@ class WealthService {
         .doc('portfolio')
         .snapshots()
         .map((doc) {
-          if (doc.exists && doc.data() != null) {
-            final data = doc.data() as Map<String, dynamic>;
+          final data = doc.data();
+          if (doc.exists && data != null) {
             LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
             return WealthPortfolio.fromMap(data);
           }

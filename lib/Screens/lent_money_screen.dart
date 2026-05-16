@@ -272,11 +272,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
       }
 
       return RefreshIndicator(
-        onRefresh: () async {
-          // The stream inherently stays up to date, but we simulate a
-          // realistic network delay to offer tactile user feedback.
-          await Future.delayed(const Duration(milliseconds: 800));
-        },
+        onRefresh: () => _controller.fetchEntries(),
         color: const Color(0xFF6C63FF),
         backgroundColor: theme.colorScheme.surface,
         child: ListView.builder(

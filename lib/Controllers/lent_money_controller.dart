@@ -36,6 +36,8 @@ class LentMoneyController extends GetxController {
     }
   }
 
+  Future<void> fetchEntries() => _fetchFromFirestore();
+
   Future<void> _fetchFromFirestore() async {
     try {
       final list = await _repository.getEntries();

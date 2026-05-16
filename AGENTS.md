@@ -211,6 +211,30 @@ The dashboard (`WealthBuilderScreen`) subscribes to `WealthService.streamPortfol
 - Generic assets: `Get.to(() => AssetDetailScreen(config: AssetConfigs.fd))`
 - Custom screens: `Get.to(() => const VehicleDetailScreen())`
 
+## Cache Service (`lib/Services/cache_service.dart`)
+
+TTL-based local cache using SharedPreferences. Created for Spark plan optimization.
+
+### Why SharedPreferences (not Hive)
+Hive 2.x requires SDK `<3.0.0` (incompatible with Dart 3.11). Hive 4.x depends on Isar. SharedPreferences (already a dependency) stores JSON blobs with TTL wrappers — sufficient and avoids new dependencies.
+
+### Key Design
+- **Prefix `cache_`**: All keys prefixed to prevent collision with app preferences (`is_onboarded`, `lastOpened` etc.)
+- **App version invalidation**: `init()` checks `package_info_plus` version/build number. If changed, clears all `cache_*` keys.
+- **Timestamp serialization**: `hiveSafe()` converts Timestamp → ISO string; `hiveRestore()` converts ISO strings → Timestamp. Needed because `jsonEncode` can't serialize `FieldValue` or `Timestamp` natively.
+- **Methods**: `get`, `put`, `invalidate`, `invalidateByPrefix`, `clearAll`
+- **TTLs**: 30s (transactions), 60s (wealth portfolio), 5min (everything else)
+
+### Cache Invalidation After Read
+```dart
+void _loadFromCache() {
+  final cached = LocalCacheService.get(_cacheKey);
+  if (cached != null) { /* restore from cache */ }
+  LocalCacheService.invalidate(_cacheKey); // Always invalidate after read
+}
+```
+This prevents stale/incomplete cache (e.g., from previous `.limit()`) from persisting.
+
 ## Firestore Security Rules (`firestore.rules`)
 
 ### Key Functions
@@ -220,7 +244,20 @@ function isOwner(email) { /* request.auth.token.email == email */ }
 function isAdmin() { /* checks users/{email}.isAdmin == true */ }
 function validTransaction() { /* validates amount, date, senderId, recipientId */ }
 function isReferralAllowed() { /* permits cross-user referral writes */ }
+function isPrivilegeElevation() { /* blocks owner from writing isAdmin, referralCount, subscriptionStatus, trialEndDate, referredBy */ }
 ```
+
+### User Doc Rule (Hardened)
+
+```javascript
+match /users/{userEmail} {
+  allow create: if isOwner(userEmail);
+  allow update: if (isOwner(userEmail) && !isPrivilegeElevation()) || isReferralAllowed();
+  allow delete: if isOwner(userEmail);
+}
+```
+
+The user doc write rule was **split** from `allow write` into `create`/`update`/`delete`. The `isPrivilegeElevation()` check prevents users from self-elevating to admin or tampering with subscription/referral fields. The `isReferralAllowed()` exception still allows the referral system to write `referralCount`, `subscriptionStatus`, `trialEndDate` cross-user.
 
 ### Referral Write Rule
 
@@ -276,6 +313,14 @@ The bottom `match /{document=**}` with `allow read, write: if false;` denies eve
 
 ## SMS Classification Priority (`lib/Services/sms_service.dart`)
 
+### Amount Regex (Indian Bank Formats)
+Primary regex must catch `debited by {amount}` / `credited by {amount}` patterns. Indian bank UPI messages use "debited by 86.00" format — no `Rs` or `INR` prefix. The fallback bare amount regex (`firstMatch`) finds the leftmost 2+ digit number, which can match wrong values like account number fragments ("X5488" before "86.00").
+
+```dart
+// Primary amount regex (must include debited by / credited by):
+r'(?:Rs\.?|INR|MRP|Amt|Amount|debited by|credited by|by Rs\.?)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)'
+```
+
 1. Refund/cashback → always credit
 2. `debited` / `deducted` / `withdrawn` / `spent` / `sent` → debit
 3. `credited` / `deposit` → credit
@@ -301,11 +346,15 @@ Pinned to **v6.2.2** (`pubspec.yaml: google_sign_in: ^6.2.2`). Do **not** upgrad
 10. **Test expected values must match field sums** — When new asset fields are added to `WealthPortfolio`, update `totalAssets` expected values in both `wealth_data_test.dart` tests. The test data comment is also prone to drift — recompute from actual values.
 11. **`fromMap` Timestamp cast in tests** — `(map['lastUpdated'] as Timestamp?)?.toDate()` fails with mocked `Timestamp`. Use `(map['lastUpdated'] as dynamic)?.toDate()` instead, which works with both real Timestamp and test mocks.
 12. **`compact()` rounds, doesn't truncate** — `toStringAsFixed()` applies rounding. `compact(1500)` returns `"2K"` (1.5 → 2), not `"1K`. Tests expecting truncation will fail.
-10. **APK download URL** — Always construct from release tag: `releases/download/$tag/app-release.apk`. Do NOT scan `assets[]` — GitHub lists `.aab` alphabetically first.
-13. **Don't mix GetX dialogs with Flutter navigator** — `Get.dialog()` + `Navigator.pop()` + `Get.snackbar()` causes `LateInitializationError` because `Get.back()` tries to close snackbar queue with uninitialized `_controller`. Use pure Flutter: `showDialog()` + `Navigator.of(context, rootNavigator: true).pop()` + `ScaffoldMessenger.showSnackBar()`.
-14. **`FilePicker.saveFile()` returns content:// URI on Android** — You CANNOT call `File(result).writeAsString()` on it. Must pass `bytes: Uint8List.fromList(utf8.encode(csv))` to `saveFile()`.
-15. **`showDialog` + `Navigator.pop` navigator mismatch** — `showDialog()` uses `useRootNavigator: true` by default. `Navigator.of(context)` (without rootNavigator) finds a different navigator. Always use `Navigator.of(context, rootNavigator: true).pop()`.
-16. **`QueryDocumentSnapshot.data()` already non-nullable** — In cloud_firestore 4.x, `QueryDocumentSnapshot.data()` returns `Map<String, dynamic>` (non-nullable). Do NOT add `as Map<String, dynamic>` — it triggers `unnecessary_cast` warning and fails CI with `--no-fatal-infos` (still treats warnings as errors).
+13. **APK download URL** — Always construct from release tag: `releases/download/$tag/app-release.apk`. Do NOT scan `assets[]` — GitHub lists `.aab` alphabetically first.
+14. **Don't mix GetX dialogs with Flutter navigator** — `Get.dialog()` + `Navigator.pop()` + `Get.snackbar()` causes `LateInitializationError` because `Get.back()` tries to close snackbar queue with uninitialized `_controller`. Use pure Flutter: `showDialog()` + `Navigator.of(context, rootNavigator: true).pop()` + `ScaffoldMessenger.showSnackBar()`.
+15. **`FilePicker.saveFile()` returns content:// URI on Android** — You CANNOT call `File(result).writeAsString()` on it. Must pass `bytes: Uint8List.fromList(utf8.encode(csv))` to `saveFile()`.
+16. **`showDialog` + `Navigator.pop` navigator mismatch** — `showDialog()` uses `useRootNavigator: true` by default. `Navigator.of(context)` (without rootNavigator) finds a different navigator. Always use `Navigator.of(context, rootNavigator: true).pop()`.
+17. **`QueryDocumentSnapshot.data()` already non-nullable** — In cloud_firestore 4.x, `QueryDocumentSnapshot.data()` returns `Map<String, dynamic>` (non-nullable). Do NOT add `as Map<String, dynamic>` — it triggers `unnecessary_cast` warning and fails CI with `--no-fatal-infos` (still treats warnings as errors).
+18. **Stream `.limit()` breaks balance computation** — Never apply `.limit()` to a transaction stream that feeds `totalBalance`. The balance sums ALL transactions. With `.limit(50)`, only the last 50 transactions are included, producing a wildly wrong balance. Apply limits only to cached snapshots, never the stream.
+19. **Cache invalidation after read** — Always `LocalCacheService.invalidate(_cacheKey)` after reading cached data. This prevents stale/incomplete cache (e.g., from previous `.limit()`) from persisting. The stream event will re-populate the cache with fresh data.
+20. **`collectionRef.orderBy() as Query` is unnecessary cast** — `orderBy()` already returns `Query`. The cast triggers `unnecessary_cast` warning which fails CI with `--no-fatal-infos`.
+21. **SMS amount regex: Indian UPI uses "debited by" format** — Indian bank UPI messages say "debited by 86.00" / "credited by 86.00" with no `Rs` or `INR` prefix. The primary amount regex must include `debited by|credited by|by Rs\.?`. Without this, the bare amount fallback finds the leftmost 2+ digit number (e.g., "5488" from "A/C X5488") instead of the real amount ("86.00").
 
 ## CSV Export (`lib/Screens/Settings/data_support_settings.dart`)
 
@@ -378,6 +427,7 @@ _myWorker?.dispose(); // in dispose() or onClose()
 | `lib/main.dart` | App entry, controller registration (2-phase), auth flow |
 | `lib/Controllers/transaction_controller.dart` | Core transaction CRUD + stream |
 | `lib/Repositories/transaction_repository.dart` | Firestore access layer |
+| `lib/Services/cache_service.dart` | SharedPreferences TTL cache |
 | `lib/Screens/wealth_builder.dart` | Dashboard with `streamPortfolio()`, asset grid, navigation |
 | `lib/Screens/asset_detail_screen.dart` | Generic asset detail screen + `_AddSheet` |
 | `lib/Config/asset_screen_configs.dart` | All 24 `AssetScreenConfig` definitions |
