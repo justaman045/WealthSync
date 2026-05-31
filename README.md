@@ -3,10 +3,10 @@
   <h1>WealthSync</h1>
   <p><b>Your Pocket CFO</b> — track expenses, build wealth, automate finances</p>
 
-  [![Release](https://img.shields.io/github/v/release/justaman045/Finance-Control?color=6C5CE7&style=flat-square)](https://github.com/justaman045/Finance-Control/releases)
-  [![Tests](https://github.com/justaman045/Finance-Control/actions/workflows/flutter_build.yml/badge.svg)](https://github.com/justaman045/Finance-Control/actions/workflows/flutter_build.yml)
-  [![License](https://img.shields.io/github/license/justaman045/Finance-Control?style=flat-square)](LICENSE)
-  [![Platform](https://img.shields.io/badge/Android-73C36A?style=flat-square&logo=android)](https://github.com/justaman045/Finance-Control/releases)
+  [![Release](https://img.shields.io/github/v/release/justaman045/WealthSync?color=6C5CE7&style=flat-square)](https://github.com/justaman045/WealthSync/releases)
+  [![Tests](https://github.com/justaman045/WealthSync/actions/workflows/flutter_build.yml/badge.svg)](https://github.com/justaman045/WealthSync/actions/workflows/flutter_build.yml)
+  [![License](https://img.shields.io/github/license/justaman045/WealthSync?style=flat-square)](LICENSE)
+  [![Platform](https://img.shields.io/badge/Android-73C36A?style=flat-square&logo=android)](https://github.com/justaman045/WealthSync/releases)
   [![Flutter](https://img.shields.io/badge/Flutter-3.35-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
 </div>
@@ -95,8 +95,8 @@ Most finance apps are cluttered, invasive, or ugly. **WealthSync** is a modern, 
 
 ```bash
 # Clone
-git clone https://github.com/justaman045/Finance-Control.git
-cd Finance-Control
+git clone https://github.com/justaman045/WealthSync.git
+cd WealthSync
 
 # Install dependencies
 flutter pub get
@@ -118,7 +118,7 @@ flutter build apk --release
 
 ## Download
 
-**Latest APK:** https://github.com/justaman045/Finance-Control/releases/download/v2.0.121/app-release.apk
+**Latest APK:** https://github.com/justaman045/WealthSync/releases/download/v2.0.121/app-release.apk
 
 *Installation:* Download the `.apk` on your Android device, open it, and allow installation from unknown sources.
 
@@ -128,8 +128,8 @@ flutter build apk --release
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
-- Found a bug? [Open an issue](https://github.com/justaman045/Finance-Control/issues/new?labels=bug)
-- Have an idea? [Open a feature request](https://github.com/justaman045/Finance-Control/issues/new?labels=enhancement)
+- Found a bug? [Open an issue](https://github.com/justaman045/WealthSync/issues/new?labels=bug)
+- Have an idea? [Open a feature request](https://github.com/justaman045/WealthSync/issues/new?labels=enhancement)
 
 ---
 
