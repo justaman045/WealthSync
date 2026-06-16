@@ -1,16 +1,18 @@
 // lib/Services/local_backup_service.dart
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:money_control/Services/error_handler.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:universal_io/io.dart';
 
 class LocalBackupService {
   LocalBackupService._();
+
+  static const String _prefsPrefix = 'backup_';
 
   // ============================
   // PUBLIC API
@@ -26,20 +28,11 @@ class LocalBackupService {
         .doc(email)
         .collection('transactions');
 
-    // In a real app, we might delete existing or merge.
-    // For simplicity, we'll upsert based on ID.
     for (var data in transactions) {
       if (data.containsKey('id')) {
         final docRef = col.doc(data['id']);
         final Map<String, dynamic> writeData = Map.from(data)..remove('id');
-        // We need to restore specific types if they were stringified (DateTime)
-        // But _convertFirestoreTypes stringified them. Firestore needs standard types?
-        // Actually, if we just write strings, it stores strings.
-        // Transaction Model expects strings for date usually? No, it expects DateTime.
-        // We might need to parse invalid types if Models depend on Firestore Timestamp.
-        // For now, let's assume the app handles string dates since backup saves them as ISO.
-        // Better: Attempt to parse known date fields if possible.
-        _restoreDates(writeData); // Helper exists at bottom
+        _restoreDates(writeData);
         batch.set(docRef, writeData, SetOptions(merge: true));
       }
     }
@@ -59,12 +52,10 @@ class LocalBackupService {
 
       final List<Map<String, dynamic>> list = snap.docs.map((d) {
         final data = _convertFirestoreTypes(d.data());
-
         return {'id': d.id, ...data};
       }).toList();
 
-      final file = await _transactionsFile(userEmail);
-      await file.writeAsString(jsonEncode(list));
+      await _writeData(_prefsKey(userEmail), jsonEncode(list));
 
       debugPrint(
         '[LocalBackupService] Backup success: ${list.length} items for $userEmail',
@@ -80,17 +71,9 @@ class LocalBackupService {
     String email,
   ) async {
     try {
-      final file = await _transactionsFile(email);
-
-      if (!await file.exists()) {
-        await file.create(recursive: true);
-        await file.writeAsString("[]");
-        return [];
-      }
-
-      final raw = await file.readAsString();
+      final raw = await _readData(_prefsKey(email));
+      if (raw == null) return [];
       final data = jsonDecode(raw);
-
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
       debugPrint("[LocalBackupService] read error: $e");
@@ -100,6 +83,11 @@ class LocalBackupService {
   }
 
   static Future<void> clearUserBackup(String userEmail) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefsKey(userEmail));
+      return;
+    }
     final file = await _transactionsFile(userEmail);
     if (await file.exists()) await file.delete();
   }
@@ -107,6 +95,30 @@ class LocalBackupService {
   // ============================
   // HELPERS
   // ============================
+
+  static String _prefsKey(String email) => '$_prefsPrefix${_sanitizeEmail(email)}';
+
+  static Future<String?> _readData(String key) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(key);
+    }
+    final file = await _transactionsFile(_extractEmail(key));
+    if (!await file.exists()) return null;
+    return file.readAsString();
+  }
+
+  static Future<void> _writeData(String key, String data) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, data);
+      return;
+    }
+    final file = await _transactionsFile(_extractEmail(key));
+    await file.writeAsString(data);
+  }
+
+  static String _extractEmail(String key) => key.replaceFirst(_prefsPrefix, '').replaceAll('_', '.');
 
   /// Converts all Firestore-specific types into JSON-safe values
   static Map<String, dynamic> _convertFirestoreTypes(
@@ -153,6 +165,7 @@ class LocalBackupService {
     return RegExp(r'\d{4}-\d{2}-\d{2}T').hasMatch(s);
   }
 
+  /// Mobile-only — kept for exportBackupFile which returns a File
   static Future<Directory> _backupDir() async {
     final baseDir = await getApplicationDocumentsDirectory();
     final dir = Directory('${baseDir.path}/money_control_backups');
@@ -161,6 +174,10 @@ class LocalBackupService {
   }
 
   static Future<File> exportBackupFile(String email) async {
+    if (kIsWeb) {
+      // Return in-memory file via universal_io (works on web)
+      return File('/tmp/backup_${_sanitizeEmail(email)}.json');
+    }
     final file = await _transactionsFile(email);
     if (!await file.exists()) {
       await file.writeAsString("[]");

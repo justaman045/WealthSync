@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:money_control/Platform/iap_platform.dart';
 import 'package:money_control/main.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';

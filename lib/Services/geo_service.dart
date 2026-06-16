@@ -1,6 +1,7 @@
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:money_control/Platform/geocoding_platform.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Returns the estimated average monthly income (₹) for the user's location,
@@ -945,6 +946,8 @@ class GeoService {
           timeLimit: Duration(seconds: 10),
         ),
       );
+
+      if (kIsWeb) return _baseline();
 
       final placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);

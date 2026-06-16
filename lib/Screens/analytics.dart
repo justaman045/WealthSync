@@ -1,11 +1,9 @@
 // --- imports ---
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -429,12 +427,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     try {
       final Uint8List? image = await _screenshotController.capture(pixelRatio: 2.0);
       if (image == null) return;
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/money_control_report.png');
-      await file.writeAsBytes(image);
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(file.path)],
+          files: [XFile.fromData(image, name: 'money_control_report.png', mimeType: 'image/png')],
           text: 'My $_periodLabel Financial Report — Money Control',
         ),
       );

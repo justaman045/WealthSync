@@ -1,6 +1,5 @@
 // lib/Screens/transaction_details.dart
 
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,7 +10,6 @@ import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
@@ -150,12 +148,13 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       ),
     );
 
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File("${directory.path}/Transaction_${tx.id}.pdf");
-    await file.writeAsBytes(await pdf.save());
+    final bytes = await pdf.save();
 
-    // ignore: deprecated_member_use
-    await Share.shareXFiles([XFile(file.path, mimeType: "application/pdf")]);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile.fromData(bytes, mimeType: "application/pdf", name: "Transaction_${tx.id}.pdf")],
+      ),
+    );
   }
 
   pw.Widget _pdfRow(String label, String value) {

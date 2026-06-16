@@ -226,9 +226,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           if (data == null) {
             return const Center(child: Text("Subscription data not found"));
           }
+          if (data is! Map<String, dynamic>) {
+            return const Center(child: Text("Invalid subscription data format"));
+          }
           final paymentData = RecurringPayment.fromMap(
             snapshot.data!.id,
-            data as Map<String, dynamic>,
+            data,
           );
 
           return SingleChildScrollView(

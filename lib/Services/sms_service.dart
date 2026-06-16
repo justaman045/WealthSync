@@ -1,8 +1,9 @@
-import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
+import 'package:money_control/Platform/sms_platform.dart';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:characters/characters.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
+import 'package:money_control/Platform/permission_platform.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -29,7 +30,7 @@ class SmsTransaction {
 }
 
 class SmsService {
-  final SmsQuery _query = SmsQuery();
+  final SmsQuery? _query = kIsWeb ? null : SmsQuery();
   final CategoryRulesRepository _rulesRepository = CategoryRulesRepository();
 
   static Map<String, List<String>> _currentRules = {};
@@ -473,8 +474,9 @@ class SmsService {
       final prefs = await SharedPreferences.getInstance();
       final json = prefs.getString(_userRulesKey);
       if (json == null) return {};
-      final decoded = jsonDecode(json) as Map<String, dynamic>;
-      return decoded.map((k, v) => MapEntry(k, List<String>.from(v as List)));
+      final decoded = jsonDecode(json);
+      if (decoded is! Map<String, dynamic>) return {};
+      return decoded.map((k, v) => MapEntry(k, List<String>.from(v is List ? v : <String>[])));
     } catch (_) {
       return {};
     }
@@ -493,7 +495,9 @@ class SmsService {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString('category_corrections');
       if (raw != null) {
-        final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+        final rawDecoded = jsonDecode(raw);
+        if (rawDecoded is! Map) return;
+        final map = Map<String, dynamic>.from(rawDecoded);
         _correctionCache = {
           for (final entry in map.entries)
             entry.key.toLowerCase(): (entry.value as Map)['category'] as String,
@@ -540,6 +544,7 @@ class SmsService {
   /// Request permissions and fetch SMS. Returns parsed transactions.
   /// Returns null if permission is denied (caller should show settings prompt).
   Future<List<SmsTransaction>?> scanMessages({int limit = 50}) async {
+    if (kIsWeb) return [];
     await initRules();
 
     var status = await Permission.sms.status;
@@ -554,7 +559,7 @@ class SmsService {
     }
 
     try {
-      final messages = await _query.querySms(
+      final messages = await _query!.querySms(
         kinds: [SmsQueryKind.inbox],
         count: limit,
       );

@@ -10,7 +10,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:money_control/Platform/notification_platform.dart';
 import 'package:money_control/Components/methods.dart';
 
 import 'package:money_control/firebase_options.dart';
@@ -41,7 +41,7 @@ import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:home_widget/home_widget.dart';
+import 'package:money_control/Platform/widget_platform.dart';
 import 'package:money_control/Screens/add_transaction.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/sms_service.dart';
@@ -166,7 +166,7 @@ Future<void> mainCommon({bool isTest = false}) async {
 
   await BackgroundWorker.init();
 
-  if (!isTest) {
+  if (!isTest && !kIsWeb) {
     await FlutterLocalNotificationsPlugin()
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
@@ -219,6 +219,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
   }
 
   void _initWidgetClickHandling() {
+    if (kIsWeb) return;
     // Cold start: app opened via widget tap
     HomeWidget.initiallyLaunchedFromHomeWidget().then((uri) {
       if (uri?.host == 'add_transaction') {

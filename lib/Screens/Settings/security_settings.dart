@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -75,17 +76,18 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 _SectionHeader("Access Control"),
 
                 // Biometric Toggle
-                Obx(
-                  () => _SettingsTile(
-                    icon: Icons.fingerprint,
-                    title: "Biometric App Lock",
-                    trailing: Switch(
-                      value: bioService.isBiometricEnabled.value,
-                      activeThumbColor: const Color(0xFF00E5FF),
-                      onChanged: (val) => bioService.toggleBiometric(val),
+                if (!kIsWeb)
+                  Obx(
+                    () => _SettingsTile(
+                      icon: Icons.fingerprint,
+                      title: "Biometric App Lock",
+                      trailing: Switch(
+                        value: bioService.isBiometricEnabled.value,
+                        activeThumbColor: const Color(0xFF00E5FF),
+                        onChanged: (val) => bioService.toggleBiometric(val),
+                      ),
                     ),
                   ),
-                ),
 
                 // Privacy Mode Toggle
                 Obx(

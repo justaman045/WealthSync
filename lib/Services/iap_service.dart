@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:money_control/Platform/iap_platform.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Services/error_handler.dart';

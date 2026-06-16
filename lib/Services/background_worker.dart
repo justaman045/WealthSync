@@ -1,12 +1,13 @@
-import 'package:workmanager/workmanager.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:money_control/Platform/worker_platform.dart';
+import 'package:money_control/Platform/notification_platform.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
+import 'package:money_control/Platform/sms_platform.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -16,7 +17,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/widget_service.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:money_control/Platform/permission_platform.dart';
 
 /// Background worker to check inactivity and show reminder notifications
 class BackgroundWorker {
@@ -25,6 +26,7 @@ class BackgroundWorker {
   /// Task name used by WorkManager
   /// Initialize WorkManager only once
   static Future<void> init() async {
+    if (kIsWeb) return;
     if (_initialized) return;
     _initialized = true;
 
@@ -43,6 +45,7 @@ class BackgroundWorker {
   /// Manually trigger SMS auto-import (admin use). Scans the last [days] days.
   /// Returns the number of newly imported transactions.
   static Future<int> triggerSmsImport({int days = 7}) async {
+    if (kIsWeb) return 0;
     final prefs = await SharedPreferences.getInstance();
     final scanFrom = DateTime.now().subtract(Duration(days: days));
     return _processSmsMessages(prefs, scanFrom: scanFrom);
@@ -300,7 +303,7 @@ Future<void> _checkUpdate(SharedPreferences prefs) async {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final remoteVersion = data["latest_version"] as String;
+      final remoteVersion = data["latest_version"] as String? ?? "0.0.0";
 
       // 2. Fetch Local Version
       final package = await PackageInfo.fromPlatform();

@@ -1,6 +1,7 @@
 // lib/Screens/add_transaction.dart
 
 import 'package:confetti/confetti.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -353,7 +354,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       : AppLocalizations.of(context)!.receive,
                   onTap: saveTransaction,
                 ),
-                if (widget.type == PaymentType.send) ...[
+                if (widget.type == PaymentType.send && !kIsWeb) ...[
                   SizedBox(height: 12.h),
                   _upiPayButton(context),
                 ],

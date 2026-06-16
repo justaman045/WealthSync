@@ -397,6 +397,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         loading = false;
         error = "AI Analysis Error: $e";

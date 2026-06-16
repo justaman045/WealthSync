@@ -14,7 +14,7 @@ import 'package:money_control/Components/pro_lock_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Screens/auto_tag_rules_screen.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
 
 class SmsImportScreen extends StatefulWidget {

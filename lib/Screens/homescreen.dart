@@ -28,6 +28,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // 🔥 import background worker
 import 'package:money_control/Services/background_worker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:get/get.dart';
@@ -74,7 +75,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
 
     // Start WorkManager & Tutorial
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      BackgroundWorker.init();
+      if (!kIsWeb) BackgroundWorker.init();
       TutorialController.showHomeTutorial(
         context,
         keyTransactionList: _keyTransactionList,

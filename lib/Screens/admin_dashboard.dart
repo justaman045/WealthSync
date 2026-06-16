@@ -247,6 +247,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         title: Text(
@@ -304,6 +305,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
-    );
+    ).whenComplete(() => emailController.dispose());
   }
 }

@@ -1,8 +1,7 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/transaction.dart';
@@ -10,6 +9,8 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/budget_service.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Services/receipt_platform.dart';
+import 'package:universal_io/io.dart';
 
 class ReceiptScanPage extends StatefulWidget {
   const ReceiptScanPage({super.key});
@@ -26,6 +27,10 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage(ImageSource source) async {
+    if (kIsWeb) {
+      ErrorHandler.showError("Camera and gallery not available in browser");
+      return;
+    }
     final pickedFile = await _picker.pickImage(
       source: source,
       imageQuality: 80,
@@ -42,6 +47,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
   }
 
   Future<void> _performTextRecognition(File imageFile) async {
+    if (kIsWeb) return;
     final inputImage = InputImage.fromFile(imageFile);
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 

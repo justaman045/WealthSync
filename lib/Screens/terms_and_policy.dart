@@ -30,18 +30,22 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
 
   Future<void> _loadUserConsents() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null || user.email == null) return;
 
-    final doc = await FirebaseFirestore.instance
-        .collection("users")
-        .doc(user.email)
-        .get();
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection("users")
+          .doc(user.email)
+          .get();
 
-    if (mounted) {
-      setState(() {
-        consentDataProcessing = doc.data()?["consent_data"] ?? false;
-        consentMarketing = doc.data()?["consent_marketing"] ?? false;
-      });
+      if (mounted) {
+        setState(() {
+          consentDataProcessing = doc.data()?["consent_data"] ?? false;
+          consentMarketing = doc.data()?["consent_marketing"] ?? false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load user consents: $e");
     }
   }
 

@@ -1,12 +1,13 @@
-import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:intl/intl.dart';
+import 'package:universal_io/io.dart';
 
 class ImportService {
   /// Pick a CSV file and return its content as a List of Lists
@@ -17,13 +18,13 @@ class ImportService {
         allowedExtensions: ['csv'],
       );
 
-      if (result != null && result.files.single.path != null) {
-        File file = File(result.files.single.path!);
-        final input = file.openRead();
-        final fields = await input
-            .transform(utf8.decoder)
-            .transform(const CsvToListConverter())
-            .toList();
+      if (result != null) {
+        final file = result.files.single;
+        final bytes = file.bytes ?? (kIsWeb ? null : await File(file.path!).readAsBytes());
+        if (bytes == null) return null;
+        final fields = await utf8.decodeStream(
+          Stream.fromIterable([bytes]),
+        ).then((text) => const CsvToListConverter().convert(text));
         return fields;
       }
     } catch (e) {

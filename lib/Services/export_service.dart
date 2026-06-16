@@ -1,17 +1,17 @@
-import 'dart:io';
-
-import 'dart:typed_data';
-
+import 'dart:convert';
 import 'package:csv/csv.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
-import 'package:open_filex/open_filex.dart';
+import 'package:money_control/Platform/openfile_platform.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:universal_io/io.dart';
 
 class ExportService {
   // Brand Colors (Approximate matches to Neon/Midnight theme for Print)
@@ -70,6 +70,15 @@ class ExportService {
     ];
 
     final csv = const ListToCsvConverter().convert(rows);
+
+    if (kIsWeb) {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile.fromData(Uint8List.fromList(utf8.encode(csv)), name: 'transactions_export.csv', mimeType: 'text/csv')],
+        ),
+      );
+      return;
+    }
 
     final dir = await getApplicationDocumentsDirectory();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -164,6 +173,16 @@ class ExportService {
     );
 
     final Uint8List bytes = await pdf.save();
+
+    if (kIsWeb) {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile.fromData(bytes, name: 'analytics_report.pdf', mimeType: 'application/pdf')],
+        ),
+      );
+      return;
+    }
+
     final dir = await getApplicationDocumentsDirectory();
     final file = File("${dir.path}/analytics_report.pdf");
     await file.writeAsBytes(bytes);
@@ -525,9 +544,20 @@ class ExportService {
       ),
     );
 
+    final bytes = await pdf.save();
+
+    if (kIsWeb) {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile.fromData(bytes, name: 'tax_summary_${periodLabel.replaceAll(' ', '_')}.pdf', mimeType: 'application/pdf')],
+        ),
+      );
+      return;
+    }
+
     final dir = await getApplicationDocumentsDirectory();
     final file = File("${dir.path}/tax_summary_${periodLabel.replaceAll(' ', '_')}.pdf");
-    await file.writeAsBytes(await pdf.save());
+    await file.writeAsBytes(bytes);
     await OpenFilex.open(file.path);
   }
 

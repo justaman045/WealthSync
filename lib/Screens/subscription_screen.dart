@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -703,7 +704,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   SizedBox(height: 40.h),
 
                   Obx(() {
-                    final isUpiMode = PaymentConfigService.to.paymentMode.value == 'upi';
+                    final isUpiMode = !kIsWeb && PaymentConfigService.to.paymentMode.value == 'upi';
                     return isUpiMode ? _buildUpiFlow(isDark) : _buildIapFlow(isDark);
                   }),
                   SizedBox(height: 20.h),

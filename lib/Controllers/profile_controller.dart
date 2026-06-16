@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Services/cache_service.dart';
+import 'package:universal_io/io.dart';
 
 class ProfileController extends GetxController {
   static ProfileController get to => Get.find();
@@ -95,12 +96,30 @@ class ProfileController extends GetxController {
       if (user == null) return;
 
       isLoading.value = true;
-      final File file = File(image.path);
+
       final String refPath = 'users/${user.uid}/profile.jpg';
+
+      Uint8List imageBytes;
+      if (kIsWeb) {
+        final picked = await _picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 70,
+          maxWidth: 512,
+          maxHeight: 512,
+        );
+        if (picked == null) {
+          isLoading.value = false;
+          return;
+        }
+        imageBytes = await picked.readAsBytes();
+      } else {
+        final File file = File(image.path);
+        imageBytes = await file.readAsBytes();
+      }
 
       // 1. Upload to Storage
       final ref = _storage.ref().child(refPath);
-      await ref.putFile(file);
+      await ref.putData(imageBytes);
       final String downloadUrl = await ref.getDownloadURL();
 
       // 2. Update Auth (so currentUser.photoURL updates automatically)

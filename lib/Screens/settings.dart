@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering;
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
@@ -233,6 +235,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 12.sp,
                     ),
                   ),
+                  if (kIsWeb)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8.h),
+                      child: GestureDetector(
+                        onTap: () async {
+                          final url = Uri.parse(_webUrl);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        child: Text(
+                          "Web Version",
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 12.sp,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
                   SizedBox(
                     height: 150.h,
                   ), // Increased padding to prevent cut-off
@@ -460,6 +482,8 @@ class _InviteFriendsCard extends StatefulWidget {
   State<_InviteFriendsCard> createState() => _InviteFriendsCardState();
 }
 
+const _webUrl = 'https://justaman045.github.io/WealthSync/';
+
 class _InviteFriendsCardState extends State<_InviteFriendsCard> {
   String _code = '';
   int _count = 0;
@@ -529,18 +553,22 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
   Future<void> _share() async {
     if (_code.isEmpty) return;
 
-    // Detect distribution channel: Play Store vs GitHub sideload
     String downloadUrl;
-    try {
-      final installer = await _upiChannel
-          .invokeMethod<String?>('getInstallerPackageName');
-      if (installer == 'com.android.vending') {
-        downloadUrl = _playStoreUrl;
-      } else {
+    if (kIsWeb) {
+      downloadUrl = _webUrl;
+    } else {
+      // Detect distribution channel: Play Store vs GitHub sideload
+      try {
+        final installer = await _upiChannel
+            .invokeMethod<String?>('getInstallerPackageName');
+        if (installer == 'com.android.vending') {
+          downloadUrl = _playStoreUrl;
+        } else {
+          downloadUrl = await _githubApkUrl();
+        }
+      } catch (_) {
         downloadUrl = await _githubApkUrl();
       }
-    } catch (_) {
-      downloadUrl = await _githubApkUrl();
     }
 
     SharePlus.instance.share(

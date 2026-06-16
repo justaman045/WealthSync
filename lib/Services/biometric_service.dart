@@ -1,11 +1,12 @@
 import 'package:flutter/services.dart';
 import 'dart:developer';
-import 'package:local_auth/local_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:money_control/Platform/biometric_platform.dart';
 
 class BiometricService extends GetxController {
-  final LocalAuthentication auth = LocalAuthentication();
+  final LocalAuthentication? auth = kIsWeb ? null : LocalAuthentication();
   RxBool isBiometricEnabled = false.obs;
   RxBool isAuthenticated = false.obs;
 
@@ -41,16 +42,18 @@ class BiometricService extends GetxController {
   Future<bool> authenticate({
     String reason = 'Please authenticate to access Finance Control',
   }) async {
+    if (kIsWeb) return false;
+    if (auth == null) return false;
     try {
-      final bool canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
+      final bool canAuthenticateWithBiometrics = await auth!.canCheckBiometrics;
       final bool canAuthenticate =
-          canAuthenticateWithBiometrics || await auth.isDeviceSupported();
+          canAuthenticateWithBiometrics || await auth!.isDeviceSupported();
 
       if (!canAuthenticate) {
         return false;
       }
 
-      final bool didAuthenticate = await auth.authenticate(
+      final bool didAuthenticate = await auth!.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
           stickyAuth: true,

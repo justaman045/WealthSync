@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -7,7 +8,7 @@ import 'package:money_control/Screens/admin_dashboard.dart';
 import 'package:money_control/Screens/Admin/admin_user_list.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Screens/Admin/payment_settings_screen.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
 
 class AdminMenu extends StatefulWidget {
@@ -21,6 +22,11 @@ class _AdminMenuState extends State<AdminMenu> {
   bool _isImporting = false;
 
   Future<void> _triggerSmsImport() async {
+    if (kIsWeb) {
+      Get.snackbar('Not Available', 'SMS import is not available in browser.',
+          backgroundColor: Colors.orangeAccent, colorText: Colors.white);
+      return;
+    }
     var status = await Permission.sms.status;
     if (!status.isGranted) {
       if (status.isPermanentlyDenied) {

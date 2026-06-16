@@ -33,7 +33,12 @@ class LocalCacheService {
     if (raw == null) return null;
 
     try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        _prefs.remove(_k(key));
+        return null;
+      }
+      final map = decoded;
       final expiresAt = map['expiresAt'] as int;
       if (DateTime.now().millisecondsSinceEpoch >= expiresAt) {
         _prefs.remove(_k(key));
