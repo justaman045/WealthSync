@@ -664,6 +664,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     children: [
                       Expanded(
                         child: Obx(() {
+                          if (!Get.isRegistered<IapService>()) return const SizedBox.shrink();
                           final iap = Get.find<IapService>();
                           final monthly = iap.products.firstWhereOrNull(
                             (p) => p.id == IapService.kMonthlyId,
@@ -681,6 +682,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       SizedBox(width: 16.w),
                       Expanded(
                         child: Obx(() {
+                          if (!Get.isRegistered<IapService>()) return const SizedBox.shrink();
                           final iap = Get.find<IapService>();
                           final yearly = iap.products.firstWhereOrNull(
                             (p) => p.id == IapService.kYearlyId,
@@ -854,6 +856,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Column(
       children: [
         Obx(() {
+          if (!Get.isRegistered<IapService>()) return const SizedBox.shrink();
           final loading = Get.find<IapService>().isLoading.value;
           final ctrl = SubscriptionController.to;
           final trialDays = ctrl.trialEndDate.value != null
@@ -881,7 +884,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         }),
         SizedBox(height: 12.h),
         TextButton(
-          onPressed: () => Get.find<IapService>().restorePurchases(),
+          onPressed: () { if (Get.isRegistered<IapService>()) Get.find<IapService>().restorePurchases(); },
           child: Text("Restore Purchases", style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 13.sp)),
         ),
         SizedBox(height: 8.h),
@@ -1106,6 +1109,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       return;
     }
     final productId = _selectedPlan == 'Monthly' ? IapService.kMonthlyId : IapService.kYearlyId;
-    await Get.find<IapService>().buySubscription(productId);
+    if (Get.isRegistered<IapService>()) await Get.find<IapService>().buySubscription(productId);
   }
 }

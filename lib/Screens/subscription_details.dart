@@ -561,6 +561,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               Navigator.pop(context);
 
               await _service.markAsPaid(payment, createTransaction: true);
+              if (!mounted) return;
               ErrorHandler.showSuccess("Payment recorded");
             },
             child: const Text("Confirm"),
@@ -659,12 +660,8 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     if (confirm == true) {
       await _service.deletePayment(payment.id);
       if (!mounted) return;
+      ErrorHandler.showSuccess("Subscription removed successfully");
       Navigator.of(context).pop(); // Close screen
-      Get.snackbar(
-        "Deleted",
-        "Subscription removed successfully",
-        snackPosition: SnackPosition.BOTTOM,
-      );
     }
   }
 }

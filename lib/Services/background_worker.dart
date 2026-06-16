@@ -15,6 +15,7 @@ import 'package:money_control/firebase_options.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Services/widget_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Background worker to check inactivity and show reminder notifications
@@ -354,10 +355,7 @@ Future<void> _checkRecurringPayments(SharedPreferences prefs) async {
   if (userEmail != null && uid != null) {
     try {
       await RecurringService.processDuePayments(userEmail, uid);
-
-      // Notify if processed?
-      // processDuePayments doesn't return count details,
-      // maybe we should just rely on user seeing it in history or add notification inside service.
+      await _updateWidgetBalance(userEmail);
 
       await prefs.setString('last_recurring_run', todayStr);
     } catch (e) {
@@ -408,6 +406,7 @@ Future<int> _processSmsMessages(
 
     int imported = 0;
     const uuid = Uuid();
+    final batch = db.batch();
 
     for (final msg in newBankMessages) {
       final parsed = SmsService.parseMessage(
@@ -431,32 +430,37 @@ Future<int> _processSmsMessages(
       if (existing.docs.isNotEmpty) continue;
 
       final txId = uuid.v4();
-      await db
+      final txRef = db
           .collection('users')
           .doc(userEmail)
           .collection('transactions')
-          .doc(txId)
-          .set({
-            'id': txId,
-            'amount': parsed.isDebit ? -parsed.amount : parsed.amount,
-            'recipientName': parsed.isDebit
+          .doc(txId);
+      batch.set(txRef, {
+        'id': txId,
+        'amount': parsed.isDebit ? -parsed.amount : parsed.amount,
+        'recipientName': parsed.isDebit
+            ? parsed.merchant
+            : (parsed.merchant != 'Unknown' && parsed.merchant.isNotEmpty
                 ? parsed.merchant
-                : (parsed.merchant != 'Unknown' && parsed.merchant.isNotEmpty
-                    ? parsed.merchant
-                    : (parsed.sender.isNotEmpty ? parsed.sender : 'Bank Credit')),
-            'recipientId': parsed.isDebit ? 'External' : uid,
-            'senderId': parsed.isDebit ? uid : 'External',
-            'date': Timestamp.fromDate(parsed.date),
-            'createdAt': FieldValue.serverTimestamp(),
-            'category': parsed.category,
-            'status': 'success',
-            'type': parsed.isDebit ? 'debit' : 'credit',
-            'note': 'Auto-imported from SMS',
-            'smsDedupeKey': dedupeKey,
-            'smsSender': parsed.sender,
-          });
+                : (parsed.sender.isNotEmpty ? parsed.sender : 'Bank Credit')),
+        'recipientId': parsed.isDebit ? 'External' : uid,
+        'senderId': parsed.isDebit ? uid : 'External',
+        'date': Timestamp.fromDate(parsed.date),
+        'createdAt': FieldValue.serverTimestamp(),
+        'category': parsed.category,
+        'status': 'success',
+        'type': parsed.isDebit ? 'debit' : 'credit',
+        'note': 'Auto-imported from SMS',
+        'smsDedupeKey': dedupeKey,
+        'smsSender': parsed.sender,
+      });
 
       imported++;
+    }
+
+    if (imported > 0) {
+      await batch.commit();
+      await _updateWidgetBalance(userEmail);
     }
 
     if (imported > 0) {
@@ -476,6 +480,28 @@ Future<int> _processSmsMessages(
     // Still update the timestamp to avoid re-scanning the same messages indefinitely.
     await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
     return 0;
+  }
+}
+
+/// Queries Firestore for the total balance and pushes it to the home widget.
+/// Called after any background write so the widget stays in sync.
+Future<void> _updateWidgetBalance(String email) async {
+  try {
+    final db = FirebaseFirestore.instance;
+    final snap = await db
+        .collection('users')
+        .doc(email)
+        .collection('transactions')
+        .get();
+    double total = 0;
+    for (final doc in snap.docs) {
+      total += (doc.data()['amount'] as num?)?.toDouble() ?? 0;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final symbol = prefs.getString('currency_symbol') ?? '\u20B9';
+    await WidgetService.updateBalance(total, symbol);
+  } catch (e) {
+    developer.log('Widget balance update error: $e');
   }
 }
 

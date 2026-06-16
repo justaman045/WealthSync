@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:get/get.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Repositories/lent_money_repository.dart';
@@ -27,8 +28,8 @@ class LentMoneyController extends GetxController {
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      entries.value = (cached as List).map((e) {
+    if (cached is List) {
+      entries.value = cached.map((e) {
         final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
         final id = map.remove('_id') as String? ?? '';
         return LentMoneyModel.fromMap(id, map);
@@ -50,7 +51,8 @@ class LentMoneyController extends GetxController {
         }).toList();
         LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
-    } catch (_) {
+    } catch (e) {
+      log('LentMoneyController._fetchFromFirestore error: $e');
     } finally {
       isLoading.value = false;
     }

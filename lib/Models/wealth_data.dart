@@ -158,7 +158,8 @@ class WealthPortfolio {
 
   static Map<String, double> _toDoubleMap(dynamic value) {
     if (value == null) return {};
-    final raw = value as Map;
+    if (value is! Map) return {};
+    final raw = value as Map<String, dynamic>;
     return raw.map((k, v) {
       if (v == null) return MapEntry(k.toString(), 0.0);
       if (v is num) return MapEntry(k.toString(), v.toDouble());

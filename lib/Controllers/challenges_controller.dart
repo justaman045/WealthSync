@@ -30,8 +30,8 @@ class ChallengesController extends GetxController {
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      challenges.value = (cached as List).map((e) {
+    if (cached is List) {
+      challenges.value = cached.map((e) {
         final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
         final id = map.remove('_id') as String? ?? '';
         return SavingsChallengeModel.fromMap(id, map);
@@ -52,7 +52,8 @@ class ChallengesController extends GetxController {
         }).toList();
         LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ChallengesController._fetchFromFirestore error: $e');
     } finally {
       isLoading.value = false;
     }

@@ -14,7 +14,7 @@ class UpdateChecker {
         "https://raw.githubusercontent.com/justaman045/Money_Control/master/app_version.json",
       );
 
-      final response = await http.get(url);
+      final response = await http.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 404) {
         debugPrint("Error with the Setup");

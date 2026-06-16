@@ -48,11 +48,11 @@ class IapService {
     isLoading.value = true;
     final param = PurchaseParam(productDetails: product);
     try {
-      await _iap.buyNonConsumable(purchaseParam: param); // in_app_purchase uses buyNonConsumable for Play subscriptions; the plugin manages subscription type internally.
-      // isLoading is reset in _handlePurchases after outcome is known
+      await _iap.buyNonConsumable(purchaseParam: param);
     } catch (e) {
-      isLoading.value = false;
       ErrorHandler.showError('Failed to initiate purchase. Please try again.');
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -66,34 +66,35 @@ class IapService {
   }
 
   Future<void> _handlePurchases(List<PurchaseDetails> purchases) async {
-    for (final purchase in purchases) {
-      switch (purchase.status) {
-        case PurchaseStatus.pending:
-          // Payment initiated but not completed (e.g. UPI redirect in progress)
-          continue;
+    try {
+      for (final purchase in purchases) {
+        switch (purchase.status) {
+          case PurchaseStatus.pending:
+            continue;
 
-        case PurchaseStatus.purchased:
-        case PurchaseStatus.restored:
-          if (purchase.pendingCompletePurchase) {
-            await _iap.completePurchase(purchase);
-          }
-          await SubscriptionController.to.activateGooglePlaySubscription(
-            purchase,
-          );
-          break;
+          case PurchaseStatus.purchased:
+          case PurchaseStatus.restored:
+            if (purchase.pendingCompletePurchase) {
+              await _iap.completePurchase(purchase);
+            }
+            await SubscriptionController.to.activateGooglePlaySubscription(
+              purchase,
+            );
+            break;
 
-        case PurchaseStatus.error:
-          ErrorHandler.showError(
-            purchase.error?.message ?? 'Purchase failed. Please try again.',
-          );
-          break;
+          case PurchaseStatus.error:
+            ErrorHandler.showError(
+              purchase.error?.message ?? 'Purchase failed. Please try again.',
+            );
+            break;
 
-        case PurchaseStatus.canceled:
-          // User dismissed the payment sheet — do nothing
-          break;
+          case PurchaseStatus.canceled:
+            break;
+        }
       }
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 
   void dispose() {

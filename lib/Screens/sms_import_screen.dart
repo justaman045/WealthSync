@@ -44,7 +44,10 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('imported_sms_keys');
     if (raw != null) {
-      _importedKeys = (jsonDecode(raw) as List).cast<String>().toSet();
+      final decoded = jsonDecode(raw);
+      _importedKeys = decoded is List
+          ? decoded.cast<String>().toSet()
+          : <String>{};
     }
   }
 

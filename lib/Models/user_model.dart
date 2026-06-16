@@ -42,12 +42,12 @@ class UserModel {
       address: map['address'],
       role: map['role'],
       profileImage: map['profileImage'],
-      currentBalance: map['currentBalance'] != null
+      currentBalance: map['currentBalance'] is num
           ? (map['currentBalance'] as num).toDouble()
           : null,
       age: map['dob'] != null
           ? _calculateAgeFromDob(map['dob'])
-          : (map['age'] != null ? (map['age'] as num).toInt() : null),
+          : (map['age'] is num ? (map['age'] as num).toInt() : null),
       dob: map['dob'],
       createdAt: map['createdAt'],
       updatedAt: map['updatedAt'],

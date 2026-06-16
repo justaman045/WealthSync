@@ -95,7 +95,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ErrorHandler.showSuccess("Thanks! Your feedback has been submitted");
         _feedbackCtrl.clear();
       } else {
-        debugPrint(resp.body);
         ErrorHandler.showError("Failed to submit feedback (code ${resp.statusCode}).");
       }
     } catch (e) {

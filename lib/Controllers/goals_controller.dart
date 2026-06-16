@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/goal_model.dart';
@@ -31,8 +32,8 @@ class GoalsController extends GetxController {
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      goals.value = (cached as List).map((e) {
+    if (cached is List) {
+      goals.value = cached.map((e) {
         final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
         final id = map.remove('_id') as String? ?? '';
         return GoalModel.fromMap(id, map);
@@ -53,7 +54,8 @@ class GoalsController extends GetxController {
         }).toList();
         LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
-    } catch (_) {
+    } catch (e) {
+      log('GoalsController._fetchFromFirestore error: $e');
     } finally {
       isLoading.value = false;
     }

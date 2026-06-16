@@ -48,8 +48,8 @@ class WealthService {
   /// Fetch the current portfolio, or return a default empty one if not found.
   static Future<WealthPortfolio> getPortfolio() async {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(cached as Map));
+    if (cached is Map) {
+      final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(cached));
       return WealthPortfolio.fromMap(map);
     }
     try {
@@ -158,7 +158,7 @@ class WealthService {
         .doc('portfolio')
         .snapshots()
         .map((doc) {
-          final data = doc.data();
+      final data = doc.data();
           if (doc.exists && data != null) {
             LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
             return WealthPortfolio.fromMap(data);

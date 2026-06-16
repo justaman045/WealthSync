@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -36,8 +37,9 @@ class ProfileController extends GetxController {
     _workerUpdateUser = ever(currentUser, _updateUser);
 
     _loadFromCache();
-    if (_auth.currentUser != null && _auth.currentUser?.email != null) {
-      _fetchFromFirestore(_auth.currentUser!.email!);
+    final email = _userEmail;
+    if (email != null) {
+      _fetchFromFirestore(email);
     }
   }
 
@@ -50,8 +52,8 @@ class ProfileController extends GetxController {
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(cached as Map));
+    if (cached is Map) {
+      final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(cached));
       userProfile.value = UserModel.fromMap(map['_id'] as String? ?? '', map);
     }
   }
@@ -65,7 +67,8 @@ class ProfileController extends GetxController {
         cacheMap['_id'] = snapshot.id;
         LocalCacheService.put(_cacheKey, cacheMap, ttl: LocalCacheService.slow5m);
       }
-    } catch (_) {
+    } catch (e) {
+      log('ProfileController._fetchFromFirestore error: $e');
     }
   }
 
@@ -105,8 +108,10 @@ class ProfileController extends GetxController {
       await user.reload();
       photoURL.value = downloadUrl;
 
+      final email = _userEmail;
+      if (email == null) return;
       // 3. Update Firestore (optional, but good for redundancy)
-      await _firestore.collection('users').doc(user.email).set({
+      await _firestore.collection('users').doc(email).set({
         'photoURL': downloadUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));

@@ -59,37 +59,39 @@ class GlassContainer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rBorderRadius = borderRadius ?? BorderRadius.circular(20.r);
 
-    final container = ClipRRect(
-      borderRadius: rBorderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          width: width,
-          height: height,
-          margin: margin ?? EdgeInsets.zero,
-          padding: padding ?? EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.black.withValues(alpha: 0.2)
-                : AppColors.lightSurface.withValues(alpha: 0.85),
-            borderRadius: rBorderRadius,
-            border:
-                border ??
-                Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : AppColors.lightBorder.withValues(alpha: 0.5),
-                  width: 1.5,
+    final container = RepaintBoundary(
+      child: ClipRRect(
+        borderRadius: rBorderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+          child: Container(
+            width: width,
+            height: height,
+            margin: margin ?? EdgeInsets.zero,
+            padding: padding ?? EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : AppColors.lightSurface.withValues(alpha: 0.85),
+              borderRadius: rBorderRadius,
+              border:
+                  border ??
+                  Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : AppColors.lightBorder.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  spreadRadius: 2,
                 ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                spreadRadius: 2,
-              ),
-            ],
+              ],
+            ),
+            child: child,
           ),
-          child: child,
         ),
       ),
     );

@@ -176,6 +176,8 @@ Future<void> mainCommon({bool isTest = false}) async {
 
   FirebaseFirestore.instance.enableNetwork().then((_) {
     syncPendingTransactions();
+  }).catchError((e) {
+    debugPrint('enableNetwork error: $e');
   });
 
   // Check biometrics on launch
@@ -205,12 +207,13 @@ class RootApp extends StatefulWidget {
 }
 
 class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
-  final BiometricService _bioService = Get.find();
+  late final BiometricService _bioService;
   StreamSubscription<Uri?>? _widgetClickSub;
 
   @override
   void initState() {
     super.initState();
+    _bioService = Get.find<BiometricService>();
     WidgetsBinding.instance.addObserver(this);
     _initWidgetClickHandling();
   }
@@ -223,6 +226,8 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
           Get.to(() => const PaymentScreen(type: PaymentType.send));
         });
       }
+    }).catchError((e) {
+      debugPrint('HomeWidget error: $e');
     });
     // Warm start: app already running when widget tapped
     _widgetClickSub = HomeWidget.widgetClicked.listen((uri) {
@@ -321,7 +326,7 @@ class _AuthCheckerState extends State<AuthChecker> {
   void initState() {
     super.initState();
     if (!widget.isTest) {
-      UpdateChecker.checkForUpdate();
+      unawaited(UpdateChecker.checkForUpdate());
     }
     _handleAuthChange(FirebaseAuth.instance.currentUser);
     _authSub = FirebaseAuth.instance.authStateChanges().skip(1).listen(_handleAuthChange);
@@ -361,9 +366,10 @@ class _AuthCheckerState extends State<AuthChecker> {
       if (!Get.isRegistered<RecurringPaymentController>()) {
         Get.put(RecurringPaymentController());
       }
-      if (!_didInitialBackup && user.email != null) {
+      final email = user.email;
+      if (!_didInitialBackup && email != null) {
         _didInitialBackup = true;
-        LocalBackupService.backupUserTransactions(user.email!);
+        unawaited(LocalBackupService.backupUserTransactions(email));
       }
     } else {
       if (Get.isRegistered<TransactionController>()) {
@@ -413,7 +419,9 @@ class _AuthCheckerState extends State<AuthChecker> {
         await prefs.setBool('is_onboarded', true);
         return true;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Onboarding check failed: $e");
+    }
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('is_onboarded') ?? false;
   }
@@ -441,9 +449,10 @@ class _AuthCheckerState extends State<AuthChecker> {
             ) ??
             false;
 
-        if (user != null && (user.emailVerified || isOAuth)) {
+        final onboardingEmail = user?.email;
+        if (user != null && onboardingEmail != null && (user.emailVerified || isOAuth)) {
           return FutureBuilder<bool>(
-            future: _checkOnboardingStatus(user.email!),
+            future: _checkOnboardingStatus(onboardingEmail),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(

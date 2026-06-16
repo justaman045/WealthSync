@@ -221,9 +221,9 @@ void gotoPage(Widget page) {
 }
 
 void goBack() {
-  if (Get.key.currentContext != null &&
-      Navigator.canPop(Get.key.currentContext!)) {
-    Navigator.pop(Get.key.currentContext!);
+  final ctx = Get.key.currentContext;
+  if (ctx != null && Navigator.canPop(ctx)) {
+    Navigator.pop(ctx);
   } else {
     Get.back();
   }

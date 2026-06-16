@@ -1,6 +1,7 @@
 import 'package:flutter_sms_inbox/flutter_sms_inbox.dart';
 import 'dart:convert';
 import 'dart:developer';
+import 'package:characters/characters.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
@@ -31,7 +32,7 @@ class SmsService {
   final SmsQuery _query = SmsQuery();
   final CategoryRulesRepository _rulesRepository = CategoryRulesRepository();
 
-  Map<String, List<String>> _currentRules = {};
+  static Map<String, List<String>> _currentRules = {};
   static bool _rulesLoaded = false;
 
   // Merchant → category corrections learned from user edits (loaded on initRules)
@@ -42,6 +43,25 @@ class SmsService {
   /// Callers should persist via [CategoryService.recordCorrection] separately.
   static void addCorrection(String merchant, String category) {
     _correctionCache[merchant.trim().toLowerCase()] = category;
+  }
+
+  /// Persist a keyword rule to SharedPreferences (in-memory rules are updated
+  /// on the next [initRules] call; the correction cache covers instant feedback).
+  /// Used by [CategoryService] when auto-promoting a correction to a keyword rule.
+  static Future<void> addKeywordRule(String category, String keyword) async {
+    final key = keyword.trim().toLowerCase();
+    if (key.isEmpty) return;
+    final existing = await loadUserCustomRules();
+    existing[category] = [...(existing[category] ?? []), key];
+    await saveUserCustomRules(existing);
+  }
+
+  /// Suggest a category for a merchant name (used by CSV import).
+  /// Loads caches if needed, then runs through keyword rules → correction cache → history cache.
+  static Future<String> suggestCategory(String merchant) async {
+    if (!_correctionCacheLoaded) await loadCorrectionCache();
+    if (!_historyLoaded) await buildHistoryCache();
+    return _getCategoryStatic(merchant, '', _currentRules);
   }
 
   // Merchant → category learned from past Firestore transactions
@@ -429,7 +449,7 @@ class SmsService {
         sender.length > 2) {
       merchant = sender;
     }
-    if (merchant.length > 20) merchant = merchant.substring(0, 20);
+    if (merchant.length > 20) merchant = merchant.characters.take(20).toString();
 
     final category = isDebit
         ? _getCategoryStatic(merchant, body, rules)
@@ -499,6 +519,14 @@ class SmsService {
       userRules.forEach((key, keywords) {
         _currentRules[key] = [...(_currentRules[key] ?? []), ...keywords];
       });
+      // Merge user auto-rules from Firestore (learned & synced)
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && user.email != null) {
+        final autoRules = await _rulesRepository.fetchUserAutoRules(user.email!);
+        autoRules.forEach((key, keywords) {
+          _currentRules[key] = [...(_currentRules[key] ?? []), ...keywords];
+        });
+      }
       // Load correction cache for merchant-level fallback
       await loadCorrectionCache();
       // Build category cache from past transactions

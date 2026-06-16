@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/category_service.dart';
 
@@ -24,7 +26,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
   }
 
   Future<void> _load() async {
-    final userRules = await SmsService.loadUserCustomRules();
+    var userRules = await SmsService.loadUserCustomRules();
     final merged = <String, List<String>>{};
 
     SmsService.defaultRules.forEach((cat, keywords) {
@@ -33,6 +35,20 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
     userRules.forEach((cat, keywords) {
       merged[cat] = [...(merged[cat] ?? []), ...keywords];
     });
+
+    // Also merge Firestore auto-rules (synced from other devices)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.email != null) {
+      final repo = CategoryRulesRepository();
+      final autoRules = await repo.fetchUserAutoRules(user!.email!);
+      autoRules.forEach((cat, keywords) {
+        merged[cat] = [...(merged[cat] ?? []), ...keywords];
+        userRules[cat] = [
+          ...(userRules[cat] ?? []),
+          ...keywords.where((k) => !(userRules[cat] ?? []).contains(k)),
+        ];
+      });
+    }
 
     final suggestions = await CategoryService.getPendingSuggestions();
 

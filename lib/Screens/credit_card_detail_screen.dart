@@ -81,6 +81,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
   Future<void> _delete(String id, double outstanding) async {
     final confirmed = await _confirmDelete(context);
     if (!confirmed) return;
+    if (!mounted) return;
     setState(() => _saving = true);
     try {
       await _col.doc(id).delete();

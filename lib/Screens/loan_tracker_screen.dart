@@ -8,12 +8,25 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
 import 'package:money_control/Models/loan_model.dart';
 
-class LoanTrackerScreen extends StatelessWidget {
+class LoanTrackerScreen extends StatefulWidget {
   const LoanTrackerScreen({super.key});
 
   @override
+  State<LoanTrackerScreen> createState() => _LoanTrackerScreenState();
+}
+
+class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
+  late final LoanController ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<LoanController>()) Get.put(LoanController());
+    ctrl = Get.find<LoanController>();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ctrl = LoanController.to;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

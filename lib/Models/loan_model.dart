@@ -116,16 +116,12 @@ class LoanModel {
       interestRate: _parseNum(map['interestRate']),
       emiAmount: _parseNum(map['emiAmount']),
       tenureMonths: _parseInt(map['tenureMonths']),
-      startDate: map['startDate'] is Timestamp
-          ? (map['startDate'] as Timestamp).toDate()
-          : map['startDate'] is String
-              ? DateTime.tryParse(map['startDate'] as String) ?? DateTime.now()
-              : DateTime.now(),
+      startDate: (map['startDate'] is String
+          ? DateTime.tryParse(map['startDate'] as String)
+          : (map['startDate'] as dynamic)?.toDate()) ?? DateTime.now(),
       isActive: map['isActive'] ?? true,
       linkedRecurringPaymentId: map['linkedRecurringPaymentId'] as String?,
-      createdAt: map['createdAt'] is Timestamp
-          ? map['createdAt'] as Timestamp
-          : Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
     );
   }
 

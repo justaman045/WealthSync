@@ -20,14 +20,16 @@ class RecurringService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  String? get _userEmail => _auth.currentUser?.email;
+
   // Add new subscription
   Future<void> addPayment(RecurringPayment payment) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     await _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('recurring_payments')
         .doc(payment.id)
         .set(payment.toMap());
@@ -35,12 +37,12 @@ class RecurringService {
 
   // Delete subscription
   Future<void> deletePayment(String id) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     await _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('recurring_payments')
         .doc(id)
         .delete();
@@ -48,12 +50,12 @@ class RecurringService {
 
   // One-shot fetch of subscriptions
   Future<List<RecurringPayment>> getPaymentsOnce() async {
-    final user = _auth.currentUser;
-    if (user == null) return [];
+    final email = _userEmail;
+    if (email == null) return [];
 
     final snap = await _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('recurring_payments')
         .get();
 
@@ -72,12 +74,12 @@ class RecurringService {
 
   // Stream of subscriptions
   Stream<List<RecurringPayment>> getPayments() {
-    final user = _auth.currentUser;
-    if (user == null) return Stream.value([]);
+    final email = _userEmail;
+    if (email == null) return Stream.value([]);
 
     return _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('recurring_payments')
         .snapshots()
         .map((snapshot) {
@@ -121,12 +123,12 @@ class RecurringService {
 
   // Update subscription details
   Future<void> updatePayment(RecurringPayment payment) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     await _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('recurring_payments')
         .doc(payment.id)
         .update(payment.toMap());
@@ -138,8 +140,8 @@ class RecurringService {
     bool isActive, {
     DateTime? nextDueDate,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     final Map<String, dynamic> updates = {'isActive': isActive};
     if (nextDueDate != null) {
@@ -148,7 +150,7 @@ class RecurringService {
 
     await _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('recurring_payments')
         .doc(id)
         .update(updates);
@@ -156,12 +158,12 @@ class RecurringService {
 
   // Link an existing transaction to this payment
   Future<void> linkTransaction(String paymentId, String transactionId) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     await _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('transactions')
         .doc(transactionId)
         .update({'recurringPaymentId': paymentId});
@@ -174,15 +176,17 @@ class RecurringService {
     bool createTransaction = false,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (user == null || email == null) return;
 
+    final uid = user.uid;
     DateTime nextDate = _advanceDate(payment);
 
     final batch = _db.batch();
 
     final paymentRef = _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('recurring_payments')
         .doc(payment.id);
     batch.update(paymentRef, {'nextDueDate': Timestamp.fromDate(nextDate)});
@@ -191,7 +195,7 @@ class RecurringService {
       final txId = const Uuid().v4();
       final txRef = _db
           .collection('users')
-          .doc(user.email)
+          .doc(email)
           .collection('transactions')
           .doc(txId);
       batch.set(txRef, {
@@ -199,7 +203,7 @@ class RecurringService {
         'amount': -payment.amount,
         'recipientName': payment.title,
         'recipientId': 'External',
-        'senderId': user.uid,
+        'senderId': uid,
         'date': Timestamp.fromDate(DateTime.now()),
         'createdAt': FieldValue.serverTimestamp(),
         'category': payment.category,

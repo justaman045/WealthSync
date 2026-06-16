@@ -8,8 +8,23 @@ import 'package:money_control/Screens/deactivate_account.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
 
-class SecuritySettingsScreen extends StatelessWidget {
+class SecuritySettingsScreen extends StatefulWidget {
   const SecuritySettingsScreen({super.key});
+
+  @override
+  State<SecuritySettingsScreen> createState() => _SecuritySettingsScreenState();
+}
+
+class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
+  late final PrivacyController privacyController;
+  late final BiometricService bioService;
+
+  @override
+  void initState() {
+    super.initState();
+    privacyController = Get.find<PrivacyController>();
+    bioService = Get.find<BiometricService>();
+  }
 
   Future<void> _sendPasswordResetEmail(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -25,8 +40,6 @@ class SecuritySettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final PrivacyController privacyController = Get.find();
-    final BiometricService bioService = Get.find();
 
     return Scaffold(
       extendBodyBehindAppBar: true,

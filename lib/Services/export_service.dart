@@ -72,7 +72,8 @@ class ExportService {
     final csv = const ListToCsvConverter().convert(rows);
 
     final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/transactions_export.csv");
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final file = File("${dir.path}/transactions_export_$timestamp.csv");
     await file.writeAsString(csv);
 
     await OpenFilex.open(file.path);

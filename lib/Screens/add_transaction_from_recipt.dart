@@ -111,9 +111,10 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
       await docRef.set(transaction.toMap());
 
       // Check Budget Limit
-      if (category.isNotEmpty) {
+      final email = user.email;
+      if (category.isNotEmpty && email != null) {
         BudgetService.checkBudgetExceeded(
-          userId: user.email!,
+          userId: email,
           category: category,
         );
       }

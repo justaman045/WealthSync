@@ -45,7 +45,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   late final String uid;
   late final String? email;
 
-  bool get isDark => Theme.of(context).brightness == Brightness.dark;
+  ThemeData _cachedTheme = _dummyTheme;
+  bool _cachedIsDark = false;
+  static final ThemeData _dummyTheme = ThemeData();
+
+  bool get isDark => _cachedIsDark;
 
   // Restored State Variables
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
@@ -128,7 +132,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         final day = loan.startDate.day.clamp(1, daysInMonth);
         events[day] = [...(events[day] ?? []), 'emi'];
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Calendar loan events error: $e");
+    }
 
     // Recurring payments (async stream) — use startDate day-of-month so
     // dots appear on the correct day for any displayed month, not just next due month
@@ -141,7 +147,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         final day = p.startDate.day.clamp(1, daysInMonth);
         events[day] = [...(events[day] ?? []), 'bill'];
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Calendar recurring events error: $e");
+    }
 
     if (mounted) setState(() => _calendarDayEvents = events);
   }
@@ -430,7 +438,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           text: 'My $_periodLabel Financial Report — Money Control',
         ),
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Share report error: $e");
+    }
   }
 
   Future<void> _exportTaxSummary() async {
@@ -464,7 +474,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    _cachedTheme = Theme.of(context);
+    _cachedIsDark = _cachedTheme.brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

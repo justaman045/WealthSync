@@ -41,8 +41,8 @@ class BudgetController extends GetxController {
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      categoryBudgets.assignAll((cached as List).map((e) {
+    if (cached is List) {
+      categoryBudgets.assignAll(cached.map((e) {
         final map = e as Map<String, dynamic>;
         return BudgetCategoryItem(
           categoryName: map['categoryName'] as String? ?? '',
@@ -57,8 +57,8 @@ class BudgetController extends GetxController {
   Future<void> fetchBudgetsAndSpends() async {
     isLoading.value = true;
     try {
-      final user = _auth.currentUser;
-      if (user == null) {
+      final email = _userEmail;
+      if (email == null) {
         categoryBudgets.clear();
         return;
       }
@@ -66,14 +66,14 @@ class BudgetController extends GetxController {
       // 1. Fetch Categories
       final catSnap = await _firestore
           .collection('users')
-          .doc(user.email)
+          .doc(email)
           .collection('categories')
           .get();
 
       // 2. Fetch Budgets
       final budgetsSnap = await _firestore
           .collection('users')
-          .doc(user.email)
+          .doc(email)
           .collection('budgets')
           .get();
 
@@ -148,13 +148,13 @@ class BudgetController extends GetxController {
 
   Future<void> saveBudget(String categoryName, double amount) async {
     if (!SubscriptionController.to.isPro) return;
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     try {
       await _firestore
           .collection('users')
-          .doc(user.email)
+          .doc(email)
           .collection('budgets')
           .doc(categoryName)
           .set({'amount': amount});

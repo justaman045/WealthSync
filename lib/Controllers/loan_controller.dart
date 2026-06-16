@@ -39,8 +39,8 @@ class LoanController extends GetxController {
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      loans.value = (cached as List).map((e) {
+    if (cached is List) {
+      loans.value = cached.map((e) {
         final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
         final id = map.remove('_id') as String? ?? '';
         return LoanModel.fromMap(id, map);
@@ -62,7 +62,8 @@ class LoanController extends GetxController {
         LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
       _syncToWealth();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('LoanController._fetchFromFirestore error: $e');
     } finally {
       isLoading.value = false;
     }

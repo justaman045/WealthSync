@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -63,7 +64,9 @@ class OfflineQueueService {
       if (await file.exists()) {
         try {
           list = jsonDecode(await file.readAsString()) as List;
-        } catch (_) {}
+        } catch (e) {
+          debugPrint("Offline queue decode error: $e");
+        }
       }
       list.add(_sanitize(tx));
       await _atomicWrite(file, list);
@@ -83,7 +86,8 @@ class OfflineQueueService {
     }
 
     return list.map((e) {
-      final m = Map<String, dynamic>.from(e as Map);
+      if (e is! Map) return <String, dynamic>{};
+      final m = Map<String, dynamic>.from(e);
       try {
         if (m['date'] is String) {
           m['date'] = Timestamp.fromDate(DateTime.parse(m['date'] as String));
@@ -107,7 +111,8 @@ class OfflineQueueService {
     return _enqueue(() async {
       final file = await _getFile();
       if (!await file.exists()) return;
-      final list = jsonDecode(await file.readAsString()) as List;
+      final rawList = jsonDecode(await file.readAsString());
+      final list = rawList is List ? rawList : <dynamic>[];
       if (list.isNotEmpty) list.removeAt(0);
       await _atomicWrite(file, list);
     });

@@ -64,9 +64,7 @@ class GoalModel {
       targetDate: parsedTargetDate,
       isCompleted: map['isCompleted'] ?? false,
       emoji: map['emoji'] ?? '🎯',
-      createdAt: map['createdAt'] is Timestamp
-          ? map['createdAt'] as Timestamp
-          : Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
     );
   }
 

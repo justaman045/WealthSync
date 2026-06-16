@@ -63,9 +63,7 @@ class TransactionModel {
       date: parsedDate,
       attachmentUrl: map['attachmentUrl'],
       status: map['status'],
-      createdAt: map['createdAt'] is Timestamp
-          ? (map['createdAt'] as Timestamp)
-          : Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
       recurringPaymentId: map['recurringPaymentId'],
     );
   }

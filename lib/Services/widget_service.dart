@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:home_widget/home_widget.dart';
 
 class WidgetService {
@@ -17,6 +18,8 @@ class WidgetService {
   static Future<void> init() async {
     try {
       await HomeWidget.setAppGroupId(_appGroupId);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("HomeWidget init error: $e");
+    }
   }
 }

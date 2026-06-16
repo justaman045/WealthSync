@@ -28,7 +28,7 @@ class _BalanceCardState extends State<BalanceCard> {
   late final RecurringPaymentController _recurringPaymentController;
   final RxBool _includeLentMoney = false.obs;
   final RxBool _subtractSubscriptions = false.obs;
-  double _lastAnimatedValue = 0;
+  final ValueNotifier<double> _lastAnimatedValue = ValueNotifier<double>(0);
 
   @override
   void initState() {
@@ -58,6 +58,7 @@ class _BalanceCardState extends State<BalanceCard> {
   void dispose() {
     _includeLentMoney.close();
     _subtractSubscriptions.close();
+    _lastAnimatedValue.dispose();
     super.dispose();
   }
 
@@ -256,70 +257,63 @@ class _BalanceCardState extends State<BalanceCard> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              ShaderMask(
-                                shaderCallback: (bounds) =>
-                                    LinearGradient(
-                                      colors: [isDark ? Colors.white : AppColors.lightTextPrimary, Color(0xFFE0E0E0)],
-                                    ).createShader(bounds),
-                                child: Obx(() {
-                                  if (_privacyController.isPrivacyMode.value) {
-                                    return Text(
-                                      "••••",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 36.sp,
-                                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                        letterSpacing: -1.0,
-                                        shadows: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.1,
-                                            ),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4),
+                              Obx(() {
+                                if (_privacyController.isPrivacyMode.value) {
+                                  return Text(
+                                    "••••",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 36.sp,
+                                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                                      letterSpacing: -1.0,
+                                      shadows: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
                                           ),
-                                        ],
-                                      ),
-                                    );
-                                  } else {
-                                    return TweenAnimationBuilder<double>(
-                                      tween: Tween<double>(
-                                        begin: _lastAnimatedValue,
-                                        end: _computeTotal(),
-                                      ),
-                                      duration: const Duration(
-                                        milliseconds: 800,
-                                      ),
-                                      curve: Curves.easeOutExpo,
-                                      builder: (context, value, child) {
-                                        return Text(
-                                          '${CurrencyController.to.currencySymbol.value} ${value.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 36.sp,
-                                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                            letterSpacing: -1.0,
-                                            shadows: [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.1,
-                                                ),
-                                                blurRadius: 10,
-                                                offset: const Offset(0, 4),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                } else {
+                                  return TweenAnimationBuilder<double>(
+                                    tween: Tween<double>(
+                                      begin: _lastAnimatedValue.value,
+                                      end: _computeTotal(),
+                                    ),
+                                    duration: const Duration(
+                                      milliseconds: 800,
+                                    ),
+                                    curve: Curves.easeOutExpo,
+                                    builder: (context, value, child) {
+                                      return Text(
+                                        '${CurrencyController.to.currencySymbol.value} ${value.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 36.sp,
+                                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                                          letterSpacing: -1.0,
+                                          shadows: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.1,
                                               ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                      onEnd: () {
-                                        setState(() {
-                                          _lastAnimatedValue = _computeTotal();
-                                        });
-                                      },
-                                    );
-                                  }
-                                }),
-                              ),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    onEnd: () {
+                                      _lastAnimatedValue.value =
+                                          _computeTotal();
+                                    },
+                                  );
+                                }
+                              }),
                               SizedBox(width: 12.w),
                               Obx(
                                 () => Icon(

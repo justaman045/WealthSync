@@ -49,8 +49,8 @@ class RecurringPayment {
         (e) => e.name == map['frequency'],
         orElse: () => RecurringFrequency.monthly,
       ),
-      startDate: ((map['startDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
-      nextDueDate: ((map['nextDueDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
+      startDate: ((map['startDate'] as dynamic)?.toDate()) ?? DateTime.now(),
+      nextDueDate: ((map['nextDueDate'] as dynamic)?.toDate()) ?? DateTime.now(),
       isActive: map['isActive'] ?? true,
     );
   }

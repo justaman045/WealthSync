@@ -83,6 +83,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
   Future<void> _delete(String id) async {
     final ok = await _confirm(context);
     if (!ok) return;
+    if (!mounted) return;
     setState(() => _saving = true);
     try {
       await _col.doc(id).delete();

@@ -40,9 +40,7 @@ class LentMoneyModel {
       dateLent: parsedDate,
       isSettled: map['isSettled'] ?? false,
       type: map['type']?.toString() ?? 'lent',
-      createdAt: map['createdAt'] is Timestamp
-          ? (map['createdAt'] as Timestamp)
-          : Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
     );
   }
 

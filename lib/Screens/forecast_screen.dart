@@ -11,8 +11,25 @@ import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Components/shimmer_loading.dart';
 
-class ForecastScreen extends StatelessWidget {
+class ForecastScreen extends StatefulWidget {
   const ForecastScreen({super.key});
+
+  @override
+  State<ForecastScreen> createState() => _ForecastScreenState();
+}
+
+class _ForecastScreenState extends State<ForecastScreen> {
+  late final AnalyticsController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<TransactionController>()) {
+      Get.put(TransactionController());
+    }
+    if (!Get.isRegistered<AnalyticsController>()) Get.put(AnalyticsController());
+    controller = Get.find<AnalyticsController>();
+  }
 
   String _formatIndianCurrency(double amount) {
     final formatter = NumberFormat.currency(
@@ -44,11 +61,6 @@ class ForecastScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!Get.isRegistered<TransactionController>()) {
-      Get.put(TransactionController());
-    }
-    if (!Get.isRegistered<AnalyticsController>()) Get.put(AnalyticsController());
-    final controller = Get.find<AnalyticsController>();
 
     DateTime now = DateTime.now();
     String currentMonthYear = "${_monthName(now.month)} ${now.year}";

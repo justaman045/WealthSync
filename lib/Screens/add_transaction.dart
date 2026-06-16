@@ -166,6 +166,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         _newCategory.text.trim(),
                       );
                       if (success) {
+                        if (!mounted) return;
                         setState(() {
                           selectedCategory = _newCategory.text.trim();
                         });
@@ -242,6 +243,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     final success = await _transactionController.deleteCategory(category);
     if (success && selectedCategory == category.name) {
+      if (!mounted) return;
       setState(() {
         selectedCategory = null;
         if (_transactionController.categories.isNotEmpty) {

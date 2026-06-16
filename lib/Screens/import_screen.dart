@@ -23,6 +23,7 @@ class _ImportScreenState extends State<ImportScreen> {
   String? _dateColumn;
   String? _amountColumn;
   String? _noteColumn;
+  String? _merchantColumn;
   String? _categoryColumn;
 
   Future<void> _pickFile() async {
@@ -50,6 +51,14 @@ class _ImportScreenState extends State<ImportScreen> {
           'note',
           'details',
           'memo',
+        ]);
+        _merchantColumn = _findSimilarHeader([
+          'merchant',
+          'vendor',
+          'payee',
+          'recipient',
+          'name',
+          'company',
         ]);
         _categoryColumn = _findSimilarHeader(['category', 'tag', 'type']);
       });
@@ -84,6 +93,9 @@ class _ImportScreenState extends State<ImportScreen> {
         'date': _headers.indexOf(_dateColumn!),
         'amount': _headers.indexOf(_amountColumn!),
         'note': _noteColumn != null ? _headers.indexOf(_noteColumn!) : -1,
+        'merchant': _merchantColumn != null
+            ? _headers.indexOf(_merchantColumn!)
+            : -1,
         'category': _categoryColumn != null
             ? _headers.indexOf(_categoryColumn!)
             : -1,
@@ -92,7 +104,7 @@ class _ImportScreenState extends State<ImportScreen> {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) throw Exception("User not logged in");
 
-      final transactions = ImportService.processCSVData(
+      final transactions = await ImportService.processCSVData(
         _csvData!,
         headerMap,
         userId,
@@ -105,28 +117,28 @@ class _ImportScreenState extends State<ImportScreen> {
       if (mounted) {
         showDialog(
           context: context,
-          builder: (context) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            return AlertDialog(
-              backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-            title: const Text(
-              "Success",
-              style: TextStyle(color: Color(0xFF00E5FF)),
-            ),
-            content: Text(
-              "Imported ${transactions.length} transactions successfully.",
-              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
-            ),
-            actions: [
-              TextButton(
-                child: const Text("OK"),
-                onPressed: () {
-                  Navigator.pop(context); // Close Dialog
-                  Navigator.pop(context); // Close Screen
-                },
-              ),
-            ],
-            );
+              builder: (dialogContext) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return AlertDialog(
+                  backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+                  title: const Text(
+                  "Success",
+                  style: TextStyle(color: Color(0xFF00E5FF)),
+                ),
+                content: Text(
+                  "Imported ${transactions.length} transactions successfully.",
+                  style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
+                ),
+                actions: [
+                  TextButton(
+                    child: const Text("OK"),
+                    onPressed: () {
+                      Navigator.pop(dialogContext); // Close dialog
+                      Navigator.pop(context);       // Close screen (outer context)
+                    },
+                  ),
+                ],
+                );
           },
         );
       }
@@ -219,6 +231,11 @@ class _ImportScreenState extends State<ImportScreen> {
                         "Description/Note",
                         _noteColumn,
                         (val) => setState(() => _noteColumn = val),
+                      ),
+                      _buildMappingDropdown(
+                        "Merchant/Vendor",
+                        _merchantColumn,
+                        (val) => setState(() => _merchantColumn = val),
                       ),
                       _buildMappingDropdown(
                         "Category",

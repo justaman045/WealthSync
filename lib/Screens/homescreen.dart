@@ -89,8 +89,9 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     await prefs.setInt("lastOpened", DateTime.now().millisecondsSinceEpoch);
 
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null && user.email != null) {
-      await prefs.setString("user_email", user.email!);
+    if (user != null) {
+      final email = user.email;
+      if (email != null) await prefs.setString("user_email", email);
       await prefs.setString("user_uid", user.uid);
     }
   }
@@ -132,9 +133,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.1),
+                        color: scheme.onSurface.withValues(alpha: 0.1),
                         width: 1.5,
                       ),
                       image: DecorationImage(
@@ -192,6 +191,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
           actions: [
             // 💎 PRO STATUS — hidden for admins (they are always Pro)
             Obx(() {
+              if (!Get.isRegistered<SubscriptionController>()) return const SizedBox.shrink();
               final ctrl = Get.find<SubscriptionController>();
               if (ctrl.isAdmin.value) return const SizedBox.shrink();
               return _buildActionButton(
@@ -218,7 +218,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             _buildActionButton(
               icon: Icons.event_repeat,
               onTap: () {
-                if (!Get.find<SubscriptionController>().isPro) {
+                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
                   gotoPage(const SubscriptionScreen());
                   return;
                 }
@@ -232,7 +232,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             _buildActionButton(
               icon: Icons.handshake_outlined,
               onTap: () {
-                if (!Get.find<SubscriptionController>().isPro) {
+                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
                   gotoPage(const SubscriptionScreen());
                   return;
                 }
@@ -247,7 +247,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             _buildActionButton(
               icon: Icons.trending_up,
               onTap: () {
-                if (!Get.find<SubscriptionController>().isPro) {
+                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
                   gotoPage(const SubscriptionScreen());
                   return;
                 }
@@ -261,7 +261,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             _buildActionButton(
               icon: Icons.flag_outlined,
               onTap: () {
-                if (!Get.find<SubscriptionController>().isPro) {
+                if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
                   gotoPage(const SubscriptionScreen());
                   return;
                 }
@@ -369,7 +369,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
           tooltip: 'Scan Receipt',
           onPressed: () {
             HapticFeedback.lightImpact();
-            if (!Get.find<SubscriptionController>().isPro) {
+            if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isPro) {
               gotoPage(const SubscriptionScreen());
               return;
             }

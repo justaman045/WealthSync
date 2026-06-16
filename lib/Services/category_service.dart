@@ -2,14 +2,20 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Models/cateogary.dart';
+import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CategoryService {
   static const correctionsKey = 'category_corrections';
 
-  // Records a merchant→category correction. After 2+ corrections for the same
-  // merchant we surface a "create rule" suggestion.
+  /// Threshold for auto-promoting a correction to a keyword rule.
+  /// After this many corrections for the same merchant→category, it
+  /// becomes a permanent keyword rule (no manual approval needed).
+  static const int autoPromoteThreshold = 3;
+
+  // Records a merchant→category correction. After [autoPromoteThreshold]+
+  // corrections for the same merchant the rule is promoted automatically.
   static Future<void> recordCorrection(
     String merchant,
     String category,
@@ -18,17 +24,44 @@ class CategoryService {
     if (key.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(correctionsKey);
-    final Map<String, dynamic> map =
-        raw != null ? Map<String, dynamic>.from(jsonDecode(raw) as Map) : {};
+    final decoded = raw != null ? jsonDecode(raw) : null;
+    final Map<String, dynamic> map = decoded is Map
+        ? Map<String, dynamic>.from(decoded)
+        : {};
     final existing = map[key] as Map<String, dynamic>?;
+    int newCount = 1;
     if (existing != null && existing['category'] == category) {
-      map[key] = {'category': category, 'count': (existing['count'] as int) + 1};
+      newCount = (existing['count'] as int) + 1;
+      map[key] = {'category': category, 'count': newCount};
     } else {
       map[key] = {'category': category, 'count': 1};
     }
     await prefs.setString(correctionsKey, jsonEncode(map));
     // Live-update the SMS parser's in-memory cache so corrections take effect immediately.
     SmsService.addCorrection(merchant, category);
+
+    // Auto-promote to keyword rule when threshold is reached
+    if (newCount >= autoPromoteThreshold) {
+      await _autoPromoteToRule(merchant, category);
+    }
+  }
+
+  /// Promotes a merchant→category correction to a permanent keyword rule
+  /// by saving to SharedPreferences and Firestore.
+  static Future<void> _autoPromoteToRule(
+    String merchant,
+    String category,
+  ) async {
+    // Add to in-memory and SharedPreferences rules
+    await SmsService.addKeywordRule(category, merchant);
+    // Persist to Firestore for cross-device sync
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.email != null) {
+      final repo = CategoryRulesRepository();
+      await repo.saveUserAutoRule(user!.email!, category, merchant);
+    }
+    // Remove the correction entry now that it's a rule
+    await removeSuggestion(merchant);
   }
 
   // Returns the user-corrected category for a merchant, if any.
@@ -38,7 +71,8 @@ class CategoryService {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(correctionsKey);
     if (raw == null) return null;
-    final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    final decoded = jsonDecode(raw);
+    final map = decoded is Map ? Map<String, dynamic>.from(decoded) : {};
     final entry = map[key] as Map<String, dynamic>?;
     if (entry == null) return null;
     return entry['category'] as String?;
@@ -49,9 +83,11 @@ class CategoryService {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(correctionsKey);
     if (raw == null) return [];
-    final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    final decoded = jsonDecode(raw);
+    final map = decoded is Map ? Map<String, dynamic>.from(decoded) : {};
     final result = <Map<String, dynamic>>[];
     map.forEach((merchant, value) {
+      if (value is! Map) return;
       final entry = value as Map<String, dynamic>;
       if ((entry['count'] as int) >= 2) {
         result.add({
@@ -71,21 +107,24 @@ class CategoryService {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(correctionsKey);
     if (raw == null) return;
-    final map = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    final decoded = jsonDecode(raw);
+    final map = decoded is Map ? Map<String, dynamic>.from(decoded) : {};
     map.remove(key);
     await prefs.setString(correctionsKey, jsonEncode(map));
   }
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  String? get _userEmail => _auth.currentUser?.email;
+
   // Get user categories stream
   Stream<List<CategoryModel>> getCategoriesStream() {
-    final user = _auth.currentUser;
-    if (user == null) return Stream.value([]);
+    final email = _userEmail;
+    if (email == null) return Stream.value([]);
 
     return _firestore
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('categories')
         .snapshots()
         .map((snapshot) {
@@ -97,24 +136,24 @@ class CategoryService {
 
   // Add category
   Future<void> addCategory(CategoryModel category) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     await _firestore
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('categories')
         .add(category.toMap());
   }
 
   // Update category
   Future<void> updateCategory(CategoryModel category) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     await _firestore
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('categories')
         .doc(category.id)
         .update(category.toMap());
@@ -122,12 +161,12 @@ class CategoryService {
 
   // Delete category
   Future<void> deleteCategory(String categoryId) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     await _firestore
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('categories')
         .doc(categoryId)
         .delete();

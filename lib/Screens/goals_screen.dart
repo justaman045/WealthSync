@@ -9,12 +9,25 @@ import 'package:money_control/Controllers/goals_controller.dart';
 import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Screens/add_goal_screen.dart';
 
-class GoalsScreen extends StatelessWidget {
+class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
 
   @override
+  State<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends State<GoalsScreen> {
+  late final GoalsController ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<GoalsController>()) Get.put(GoalsController());
+    ctrl = Get.find<GoalsController>();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ctrl = GoalsController.to;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

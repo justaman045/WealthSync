@@ -195,6 +195,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                               .collection("categories")
                               .add({"name": text});
                           await _loadCategories();
+                          if (!mounted) return;
                           setState(() => _selectedCategory = text);
                           if (mounted) Navigator.pop(context);
                         } catch (e) {
@@ -297,15 +298,16 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           .set(txMap)
           .timeout(const Duration(seconds: 3));
 
-      if (user.email != null) {
-        LocalBackupService.backupUserTransactions(user.email!);
+      final email = user.email;
+      if (email != null) {
+        LocalBackupService.backupUserTransactions(email);
       }
 
       _saving = false;
 
-      if (updated.category != null && user.email != null) {
+      if (updated.category != null && email != null) {
         BudgetService.checkBudgetExceeded(
-          userId: user.email!,
+          userId: email,
           category: updated.category!,
         );
       }

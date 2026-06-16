@@ -120,6 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   // Subscription Card — hidden for admins (they are always Pro)
                   Obx(() {
+                    if (!Get.isRegistered<SubscriptionController>()) return const SizedBox.shrink();
                     final ctrl = Get.find<SubscriptionController>();
                     if (ctrl.isAdmin.value) return const SizedBox.shrink();
                     final isPro = ctrl.isPro;
@@ -189,6 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.handshake_rounded,
                     color: Colors.orangeAccent,
                     onTap: () {
+                      if (!Get.isRegistered<SubscriptionController>()) return;
                       final ctrl = Get.find<SubscriptionController>();
                       if (!ctrl.isPro) {
                         Get.to(() => const SubscriptionScreen());
@@ -202,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   // Admin Dashboard (Restricted)
                   Obx(() {
-                    if (!Get.find<SubscriptionController>().isAdmin.value) {
+                    if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isAdmin.value) {
                       return const SizedBox.shrink();
                     }
                     return Column(
@@ -517,7 +519,9 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
           return 'https://github.com/justaman045/Money_Control/releases/download/v$version/app-release.apk';
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Latest release fetch error: $e");
+    }
     // Fallback: link to releases page if version fetch fails
     return 'https://github.com/justaman045/Money_Control/releases/latest';
   }

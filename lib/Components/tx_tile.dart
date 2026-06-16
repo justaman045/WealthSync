@@ -33,7 +33,6 @@ class TxTile extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
-        debugPrint(_getTxnType(tx.status).toString());
         gotoPage(
           TransactionResultScreen(
             type: _getTxnType(tx.status),

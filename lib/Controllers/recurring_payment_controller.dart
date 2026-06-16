@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
@@ -23,8 +24,8 @@ class RecurringPaymentController extends GetxController {
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      final list = (cached as List).map((e) {
+    if (cached is List) {
+      final list = cached.map((e) {
         final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
         final id = map.remove('_id') as String? ?? '';
         return RecurringPayment.fromMap(id, map);
@@ -45,7 +46,8 @@ class RecurringPaymentController extends GetxController {
         LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
       pendingSubscriptions.value = _computeMonthlyTotal(list);
-    } catch (_) {
+    } catch (e) {
+      log('RecurringPaymentController._fetchFromFirestore error: $e');
     }
   }
 

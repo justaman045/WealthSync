@@ -91,9 +91,11 @@ class UserService {
     while (true) {
       final snap = await collection.limit(500).get();
       if (snap.docs.isEmpty) break;
+      final batch = _db.batch();
       for (final doc in snap.docs) {
-        await doc.reference.delete();
+        batch.delete(doc.reference);
       }
+      await batch.commit();
     }
   }
 }

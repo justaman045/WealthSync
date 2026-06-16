@@ -403,9 +403,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                         ),
                         onPressed: () async {
-                          if (user != null) {
+                          final email = user?.email;
+                          if (email != null) {
                             await _auth.sendPasswordResetEmail(
-                              email: user.email!,
+                              email: email,
                             );
                             ErrorHandler.showSuccess('Password reset link sent to your email');
                           }

@@ -16,6 +16,8 @@ class SubscriptionController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  String? get _userEmail => _auth.currentUser?.email;
+
   StreamSubscription? _statusSub;
   StreamSubscription? _authSub;
 
@@ -65,100 +67,12 @@ class SubscriptionController extends GetxController {
     _statusSub?.cancel();
     _statusSub = null;
     final user = _auth.currentUser;
-    if (user != null) {
-      _statusSub = _firestore.collection('users').doc(user.email).snapshots().listen((
+    final email = _userEmail;
+    if (user != null && email != null) {
+      _statusSub = _firestore.collection('users').doc(email).snapshots().listen((
         snapshot,
-      ) async {
-        try {
-        if (snapshot.exists) {
-          final data = snapshot.data();
-          if (data != null) {
-            SubscriptionStatus newStatus = SubscriptionStatus.free;
-
-            // Admin check via Firestore field — set isAdmin: true in Firebase Console
-            final adminFlag = data['isAdmin'] == true;
-            isAdmin.value = adminFlag;
-
-            if (adminFlag) {
-              newStatus = SubscriptionStatus.pro;
-            } else if (data.containsKey('subscriptionStatus')) {
-              newStatus = _parseStatus(data['subscriptionStatus'] as String);
-            } else if (data.containsKey('isPro') && data['isPro'] == true) {
-              newStatus = SubscriptionStatus.pro;
-            }
-
-            // Persist plan type
-            if (data.containsKey('planType')) {
-              planType.value = data['planType'] as String? ?? '';
-            }
-
-            // Check expiry (skip for admin)
-            if (!adminFlag &&
-                newStatus == SubscriptionStatus.pro &&
-                data.containsKey('expiryDate')) {
-              final expiry = (data['expiryDate'] as Timestamp?)?.toDate();
-              if (expiry != null) {
-                expiryDate.value = expiry;
-                if (DateTime.now().isAfter(expiry)) {
-                  newStatus = SubscriptionStatus.free;
-                  expiryDate.value = null;
-                  if (user.email != null) _expireSubscription(user.email!);
-                }
-              }
-            } else if (!adminFlag) {
-              expiryDate.value = null;
-            }
-
-            // Trial: initialize on first load; read on subsequent
-            if (!adminFlag && newStatus == SubscriptionStatus.free) {
-              if (!data.containsKey('trialEndDate')) {
-                final isReferred = data.containsKey('referredBy') && data['referredBy'] != null;
-                final trialDays = isReferred ? 30 : 7;
-                final trialEnd = DateTime.now().add(Duration(days: trialDays));
-                // Write to Firestore first, only update local state on success
-                try {
-                  await _firestore.collection('users').doc(user.email).set({
-                    'trialEndDate': Timestamp.fromDate(trialEnd),
-                  }, SetOptions(merge: true));
-                  trialEndDate.value = trialEnd;
-                  trialUsed.value = true;
-                } catch (e) {
-                  debugPrint('Failed to save trial end date: $e');
-                }
-              } else {
-                trialUsed.value = true; // field exists → trial was started at some point
-                final end = (data['trialEndDate'] as Timestamp?)?.toDate();
-                trialEndDate.value = (end != null && DateTime.now().isBefore(end)) ? end : null;
-              }
-            } else {
-              trialEndDate.value = null;
-            }
-
-            final prefs = await SharedPreferences.getInstance();
-            final prefKey = 'last_sub_status_${user.email}';
-            final lastStatusStr = prefs.getString(prefKey);
-            final lastStatus = lastStatusStr != null
-                ? _parseStatus(lastStatusStr)
-                : SubscriptionStatus.free;
-
-            if (newStatus != lastStatus) {
-              if (lastStatusStr != null ||
-                  newStatus != SubscriptionStatus.free) {
-                _handleStatusChange(lastStatus, newStatus);
-              }
-              await prefs.setString(prefKey, newStatus.name);
-            }
-
-            subscriptionStatus.value = newStatus;
-          }
-        } else {
-          subscriptionStatus.value = SubscriptionStatus.free;
-          isAdmin.value = false;
-          expiryDate.value = null;
-        }
-        } catch (e) {
-          debugPrint('SubscriptionController listener error: $e');
-        }
+      ) {
+        _onSubscriptionSnapshot(snapshot, email);
       }, onError: (e) {
         debugPrint('SubscriptionController stream error: $e');
       });
@@ -175,6 +89,99 @@ class SubscriptionController extends GetxController {
           expiryDate.value = null;
         }
       });
+    }
+  }
+
+  void _onSubscriptionSnapshot(DocumentSnapshot snapshot, String email) {
+    try {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>?;
+        if (data != null) {
+          SubscriptionStatus newStatus = SubscriptionStatus.free;
+
+          final adminFlag = data['isAdmin'] == true;
+          isAdmin.value = adminFlag;
+
+          if (adminFlag) {
+            newStatus = SubscriptionStatus.pro;
+          } else if (data.containsKey('subscriptionStatus')) {
+            newStatus = _parseStatus(data['subscriptionStatus'] as String);
+          } else if (data.containsKey('isPro') && data['isPro'] == true) {
+            newStatus = SubscriptionStatus.pro;
+          }
+
+          if (data.containsKey('planType')) {
+            planType.value = data['planType'] as String? ?? '';
+          }
+
+          if (!adminFlag &&
+              newStatus == SubscriptionStatus.pro &&
+              data.containsKey('expiryDate')) {
+            final expiry = (data['expiryDate'] as Timestamp?)?.toDate();
+            if (expiry != null) {
+              expiryDate.value = expiry;
+              if (DateTime.now().isAfter(expiry)) {
+                newStatus = SubscriptionStatus.free;
+                expiryDate.value = null;
+                _expireSubscription(email);
+              }
+            }
+          } else if (!adminFlag) {
+            expiryDate.value = null;
+          }
+
+          if (!adminFlag && newStatus == SubscriptionStatus.free) {
+            _handleTrialLogic(data, email);
+          } else {
+            trialEndDate.value = null;
+          }
+
+          _persistStatus(newStatus, email);
+          subscriptionStatus.value = newStatus;
+        }
+      } else {
+        subscriptionStatus.value = SubscriptionStatus.free;
+        isAdmin.value = false;
+        expiryDate.value = null;
+      }
+    } catch (e) {
+      debugPrint('SubscriptionController listener error: $e');
+    }
+  }
+
+  void _handleTrialLogic(Map<String, dynamic> data, String email) {
+    if (!data.containsKey('trialEndDate')) {
+      final isReferred = data.containsKey('referredBy') && data['referredBy'] != null;
+      final trialDays = isReferred ? 30 : 7;
+      final trialEnd = DateTime.now().add(Duration(days: trialDays));
+      _firestore.collection('users').doc(email).set({
+        'trialEndDate': Timestamp.fromDate(trialEnd),
+      }, SetOptions(merge: true)).then((_) {
+        trialEndDate.value = trialEnd;
+        trialUsed.value = true;
+      }).catchError((e) {
+        debugPrint('Failed to save trial end date: $e');
+      });
+    } else {
+      trialUsed.value = true;
+      final end = (data['trialEndDate'] as Timestamp?)?.toDate();
+      trialEndDate.value = (end != null && DateTime.now().isBefore(end)) ? end : null;
+    }
+  }
+
+  Future<void> _persistStatus(SubscriptionStatus newStatus, String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    final prefKey = 'last_sub_status_$email';
+    final lastStatusStr = prefs.getString(prefKey);
+    final lastStatus = lastStatusStr != null
+        ? _parseStatus(lastStatusStr)
+        : SubscriptionStatus.free;
+
+    if (newStatus != lastStatus) {
+      if (lastStatusStr != null || newStatus != SubscriptionStatus.free) {
+        _handleStatusChange(lastStatus, newStatus);
+      }
+      await prefs.setString(prefKey, newStatus.name);
     }
   }
 
@@ -270,11 +277,11 @@ class SubscriptionController extends GetxController {
 
   /// User requests an upgrade (sets status to pending)
   Future<void> requestUpgrade(String transactionId, String plan) async {
-    final user = _auth.currentUser;
-    if (user == null || user.email == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     // Client-side rate limit: block requests within 60 seconds of previous
-    final doc = await _firestore.collection('users').doc(user.email).get();
+    final doc = await _firestore.collection('users').doc(email).get();
     if (doc.exists) {
       final lastReq = doc.data()?['lastUpgradeRequest'] as Timestamp?;
       if (lastReq != null) {
@@ -291,7 +298,7 @@ class SubscriptionController extends GetxController {
       }
     }
 
-    await _firestore.collection('users').doc(user.email).set({
+    await _firestore.collection('users').doc(email).set({
       'subscriptionStatus': 'pending',
       'lastUpgradeRequest': FieldValue.serverTimestamp(),
       'transactionId': transactionId,
@@ -336,29 +343,25 @@ class SubscriptionController extends GetxController {
 
   /// User cancels their own subscription (or ends their free trial)
   Future<void> cancelSubscription() async {
-    final user = _auth.currentUser;
-    if (user != null && user.email != null) {
-      // Expire trial immediately so the Firestore listener cannot re-activate it.
-      // Keeping the key present (but in the past) prevents the listener from
-      // creating a fresh 7-day trial on its next fire.
-      trialEndDate.value = null;
-      await _firestore.collection('users').doc(user.email).set({
-        'subscriptionStatus': 'free',
-        'isPro': false,
-        'cancelledAt': FieldValue.serverTimestamp(),
-        'expiryDate': FieldValue.delete(),
-        'planType': FieldValue.delete(),
-        'trialEndDate': Timestamp.fromDate(
-          DateTime.now().subtract(const Duration(seconds: 1)),
-        ),
-      }, SetOptions(merge: true));
-    }
+    final email = _userEmail;
+    if (email == null) return;
+    trialEndDate.value = null;
+    await _firestore.collection('users').doc(email).set({
+      'subscriptionStatus': 'free',
+      'isPro': false,
+      'cancelledAt': FieldValue.serverTimestamp(),
+      'expiryDate': FieldValue.delete(),
+      'planType': FieldValue.delete(),
+      'trialEndDate': Timestamp.fromDate(
+        DateTime.now().subtract(const Duration(seconds: 1)),
+      ),
+    }, SetOptions(merge: true));
   }
 
   /// Activates Pro after a successful Google Play Billing purchase
   Future<void> activateGooglePlaySubscription(PurchaseDetails purchase) async {
-    final user = _auth.currentUser;
-    if (user == null || user.email == null) return;
+    final email = _userEmail;
+    if (email == null) return;
 
     final isMonthly = purchase.productID == 'money_control_monthly';
     final now = DateTime.now();
@@ -369,7 +372,7 @@ class SubscriptionController extends GetxController {
     final int clampedDay = now.day.clamp(1, lastDayOfMonth);
     final expiry = DateTime(targetYear, clampedMonth, clampedDay);
 
-    await _firestore.collection('users').doc(user.email).set({
+    await _firestore.collection('users').doc(email).set({
       'subscriptionStatus': 'pro',
       'isPro': true,
       'planType': isMonthly ? 'Monthly' : 'Yearly',
@@ -383,12 +386,11 @@ class SubscriptionController extends GetxController {
 
   /// Manually set pro status (for testing / admin use)
   Future<void> setProStatus(bool status) async {
-    final user = _auth.currentUser;
-    if (user != null && user.email != null) {
-      await _firestore.collection('users').doc(user.email).set({
-        'subscriptionStatus': status ? 'pro' : 'free',
-        'isPro': status,
-      }, SetOptions(merge: true));
-    }
+    final email = _userEmail;
+    if (email == null) return;
+    await _firestore.collection('users').doc(email).set({
+      'subscriptionStatus': status ? 'pro' : 'free',
+      'isPro': status,
+    }, SetOptions(merge: true));
   }
 }

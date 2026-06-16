@@ -23,6 +23,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
   late ConfettiController _confetti;
+  late final ChallengesController _ctrl;
   final Set<String> _completingIds = {};
 
   @override
@@ -30,6 +31,8 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
     super.initState();
     _tab = TabController(length: 2, vsync: this);
     _confetti = ConfettiController(duration: const Duration(seconds: 3));
+    if (!Get.isRegistered<ChallengesController>()) Get.put(ChallengesController());
+    _ctrl = Get.find<ChallengesController>();
   }
 
   @override
@@ -102,7 +105,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
 
   Widget _buildActiveTab() {
     return Obx(() {
-      final ctrl = ChallengesController.to;
+      final ctrl = _ctrl;
       if (ctrl.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
@@ -141,7 +144,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
     if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
     final txCtrl = Get.find<TransactionController>();
     final sym = CurrencyController.to.currencySymbol.value;
-    final progress = ChallengesController.to.computeProgress(
+    final progress = _ctrl.computeProgress(
       c,
       txCtrl.transactions,
       uid,
@@ -176,7 +179,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _completingIds.add(c.id);
         _confetti.play();
-        ChallengesController.to.markComplete(c);
+        _ctrl.markComplete(c);
       });
     }
 
@@ -229,7 +232,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                 ),
               SizedBox(width: 8.w),
               GestureDetector(
-                onTap: () => ChallengesController.to.deleteChallenge(c.id),
+                onTap: () => _ctrl.deleteChallenge(c.id),
                 child: Icon(Icons.close, size: 18.sp, color: Colors.white38),
               ),
             ],
@@ -272,7 +275,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
 
   Widget _buildLibraryTab() {
     return Obx(() {
-      final activePresetIds = ChallengesController.to.challenges
+      final activePresetIds = _ctrl.challenges
           .where((c) => c.isActive && !c.isCompleted && c.presetId != null)
           .map((c) => c.presetId!)
           .toSet();
@@ -585,6 +588,7 @@ class _PresetChallengeSheet extends StatefulWidget {
 }
 
 class _PresetChallengeSheetState extends State<_PresetChallengeSheet> {
+  late final ChallengesController _ctrl;
   late final TextEditingController _targetCtrl;
   late final TextEditingController _daysCtrl;
   late _DurationState _durationState;
@@ -593,6 +597,8 @@ class _PresetChallengeSheetState extends State<_PresetChallengeSheet> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<ChallengesController>()) Get.put(ChallengesController());
+    _ctrl = Get.find<ChallengesController>();
     _daysCtrl = TextEditingController(
       text: widget.preset.durationDays > 0 ? widget.preset.durationDays.toString() : '30',
     );
@@ -661,7 +667,7 @@ class _PresetChallengeSheetState extends State<_PresetChallengeSheet> {
       trackedCategory: widget.preset.trackedCategory,
     );
     setState(() => _submitting = true);
-    final ok = await ChallengesController.to.addChallenge(challenge);
+    final ok = await _ctrl.addChallenge(challenge);
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).pop();
@@ -694,6 +700,7 @@ class _CustomChallengeSheet extends StatefulWidget {
 }
 
 class _CustomChallengeSheetState extends State<_CustomChallengeSheet> {
+  late final ChallengesController _ctrl;
   late final TextEditingController _nameCtrl;
   late final TextEditingController _targetCtrl;
   late final TextEditingController _daysCtrl;
@@ -703,6 +710,9 @@ class _CustomChallengeSheetState extends State<_CustomChallengeSheet> {
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<ChallengesController>()) Get.put(ChallengesController());
+    _ctrl = Get.find<ChallengesController>();
+
     _nameCtrl = TextEditingController();
     _targetCtrl = TextEditingController();
     _daysCtrl = TextEditingController(text: '30');
@@ -761,7 +771,7 @@ class _CustomChallengeSheetState extends State<_CustomChallengeSheet> {
       endDate: _durationState.endDate,
     );
     setState(() => _submitting = true);
-    final ok = await ChallengesController.to.addChallenge(challenge);
+    final ok = await _ctrl.addChallenge(challenge);
     if (!mounted) return;
     if (ok) {
       Navigator.of(context).pop();

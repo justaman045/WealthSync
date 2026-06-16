@@ -48,12 +48,13 @@ class TransactionRepository {
     return _userTransactionsRef.doc(id);
   }
 
-  Future<List<TransactionModel>> getTransactions({int? limit}) {
+  Future<List<TransactionModel>> getTransactions({int? limit}) async {
     var query = _userTransactionsRef.orderBy('createdAt', descending: true);
     if (limit != null) query = query.limit(limit);
-    return query.get().then((snapshot) => snapshot.docs.map((doc) {
+    final snapshot = await query.get();
+    return snapshot.docs.map((doc) {
       return TransactionModel.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-    }).toList());
+    }).toList();
   }
 
   Stream<List<TransactionModel>> getTransactionsStream({int? limit}) {

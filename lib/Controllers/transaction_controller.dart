@@ -34,9 +34,11 @@ class TransactionController extends GetxController {
 
   // Sorted categories by usage
   var sortedCategoryNames = <String>[].obs;
+  final totalBalanceRx = 0.0.obs;
 
   late final Worker _categoriesWorker;
   late final Worker _transactionsWorker;
+  late final Worker _balanceWorker;
   StreamSubscription? _txSub;
   StreamSubscription? _catSub;
 
@@ -58,16 +60,39 @@ class TransactionController extends GetxController {
       (_) => _updateHomeWidget(),
       time: const Duration(milliseconds: 500),
     );
+    _recomputeBalance();
+    _balanceWorker = ever(transactions, (_) => _recomputeBalance());
+  }
+
+  void _recomputeBalance() {
+    double balance = 0.0;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      totalBalanceRx.value = 0.0;
+      return;
+    }
+    for (final tx in transactions) {
+      if (tx.senderId == uid) {
+        balance -= tx.amount.abs();
+        if (tx.tax > 0 && tx.amount < 0) balance -= tx.tax;
+      } else if (tx.recipientId == uid) {
+        balance += tx.amount.abs();
+      }
+    }
+    totalBalanceRx.value = balance;
   }
 
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
-    if (cached != null) {
-      transactions.value = (cached as List).map((e) {
-        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
-        final id = map.remove('_id') as String? ?? '';
-        return TransactionModel.fromMap(id, map);
-      }).toList();
+    if (cached is List) {
+      transactions.value = cached
+          .whereType<Map>()
+          .map((e) {
+            final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e));
+            final id = map.remove('_id') as String? ?? '';
+            return TransactionModel.fromMap(id, map);
+          })
+          .toList();
     }
     LocalCacheService.invalidate(_cacheKey);
   }
@@ -76,27 +101,14 @@ class TransactionController extends GetxController {
   void onClose() {
     _categoriesWorker.dispose();
     _transactionsWorker.dispose();
+    _balanceWorker.dispose();
     _txSub?.cancel();
     _catSub?.cancel();
     super.onClose();
   }
 
   // Derived State
-  double get totalBalance {
-    double balance = 0.0;
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return 0.0;
-
-    for (var tx in transactions) {
-      if (tx.senderId == uid) {
-        balance -= tx.amount.abs();
-        balance -= tx.tax;
-      } else if (tx.recipientId == uid) {
-        balance += tx.amount.abs();
-      }
-    }
-    return balance;
-  }
+  double get totalBalance => totalBalanceRx.value;
 
   Future<void> refreshData() async {
     isLoading.value = true;
@@ -134,7 +146,9 @@ class TransactionController extends GetxController {
     try {
       final sym = CurrencyController.to.currencySymbol.value;
       WidgetService.updateBalance(totalBalance, sym);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('TransactionController._updateHomeWidget error: $e');
+    }
   }
 
   void bindCategories() {
@@ -329,15 +343,19 @@ class TransactionController extends GetxController {
     // 3. Invalidate cache so next cold load is fresh
     LocalCacheService.invalidate(_cacheKey);
 
-    // 4. Local Backup
-    if (user.email != null) {
-      LocalBackupService.backupUserTransactions(user.email!);
+    final email = user.email;
+    if (email == null) {
+      isSaving.value = false;
+      return false;
     }
 
+    // 4. Local Backup
+    LocalBackupService.backupUserTransactions(email);
+
     // 5. Budget Check (Side Effect)
-    if (isSend && user.email != null) {
+    if (isSend) {
       BudgetService.checkBudgetExceeded(
-        userId: user.email!,
+        userId: email,
         category: category,
       );
     }
@@ -346,7 +364,7 @@ class TransactionController extends GetxController {
     fetchSortedCategories();
 
     // 7. Update spending streak
-    if (user.email != null) _updateStreak(user.email!);
+    _updateStreak(email);
 
     isSaving.value = false;
     return true;
@@ -407,9 +425,8 @@ class TransactionController extends GetxController {
       LocalCacheService.invalidate(_cacheKey);
 
       // Local Backup
-      if (user.email != null) {
-        LocalBackupService.backupUserTransactions(user.email!);
-      }
+      final email = user.email;
+      if (email != null) LocalBackupService.backupUserTransactions(email);
       return true;
     } on TimeoutException {
       // Offline fallback

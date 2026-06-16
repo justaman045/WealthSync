@@ -5,6 +5,7 @@ import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Services/sms_service.dart';
 import 'package:intl/intl.dart';
 
 class ImportService {
@@ -32,13 +33,15 @@ class ImportService {
   }
 
   /// Process the raw CSV data into TransactionModel objects based on column mapping
-  /// [headerMap] maps internal keys ('amount', 'date', 'note', 'category') to CSV column indices
-  static List<TransactionModel> processCSVData(
+  /// [headerMap] maps internal keys ('amount', 'date', 'note', 'merchant', 'category') to CSV column indices.
+  /// If no explicit category column is mapped, the merchant name is run through
+  /// the SMS categorization engine for an automatic suggestion.
+  static Future<List<TransactionModel>> processCSVData(
     List<List<dynamic>> rawData,
     Map<String, int> headerMap,
     String currentUserId, {
     String currency = 'INR',
-  }) {
+  }) async {
     List<TransactionModel> transactions = [];
 
     // Skip header row (index 0)
@@ -50,6 +53,7 @@ class ImportService {
         final dateIndex = headerMap['date'];
         final amountIndex = headerMap['amount'];
         final noteIndex = headerMap['note']; // Optional
+        final merchantIndex = headerMap['merchant']; // Optional
         final categoryIndex = headerMap['category']; // Optional
 
         if (dateIndex == null || amountIndex == null) {
@@ -84,10 +88,23 @@ class ImportService {
           note = row[noteIndex].toString();
         }
 
-        // 4. Parse Category
+        // 4. Parse Merchant name (fall back to note if not mapped)
+        String merchant = note;
+        if (merchantIndex != null && merchantIndex < row.length) {
+          final raw = row[merchantIndex].toString().trim();
+          if (raw.isNotEmpty) merchant = raw;
+        }
+
+        // 5. Parse Category (with auto-suggest from SMS engine)
         String category = "Uncategorized";
-        if (categoryIndex != null && categoryIndex < row.length) {
+        final hasExplicitCategory =
+            categoryIndex != null && categoryIndex < row.length;
+        if (hasExplicitCategory) {
           category = row[categoryIndex].toString();
+        } else {
+          // Auto-suggest category via SMS categorization engine
+          final suggested = await SmsService.suggestCategory(merchant);
+          if (suggested != 'Uncategorized') category = suggested;
         }
 
         // Create Model — amount sign determines direction:
@@ -97,11 +114,11 @@ class ImportService {
           id: '',
           senderId: isExpense ? currentUserId : 'csv_import',
           recipientId: isExpense ? 'csv_import' : currentUserId,
-          recipientName: note,
+          recipientName: merchant,
           amount: amount,
           currency: currency,
           tax: 0,
-          note: "Imported from CSV",
+          note: note,
           category: category,
           date: date,
           status: 'success',

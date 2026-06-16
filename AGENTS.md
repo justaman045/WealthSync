@@ -1,454 +1,157 @@
 # AGENTS.md
 
-This file provides critical rules and patterns for AI coding assistants working on this Flutter project.
+Critical rules and conventions for this Flutter + GetX + Firebase project.
 
-## CRITICAL RULES (Follow These Always)
+## CRITICAL PATTERNS
 
-### 1. GetX Controller Access — NEVER Use Field Initializers
+### GetX Controller Access — Never Field Initializers
 
 ```dart
-// ❌ WRONG — crashes during onboarding before controllers are registered
-class _MyScreenState extends State<MyScreen> {
-  final _controller = Get.find<TransactionController>();
-}
+// WRONG — crashes (controllers not yet registered)
+final _controller = Get.find<TransactionController>();
 
-// ✅ CORRECT — defer to initState() with registration guard
-class _MyScreenState extends State<MyScreen> {
-  late final TransactionController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    if (!Get.isRegistered<TransactionController>()) {
-      Get.put(TransactionController());
-    }
-    _controller = Get.find<TransactionController>();
-  }
+// CORRECT — guard + defer
+late final TransactionController _controller;
+@override
+void initState() {
+  super.initState();
+  if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
+  _controller = Get.find<TransactionController>();
 }
 ```
 
-**Why**: Field initializers run before `initState()`. During onboarding, controllers registered in `AuthChecker._handleAuthChange()` don't exist yet.
+Applies to every widget using `Get.find<>()`.
 
-**Applies to**: ALL screens, components, and widgets that use `Get.find<>()`.
-
-### 2. Dispose TextEditingControllers in Dialogs
-
-Dialogs/bottom sheets that instantiate `TextEditingController` inline must explicitly dispose them. The dialog `Future` is the lifecycle anchor:
+### Dispose TextEditingControllers in Dialogs/Sheets
 
 ```dart
-// showDialog — use try/finally
-Future<void> _showDialog() async {
-  final ctrl = TextEditingController();
-  try {
-    await showDialog(context: context, builder: (_) => AlertDialog(...));
-  } finally {
-    ctrl.dispose();
-  }
-}
+// showDialog — try/finally
+final ctrl = TextEditingController();
+try { await showDialog(...); } finally { ctrl.dispose(); }
 
-// showModalBottomSheet — use .whenComplete()
-void _showSheet() {
-  final ctrl = TextEditingController();
-  showModalBottomSheet(...).whenComplete(() => ctrl.dispose());
-}
+// showModalBottomSheet — .whenComplete()
+showModalBottomSheet(...).whenComplete(() => ctrl.dispose());
 ```
 
-**Better pattern for sheets with multiple controllers**: Make the sheet a `StatefulWidget` that owns controllers (created in `initState`, disposed in `dispose`). This avoids the crash where `showModalBottomSheet` returns before the sheet's widgets are unmounted (keyboard-triggered rebuilds try to use disposed controllers). See `_AddSheet` in `asset_detail_screen.dart`, `_Sheet` in `vehicle_detail_screen.dart`, etc.
+Multiple controllers in a sheet → `StatefulWidget` owning controllers in `initState`/`dispose` (see `_AddSheet` in `asset_detail_screen.dart`).
 
-### 3. mounted Check After async
+### mounted Check After async
 
 ```dart
-// ✅ Always guard setState() after await
-await someAsyncOperation();
+await someAsyncOp();
 if (!mounted) return;
 setState(() { ... });
 ```
 
-### 4. Use Get.overlayContext for Global Dialogs
+### Global Dialogs — Use Get.overlayContext
 
 ```dart
-// In utility functions (not inside a widget's build):
 showGeneralDialog(context: Get.overlayContext!, ...);
-// NOT: showGeneralDialog(context: Get.context!, ...);
+// NOT: Get.context!
 ```
+
+## Commands
+
+```bash
+flutter pub get
+flutter analyze --no-fatal-infos   # CI gate (warnings→errors, infos OK)
+flutter test                        # 3 unit/widget test files
+flutter run
+flutter build apk --release
+flutter build appbundle --release
+flutter gen-l10n                    # after editing ARB files in lib/l10n/
+```
+
+CI (`.github/workflows/flutter_build.yml`): analyze → test → build. Flutter **3.35.5**, Dart `^3.9.2`. Version auto-bumped by CI (`pubspec.yaml`, `app_version.json`, README download link).
 
 ## Architecture
 
-**MVC-Service-Repository pattern** using **GetX** for state management and DI:
+**MVC-Service-Repository** with GetX. Package name is `money_control` (used in imports).
 
-- `lib/Models/` — Plain Dart data classes with `fromMap`/`toMap` Firestore serialization
-- `lib/Repositories/` — Firestore data access layer only
-- `lib/Services/` — Business logic (not GetX controllers)
-- `lib/Controllers/` — GetX controllers binding services to reactive UI state
-- `lib/Screens/` — Screen widgets only; no business logic
-- `lib/Components/` — Reusable widgets and app-wide constants
-- `lib/Config/` — Configuration objects (e.g., `AssetScreenConfig` definitions)
-- `lib/Utils/` — `IconHelper` (explicit icon list to prevent tree-shaking)
-- `lib/data/` — Static seed data
+| Directory | Role |
+|-----------|------|
+| `lib/Models/` | Data classes with `fromMap`/`toMap` |
+| `lib/Repositories/` | Firestore data access only |
+| `lib/Services/` | Business logic (not controllers) |
+| `lib/Controllers/` | GetX controllers binding services to reactive state |
+| `lib/Screens/` | Widgets only; no logic |
+| `lib/Components/` | Reusable widgets |
+| `lib/Config/` | `AssetScreenConfig` definitions |
+| `lib/Utils/` | `IconHelper`, `wealth_math.dart` |
+| `lib/data/` | Seed data |
+| `test/` | 3 unit/widget test files |
+| `integration_test/` | 7 integration tests (require Firebase emulator) |
 
-**ThemeController exception**: defined inline in `main.dart` (not in `lib/Controllers/`) because it must be available before any screen is built.
+ThemeController is inline in `main.dart` (registered before any screen).
 
-## Controller Dependencies & Registration
+## Controller Registration (2-Phase)
 
-### Dependency Order
+**Phase 1 — `mainCommon()`**: PrivacyController, CurrencyController, AuthController, SubscriptionController, PaymentConfigService, IapService, BiometricService.
 
-1. **Top-level `mainCommon()`** (app-wide, no auth dependency): `PrivacyController`, `CurrencyController`, `AuthController`, `SubscriptionController`, `PaymentConfigService`, `IapService`, `BiometricService`.
+**Phase 2 — `_handleAuthChange()` after login**: TransactionController → ProfileController → AnalyticsController → BudgetController → GoalsController → LoanController → ChallengesController → LentMoneyController → RecurringPaymentController.
 
-2. **Inside `AuthChecker._handleAuthChange()` after login** (speak TransactionController first): `TransactionController`, then `ProfileController`, `AnalyticsController`, `BudgetController`, `GoalsController`, `LoanController`, `ChallengesController`, `LentMoneyController`, `RecurringPaymentController`.
-
-`BudgetController` and `AnalyticsController` both call `Get.find<TransactionController>()` during init — registering them in `mainCommon()` crashes with "not found" because the user hasn't logged in yet.
-
-| Controller | Depends On | Registration |
-|------------|-----------|-------------|
-| TransactionController | — | `AuthChecker._handleAuthChange()` |
-| ProfileController | TransactionController | After TransactionController |
-| AnalyticsController | TransactionController | After TransactionController |
-| BudgetController | TransactionController | After TransactionController |
-| PrivacyController | — | `mainCommon()` |
-| CurrencyController | — | `mainCommon()` |
-| SubscriptionController | — | `mainCommon()` |
-| GoalsController | — | `mainCommon()` |
-| LoanController | — | `mainCommon()` |
-| ChallengesController | — | `mainCommon()` |
-| LentMoneyController | — | `mainCommon()` |
-| RecurringPaymentController | — | `mainCommon()` |
-
-### Self-Registration Pattern
-
-Screens that depend on controllers must self-register with `Get.isRegistered()` + `Get.put()` guards in `initState()`. This is essential because the onboarding flow (`is_onboarded == false`) shows screens before `_handleAuthChange()` has registered any controllers.
-
-Files using this pattern:
-
-| File | Controllers |
-|------|------------|
-| `lib/Screens/add_transaction.dart` | TransactionController |
-| `lib/Screens/analytics.dart` | TransactionController |
-| `lib/Screens/recurring_payments_screen.dart` | TransactionController |
-| `lib/Screens/edit_profile.dart` | ProfileController |
-| `lib/Screens/homescreen.dart` | ProfileController, TransactionController |
-| `lib/Screens/budget.dart` | BudgetController |
-| `lib/Screens/settings.dart` | ProfileController |
-| `lib/Screens/transaction_history.dart` | TransactionController |
-| `lib/Screens/cateogaries_history.dart` | BudgetController |
-| `lib/Screens/add_lent_money_screen.dart` | LentMoneyController, CurrencyController |
-| `lib/Screens/lent_money_screen.dart` | LentMoneyController, CurrencyController |
-| `lib/Screens/forecast_screen.dart` | AnalyticsController |
-| `lib/Screens/category_management.dart` | SubscriptionController, TransactionController |
-| `lib/Screens/split_bill_screen.dart` | LentMoneyController |
-| `lib/Screens/savings_challenges_screen.dart` | TransactionController |
-| `lib/Screens/analysis.dart` | TransactionController |
-| `lib/Components/balance_card.dart` | PrivacyController, TransactionController, LentMoneyController, RecurringPaymentController |
-| `lib/Components/quick_send.dart` | TransactionController |
-| `lib/Components/recent_payment_list.dart` | TransactionController |
-
-## Wealth / Asset Management System
-
-### Architecture
-
-One Firestore subcollection per asset type under `users/{userEmail}/`, plus a single `wealth/portfolio` summary document for dashboard aggregation.
-
-**Subcollections** (24 total, listed in `AssetScreenConfig` and `firestore.rules`):
-- **Liquid & Fixed Income**: `fd_accounts`, `ppf_accounts`, `post_office_schemes`, `bonds`, `chit_funds`
-- **Equity & Growth**: `stock_holdings`, `sip_holdings`, `etf_holdings`, `foreign_stocks`, `startup_investments`
-- **Retirement**: `pf_accounts`, `vpf_accounts`, `nps_accounts`
-- **Alternative Assets**: `gold_holdings`, `sgb_holdings`, `jewelry_items`, `crypto_holdings`, `reit_holdings`, `p2p_loans`
-- **Physical Assets**: `agri_land`, `properties`, `vehicles`
-- **Protection & Business**: `insurance_policies`, `business_assets`
-- **Liabilities**: `bnpl_entries`, `credit_cards`
-
-### WealthPortfolio Model (`lib/Models/wealth_data.dart`)
-
-Single document at `users/{email}/wealth/portfolio` storing all asset category totals as named fields (e.g., `sip`, `fd`, `stocks`, `gold`, `realEstate`, etc.) plus `custom` map, `targets`, `hiddenKeys`, `lastUpdated`, `monthlyExpenseOverride`.
-
-Notable properties:
-- `totalAssets` — sum of all asset fields + custom entries
-- `totalLiabilities` — sum of `loans + creditCard + bnpl`
-
-### WealthService (`lib/Services/wealth_service.dart`)
-
-- `getPortfolio()` — one-shot fetch
-- `streamPortfolio()` — real-time stream (dashboard subscribes to this)
-- `updateAsset(key, value)` — writes to `wealth/portfolio` with `SetOptions(merge: true)`
-- `updateAssetTarget(key, targetValue)` — writes target override
-- `calculateBankBalance(transactions)` — computes bank balance from transaction history
-- `generateSmartInsights(portfolio, transactions)` — financial insights
-- `calculateAssetTargets(portfolio, transactions, userProfile)` — age-based target calculations using milestone tables (Fidelity lifecycle model adapted for India)
-
-### AssetScreenConfig (`lib/Config/asset_screen_configs.dart`)
-
-Drives both the card appearance on the dashboard and the dynamic form fields in `AssetDetailScreen`. Each asset type has a static config specifying:
-- `title` / `collection` / `assetKey`
-- `accentColor` / `icon`
-- `fields` — `List<AssetFieldDef>` defining the form (text, number, date, dropdown)
-- `amountField` — the field that gets summed for the card total
-
-### AssetDetailScreen (`lib/Screens/asset_detail_screen.dart`)
-
-Generic screen for all asset types defined in `AssetScreenConfig`. Takes `AssetScreenConfig` as input, renders:
-- Summary header with total
-- StreamBuilder on the subcollection
-- Cards with delete capability
-- `_AddSheet` (bottom sheet) for adding entries
-
-**Key patterns**:
-- `_AddSheet` owns `TextEditingController`s (created in `initState`, disposed in `dispose`)
-- `_syncedEmpty` flag ensures portfolio is reset to 0 when the subcollection becomes empty
-- `_syncTotal()` recomputes sum from the subcollection and calls `WealthService.updateAsset()`
-
-### Custom Screens
-
-4 screens exist for complex asset types that need custom layouts:
-- `RealEstateDetailScreen` — properties (`vehicles` subcollection, but note: actually uses `properties` collection — in rules it's `properties`)
-- `VehicleDetailScreen` — vehicles (`vehicles` subcollection)
-- `InsurancePolicyScreen` — insurance policies (`insurance_policies` subcollection)
-- `CreditCardDetailScreen` — credit cards (`credit_cards` subcollection)
-
-Each has `_Sheet` or `_AddSheet` that owns `TextEditingController`s in `initState`/`dispose`.
-
-### Dashboard Navigation Pattern (`lib/Screens/wealth_builder.dart`)
-
-The dashboard (`WealthBuilderScreen`) subscribes to `WealthService.streamPortfolio()` for real-time updates (not a one-shot fetch). Two navigation patterns:
-- Generic assets: `Get.to(() => AssetDetailScreen(config: AssetConfigs.fd))`
-- Custom screens: `Get.to(() => const VehicleDetailScreen())`
-
-## Cache Service (`lib/Services/cache_service.dart`)
-
-TTL-based local cache using SharedPreferences. Created for Spark plan optimization.
-
-### Why SharedPreferences (not Hive)
-Hive 2.x requires SDK `<3.0.0` (incompatible with Dart 3.11). Hive 4.x depends on Isar. SharedPreferences (already a dependency) stores JSON blobs with TTL wrappers — sufficient and avoids new dependencies.
-
-### Key Design
-- **Prefix `cache_`**: All keys prefixed to prevent collision with app preferences (`is_onboarded`, `lastOpened` etc.)
-- **App version invalidation**: `init()` checks `package_info_plus` version/build number. If changed, clears all `cache_*` keys.
-- **Timestamp serialization**: `hiveSafe()` converts Timestamp → ISO string; `hiveRestore()` converts ISO strings → Timestamp. Needed because `jsonEncode` can't serialize `FieldValue` or `Timestamp` natively.
-- **Methods**: `get`, `put`, `invalidate`, `invalidateByPrefix`, `clearAll`
-- **TTLs**: 30s (transactions), 60s (wealth portfolio), 5min (everything else)
-
-### Cache Invalidation After Read
-```dart
-void _loadFromCache() {
-  final cached = LocalCacheService.get(_cacheKey);
-  if (cached != null) { /* restore from cache */ }
-  LocalCacheService.invalidate(_cacheKey); // Always invalidate after read
-}
-```
-This prevents stale/incomplete cache (e.g., from previous `.limit()`) from persisting.
-
-## Firestore Security Rules (`firestore.rules`)
-
-### Key Functions
-
-```javascript
-function isOwner(email) { /* request.auth.token.email == email */ }
-function isAdmin() { /* checks users/{email}.isAdmin == true */ }
-function validTransaction() { /* validates amount, date, senderId, recipientId */ }
-function isReferralAllowed() { /* permits cross-user referral writes */ }
-function isPrivilegeElevation() { /* blocks owner from writing isAdmin, referralCount, subscriptionStatus, trialEndDate, referredBy */ }
-```
-
-### User Doc Rule (Hardened)
-
-```javascript
-match /users/{userEmail} {
-  allow create: if isOwner(userEmail);
-  allow update: if (isOwner(userEmail) && !isPrivilegeElevation()) || isReferralAllowed();
-  allow delete: if isOwner(userEmail);
-}
-```
-
-The user doc write rule was **split** from `allow write` into `create`/`update`/`delete`. The `isPrivilegeElevation()` check prevents users from self-elevating to admin or tampering with subscription/referral fields. The `isReferralAllowed()` exception still allows the referral system to write `referralCount`, `subscriptionStatus`, `trialEndDate` cross-user.
-
-### Referral Write Rule
-
-`isReferralAllowed()` permits any authenticated user to write `referralCount`, `subscriptionStatus`, `trialEndDate` to a user doc **if** the target doc has a `referralCode` field. This enables the referral transaction (referee writes to referrer's doc) without allowing arbitrary writes:
-
-```javascript
-function isReferralAllowed() {
-  let affected = request.resource.data.diff(resource.data).affectedKeys();
-  let isReferralFields = affected.hasOnly(['referralCount', 'subscriptionStatus', 'trialEndDate']);
-  let targetHasCode = resource.data.keys().hasAny(['referralCode']);
-  return request.auth != null && targetHasCode && isReferralFields;
-}
-```
-
-### Per-Asset Subcollection Wildcard
-
-The `match /{collection}/{docId}` under `users/{userEmail}` lists all 24 asset subcollection names in an `in` check. Existing specific rules (transactions, wealth, goals, loans, etc.) are unaffected and take precedence.
-
-### Default Deny
-
-The bottom `match /{document=**}` with `allow read, write: if false;` denies everything not explicitly matched.
-
-## Referral System (`lib/Services/referral_service.dart`)
-
-### Code Generation
-`generateReferralCode(name, uid)` creates a deterministic 6-char code: first 4 chars from name + last 2 chars from uid suffix. Collision check appends additional uid chars if needed.
-
-### Flow
-1. **On `_InviteFriendsCard` init**: calls `ReferralService.ensureReferralCode()` which writes `referralCode` and `referralCount: 0` to `users/{email}`
-2. **Onboarding**: user enters a referral code → `onboarding_screen.dart:81` calls `applyReferralCode(code)`
-3. **applyReferralCode**: Firestore transaction —
-   - Finds referrer by `referralCode` field query
-   - Prevents self-referral and double-application (`referredBy` check)
-   - Writes `referredBy` + `trialEndDate` (30 days) to referee doc
-   - Increments `referralCount`, sets `subscriptionStatus: 'pro'`, extends `trialEndDate` (30 days) on referrer doc
-4. **Settings display**: `_InviteFriendsCard` in `settings.dart` uses `.snapshots()` on `users/{email}` for real-time count updates
-
-## Code Style
-
-- No comments unless explicitly requested
-- Use `flutter_screenutil` suffixes: `.w`, `.h`, `.sp` — never hardcoded pixels
-- Use `CurrencyController.to.currencySymbol.value` — never hardcoded `₹`
-- Throw `Exception("message")`, never `throw "message"`
-- `QueryDocumentSnapshot.data()` is non-nullable — don't use `!`
-- `DocumentSnapshot.data()` is nullable — requires `?` or null check
-- All sizes use design reference `390×844`
+`BudgetController` and `AnalyticsController` call `Get.find<TransactionController>()` during init — registering them in phase 1 crashes. Screens self-register via `Get.isRegistered()` + `Get.put()` in `initState` (onboarding shows screens before phase 2).
 
 ## Transaction Sign Convention
 
-- **Send (expense)**: `amount = -abs(value)`, `senderId = user.uid`, `recipientId = ""`
-- **Receive (income)**: `amount = +abs(value)`, `senderId = ""`, `recipientId = user.uid`
-- Budget aggregation: filter `amount < 0` before calling `.abs()` — using `amount.abs()` on every transaction counts income toward budget limits, triggering false over-budget alerts
+- **Expense**: `amount = -abs(value)`, `senderId = user.uid`, `recipientId = ""`
+- **Income**: `amount = +abs(value)`, `senderId = ""`, `recipientId = user.uid`
+- Budget aggregation: filter `amount < 0` before `.abs()` — otherwise income triggers false over-budget alerts
+- CSV import (`import_service.dart`): must NOT call `.abs()` on amounts
 
-## SMS Classification Priority (`lib/Services/sms_service.dart`)
+## Wealth / Asset System
 
-### Amount Regex (Indian Bank Formats)
-Primary regex must catch `debited by {amount}` / `credited by {amount}` patterns. Indian bank UPI messages use "debited by 86.00" format — no `Rs` or `INR` prefix. The fallback bare amount regex (`firstMatch`) finds the leftmost 2+ digit number, which can match wrong values like account number fragments ("X5488" before "86.00").
+One Firestore subcollection per asset type under `users/{userEmail}/`, plus `wealth/portfolio` summary doc.
 
-```dart
-// Primary amount regex (must include debited by / credited by):
-r'(?:Rs\.?|INR|MRP|Amt|Amount|debited by|credited by|by Rs\.?)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)'
+**24 subcollections** (listed in `firestore.rules` wildcard): `fd_accounts, ppf_accounts, post_office_schemes, bonds, chit_funds, stock_holdings, sip_holdings, etf_holdings, foreign_stocks, startup_investments, pf_accounts, vpf_accounts, nps_accounts, gold_holdings, sgb_holdings, jewelry_items, crypto_holdings, reit_holdings, p2p_loans, agri_land, properties, vehicles, insurance_policies, business_assets, bnpl_entries, credit_cards`
+
+**WealthPortfolio** (`lib/Models/wealth_data.dart`): 25 asset fields + `custom` map, `targets`, `hiddenKeys`. `totalAssets` sums all 25 + custom entries. `totalLiabilities = loans + creditCard + bnpl`.
+
+**Dashboard** must use `streamPortfolio()` (not `getPortfolio()`) — one-shot fetch leaves amounts stale after navigating back. Confirmed in `wealth_builder.dart:56`.
+
+**Generic screen**: `AssetDetailScreen(config:)` for all 24 types. Custom screens: `RealEstateDetailScreen`, `VehicleDetailScreen`, `InsurancePolicyScreen`, `CreditCardDetailScreen`.
+
+## Code Style
+
+- `flutter_screenutil` suffixes (`.w`, `.h`, `.sp`) — no hardcoded pixels; design ref 390×844
+- `CurrencyController.to.currencySymbol.value` — never `₹`
+- `Exception("message")` — never `throw "message"`
+- `QueryDocumentSnapshot.data()` is non-nullable (no `!` or `as Map`)
+- `DocumentSnapshot.data()` is nullable (needs `?` or null check)
+
+## SMS Classification
+
+Primary regex must include `debited by`/`credited by` for Indian UPI messages ("debited by 86.00" has no `Rs`/`INR` prefix):
+
+```
+(?:Rs\.?|INR|MRP|Amt|Amount|debited by|credited by|by Rs\.?)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)
 ```
 
-1. Refund/cashback → always credit
-2. `debited` / `deducted` / `withdrawn` / `spent` / `sent` → debit
-3. `credited` / `deposit` → credit
-4. `received by` → **debit** (merchant received from user)
-5. `received in` / `received to` / `received into` / `received from` → credit
-6. Default → debit
+Priority: refund/cashback→credit, debited/deducted/withdrawn/spent/sent→debit, credited/deposit→credit, "received by"→debit, "received in/to/into/from"→credit, default→debit.
 
-## Google Sign-In
+## Common Gotchas
 
-Pinned to **v6.2.2** (`pubspec.yaml: google_sign_in: ^6.2.2`). Do **not** upgrade to v7+. v7 replaced blocking `signIn()` with `authenticate()` + `authenticationEvents` stream, which has a race condition where the result event fires before `authenticationEvents.first` starts listening.
+1. **Stream `.limit()` on balance** — never apply. Balance sums ALL transactions.
+2. **Cache invalidation after read** — always `LocalCacheService.invalidate(key)` after restoring from cache. Prevents stale `.limit()` data.
+3. **Salary detection false positives** — filter EMI/loans from candidates BEFORE median/max. Check `recipientName` for exclusion keywords only (not `note`/`category`).
+4. **`fromMap` Timestamp cast** — use `(map['lastUpdated'] as dynamic)?.toDate()` (works with real Timestamp and test mocks).
+5. **Test values drift** — when adding asset fields, update `totalAssets` expected values in both `wealth_data_test.dart` tests and the comment sum.
+6. **`compact()` rounds** — `compact(1500)` → `"2K"` (not `"1.5K"`).
+7. **Don't mix GetX + Flutter navigator** — `Get.dialog()` + `Navigator.pop()` + `Get.snackbar()` crashes. Use `showDialog()` + `Navigator.of(context, rootNavigator: true).pop()` + `ScaffoldMessenger.showSnackBar()`.
+8. **FilePicker.saveFile() returns content:// on Android** — cannot `File(uri).writeAsString()`. Pass `bytes: Uint8List.fromList(utf8.encode(csv))`.
+9. **`orderBy() as Query` is unnecessary cast** — triggers `unnecessary_cast` warning.
+10. **SmsService static cache leak** — `resetCache()` called on logout to clear static `_correctionCache`, `_historyCache`, `_rulesLoaded`.
+11. **Trial state race** — subscription trial flags must be set *after* Firestore confirms the write.
+12. **BackdropFilter sigma** — keep sigma ≤ 4 and wrap in `RepaintBoundary`. Sigma 10 + two instances = severe scroll jank (`glass_container.dart`).
+13. **Avoid ShaderMask on animated text** — renders child offscreen each frame. Use direct `TextStyle(color:)` instead (`balance_card.dart`).
+14. **setState in TweenAnimationBuilder.onEnd** — triggers full subtree rebuild on every animation completion. Use `ValueNotifier` + `.value = ` instead.
+15. **Cache O(n) getters** — `totalBalance` iterates all transactions. Use `Rx` + `ever` worker so the loop only runs when data actually changes (`transaction_controller.dart`).
+16. **Cache Theme.of** — 14+ calls per build in `analytics.dart` → cache `_cachedTheme` and `_cachedIsDark` in `build()`, restore `get isDark => _cachedIsDark`.
+17. **Unchecked `jsonDecode` casts** — always check `is Map` / `is List` before `as`. Prevents crashes on corrupted cache (`category_service.dart`, `offline_queue.dart`, `sms_import_screen.dart`).
 
-## Common Bug Patterns to Avoid
+## Platform-Specific
 
-1. **Field initializer `Get.find<>()`** — Crashes during onboarding. Always defer to `initState()` with a `Get.isRegistered()` guard.
-2. **`setState()` after async gap** — Always check `if (!mounted) return;` before `setState()` following an `await`.
-3. **CSV import sign stripping** — `import_service.dart` must NOT call `.abs()` on amounts; expenses must remain negative.
-4. **Overlay context for global dialogs** — Use `Get.overlayContext`, never a captured `BuildContext` from before an `await`.
-5. **Trial state race condition** — `subscription_controller.dart` trial flags must be set *after* Firestore confirms the write, not before.
-6. **TextEditingController disposed while sheet is open** — When sheet is `StatefulWidget`, own controllers in `initState`/`dispose`. When inline, use `try/finally` (dialog) or `.whenComplete()` (bottom sheet).
-7. **One-shot dashboard fetch** — Always use `streamPortfolio()` (not `getPortfolio()`) so amounts update immediately after adding entries and navigating back.
-8. **Referral rules blocking cross-user writes** — `firestore.rules` must have `isReferralAllowed()` exception on `users/{userEmail}` write rule.
-9. **Salary detection false positives** — In `analytics.dart _buildSalaryDetection`, filter EMI/loan transactions out of the candidate pool BEFORE computing median/max. Only check `recipientName` for exclusion keywords — `note` and `category` can legitimately be "Transfer"/"NEFT" for real salary.
-10. **Test expected values must match field sums** — When new asset fields are added to `WealthPortfolio`, update `totalAssets` expected values in both `wealth_data_test.dart` tests. The test data comment is also prone to drift — recompute from actual values.
-11. **`fromMap` Timestamp cast in tests** — `(map['lastUpdated'] as Timestamp?)?.toDate()` fails with mocked `Timestamp`. Use `(map['lastUpdated'] as dynamic)?.toDate()` instead, which works with both real Timestamp and test mocks.
-12. **`compact()` rounds, doesn't truncate** — `toStringAsFixed()` applies rounding. `compact(1500)` returns `"2K"` (1.5 → 2), not `"1K`. Tests expecting truncation will fail.
-13. **APK download URL** — Always construct from release tag: `releases/download/$tag/app-release.apk`. Do NOT scan `assets[]` — GitHub lists `.aab` alphabetically first.
-14. **Don't mix GetX dialogs with Flutter navigator** — `Get.dialog()` + `Navigator.pop()` + `Get.snackbar()` causes `LateInitializationError` because `Get.back()` tries to close snackbar queue with uninitialized `_controller`. Use pure Flutter: `showDialog()` + `Navigator.of(context, rootNavigator: true).pop()` + `ScaffoldMessenger.showSnackBar()`.
-15. **`FilePicker.saveFile()` returns content:// URI on Android** — You CANNOT call `File(result).writeAsString()` on it. Must pass `bytes: Uint8List.fromList(utf8.encode(csv))` to `saveFile()`.
-16. **`showDialog` + `Navigator.pop` navigator mismatch** — `showDialog()` uses `useRootNavigator: true` by default. `Navigator.of(context)` (without rootNavigator) finds a different navigator. Always use `Navigator.of(context, rootNavigator: true).pop()`.
-17. **`QueryDocumentSnapshot.data()` already non-nullable** — In cloud_firestore 4.x, `QueryDocumentSnapshot.data()` returns `Map<String, dynamic>` (non-nullable). Do NOT add `as Map<String, dynamic>` — it triggers `unnecessary_cast` warning and fails CI with `--no-fatal-infos` (still treats warnings as errors).
-18. **Stream `.limit()` breaks balance computation** — Never apply `.limit()` to a transaction stream that feeds `totalBalance`. The balance sums ALL transactions. With `.limit(50)`, only the last 50 transactions are included, producing a wildly wrong balance. Apply limits only to cached snapshots, never the stream.
-19. **Cache invalidation after read** — Always `LocalCacheService.invalidate(_cacheKey)` after reading cached data. This prevents stale/incomplete cache (e.g., from previous `.limit()`) from persisting. The stream event will re-populate the cache with fresh data.
-20. **`collectionRef.orderBy() as Query` is unnecessary cast** — `orderBy()` already returns `Query`. The cast triggers `unnecessary_cast` warning which fails CI with `--no-fatal-infos`.
-21. **SMS amount regex: Indian UPI uses "debited by" format** — Indian bank UPI messages say "debited by 86.00" / "credited by 86.00" with no `Rs` or `INR` prefix. The primary amount regex must include `debited by|credited by|by Rs\.?`. Without this, the bare amount fallback finds the leftmost 2+ digit number (e.g., "5488" from "A/C X5488") instead of the real amount ("86.00").
-
-## CSV Export (`lib/Screens/Settings/data_support_settings.dart`)
-
-### Safe Pattern (Pure Flutter APIs Only — No GetX)
-
-```dart
-final nav = Navigator.of(context, rootNavigator: true);
-showDialog<void>(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-
-bool dialogClosed = false;
-try {
-  // ... fetch data, build CSV rows, convert to csv string ...
-  final bytes = Uint8List.fromList(utf8.encode(csv));
-
-  if (!context.mounted) return;
-  nav.pop();
-  dialogClosed = true;
-
-  final result = await FilePicker.platform.saveFile(
-    fileName: 'export.csv',
-    bytes: bytes,  // REQUIRED on Android (content:// URI)
-  );
-  if (result == null) return;
-
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Exported to: $result")));
-} catch (e) {
-  if (!context.mounted) return;
-  if (!dialogClosed) nav.pop();
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Export Failed: $e")));
-}
-```
-
-### Why Not GetX
-- `Get.back()` calls `closeCurrentSnackbar()` internally, crashing if snackbar `_controller` is uninitialized
-- `Get.snackbar()` uses GetX overlay which may not be available after `Navigator.pop()`
-- Pure Flutter APIs (`showDialog`, `Navigator.pop`, `ScaffoldMessenger`) are consistent and avoid these issues
-
-### Why `bytes:` is Required
-- `FilePicker.platform.saveFile()` on Android returns a `content://` URI (SAF document URI)
-- You cannot `File(contentUri).writeAsString()` — `File` only works with file:// paths
-- Pass `bytes: Uint8List.fromList(utf8.encode(csv))` and file_picker handles the write
-
-## UPI Payments (`lib/Screens/add_transaction.dart` + `MainActivity.kt`)
-
-Uses a **Kotlin MethodChannel** (`money_control/upi`) — not `url_launcher` — because getting the payment result back requires `startActivityForResult`. Static `_upiApps` list with hard-coded package names:
-- GPay (`com.google.android.apps.nbu.paisa.user`), PhonePe, Paytm, BHIM, CRED, null (system chooser)
-
-`canLaunchUrl()` is unreliable for UPI on Android 11+. Always show all apps and handle `APP_NOT_FOUND` via try/catch — if a specific app is not installed, retry without `packageName`.
-
-## GetX `ever()` Workers
-
-Every `ever()` / `once()` / `debounce()` call returns a `Worker` that must be stored and disposed:
-
-```dart
-Worker? _myWorker;
-_myWorker = ever(someRx, (_) { ... });
-_myWorker?.dispose(); // in dispose() or onClose()
-```
-
-## Firebase & Deployment
-
-- `firebase.json` has `firestore.rules` config pointing to `firestore.rules`
-- Deploy: `firebase deploy --only firestore --project moneycontroljustaman045`
-- Rules are also applied via CI; token auth uses `FIREBASE_TOKEN` env var (deprecated, use `GOOGLE_APPLICATION_CREDENTIALS` going forward)
-
-## Key Files
-
-| Path | Purpose |
-|------|---------|
-| `lib/main.dart` | App entry, controller registration (2-phase), auth flow |
-| `lib/Controllers/transaction_controller.dart` | Core transaction CRUD + stream |
-| `lib/Repositories/transaction_repository.dart` | Firestore access layer |
-| `lib/Services/cache_service.dart` | SharedPreferences TTL cache |
-| `lib/Screens/wealth_builder.dart` | Dashboard with `streamPortfolio()`, asset grid, navigation |
-| `lib/Screens/asset_detail_screen.dart` | Generic asset detail screen + `_AddSheet` |
-| `lib/Config/asset_screen_configs.dart` | All 24 `AssetScreenConfig` definitions |
-| `lib/Models/wealth_data.dart` | `WealthPortfolio` model (25+ numeric fields) |
-| `lib/Services/wealth_service.dart` | Portfolio CRUD, streaming, insights, target calculation |
-| `lib/Services/referral_service.dart` | Referral code gen, apply, stats |
-| `lib/Screens/settings.dart` | `_InviteFriendsCard` (referral display + share) |
-| `lib/Screens/onboarding_screen.dart` | Onboarding with referral code input |
-| `lib/Screens/vehicle_detail_screen.dart` | Custom vehicles screen |
-| `lib/Screens/real_estate_detail_screen.dart` | Custom real estate screen |
-| `lib/Screens/insurance_policy_screen.dart` | Custom insurance screen |
-| `lib/Screens/credit_card_detail_screen.dart` | Custom credit card screen |
-| `lib/Services/sms_service.dart` | SMS parsing + auto-import |
-| `lib/Services/offline_queue.dart` | Offline transaction queue |
-| `lib/Services/budget_service.dart` | Budget aggregation + alerts |
-| `lib/Components/balance_card.dart` | Home screen balance display |
-| `lib/Components/methods.dart` | Navigation + global dialogs |
-| `lib/Screens/add_transaction.dart` | Send/receive money screen |
-| `lib/Screens/analytics.dart` | Spending analytics screen |
-| `lib/Screens/analysis.dart` | AI insights screen |
-| `lib/Settings/` | `general_settings.dart`, `security_settings.dart`, `data_support_settings.dart` |
-| `android/app/src/main/kotlin/.../MainActivity.kt` | UPI payment MethodChannel |
-| `firestore.rules` | Security rules with `isReferralAllowed()`, per-asset wildcard |
-| `firebase.json` | Firebase config (`firestore`, `flutter`, `functions`) |
+- **Google Sign-In**: Pinned to `^6.2.2` (`pubspec.yaml`). Do not upgrade to v7+ — `signIn()` replaced with stream-based API that has a race condition.
+- **UPI Payments**: Kotlin MethodChannel (`money_control/upi`), not `url_launcher`. Hard-coded package names: GPay, PhonePe, Paytm, BHIM, CRED, null (system chooser). `canLaunchUrl()` unreliable on Android 11+ — show all apps and handle `APP_NOT_FOUND` via try/catch.
+- **Built-in Kotlin**: As of Flutter 3.35, plugins that apply KGP directly (`file_picker`, `firebase_storage`, `home_widget`, `share_plus`, `shared_preferences_android`, `workmanager_android`, `package_info_plus`) trigger a migration warning. Track upstream updates; no action needed until Flutter drops KGP support.
+- **google-services.json**: Gitignored. CI injects from `secrets.GOOGLE_SERVICES_JSON`. For local builds, download from Firebase Console to `android/app/google-services.json`.

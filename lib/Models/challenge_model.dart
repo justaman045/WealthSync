@@ -37,19 +37,17 @@ class SavingsChallengeModel {
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       targetAmount: _parseNum(map['targetAmount']),
-      startDate: ((map['startDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
-      endDate: ((map['endDate'] as Timestamp?) ?? Timestamp.now()).toDate(),
+      startDate: ((map['startDate'] as dynamic)?.toDate()) ?? DateTime.now(),
+      endDate: ((map['endDate'] as dynamic)?.toDate()) ?? DateTime.now(),
       type: map['type'] ?? 'custom',
       presetId: map['presetId'] as String?,
       isCompleted: map['isCompleted'] ?? false,
       isActive: map['isActive'] ?? true,
       trackingType: map['trackingType'] ?? 'savings',
       trackedCategory: map['trackedCategory'] as String?,
-      createdAt: map['createdAt'] is Timestamp
-          ? map['createdAt'] as Timestamp
-          : map['createdAt'] is String
-              ? Timestamp.fromDate(DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now())
-              : null,
+      createdAt: map['createdAt'] is String
+          ? Timestamp.fromDate(DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now())
+          : (map['createdAt'] as dynamic),
     );
   }
 
