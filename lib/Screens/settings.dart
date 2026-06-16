@@ -235,23 +235,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 12.sp,
                     ),
                   ),
-                  if (kIsWeb)
+                  if (!kIsWeb)
                     Padding(
-                      padding: EdgeInsets.only(top: 8.h),
-                      child: GestureDetector(
+                      padding: EdgeInsets.only(top: 16.h),
+                      child: GlassContainer(
                         onTap: () async {
                           final url = Uri.parse(_webUrl);
-                          if (await canLaunchUrl(url)) {
+                          try {
                             await launchUrl(url, mode: LaunchMode.externalApplication);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Could not open browser")),
+                              );
+                            }
                           }
                         },
-                        child: Text(
-                          "Web Version",
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 12.sp,
-                            decoration: TextDecoration.underline,
-                          ),
+                        padding: EdgeInsets.all(16.w),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(12.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Icon(Icons.language, color: AppColors.primary, size: 28.sp),
+                            ),
+                            SizedBox(width: 16.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "WealthSync Web",
+                                    style: TextStyle(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    "Access from any device",
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    _webUrl.replaceAll("https://", ""),
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: AppColors.primary,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.open_in_new_rounded,
+                              color: AppColors.primary,
+                              size: 20.sp,
+                            ),
+                          ],
                         ),
                       ),
                     ),
