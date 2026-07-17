@@ -7,6 +7,16 @@ import 'package:money_control/Screens/homescreen.dart';
 
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/referral_service.dart';
+import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/profile_controller.dart';
+import 'package:money_control/Controllers/analytics_controller.dart';
+import 'package:money_control/Controllers/budget_controller.dart';
+import 'package:money_control/Controllers/goals_controller.dart';
+import 'package:money_control/Controllers/loan_controller.dart';
+import 'package:money_control/Controllers/challenges_controller.dart';
+import 'package:money_control/Controllers/lent_money_controller.dart';
+import 'package:money_control/Controllers/recurring_payment_controller.dart';
 
 class AuthController extends GetxController {
   static AuthController get to => Get.find();
@@ -102,8 +112,26 @@ class AuthController extends GetxController {
   }
 
   Future<void> logout() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      debugPrint('Firebase signOut error: $e');
+    }
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('Google signOut error: $e');
+    }
+    if (Get.isRegistered<TransactionController>()) Get.delete<TransactionController>(force: true);
+    if (Get.isRegistered<ProfileController>()) Get.delete<ProfileController>(force: true);
+    if (Get.isRegistered<AnalyticsController>()) Get.delete<AnalyticsController>(force: true);
+    if (Get.isRegistered<BudgetController>()) Get.delete<BudgetController>(force: true);
+    if (Get.isRegistered<GoalsController>()) Get.delete<GoalsController>(force: true);
+    if (Get.isRegistered<LoanController>()) Get.delete<LoanController>(force: true);
+    if (Get.isRegistered<ChallengesController>()) Get.delete<ChallengesController>(force: true);
+    if (Get.isRegistered<LentMoneyController>()) Get.delete<LentMoneyController>(force: true);
+    if (Get.isRegistered<RecurringPaymentController>()) Get.delete<RecurringPaymentController>(force: true);
+    SmsService.resetCache();
   }
 
   String _getFriendlyErrorMessage(FirebaseAuthException e) {

@@ -32,16 +32,31 @@ class TransactionRepository {
   // ——————————————————————————————————————
 
   Future<DocumentReference> addTransaction(TransactionModel transaction) async {
-    return await _userTransactionsRef.add(transaction.toMap());
+    try {
+      return await _userTransactionsRef.add(transaction.toMap());
+    } catch (e) {
+      debugPrint('TransactionRepository.addTransaction error: $e');
+      rethrow;
+    }
   }
 
   Future<void> updateTransaction(TransactionModel transaction) async {
-    if (transaction.id.isEmpty) throw Exception("Transaction ID is empty");
-    await _userTransactionsRef.doc(transaction.id).update(transaction.toMap());
+    try {
+      if (transaction.id.isEmpty) throw Exception("Transaction ID is empty");
+      await _userTransactionsRef.doc(transaction.id).update(transaction.toMap());
+    } catch (e) {
+      debugPrint('TransactionRepository.updateTransaction error: $e');
+      rethrow;
+    }
   }
 
   Future<void> deleteTransaction(String id) async {
-    await _userTransactionsRef.doc(id).delete();
+    try {
+      await _userTransactionsRef.doc(id).delete();
+    } catch (e) {
+      debugPrint('TransactionRepository.deleteTransaction error: $e');
+      rethrow;
+    }
   }
 
   DocumentReference transactionRef(String id) {

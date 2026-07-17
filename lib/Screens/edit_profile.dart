@@ -36,7 +36,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       final doc = await _firestore.collection('users').doc(user.email).get();
-      if (doc.exists) {
+      if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
 
 

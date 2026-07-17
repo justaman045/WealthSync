@@ -24,6 +24,7 @@ class UpdateChecker {
       }
 
       final data = jsonDecode(response.body);
+      if (data is! Map) return;
 
       final latestVersion = data["latest_version"] as String? ?? '';
       final updateMessage = data["update_message"] as String? ?? '';

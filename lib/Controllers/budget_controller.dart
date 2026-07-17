@@ -43,7 +43,7 @@ class BudgetController extends GetxController {
     final cached = LocalCacheService.get(_cacheKey);
     if (cached is List) {
       categoryBudgets.assignAll(cached.map((e) {
-        final map = e as Map<String, dynamic>;
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
         return BudgetCategoryItem(
           categoryName: map['categoryName'] as String? ?? '',
           budget: (map['budget'] as num?)?.toDouble() ?? 0,

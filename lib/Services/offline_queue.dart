@@ -97,7 +97,8 @@ class OfflineQueueService {
     List<dynamic> list;
     try {
       list = jsonDecode(raw) as List<dynamic>;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Offline queue JSON decode error: $e');
       await _writeData('[]');
       return [];
     }
@@ -109,7 +110,8 @@ class OfflineQueueService {
         if (m['date'] is String) {
           m['date'] = Timestamp.fromDate(DateTime.parse(m['date'] as String));
         }
-      } catch (_) {
+      } catch (e) {
+        debugPrint('Offline queue date parse error: $e');
         m['date'] = Timestamp.now();
       }
       try {
@@ -117,7 +119,8 @@ class OfflineQueueService {
           m['createdAt'] =
               Timestamp.fromDate(DateTime.parse(m['createdAt'] as String));
         }
-      } catch (_) {
+      } catch (e) {
+        debugPrint('Offline queue createdAt parse error: $e');
         m['createdAt'] = Timestamp.now();
       }
       return m;

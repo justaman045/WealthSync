@@ -139,6 +139,7 @@ class TransactionController extends GetxController {
           LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.txs30);
         }
       },
+      onDone: () => Future.delayed(const Duration(seconds: 3), bindTransactions),
     );
   }
 
@@ -228,14 +229,18 @@ class TransactionController extends GetxController {
   }
 
   Future<void> migrateTransactions(String oldCategory, String newCategory) async {
-    final batch = FirebaseFirestore.instance.batch();
-    for (var tx in transactions) {
-      if (tx.category == oldCategory) {
-        final ref = _repository.transactionRef(tx.id);
-        batch.update(ref, {'category': newCategory});
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (var tx in transactions) {
+        if (tx.category == oldCategory) {
+          final ref = _repository.transactionRef(tx.id);
+          batch.update(ref, {'category': newCategory});
+        }
       }
+      await batch.commit();
+    } catch (e) {
+      _handleFirestoreError(e, "Failed to migrate transactions");
     }
-    await batch.commit();
   }
 
   Future<bool> deleteCategory(CategoryModel category) async {
@@ -314,7 +319,7 @@ class TransactionController extends GetxController {
       category: category,
       date: date,
       status: "success",
-      createdAt: Timestamp.now(),
+      createdAt: DateTime.now(),
     );
 
     try {
@@ -428,20 +433,22 @@ class TransactionController extends GetxController {
       final email = user.email;
       if (email != null) LocalBackupService.backupUserTransactions(email);
       return true;
-    } on TimeoutException {
-      // Offline fallback
-      final deleteJson = {
-        "_operation": "delete",
-        "id": tx.id,
-        "user": user.email,
-      };
-      await OfflineQueueService.savePending(deleteJson);
-
-      // Optimistic update
-      transactions.removeWhere((t) => t.id == tx.id);
-
-      ErrorHandler.showSuccess("Delete queued (Offline)", title: "Offline");
-      return true;
+    }     on TimeoutException {
+      try {
+        final deleteJson = {
+          "_operation": "delete",
+          "id": tx.id,
+          "user": user.email,
+        };
+        await OfflineQueueService.savePending(deleteJson);
+        transactions.removeWhere((t) => t.id == tx.id);
+        ErrorHandler.showSuccess("Delete queued (Offline)", title: "Offline");
+        return true;
+      } catch (queueError) {
+        debugPrint("Offline queue error: $queueError");
+        ErrorHandler.showError("Failed to queue delete. Please retry.");
+        return false;
+      }
     } catch (e) {
       _handleFirestoreError(e, "Failed to delete transaction");
       return false;

@@ -89,13 +89,15 @@ class ChallengesController extends GetxController {
   }
 
   Future<bool> addChallenge(SavingsChallengeModel challenge) async {
+    if (isSaving.value) return false;
     isSaving.value = true;
     try {
       await _repo.addChallenge(challenge);
       LocalCacheService.invalidate(_cacheKey);
       _fetchFromFirestore();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Challenge error: $e');
       ErrorHandler.showError("Failed to save challenge.");
       return false;
     } finally {
@@ -111,7 +113,8 @@ class ChallengesController extends GetxController {
       LocalCacheService.invalidate(_cacheKey);
       _fetchFromFirestore();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Challenge error: $e');
       ErrorHandler.showError("Failed to delete challenge.");
       return false;
     } finally {

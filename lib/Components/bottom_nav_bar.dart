@@ -49,11 +49,12 @@ class BottomNavBar extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(40.r),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Padding(
+      child: RepaintBoundary(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(40.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+            child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -106,6 +107,7 @@ class BottomNavBar extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

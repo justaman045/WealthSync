@@ -18,8 +18,8 @@ class CategoryModel {
       id: id,
       name: map['name'] ?? '',
       icon: map['icon'],
-      iconCode: map['iconCode'],
-      color: map['color'],
+      iconCode: (map['iconCode'] as num?)?.toInt(),
+      color: (map['color'] as num?)?.toInt(),
     );
   }
 

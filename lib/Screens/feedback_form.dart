@@ -23,7 +23,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       final info = await PackageInfo.fromPlatform();
       if (!mounted) return;
       setState(() => _appVersion = info.version);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('PackageInfo load error: $e');
       if (!mounted) return;
       setState(() => _appVersion = "Unknown");
     }

@@ -186,12 +186,11 @@ class SmsService {
     ],
   };
 
-  SmsService() {
-    _currentRules = Map.from(defaultRules);
-  }
+  SmsService();
 
   /// Reset all static caches (call on signOut to prevent cross-user data leak).
   static void resetCache() {
+    _currentRules = Map.from(defaultRules);
     _correctionCache.clear();
     _correctionCacheLoaded = false;
     _historyCache.clear();
@@ -477,7 +476,8 @@ class SmsService {
       final decoded = jsonDecode(json);
       if (decoded is! Map<String, dynamic>) return {};
       return decoded.map((k, v) => MapEntry(k, List<String>.from(v is List ? v : <String>[])));
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Custom rules load error: $e');
       return {};
     }
   }
@@ -509,8 +509,8 @@ class SmsService {
     }
   }
 
-  Future<void> initRules() async {
-    if (_rulesLoaded) return;
+  Future<void> initRules({bool force = false}) async {
+    if (_rulesLoaded && !force) return;
     try {
       final fetched = await _rulesRepository.fetchRules();
       if (fetched.isNotEmpty) {

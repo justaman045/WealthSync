@@ -74,6 +74,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
 
     if (!mounted) return;
 
+    if (!Get.isRegistered<TransactionController>()) return;
     final ctrl = Get.find<TransactionController>();
     final success = await ctrl.deleteTransaction(widget.transaction);
 

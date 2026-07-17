@@ -178,9 +178,8 @@ class WealthService {
       for (final tx in transactions) {
         if (tx.senderId == user.uid) {
           balance -= tx.amount.abs();
-          balance -= tx.tax;
-        }
-        if (tx.recipientId == user.uid) {
+          if (tx.tax > 0 && tx.amount < 0) balance -= tx.tax;
+        } else if (tx.recipientId == user.uid) {
           balance += tx.amount.abs();
         }
       }

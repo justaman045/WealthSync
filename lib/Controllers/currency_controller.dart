@@ -14,9 +14,14 @@ class CurrencyController extends GetxController {
   }
 
   Future<void> _loadCurrency() async {
-    final prefs = await SharedPreferences.getInstance();
-    currencyCode.value = prefs.getString('currency_code') ?? "INR";
-    currencySymbol.value = prefs.getString('currency_symbol') ?? "₹";
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      currencyCode.value = prefs.getString('currency_code') ?? "INR";
+      currencySymbol.value = prefs.getString('currency_symbol') ?? "₹";
+    } catch (e) {
+      currencyCode.value = "INR";
+      currencySymbol.value = "₹";
+    }
   }
 
   Future<void> setCurrency(String code, String symbol) async {

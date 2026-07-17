@@ -13,7 +13,7 @@ class SavingsChallengeModel {
   final bool isActive;
   final String trackingType; // 'savings' | 'no_spend_category'
   final String? trackedCategory;
-  final Timestamp? createdAt;
+  final DateTime? createdAt;
 
   const SavingsChallengeModel({
     required this.id,
@@ -45,9 +45,7 @@ class SavingsChallengeModel {
       isActive: map['isActive'] ?? true,
       trackingType: map['trackingType'] ?? 'savings',
       trackedCategory: map['trackedCategory'] as String?,
-      createdAt: map['createdAt'] is String
-          ? Timestamp.fromDate(DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now())
-          : (map['createdAt'] as dynamic),
+      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -71,7 +69,7 @@ class SavingsChallengeModel {
       'isActive': isActive,
       'trackingType': trackingType,
       'trackedCategory': trackedCategory,
-      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 

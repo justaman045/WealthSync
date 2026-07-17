@@ -13,8 +13,9 @@ class TransactionModel {
   final DateTime date;
   final String? attachmentUrl; // Could be avatar url or similar
   final String? status;
-  final Timestamp? createdAt;
+  final DateTime? createdAt;
   final String? recurringPaymentId;
+  final String? smsDedupeKey;
 
   TransactionModel({
     required this.id,
@@ -31,6 +32,7 @@ class TransactionModel {
     this.status,
     this.createdAt,
     this.recurringPaymentId,
+    this.smsDedupeKey,
   });
 
   double get total => amount - tax;
@@ -42,7 +44,9 @@ class TransactionModel {
 
     final rawDate = map['date'];
 
-    if (rawDate is Timestamp) {
+    if (rawDate is DateTime) {
+      parsedDate = rawDate;
+    } else if (rawDate is Timestamp) {
       parsedDate = rawDate.toDate();
     } else if (rawDate is String) {
       parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
@@ -63,8 +67,9 @@ class TransactionModel {
       date: parsedDate,
       attachmentUrl: map['attachmentUrl'],
       status: map['status'],
-      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
       recurringPaymentId: map['recurringPaymentId'],
+      smsDedupeKey: map['smsDedupeKey'],
     );
   }
 
@@ -88,8 +93,9 @@ class TransactionModel {
       'date': Timestamp.fromDate(date),
       'attachmentUrl': attachmentUrl,
       'status': status ?? 'success',
-      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'recurringPaymentId': recurringPaymentId,
+      'smsDedupeKey': smsDedupeKey,
     };
   }
 }

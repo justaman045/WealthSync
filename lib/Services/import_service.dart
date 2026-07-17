@@ -78,9 +78,10 @@ class ImportService {
         if (rawAmount is num) {
           amount = rawAmount.toDouble();
         } else if (rawAmount is String) {
-          amount =
-              double.tryParse(rawAmount.replaceAll(RegExp(r'[^0-9.-]'), '')) ??
-              0.0;
+          final isAccounting = rawAmount.contains('(') && rawAmount.contains(')');
+          final cleaned = rawAmount.replaceAll(RegExp(r'[^0-9.-]'), '');
+          final parsed = double.tryParse(cleaned);
+          amount = parsed != null ? (isAccounting ? -parsed.abs() : parsed) : 0.0;
         }
 
         // 3. Parse Note/Description
@@ -123,7 +124,7 @@ class ImportService {
           category: category,
           date: date,
           status: 'success',
-          createdAt: Timestamp.now(),
+          createdAt: DateTime.now(),
         );
 
         transactions.add(tx);
@@ -141,12 +142,15 @@ class ImportService {
       DateFormat("MM/dd/yyyy"),
       DateFormat("yyyy-MM-dd"),
       DateFormat("dd-MM-yyyy"),
+      DateFormat("dd MMM yyyy"),
+      DateFormat("MMM dd, yyyy"),
+      DateFormat("dd/MM/yy"),
     ];
 
     for (var format in formats) {
       try {
         return format.parse(dateStr);
-      } catch (_) {}
+      } catch (e) { debugPrint('Date format parse attempt failed: $e'); }
     }
     return null;
   }

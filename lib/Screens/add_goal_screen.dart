@@ -33,7 +33,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() => _targetDate = picked);
+    if (picked != null && mounted) setState(() => _targetDate = picked);
   }
 
   Future<void> _submit() async {

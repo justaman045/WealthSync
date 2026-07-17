@@ -78,7 +78,9 @@ CI (`.github/workflows/flutter_build.yml`): analyze → test → build. Flutter 
 | `lib/Components/` | Reusable widgets |
 | `lib/Config/` | `AssetScreenConfig` definitions |
 | `lib/Utils/` | `IconHelper`, `wealth_math.dart` |
-| `lib/data/` | Seed data |
+| `lib/Platform/` | Platform abstraction stubs for 9 services (biometric, geocoding, IAP, notification, SMS, etc.) |
+| `lib/l10n/` | ARB localization files (`app_en.arb` template) |
+| `lib/data/` | Challenge preset seed data |
 | `test/` | 3 unit/widget test files |
 | `integration_test/` | 7 integration tests (require Firebase emulator) |
 
@@ -103,11 +105,11 @@ ThemeController is inline in `main.dart` (registered before any screen).
 
 One Firestore subcollection per asset type under `users/{userEmail}/`, plus `wealth/portfolio` summary doc.
 
-**24 subcollections** (listed in `firestore.rules` wildcard): `fd_accounts, ppf_accounts, post_office_schemes, bonds, chit_funds, stock_holdings, sip_holdings, etf_holdings, foreign_stocks, startup_investments, pf_accounts, vpf_accounts, nps_accounts, gold_holdings, sgb_holdings, jewelry_items, crypto_holdings, reit_holdings, p2p_loans, agri_land, properties, vehicles, insurance_policies, business_assets, bnpl_entries, credit_cards`
+**26 subcollections** (listed in `firestore.rules` wildcard): `fd_accounts, ppf_accounts, post_office_schemes, bonds, chit_funds, stock_holdings, sip_holdings, etf_holdings, foreign_stocks, startup_investments, pf_accounts, vpf_accounts, nps_accounts, gold_holdings, sgb_holdings, jewelry_items, crypto_holdings, reit_holdings, p2p_loans, agri_land, properties, vehicles, insurance_policies, business_assets, bnpl_entries, credit_cards`
 
-**WealthPortfolio** (`lib/Models/wealth_data.dart`): 25 asset fields + `custom` map, `targets`, `hiddenKeys`. `totalAssets` sums all 25 + custom entries. `totalLiabilities = loans + creditCard + bnpl`.
+**WealthPortfolio** (`lib/Models/wealth_data.dart`): 24 asset fields + `custom` map, `targets`, `hiddenKeys`. `totalAssets` sums all 24 + custom entries. `totalLiabilities = loans + creditCard + bnpl`.
 
-**Dashboard** must use `streamPortfolio()` (not `getPortfolio()`) — one-shot fetch leaves amounts stale after navigating back. Confirmed in `wealth_builder.dart:56`.
+**Dashboard** must use `streamPortfolio()` (not `getPortfolio()`) — one-shot fetch leaves amounts stale after navigating back. Confirmed in `wealth_builder.dart:56` (primary subscription). Note: `_loadData()` at line 82 also calls `getPortfolio()` for geo-enrichment, but the primary real-time data comes from the stream.
 
 **Generic screen**: `AssetDetailScreen(config:)` for all 24 types. Custom screens: `RealEstateDetailScreen`, `VehicleDetailScreen`, `InsurancePolicyScreen`, `CreditCardDetailScreen`.
 
@@ -146,7 +148,7 @@ Priority: refund/cashback→credit, debited/deducted/withdrawn/spent/sent→debi
 13. **Avoid ShaderMask on animated text** — renders child offscreen each frame. Use direct `TextStyle(color:)` instead (`balance_card.dart`).
 14. **setState in TweenAnimationBuilder.onEnd** — triggers full subtree rebuild on every animation completion. Use `ValueNotifier` + `.value = ` instead.
 15. **Cache O(n) getters** — `totalBalance` iterates all transactions. Use `Rx` + `ever` worker so the loop only runs when data actually changes (`transaction_controller.dart`).
-16. **Cache Theme.of** — 14+ calls per build in `analytics.dart` → cache `_cachedTheme` and `_cachedIsDark` in `build()`, restore `get isDark => _cachedIsDark`.
+16. **Cache Theme.of** — 13 calls per build in `analytics.dart` → cache `_cachedTheme` and `_cachedIsDark` in `build()`, restore `get isDark => _cachedIsDark`.
 17. **Unchecked `jsonDecode` casts** — always check `is Map` / `is List` before `as`. Prevents crashes on corrupted cache (`category_service.dart`, `offline_queue.dart`, `sms_import_screen.dart`).
 
 ## Platform-Specific

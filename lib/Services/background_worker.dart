@@ -61,6 +61,9 @@ class BackgroundWorker {
     String? userEmail,
   }) async {
     final plugin = FlutterLocalNotificationsPlugin();
+    await plugin.initialize(const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+    ));
 
     final AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
@@ -303,6 +306,7 @@ Future<void> _checkUpdate(SharedPreferences prefs) async {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      if (data is! Map) return;
       final remoteVersion = data["latest_version"] as String? ?? "0.0.0";
 
       // 2. Fetch Local Version
@@ -403,13 +407,15 @@ Future<int> _processSmsMessages(
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return 0;
 
-    // Load correction cache + history cache before parsing
+    // Load rules, correction cache + history cache before parsing
+    await SmsService().initRules(force: true);
     await SmsService.loadCorrectionCache();
     await SmsService.buildHistoryCache();
 
     int imported = 0;
     const uuid = Uuid();
     final batch = db.batch();
+    final seenKeys = <String>{};
 
     for (final msg in newBankMessages) {
       final parsed = SmsService.parseMessage(
@@ -422,6 +428,9 @@ Future<int> _processSmsMessages(
       // Deduplicate: sender + epoch-minute + amount to avoid double-saves on retry
       final dedupeKey =
           '${parsed.sender}_${(parsed.date.millisecondsSinceEpoch ~/ 60000)}_${parsed.amount}';
+
+      // Intra-batch dedup: skip if same key already queued in this batch
+      if (!seenKeys.add(dedupeKey)) continue;
 
       final existing = await db
           .collection('users')
@@ -480,8 +489,7 @@ Future<int> _processSmsMessages(
     return imported;
   } catch (e) {
     developer.log('SMS auto-import error: $e');
-    // Still update the timestamp to avoid re-scanning the same messages indefinitely.
-    await prefs.setInt('last_sms_scan_ms', DateTime.now().millisecondsSinceEpoch);
+    // Do NOT update last_sms_scan_ms on failure — let the next run retry.
     return 0;
   }
 }

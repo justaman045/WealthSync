@@ -97,7 +97,7 @@ class ThemeController extends GetxController {
             if (snapshot.exists) {
               final data = snapshot.data();
               if (data != null && data.containsKey("darkMode")) {
-                final isDark = data["darkMode"] as bool;
+                final isDark = data["darkMode"] == true;
                 final newMode = isDark ? ThemeMode.dark : ThemeMode.light;
                 if (currentTheme.value != newMode) {
                   currentTheme.value = newMode;

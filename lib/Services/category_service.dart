@@ -31,7 +31,7 @@ class CategoryService {
     final existing = map[key] as Map<String, dynamic>?;
     int newCount = 1;
     if (existing != null && existing['category'] == category) {
-      newCount = (existing['count'] as int) + 1;
+      newCount = (existing['count'] as int? ?? 0) + 1;
       map[key] = {'category': category, 'count': newCount};
     } else {
       map[key] = {'category': category, 'count': 1};
@@ -89,15 +89,15 @@ class CategoryService {
     map.forEach((merchant, value) {
       if (value is! Map) return;
       final entry = value as Map<String, dynamic>;
-      if ((entry['count'] as int) >= 2) {
+      if ((entry['count'] as int? ?? 0) >= 2) {
         result.add({
           'merchant': merchant,
-          'category': entry['category'] as String,
-          'count': entry['count'] as int,
+          'category': (entry['category'] as String? ?? ''),
+          'count': (entry['count'] as int? ?? 0),
         });
       }
     });
-    result.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+    result.sort((a, b) => (b['count'] as int? ?? 0).compareTo(a['count'] as int? ?? 0));
     return result;
   }
 

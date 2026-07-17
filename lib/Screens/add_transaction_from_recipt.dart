@@ -185,7 +185,8 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         int month = int.parse(parts[1]);
         int year = int.parse(parts[2].length == 2 ? '20${parts[2]}' : parts[2]);
         return DateTime(year, month, day);
-      } catch (_) {
+      } catch (e) {
+        debugPrint('Receipt date parse error: $e');
         return null;
       }
     }

@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ReferralService {
@@ -118,7 +119,8 @@ class ReferralService {
         'code': data['referralCode'] as String? ?? '',
         'count': (data['referralCount'] as int?) ?? 0,
       };
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Referral code fetch error: $e');
       return {'code': '', 'count': 0};
     }
   }

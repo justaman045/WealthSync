@@ -253,7 +253,8 @@ class WealthAgeRecommendations {
   static WealthCardRecommendation? getCardRecommendation(String key) {
     try {
       return allCards.firstWhere((card) => card.key == key);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Card recommendation lookup error: $e');
       return null;
     }
   }

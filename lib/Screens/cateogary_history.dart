@@ -69,10 +69,12 @@ class _CategoryTransactionsScreenState
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+          child: RepaintBoundary(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: Container(
+                color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+              ),
             ),
           ),
         ),
@@ -125,7 +127,7 @@ class _CategoryTransactionsScreenState
               final ts = data['date'] as Timestamp?;
               if (ts == null) return false;
               final d = ts.toDate();
-              return d.isAtSameMomentAs(startDate) || d.isAfter(startDate) &&
+              return (d.isAtSameMomentAs(startDate) || d.isAfter(startDate)) &&
                   (d.isAtSameMomentAs(endDate) || d.isBefore(endDate));
             }).toList();
 

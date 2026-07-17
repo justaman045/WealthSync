@@ -615,7 +615,8 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
         } else {
           downloadUrl = await _githubApkUrl();
         }
-      } catch (_) {
+      } catch (e) {
+        debugPrint('UPI installer check error: $e');
         downloadUrl = await _githubApkUrl();
       }
     }

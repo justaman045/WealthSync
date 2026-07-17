@@ -27,7 +27,7 @@ class LoanModel {
   final DateTime startDate;
   final bool isActive;
   final String? linkedRecurringPaymentId;
-  final Timestamp? createdAt;
+  final DateTime? createdAt;
 
   const LoanModel({
     required this.id,
@@ -121,7 +121,7 @@ class LoanModel {
           : (map['startDate'] as dynamic)?.toDate()) ?? DateTime.now(),
       isActive: map['isActive'] ?? true,
       linkedRecurringPaymentId: map['linkedRecurringPaymentId'] as String?,
-      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -150,7 +150,7 @@ class LoanModel {
       'startDate': Timestamp.fromDate(startDate),
       'isActive': isActive,
       'linkedRecurringPaymentId': linkedRecurringPaymentId,
-      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 

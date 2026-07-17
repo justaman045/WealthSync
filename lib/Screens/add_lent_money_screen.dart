@@ -52,6 +52,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
       lastDate: DateTime(2101),
     );
     if (picked != null && picked != _selectedDate) {
+      if (!mounted) return;
       setState(() {
         _selectedDate = picked;
       });

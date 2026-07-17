@@ -52,6 +52,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
 
     final suggestions = await CategoryService.getPendingSuggestions();
 
+    if (!mounted) return;
     setState(() {
       _rules = merged;
       _userRules = userRules;
@@ -65,8 +66,8 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
   }
 
   Future<void> _acceptSuggestion(Map<String, dynamic> suggestion) async {
-    final merchant = suggestion['merchant'] as String;
-    final category = suggestion['category'] as String;
+    final merchant = (suggestion['merchant'] as String?) ?? '';
+    final category = (suggestion['category'] as String?) ?? '';
     setState(() {
       _userRules[category] = [...(_userRules[category] ?? []), merchant];
       _rules[category] = [...(_rules[category] ?? []), merchant];
@@ -244,9 +245,9 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                           ),
                           SizedBox(height: 8.h),
                           ..._suggestions.map((s) {
-                            final merchant = s['merchant'] as String;
-                            final category = s['category'] as String;
-                            final count = s['count'] as int;
+                            final merchant = (s['merchant'] as String?) ?? '';
+                            final category = (s['category'] as String?) ?? '';
+                            final count = (s['count'] as int? ?? 0);
                             return Container(
                               margin: EdgeInsets.only(bottom: 8.h),
                               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),

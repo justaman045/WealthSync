@@ -82,6 +82,20 @@ class _AdminMenuState extends State<AdminMenu> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (!Get.isRegistered<SubscriptionController>()) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.lock_outline, size: 64, color: Colors.redAccent),
+              SizedBox(height: 16),
+              Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+      );
+    }
     if (!Get.find<SubscriptionController>().isAdmin.value) {
       return Scaffold(
         body: Center(

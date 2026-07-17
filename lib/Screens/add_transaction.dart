@@ -676,7 +676,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           firstDate: DateTime(2015),
           lastDate: DateTime(2100),
         );
-        if (picked != null) setState(() => selectedDate = picked);
+        if (picked != null && mounted) setState(() => selectedDate = picked);
       },
       child: GlassContainer(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),

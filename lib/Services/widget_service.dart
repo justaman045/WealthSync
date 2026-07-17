@@ -11,8 +11,8 @@ class WidgetService {
       final formatted = '$currencySymbol${balance.toStringAsFixed(2)}';
       await HomeWidget.saveWidgetData<String>('mc_balance', formatted);
       await HomeWidget.updateWidget(androidName: _androidWidgetName);
-    } catch (_) {
-      // Widget update is best-effort — never crash the app
+    } catch (e) {
+      debugPrint('Widget update error: $e');
     }
   }
 

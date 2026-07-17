@@ -16,9 +16,11 @@ double milestone(int age, Map<int, double> milestones) {
 
 /// Compact number formatting: 1.2Cr, 5L, 10K, or raw.
 String compact(double v) {
-  if (v >= 10000000) return "${(v / 10000000).toStringAsFixed(1)}Cr";
-  if (v >= 100000) return "${(v / 100000).toStringAsFixed(1)}L";
-  if (v >= 1000) return "${(v / 1000).toStringAsFixed(0)}K";
+  final sign = v < 0 ? '-' : '';
+  final absVal = v.abs();
+  if (absVal >= 10000000) return "$sign${(absVal / 10000000).toStringAsFixed(1)}Cr";
+  if (absVal >= 100000) return "$sign${(absVal / 100000).toStringAsFixed(1)}L";
+  if (absVal >= 1000) return "$sign${(absVal / 1000).toStringAsFixed(0)}K";
   return v.toStringAsFixed(0);
 }
 

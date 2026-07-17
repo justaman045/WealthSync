@@ -130,7 +130,8 @@ class LoanController extends GetxController {
         );
       }
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Loan error: $e');
       ErrorHandler.showError("Failed to save loan. Please try again.");
       return false;
     } finally {
@@ -141,14 +142,15 @@ class LoanController extends GetxController {
   Future<bool> deleteLoan(String id) async {
     try {
       final loan = loans.firstWhereOrNull((l) => l.id == id);
-      await _repo.deleteLoan(id);
-      LocalCacheService.invalidate(_cacheKey);
-      _fetchFromFirestore();
       if (loan?.linkedRecurringPaymentId != null) {
         await _recurringService.deletePayment(loan!.linkedRecurringPaymentId!);
       }
+      await _repo.deleteLoan(id);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Loan error: $e');
       ErrorHandler.showError("Failed to remove loan.");
       return false;
     }

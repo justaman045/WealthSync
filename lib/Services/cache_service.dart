@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,13 +40,15 @@ class LocalCacheService {
         return null;
       }
       final map = decoded;
-      final expiresAt = map['expiresAt'] as int;
+      final rawExpiry = map['expiresAt'];
+      final expiresAt = rawExpiry is int ? rawExpiry : (rawExpiry is double ? rawExpiry.toInt() : 0);
       if (DateTime.now().millisecondsSinceEpoch >= expiresAt) {
         _prefs.remove(_k(key));
         return null;
       }
       return map['data'];
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Cache read error: $e');
       _prefs.remove(_k(key));
       return null;
     }

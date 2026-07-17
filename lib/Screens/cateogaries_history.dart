@@ -71,10 +71,12 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+          child: RepaintBoundary(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+              child: Container(
+                color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+              ),
             ),
           ),
         ),

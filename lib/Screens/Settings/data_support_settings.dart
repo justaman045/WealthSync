@@ -15,6 +15,7 @@ import 'package:money_control/Screens/terms_and_policy.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Screens/import_screen.dart';
+import 'package:money_control/Screens/transaction_audit_screen.dart';
 
 class DataSupportSettingsScreen extends StatelessWidget {
   const DataSupportSettingsScreen({super.key});
@@ -234,7 +235,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
           tx.status ?? '',
           tx.note ?? '',
           tx.attachmentUrl ?? '',
-          tx.createdAt?.toDate().toIso8601String() ?? '',
+          tx.createdAt?.toIso8601String() ?? '',
         ]),
       ];
 
@@ -334,6 +335,11 @@ class DataSupportSettingsScreen extends StatelessWidget {
                   icon: Icons.cloud_download,
                   title: "Export All Data (GDPR)",
                   onTap: () => _handleGdprExport(context),
+                ),
+                _SettingsTile(
+                  icon: Icons.fact_check,
+                  title: "Transaction Audit",
+                  onTap: () => Get.to(() => const TransactionAuditScreen()),
                 ),
 
                 _Divider(),

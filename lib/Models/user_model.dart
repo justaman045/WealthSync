@@ -12,7 +12,7 @@ class UserModel {
   final double? currentBalance;
   final int? age; // Added age field
   final Timestamp? dob; // Added dob field
-  final Timestamp? createdAt;
+  final DateTime? createdAt;
   final Timestamp? updatedAt;
 
   UserModel({
@@ -41,7 +41,7 @@ class UserModel {
       phone: map['phone'],
       address: map['address'],
       role: map['role'],
-      profileImage: map['profileImage'],
+      profileImage: map['photoURL'] ?? map['photoUrl'] ?? map['profileImage'],
       currentBalance: map['currentBalance'] is num
           ? (map['currentBalance'] as num).toDouble()
           : null,
@@ -49,7 +49,7 @@ class UserModel {
           ? _calculateAgeFromDob(map['dob'])
           : (map['age'] is num ? (map['age'] as num).toInt() : null),
       dob: map['dob'],
-      createdAt: map['createdAt'],
+      createdAt: (map['createdAt'] as dynamic)?.toDate(),
       updatedAt: map['updatedAt'],
     );
   }
@@ -65,11 +65,11 @@ class UserModel {
     if (phone != null) map['phone'] = phone;
     if (address != null) map['address'] = address;
     if (role != null) map['role'] = role;
-    if (profileImage != null) map['profileImage'] = profileImage;
+    if (profileImage != null) map['photoURL'] = profileImage;
     if (currentBalance != null) map['currentBalance'] = currentBalance;
     if (age != null) map['age'] = age;
     if (dob != null) map['dob'] = dob;
-    if (createdAt != null) map['createdAt'] = createdAt;
+    if (createdAt != null) map['createdAt'] = Timestamp.fromDate(createdAt!);
     return map;
   }
 

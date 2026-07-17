@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Repositories/goals_repository.dart';
@@ -83,7 +84,8 @@ class GoalsController extends GetxController {
       LocalCacheService.invalidate(_cacheKey);
       _fetchFromFirestore();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Goal error: $e');
       ErrorHandler.showError("Failed to save goal. Please try again.");
       return false;
     } finally {
@@ -108,7 +110,8 @@ class GoalsController extends GetxController {
         ErrorHandler.showSuccess("Goal achieved! 🎉");
       }
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Goal error: $e');
       ErrorHandler.showError("Failed to update progress.");
       return false;
     } finally {
@@ -124,7 +127,8 @@ class GoalsController extends GetxController {
       LocalCacheService.invalidate(_cacheKey);
       _fetchFromFirestore();
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Goal error: $e');
       ErrorHandler.showError("Failed to delete goal.");
       return false;
     } finally {

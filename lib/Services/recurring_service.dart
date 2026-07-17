@@ -238,7 +238,8 @@ class RecurringService {
     for (var doc in snapshot.docs) {
       final payment = RecurringPayment.fromMap(doc.id, doc.data());
 
-      // Deduplication: skip if a transaction for this payment was already created today
+      // Idempotency: skip if a transaction for this payment was already
+      // created for the current billing cycle.
       final existingSnap = await db
           .collection('users')
           .doc(userEmail)
@@ -249,7 +250,8 @@ class RecurringService {
           .get();
       if (existingSnap.docs.isNotEmpty) continue;
 
-      final nextDate = _advanceDateStatic(payment);
+      final nextDate = _advanceDateStatic(payment, today);
+      final cycleKey = '${today.year}-${today.month}';
 
       // Atomically create transaction + advance due date in one batch.
       final batch = db.batch();
@@ -273,6 +275,7 @@ class RecurringService {
         'type': 'debit',
         'note': 'Auto-payment for ${payment.title}',
         'recurringPaymentId': payment.id,
+        'processedCycleKey': cycleKey,
       });
 
       batch.update(doc.reference, {
@@ -284,10 +287,17 @@ class RecurringService {
   }
 
   DateTime _advanceDate(RecurringPayment payment) =>
-      _advanceDateStatic(payment);
+      _advanceDateStatic(payment, DateTime.now());
 
-  static DateTime _advanceDateStatic(RecurringPayment payment) {
-    final d = payment.nextDueDate;
+  /// Advance [payment.nextDueDate] by one cycle. When [referenceDate] is
+  /// provided the next due date is computed from [referenceDate] instead of
+  /// the (potentially stale) stored value — this prevents the catch-up bug
+  /// where overdue payments create one transaction per day.
+  static DateTime _advanceDateStatic(
+    RecurringPayment payment, [
+    DateTime? referenceDate,
+  ]) {
+    final d = referenceDate ?? payment.nextDueDate;
     if (payment.frequency == RecurringFrequency.monthly) {
       return _clampedNextMonth(d);
     } else if (payment.frequency == RecurringFrequency.weekly) {

@@ -8,7 +8,7 @@ class LentMoneyModel {
   final DateTime dateLent;
   final bool isSettled;
   final String type; // 'lent' or 'borrowed'
-  final Timestamp? createdAt;
+  final DateTime? createdAt;
 
   LentMoneyModel({
     required this.id,
@@ -24,7 +24,9 @@ class LentMoneyModel {
   factory LentMoneyModel.fromMap(String id, Map<String, dynamic> map) {
     DateTime parsedDate;
     final rawDate = map['dateLent'];
-    if (rawDate is Timestamp) {
+    if (rawDate is DateTime) {
+      parsedDate = rawDate;
+    } else if (rawDate is Timestamp) {
       parsedDate = rawDate.toDate();
     } else if (rawDate is String) {
       parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
@@ -40,7 +42,7 @@ class LentMoneyModel {
       dateLent: parsedDate,
       isSettled: map['isSettled'] ?? false,
       type: map['type']?.toString() ?? 'lent',
-      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -59,7 +61,7 @@ class LentMoneyModel {
       'dateLent': Timestamp.fromDate(dateLent),
       'isSettled': isSettled,
       'type': type,
-      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 }

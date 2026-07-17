@@ -9,7 +9,7 @@ class GoalModel {
   final DateTime? targetDate;
   final bool isCompleted;
   final String emoji;
-  final Timestamp? createdAt;
+  final DateTime? createdAt;
 
   const GoalModel({
     required this.id,
@@ -51,8 +51,12 @@ class GoalModel {
   factory GoalModel.fromMap(String id, Map<String, dynamic> map) {
     DateTime? parsedTargetDate;
     final rawTarget = map['targetDate'];
-    if (rawTarget is Timestamp) {
+    if (rawTarget is DateTime) {
+      parsedTargetDate = rawTarget;
+    } else if (rawTarget is Timestamp) {
       parsedTargetDate = rawTarget.toDate();
+    } else if (rawTarget is String) {
+      parsedTargetDate = DateTime.tryParse(rawTarget);
     }
 
     return GoalModel(
@@ -64,7 +68,7 @@ class GoalModel {
       targetDate: parsedTargetDate,
       isCompleted: map['isCompleted'] ?? false,
       emoji: map['emoji'] ?? '🎯',
-      createdAt: (map['createdAt'] as dynamic) ?? Timestamp.now(),
+      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -84,7 +88,7 @@ class GoalModel {
       'targetDate': targetDate != null ? Timestamp.fromDate(targetDate!) : null,
       'isCompleted': isCompleted,
       'emoji': emoji,
-      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
 }

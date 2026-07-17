@@ -64,7 +64,7 @@ class ExportService {
           tx.status ?? '',
           tx.note ?? '',
           tx.attachmentUrl ?? '',
-          tx.createdAt?.toDate().toIso8601String() ?? '',
+          tx.createdAt?.toIso8601String() ?? '',
         ],
       ),
     ];

@@ -83,15 +83,6 @@ class ProfileController extends GetxController {
 
   Future<void> pickAndUploadImage() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 70,
-        maxWidth: 512,
-        maxHeight: 512,
-      );
-
-      if (image == null) return;
-
       final user = _auth.currentUser;
       if (user == null) return;
 
@@ -113,6 +104,16 @@ class ProfileController extends GetxController {
         }
         imageBytes = await picked.readAsBytes();
       } else {
+        final XFile? image = await _picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 70,
+          maxWidth: 512,
+          maxHeight: 512,
+        );
+        if (image == null) {
+          isLoading.value = false;
+          return;
+        }
         final File file = File(image.path);
         imageBytes = await file.readAsBytes();
       }

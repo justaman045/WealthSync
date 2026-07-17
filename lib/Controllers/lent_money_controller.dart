@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Repositories/lent_money_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'dart:async';
@@ -40,6 +39,7 @@ class LentMoneyController extends GetxController {
   Future<void> fetchEntries() => _fetchFromFirestore();
 
   Future<void> _fetchFromFirestore() async {
+    isLoading.value = true;
     try {
       final list = await _repository.getEntries();
       entries.value = list;
@@ -116,7 +116,7 @@ class LentMoneyController extends GetxController {
       dateLent: dateLent,
       isSettled: false,
       type: type,
-      createdAt: Timestamp.now(),
+      createdAt: DateTime.now(),
     );
 
     try {
@@ -140,7 +140,7 @@ class LentMoneyController extends GetxController {
     required DateTime dateLent,
     required String type,
     required bool isSettled,
-    required Timestamp? createdAt,
+    required DateTime? createdAt,
   }) async {
     if (isSaving.value) return false;
     isSaving.value = true;

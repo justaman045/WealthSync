@@ -32,10 +32,13 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
   bool _loading = false;
   bool _scanned = false;
   Set<String> _importedKeys = {};
+  late final SubscriptionController _subController;
 
   @override
   void initState() {
     super.initState();
+    if (!Get.isRegistered<SubscriptionController>()) Get.put(SubscriptionController());
+    _subController = Get.find<SubscriptionController>();
     _loadImported();
     _scanSms();
   }
@@ -120,7 +123,8 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
               .where('smsDedupeKey', whereIn: chunk)
               .get();
           for (final doc in snap.docs) {
-            firestoreKeys.add(doc['smsDedupeKey'] as String);
+            final dedupeKey = doc.data()['smsDedupeKey'];
+            if (dedupeKey is String) firestoreKeys.add(dedupeKey);
           }
         }
       }
@@ -142,16 +146,6 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                 .where((i) => !importedIdx.contains(i)),
           );
         });
-      }
-      if (results.isNotEmpty || _scanned) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('sms_auto_import_enabled', true);
-        prefs.getInt('last_sms_scan_ms') == null
-            ? await prefs.setInt(
-                'last_sms_scan_ms',
-                DateTime.now().millisecondsSinceEpoch,
-              )
-            : null;
       }
     } finally {
       if (mounted) {
@@ -237,11 +231,11 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
           note: "Imported from SMS",
           category: smsTx.category,
           status: 'success',
-          createdAt: Timestamp.now(),
+          createdAt: DateTime.now(),
+          smsDedupeKey: _smsDedupeKey(smsTx),
         );
 
         batch.set(docRef, tx.toMap());
-        batch.update(docRef, {'smsDedupeKey': _smsDedupeKey(smsTx)});
         count++;
       }
 
@@ -262,7 +256,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final SubscriptionController subscriptionController = Get.find();
+    final subscriptionController = _subController;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(

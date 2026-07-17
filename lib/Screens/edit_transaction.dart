@@ -321,12 +321,12 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
 
       if (mounted) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        Get.snackbar(
-          "Offline",
-          "Saved locally",
-          snackPosition: SnackPosition.BOTTOM,
-          colorText: isDark ? Colors.white : Colors.black,
-          icon: Icon(Icons.wifi_off, color: isDark ? Colors.white : Colors.black),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Saved locally"),
+            backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         Navigator.pop(context, true);
       }
@@ -704,23 +704,31 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           firstDate: DateTime(2015),
           lastDate: DateTime(2100),
           builder: (context, child) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return Theme(
               data: Theme.of(context).copyWith(
-                colorScheme: const ColorScheme.dark(
-                  primary: Color(0xFF6C63FF),
-                  onPrimary: Colors.white,
-                  surface: Color(0xFF1E1E2C),
-                  onSurface: Colors.white,
-                ),
+                colorScheme: isDark
+                    ? const ColorScheme.dark(
+                        primary: Color(0xFF6C63FF),
+                        onPrimary: Colors.white,
+                        surface: Color(0xFF1E1E2C),
+                        onSurface: Colors.white,
+                      )
+                    : ColorScheme.light(
+                        primary: const Color(0xFF6C63FF),
+                        onPrimary: Colors.white,
+                        surface: Colors.white,
+                        onSurface: Colors.black,
+                      ),
                 dialogTheme: DialogThemeData(
-                  backgroundColor: const Color(0xFF1E1E2C),
+                  backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
                 ),
               ),
               child: child!,
             );
           },
         );
-        if (picked != null) setState(() => _selectedDate = picked);
+        if (picked != null && mounted) setState(() => _selectedDate = picked);
       },
       child: _glassBox(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
