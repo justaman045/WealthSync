@@ -93,13 +93,13 @@ class _BalanceCardState extends State<BalanceCard> {
             children: [
               // Static decorative blobs — isolated in their own repaint layer
               // so balance value changes do not trigger repaints here.
-              const Positioned(
-                right: -60,
-                top: -60,
+              Positioned(
+                right: -60.w,
+                top: -60.w,
                 child: RepaintBoundary(
                   child: SizedBox(
-                    width: 250,
-                    height: 250,
+                    width: 250.w,
+                    height: 250.w,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -114,13 +114,13 @@ class _BalanceCardState extends State<BalanceCard> {
                   ),
                 ),
               ),
-              const Positioned(
-                left: -60,
-                bottom: -60,
+              Positioned(
+                left: -60.w,
+                bottom: -60.w,
                 child: RepaintBoundary(
                   child: SizedBox(
-                    width: 200,
-                    height: 200,
+                    width: 200.w,
+                    height: 200.w,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -271,8 +271,8 @@ class _BalanceCardState extends State<BalanceCard> {
                                           color: Colors.black.withValues(
                                             alpha: 0.1,
                                           ),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
+                                          blurRadius: 10.w,
+                                          offset: Offset(0.w, 4.w),
                                         ),
                                       ],
                                     ),
@@ -300,8 +300,8 @@ class _BalanceCardState extends State<BalanceCard> {
                                               color: Colors.black.withValues(
                                                 alpha: 0.1,
                                               ),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
+                                              blurRadius: 10.w,
+                                              offset: Offset(0.w, 4.w),
                                             ),
                                           ],
                                         ),

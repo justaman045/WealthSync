@@ -10,6 +10,8 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Screens/subscription_details.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/adaptive_panel.dart';
 
 class RecurringPaymentsScreen extends StatefulWidget {
   const RecurringPaymentsScreen({super.key});
@@ -22,6 +24,7 @@ class RecurringPaymentsScreen extends StatefulWidget {
 class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
   final RecurringService _service = RecurringService();
   late final TransactionController _txController;
+  RecurringPayment? _selectedPayment;
 
   @override
   void initState() {
@@ -75,7 +78,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             icon: Icon(
               Icons.arrow_back_ios_new_rounded,
               color: textColor,
-              size: 20,
+              size: 20.sp,
             ),
             onPressed: () => Navigator.of(context).pop(),
           ),
@@ -89,8 +92,8 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
+                blurRadius: 15.w,
+                offset: Offset(0.w, 5.w),
               ),
             ],
           ),
@@ -108,176 +111,191 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             icon: const Icon(Icons.add_rounded, color: Colors.black),
           ),
         ),
-        body: RefreshIndicator(
+        body: AdaptivePanel(master: RefreshIndicator(
           onRefresh: () => _txController.refreshData(),
           color: const Color(0xFF00E5FF),
           backgroundColor: isDark ? const Color(0xFF1E1E2C) : Colors.white,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            children: [
-              // Monthly Summary Card
-              StreamBuilder<double>(
-                stream: _service.getMonthlyTotal(),
-                builder: (context, snapshot) {
-                  final total = snapshot.data ?? 0;
-                  return Container(
-                    width: double.infinity,
-                    margin: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 10.h),
-                    padding: EdgeInsets.all(24.w),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF1E1E2C).withValues(alpha: 0.6)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(24.r),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.1)
-                            : Colors.white,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(
-                            0xFF6C63FF,
-                          ).withValues(alpha: 0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          "Monthly Commitment",
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: textColor.withValues(alpha: 0.6),
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.5,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                children: [
+                  // Monthly Summary Card
+                  StreamBuilder<double>(
+                    stream: _service.getMonthlyTotal(),
+                    builder: (context, snapshot) {
+                      final total = snapshot.data ?? 0;
+                      return Container(
+                        width: double.infinity,
+                        margin: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 10.h),
+                        padding: EdgeInsets.all(24.w),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1E1E2C).withValues(alpha: 0.6)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(24.r),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.white,
                           ),
-                        ),
-                        SizedBox(height: 12.h),
-                        TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: total),
-                          duration: const Duration(milliseconds: 1500),
-                          curve: Curves.easeOutExpo,
-                          builder: (context, value, child) {
-                            return Text(
-                              "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
-                              style: TextStyle(
-                                fontSize: 36.sp,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                                letterSpacing: -1.0,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn().slideY(begin: -0.2, end: 0);
-                },
-              ),
-
-              StreamBuilder<List<RecurringPayment>>(
-                stream: _service.getPayments(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return SizedBox(
-                      height: 400.h,
-                      child: const Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return SizedBox(
-                      height: 400.h,
-                      child: Center(child: Text("Error: ${snapshot.error}")),
-                    );
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return SizedBox(
-                      height: 500.h,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                                  padding: EdgeInsets.all(30.w),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white.withValues(alpha: 0.05),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(
-                                          0xFF00E5FF,
-                                        ).withValues(alpha: 0.1),
-                                        blurRadius: 30,
-                                        spreadRadius: 5,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    Icons.subscriptions_outlined,
-                                    size: 60.sp,
-                                    color: textColor.withValues(alpha: 0.3),
-                                  ),
-                                )
-                                .animate(onPlay: (c) => c.repeat(reverse: true))
-                                .scale(
-                                  begin: const Offset(1, 1),
-                                  end: const Offset(1.05, 1.05),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                            SizedBox(height: 24.h),
-                            Text(
-                                  "No subscriptions yet",
-                                  style: TextStyle(
-                                    color: textColor.withValues(alpha: 0.6),
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                )
-                                .animate()
-                                .fadeIn(delay: 200.ms)
-                                .slideY(begin: 0.2, end: 0),
-                            SizedBox(height: 8.h),
-                            Text(
-                              "Track Netflix, Rent, Spotify, etc.",
-                              style: TextStyle(
-                                color: textColor.withValues(alpha: 0.4),
-                                fontSize: 12.sp,
-                              ),
-                            ).animate().fadeIn(delay: 400.ms),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF6C63FF,
+                              ).withValues(alpha: 0.15),
+                              blurRadius: 20.w,
+                              offset: Offset(0.w, 10.w),
+                            ),
                           ],
                         ),
-                      ),
-                    );
-                  }
-
-                  final list = snapshot.data!;
-                  return ListView.separated(
-                    padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 100.h),
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: list.length,
-                    separatorBuilder: (c, i) => SizedBox(height: 16.h),
-                    itemBuilder: (context, index) {
-                      final item = list[index];
-                      return GestureDetector(
-                            onTap: () => Get.to(
-                              () => SubscriptionDetailsScreen(payment: item),
+                        child: Column(
+                          children: [
+                            Text(
+                              "Monthly Commitment",
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: textColor.withValues(alpha: 0.6),
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                            child: _buildCard(item, isDark, textColor, context),
-                          )
-                          .animate(delay: (index * 100).ms)
-                          .fadeIn(duration: 400.ms)
-                          .slideX(begin: 0.1, end: 0, curve: Curves.easeOut);
+                            SizedBox(height: 12.h),
+                            TweenAnimationBuilder<double>(
+                              tween: Tween(begin: 0, end: total),
+                              duration: const Duration(milliseconds: 1500),
+                              curve: Curves.easeOutExpo,
+                              builder: (context, value, child) {
+                                return Text(
+                                  "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
+                                  style: TextStyle(
+                                    fontSize: 36.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                    letterSpacing: -1.0,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn().slideY(begin: -0.2, end: 0);
                     },
-                  );
-                },
+                  ),
+
+                  StreamBuilder<List<RecurringPayment>>(
+                    stream: _service.getPayments(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return SizedBox(
+                          height: 400.h,
+                          child: const Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (snapshot.hasError) {
+                        return SizedBox(
+                          height: 400.h,
+                          child: Center(child: Text("Error: ${snapshot.error}")),
+                        );
+                      }
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return SizedBox(
+                          height: 500.h,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                      padding: EdgeInsets.all(30.w),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white.withValues(alpha: 0.05),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF00E5FF,
+                                            ).withValues(alpha: 0.1),
+                                            blurRadius: 30.w,
+                                            spreadRadius: 5.w,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        Icons.subscriptions_outlined,
+                                        size: 60.sp,
+                                        color: textColor.withValues(alpha: 0.3),
+                                      ),
+                                    )
+                                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                                    .scale(
+                                      begin: const Offset(1, 1),
+                                      end: const Offset(1.05, 1.05),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                SizedBox(height: 24.h),
+                                Text(
+                                      "No subscriptions yet",
+                                      style: TextStyle(
+                                        color: textColor.withValues(alpha: 0.6),
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    )
+                                    .animate()
+                                    .fadeIn(delay: 200.ms)
+                                    .slideY(begin: 0.2, end: 0),
+                                SizedBox(height: 8.h),
+                                Text(
+                                  "Track Netflix, Rent, Spotify, etc.",
+                                  style: TextStyle(
+                                    color: textColor.withValues(alpha: 0.4),
+                                    fontSize: 12.sp,
+                                  ),
+                                ).animate().fadeIn(delay: 400.ms),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      final list = snapshot.data!;
+                      return ListView.separated(
+                        padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 100.h),
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: list.length,
+                        separatorBuilder: (c, i) => SizedBox(height: 16.h),
+                        itemBuilder: (context, index) {
+                          final item = list[index];
+                          return GestureDetector(
+                                onTap: () {
+                                  final isSplit = Responsive.isTablet(context) && Responsive.isLandscape(context);
+                                  if (isSplit) {
+                                    setState(() => _selectedPayment = item);
+                                  } else {
+                                    Get.to(() => SubscriptionDetailsScreen(payment: item));
+                                  }
+                                },
+                                child: _buildCard(item, isDark, textColor, context),
+                              )
+                              .animate(delay: (index * 100).ms)
+                              .fadeIn(duration: 400.ms)
+                              .slideX(begin: 0.1, end: 0, curve: Curves.easeOut);
+                        },
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
+         ),
+          detail: _selectedPayment != null
+              ? SubscriptionDetailsScreen(payment: _selectedPayment!)
+              : _buildDetailPlaceholder(),
+          showDetail: _selectedPayment != null,
         ),
       ),
     );
@@ -331,8 +349,8 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               color: isPaid
                   ? const Color(0xFF00E676).withValues(alpha: 0.1)
                   : Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              blurRadius: 15.w,
+              offset: Offset(0.w, 8.w),
             ),
           ],
         ),
@@ -363,8 +381,8 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                       ? const Color(0xFF00E676)
                                       : const Color(0xFF6C63FF)))
                             .withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    blurRadius: 10.w,
+                    offset: Offset(0.w, 4.w),
                   ),
                 ],
               ),
@@ -476,6 +494,31 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     );
   }
 
+  Widget _buildDetailPlaceholder() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.subscriptions_outlined,
+            size: 64.sp,
+            color: textColor.withValues(alpha: 0.2),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            "Select a subscription to view details",
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.4),
+              fontSize: 16.sp,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddDialog(
     BuildContext context,
     bool isDark, {
@@ -509,6 +552,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
@@ -618,7 +662,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                               "Next Payment: ${DateFormat('MMM dd, yyyy').format(nextPaymentDate)}",
                               style: TextStyle(fontSize: 16.sp),
                             ),
-                            const Icon(Icons.calendar_today, size: 20),
+                            Icon(Icons.calendar_today, size: 20.sp),
                           ],
                         ),
                       ),

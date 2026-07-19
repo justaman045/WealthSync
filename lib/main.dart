@@ -6,12 +6,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:get/get.dart';
+import 'dart:math';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Platform/notification_platform.dart';
 import 'package:money_control/Components/methods.dart';
+import 'package:money_control/Utils/web_reload_stub.dart'
+    if (dart.library.html) 'package:money_control/Utils/web_reload_web.dart';
 
 import 'package:money_control/firebase_options.dart';
 import 'package:money_control/Screens/homescreen.dart';
@@ -89,23 +92,46 @@ class ThemeController extends GetxController {
   void _listenToThemeChanges() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && user.email != null) {
-      _themeSubscription = FirebaseFirestore.instance
+      if (kIsWeb) {
+        _fetchThemeOnce(user.email!);
+      } else {
+        _themeSubscription = FirebaseFirestore.instance
+            .collection("users")
+            .doc(user.email)
+            .snapshots()
+            .listen(
+              (snapshot) {
+                _applyThemeSnapshot(snapshot);
+              },
+              onError: (e) => debugPrint('ThemeController stream error: $e'),
+            );
+      }
+    }
+  }
+
+  void _applyThemeSnapshot(DocumentSnapshot snapshot) {
+    if (snapshot.exists) {
+      final data = snapshot.data();
+      if (data != null && data is Map<String, dynamic> && data.containsKey("darkMode")) {
+        final isDark = data["darkMode"] == true;
+        final newMode = isDark ? ThemeMode.dark : ThemeMode.light;
+        if (currentTheme.value != newMode) {
+          currentTheme.value = newMode;
+          Get.changeThemeMode(newMode);
+        }
+      }
+    }
+  }
+
+  Future<void> _fetchThemeOnce(String email) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
           .collection("users")
-          .doc(user.email)
-          .snapshots()
-          .listen((snapshot) {
-            if (snapshot.exists) {
-              final data = snapshot.data();
-              if (data != null && data.containsKey("darkMode")) {
-                final isDark = data["darkMode"] == true;
-                final newMode = isDark ? ThemeMode.dark : ThemeMode.light;
-                if (currentTheme.value != newMode) {
-                  currentTheme.value = newMode;
-                  Get.changeThemeMode(newMode);
-                }
-              }
-            }
-          });
+          .doc(email)
+          .get();
+      _applyThemeSnapshot(snapshot);
+    } catch (e) {
+      debugPrint('ThemeController get error: $e');
     }
   }
 }
@@ -114,6 +140,7 @@ class ThemeController extends GetxController {
 late final ThemeController themeController;
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+bool _b815ReloadScheduled = false;
 
 // ---- MAIN ----
 void main() {
@@ -136,9 +163,19 @@ Future<void> mainCommon({bool isTest = false}) async {
 
     // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
     PlatformDispatcher.instance.onError = (error, stack) {
-      // Print error locally so we can see it even if Crashlytics fails
+      final errorStr = error.toString();
       debugPrint("🔴 Async Error: $error");
       debugPrint(stack.toString());
+
+      // Firebase JS SDK b815: AsyncQueue is in a failed state after ca9 assertion.
+      // No recovery possible without page reload. Detect and auto-reload once.
+      if (kIsWeb && errorStr.contains('b815') && !_b815ReloadScheduled) {
+        _b815ReloadScheduled = true;
+        debugPrint('⚠️ Firestore SDK corrupted (b815). Reloading page in 2s...');
+        Future.delayed(const Duration(seconds: 2), () {
+          reloadPage();
+        });
+      }
 
       try {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
@@ -149,10 +186,12 @@ Future<void> mainCommon({bool isTest = false}) async {
     };
   }
 
-  // Firestore offline persistence
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-  );
+  // Firestore offline persistence (no-op on web, IndexedDB is always-on)
+  if (!kIsWeb) {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+    );
+  }
 
   // Initialize Controllers
   Get.put(PrivacyController());
@@ -174,11 +213,16 @@ Future<void> mainCommon({bool isTest = false}) async {
         ?.requestNotificationsPermission();
   }
 
-  FirebaseFirestore.instance.enableNetwork().then((_) {
-    syncPendingTransactions();
-  }).catchError((e) {
-    debugPrint('enableNetwork error: $e');
-  });
+  // On web, defer enableNetwork() to after login to avoid triggering the
+  // Firestore JS SDK WatchChangeAggregator ca9/b815 assertion bug during
+  // SDK initialization. Native platforms keep the existing behavior.
+  if (!kIsWeb) {
+    FirebaseFirestore.instance.enableNetwork().then((_) {
+      syncPendingTransactions();
+    }).catchError((e) {
+      debugPrint('enableNetwork error: $e');
+    });
+  }
 
   // Check biometrics on launch
   await bioService.checkBiometricOnLaunch();
@@ -258,8 +302,9 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
           !_bioService.isAuthenticated.value) {
         _bioService.authenticate();
       }
-      // Check subscription on resume
-      SubscriptionController.to.checkSubscriptionStatus();
+      // Check subscription on resume (skip on web — Firestore 12.7.0 SDK bug
+      // corrupts internal state when listeners re-open into a broken session)
+      if (!kIsWeb) SubscriptionController.to.checkSubscriptionStatus();
     }
   }
 
@@ -270,7 +315,6 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
       builder: (_, __) {
         return GetMaterialApp(
           scaffoldMessengerKey: rootScaffoldMessengerKey,
-          // navigatorKey is properly handled by GetX internally
           debugShowCheckedModeBanner: false,
           title: "WealthSync",
           defaultTransition: Transition.fadeIn,
@@ -280,20 +324,28 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
           darkTheme: buildDarkTheme(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
+          builder: (appContext, child) {
+            final width = MediaQuery.of(appContext).size.width;
+            if (width > 600) {
+              final designWidth = max(390.0, width / 1.3);
+              ScreenUtil.init(appContext, designSize: Size(designWidth, 844));
+            }
+            return child ?? const SizedBox.shrink();
+          },
           home: Obx(() {
             if (_bioService.isBiometricEnabled.value &&
                 !_bioService.isAuthenticated.value) {
-              return const Scaffold(
+              return Scaffold(
                 body: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.lock_outline, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
+                      Icon(Icons.lock_outline, size: 64.sp, color: Colors.grey),
+                      SizedBox(height: 16.h),
                       Text(
                         "App Locked",
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 20.sp,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -333,39 +385,74 @@ class _AuthCheckerState extends State<AuthChecker> {
     _authSub = FirebaseAuth.instance.authStateChanges().skip(1).listen(_handleAuthChange);
   }
 
-  void _handleAuthChange(User? user) {
+  void _handleAuthChange(User? user) async {
+    try {
     final isOAuthUser = user?.providerData.any(
           (p) => p.providerId == 'google.com' || p.providerId == 'apple.com',
         ) ??
         false;
     if (user != null && (user.emailVerified || isOAuthUser)) {
-      Get.find<ThemeController>().resubscribe();
+      // On web, initialize Firestore network here (after auth, before Phase 2)
+      // so the first JS SDK operation is a persistent .snapshots() listener
+      // from TransactionController, not a transient .get() — this avoids the
+      // WatchChangeAggregator ca9/b815 assertion bug in Firebase JS SDK.
+      if (kIsWeb) {
+        try {
+          await FirebaseFirestore.instance.enableNetwork();
+        } catch (e) {
+          debugPrint('enableNetwork error: $e');
+        }
+      }
       if (!Get.isRegistered<TransactionController>()) {
         Get.put(TransactionController());
       }
+      // On web, resubscribe theme AFTER TransactionController so that
+      // _fetchThemeOnce()'s transient .get() runs AFTER persistent .snapshots()
+      // listeners are established — avoids the ca9/b815 watch aggregator bug.
+      if (!kIsWeb) {
+        Get.find<ThemeController>().resubscribe();
+      } else {
+        if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
+        Get.find<ThemeController>().resubscribe();
+        syncPendingTransactions();
+      }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<ProfileController>()) {
         Get.put(ProfileController());
       }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<AnalyticsController>()) {
         Get.put(AnalyticsController());
       }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<BudgetController>()) {
         Get.put(BudgetController());
       }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<GoalsController>()) {
         Get.put(GoalsController());
       }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<LoanController>()) {
         Get.put(LoanController());
       }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<ChallengesController>()) {
         Get.put(ChallengesController());
       }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<LentMoneyController>()) {
         Get.put(LentMoneyController());
       }
+      if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
       if (!Get.isRegistered<RecurringPaymentController>()) {
         Get.put(RecurringPaymentController());
+      }
+      // Start PaymentConfigService polling AFTER all persistent .snapshots()
+      // listeners are established. A transient .get() before persistent targets
+      // can trigger the Firestore JS SDK WatchChangeAggregator ca9/b815 bug.
+      if (kIsWeb && Get.isRegistered<PaymentConfigService>()) {
+        PaymentConfigService.to.startPolling();
       }
       final email = user.email;
       if (!_didInitialBackup && email != null) {
@@ -407,23 +494,30 @@ class _AuthCheckerState extends State<AuthChecker> {
         FirebaseAuth.instance.signOut();
       }
     }
+    } catch (e) {
+      debugPrint('Auth change handler error: $e');
+    }
   }
 
   Future<bool> _checkOnboardingStatus(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    // On web, skip the Firestore .get() to avoid triggering the JS SDK
+    // WatchChangeAggregator ca9/b815 assertion bug. Use SharedPreferences only.
+    if (kIsWeb) {
+      return prefs.getBool('is_onboarded') ?? false;
+    }
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(email)
           .get();
       if (doc.exists && doc.data()?['is_onboarded'] == true) {
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_onboarded', true);
         return true;
       }
     } catch (e) {
       debugPrint("Onboarding check failed: $e");
     }
-    final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('is_onboarded') ?? false;
   }
 

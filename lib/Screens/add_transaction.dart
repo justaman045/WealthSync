@@ -17,6 +17,8 @@ import 'package:money_control/Screens/add_transaction_from_recipt.dart';
 import 'package:money_control/Utils/icon_helper.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/responsive_form_row.dart';
 
 enum PaymentType { send, receive }
 
@@ -185,7 +187,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         boxShadow: [
                           BoxShadow(
                             color: AppColors.primary.withValues(alpha: 0.4),
-                            blurRadius: 10,
+                            blurRadius: 10.w,
                           ),
                         ],
                       ),
@@ -319,47 +321,76 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _fieldLabel(AppLocalizations.of(context)!.amount, theme),
-                _amountField(_amount, theme),
-                _fieldLabel(nameLabel, theme),
-                _inputField(
-                  controller: _name,
-                  hint: AppLocalizations.of(context)!.enterNameHint,
-                  theme: theme,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ResponsiveFormRow(
+                      left: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _fieldLabel(AppLocalizations.of(context)!.amount, theme),
+                          _amountField(_amount, theme),
+                        ],
+                      ),
+                      right: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _fieldLabel(nameLabel, theme),
+                          _inputField(
+                            controller: _name,
+                            hint: AppLocalizations.of(context)!.enterNameHint,
+                            theme: theme,
+                          ),
+                        ],
+                      ),
+                    ),
+                    _fieldLabel(
+                      AppLocalizations.of(context)!.selectCategory,
+                      theme,
+                    ),
+                    _categorySelector(theme),
+                    ResponsiveFormRow(
+                      left: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _fieldLabel(AppLocalizations.of(context)!.note, theme),
+                          _inputField(
+                            controller: _note,
+                            hint: AppLocalizations.of(context)!.addNoteHint,
+                            maxLines: 2,
+                            theme: theme,
+                          ),
+                        ],
+                      ),
+                      right: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _fieldLabel(AppLocalizations.of(context)!.date, theme),
+                          _dateSelector(theme),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 40.h),
+                    _submitButton(
+                      context: context,
+                      label: widget.type == PaymentType.send
+                          ? AppLocalizations.of(context)!.send
+                          : AppLocalizations.of(context)!.receive,
+                      onTap: saveTransaction,
+                    ),
+                    if (widget.type == PaymentType.send && !kIsWeb) ...[
+                      SizedBox(height: 12.h),
+                      _upiPayButton(context),
+                    ],
+                    SizedBox(height: 20.h),
+                  ],
                 ),
-                _fieldLabel(
-                  AppLocalizations.of(context)!.selectCategory,
-                  theme,
-                ),
-                _categorySelector(theme),
-                _fieldLabel(AppLocalizations.of(context)!.note, theme),
-                _inputField(
-                  controller: _note,
-                  hint: AppLocalizations.of(context)!.addNoteHint,
-                  maxLines: 2,
-                  theme: theme,
-                ),
-                _fieldLabel(AppLocalizations.of(context)!.date, theme),
-                _dateSelector(theme),
-                SizedBox(height: 40.h),
-                _submitButton(
-                  context: context,
-                  label: widget.type == PaymentType.send
-                      ? AppLocalizations.of(context)!.send
-                      : AppLocalizations.of(context)!.receive,
-                  onTap: saveTransaction,
-                ),
-                if (widget.type == PaymentType.send && !kIsWeb) ...[
-                  SizedBox(height: 12.h),
-                  _upiPayButton(context),
-                ],
-                SizedBox(height: 20.h),
-              ],
+              ),
             ),
           ),
         ),
@@ -593,8 +624,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           ? [
                               BoxShadow(
                                 color: catColor.withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                spreadRadius: -2,
+                                blurRadius: 12.w,
+                                spreadRadius: -2.w,
                               ),
                             ]
                           : null,
@@ -721,16 +752,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
             boxShadow: [
               BoxShadow(
                 color: AppColors.primary.withValues(alpha: 0.4),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
+                blurRadius: 15.w,
+                offset: Offset(0, 8.w),
               ),
             ],
           ),
           alignment: Alignment.center,
           child: _transactionController.isSaving.value
               ? SizedBox(
-                  width: 24,
-                  height: 24,
+                  width: 24.w,
+                  height: 24.h,
                   child: CircularProgressIndicator(
                     color: isDark ? Colors.white : AppColors.lightTextPrimary,
                     strokeWidth: 2,
@@ -810,6 +841,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),

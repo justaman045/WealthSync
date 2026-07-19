@@ -11,6 +11,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/challenge_model.dart';
 import 'package:money_control/data/challenge_presets.dart';
 import 'dart:math';
+import 'package:money_control/Utils/responsive.dart';
 
 class SavingsChallengesScreen extends StatefulWidget {
   const SavingsChallengesScreen({super.key});
@@ -370,6 +371,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       backgroundColor: Colors.transparent,
       builder: (_) => _PresetChallengeSheet(
         preset: preset,
@@ -384,6 +386,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       backgroundColor: Colors.transparent,
       builder: (_) => const _CustomChallengeSheet(),
     );
@@ -456,11 +459,14 @@ class _ChallengeSheetContent extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
         ),
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
               SizedBox(height: 20.h),
               if (nameCtrl != null) ...[
                 TextField(
@@ -569,7 +575,9 @@ class _ChallengeSheetContent extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8.h),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

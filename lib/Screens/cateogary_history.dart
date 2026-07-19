@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +8,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Components/tx_tile.dart';
 import 'package:money_control/Screens/transaction_details.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class CategoryTransactionsScreen extends StatefulWidget {
   final String categoryName;
@@ -63,21 +65,26 @@ class _CategoryTransactionsScreenState
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = Responsive.isTablet(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        flexibleSpace: ClipRRect(
-          child: RepaintBoundary(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: Container(
+        flexibleSpace: isTablet
+            ? Container(
                 color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+              )
+            : ClipRRect(
+                child: RepaintBoundary(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: Container(
+                      color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
@@ -160,65 +167,63 @@ class _CategoryTransactionsScreenState
                 )
                 .toList();
 
-            return ListView.builder(
-              padding: EdgeInsets.fromLTRB(16.w, 100.h, 16.w, 30.h),
-              itemCount: txs.length,
-              itemBuilder: (context, index) {
-                final tx = txs[index];
-                final received = tx.recipientId == user.uid;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView.builder(
+                  padding: EdgeInsets.fromLTRB(16.w, 100.h, 16.w, 30.h),
+                  itemCount: txs.length,
+                  itemBuilder: (context, index) {
+                    final tx = txs[index];
+                    final received = tx.recipientId == user.uid;
 
-                return GestureDetector(
-                  onTap: () {
-                    // Navigate to details
-                    TransactionResultType type;
-                    if (tx.status == 'failed') {
-                      type = TransactionResultType.failed;
-                    } else if (tx.status == 'pending' ||
-                        tx.status == 'processing') {
-                      type = TransactionResultType.inProgress;
-                    } else {
-                      type = TransactionResultType.success;
-                    }
+                    return GestureDetector(
+                      onTap: () {
+                        TransactionResultType type;
+                        if (tx.status == 'failed') {
+                          type = TransactionResultType.failed;
+                        } else if (tx.status == 'pending' ||
+                            tx.status == 'processing') {
+                          type = TransactionResultType.inProgress;
+                        } else {
+                          type = TransactionResultType.success;
+                        }
 
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => TransactionResultScreen(
+                        Get.to(() => TransactionResultScreen(
                           type: type,
                           transaction: tx,
+                        ));
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(20.r),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: IgnorePointer(
+                          child: TxTile(
+                            tx: tx,
+                            received: received,
+                            textColor: Colors.white,
+                            receivedColor: const Color(0xFF00E676),
+                            sentColor: const Color(0xFFFF1744),
+                          ),
                         ),
                       ),
                     );
                   },
-                  child: Container(
-                    margin: EdgeInsets.only(bottom: 12.h),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 12.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05), // Dark Glass
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    child: IgnorePointer(
-                      // Ignore inner click to let this outer detector handle it for the whole card
-                      child: TxTile(
-                        tx: tx,
-                        received: received,
-                        textColor: Colors.white,
-                        receivedColor: const Color(0xFF00E676), // Neon Green
-                        sentColor: const Color(0xFFFF1744), // Neon Red
-                      ),
-                    ),
-                  ),
-                );
-              },
+                ),
+              ),
             );
-          },
+          }),
         ),
-      ),
-    );
+      );
   }
 }

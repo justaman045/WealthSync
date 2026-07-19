@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:money_control/Components/animated_bottom_nav.dart';
+import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
@@ -27,6 +27,8 @@ import 'package:money_control/Screens/asset_detail_screen.dart';
 import 'package:money_control/Config/asset_screen_configs.dart';
 import 'package:money_control/Services/geo_service.dart';
 import 'package:money_control/Screens/edit_profile.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/main.dart' show rootScaffoldMessengerKey;
 import 'package:get/get.dart';
 
 class WealthBuilderScreen extends StatefulWidget {
@@ -53,9 +55,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   @override
   void initState() {
     super.initState();
-    _portfolioSub = WealthService.streamPortfolio().listen((p) {
-      if (mounted) setState(() => portfolio = p);
-    });
+    _portfolioSub = WealthService.streamPortfolio().listen(
+      (p) {
+        if (mounted) setState(() => portfolio = p);
+      },
+      onError: (e) => debugPrint('WealthBuilder portfolio stream error: $e'),
+    );
     _loadData();
   }
 
@@ -68,6 +73,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
   Future<void> _loadData() async {
     try {
+      if (!Get.isRegistered<TransactionController>()) return;
+      if (!Get.isRegistered<ProfileController>()) return;
       final TransactionController txController = Get.find();
       final ProfileController profileController = Get.find();
 
@@ -153,12 +160,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load wealth data. Pull down to retry.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          rootScaffoldMessengerKey.currentState?.showSnackBar(
+            const SnackBar(
+              content: Text('Failed to load wealth data. Pull down to retry.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        });
       }
     }
   }
@@ -180,8 +189,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     final gradientColors = isDark
         ? [
@@ -190,7 +200,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ]
         : [const Color(0xFFF5F7FA), const Color(0xFFC3CFE2)];
 
-    return Container(
+    return AdaptiveScaffold(
+      currentIndex: 3,
+      isVisible: _isBottomBarVisible,
+      backgroundColor: Colors.transparent,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: gradientColors,
@@ -198,9 +211,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
+      appBar: AppBar(
           title: Text(
             "Wealth Builder",
             style: TextStyle(
@@ -214,10 +225,6 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           automaticallyImplyLeading: false,
         ),
         extendBody: true,
-        bottomNavigationBar: AnimatedBottomNav(
-          currentIndex: 3,
-          isVisible: _isBottomBarVisible,
-        ),
         body: NotificationListener<UserScrollNotification>(
           onNotification: (notification) {
             if (notification.direction == rendering.ScrollDirection.reverse) {
@@ -240,7 +247,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       horizontal: 16.w,
                       vertical: 10.h,
                     ),
-                    child: Column(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                        child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (userAge != null)
@@ -317,13 +327,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         ),
                         SizedBox(height: 10.h),
                         _buildSuggestions(scheme),
-                        SizedBox(height: 100.h), // Bottom padding
+                        SizedBox(height: (Responsive.isTablet(context) && Responsive.isLandscape(context)) ? 20.h : 100.h), // Bottom padding
                       ],
                     ),
                   ),
-                )),
+                ),
+              ),
+              )),
         ),
-      ),
     );
   }
 
@@ -553,11 +564,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ...addIf('chitFund',   () => detailCard("Chit Fund",           p.chitFund,   'chitFund',   Icons.groups,            Colors.teal.shade300,AssetConfigs.chitFund)),
     ];
     if (liquidCards.isNotEmpty) {
-      sections.add(_sectionHeader("Liquid & Fixed Income"));
+      sections.add(_sectionHeader("Liquid & Fixed Income", scheme));
       sections.add(GridView.count(
-        crossAxisCount: 2, shrinkWrap: true,
+        crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
         children: liquidCards,
       ));
       sections.add(SizedBox(height: 20.h));
@@ -572,11 +583,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ...addIf('startupEquity',() => detailCard("Angel / Startup",    p.startupEquity,'startupEquity',Icons.rocket_launch,      Colors.orange,      AssetConfigs.startupEquity)),
     ];
     if (equityCards.isNotEmpty) {
-      sections.add(_sectionHeader("Equity & Growth"));
+      sections.add(_sectionHeader("Equity & Growth", scheme));
       sections.add(GridView.count(
-        crossAxisCount: 2, shrinkWrap: true,
+        crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
         children: equityCards,
       ));
       sections.add(SizedBox(height: 20.h));
@@ -589,11 +600,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ...addIf('nps', () => detailCard("NPS",           p.nps, 'nps', Icons.elderly,                          Colors.indigo,          AssetConfigs.nps)),
     ];
     if (retirementCards.isNotEmpty) {
-      sections.add(_sectionHeader("Retirement"));
+      sections.add(_sectionHeader("Retirement", scheme));
       sections.add(GridView.count(
-        crossAxisCount: 2, shrinkWrap: true,
+        crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
         children: retirementCards,
       ));
       sections.add(SizedBox(height: 20.h));
@@ -609,11 +620,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ...addIf('p2p',     () => detailCard("P2P Lending",          p.p2p,     'p2p',     Icons.people_alt,        Colors.lime,               AssetConfigs.p2p)),
     ];
     if (altCards.isNotEmpty) {
-      sections.add(_sectionHeader("Alternative Assets"));
+      sections.add(_sectionHeader("Alternative Assets", scheme));
       sections.add(GridView.count(
-        crossAxisCount: 2, shrinkWrap: true,
+        crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
         children: altCards,
       ));
       sections.add(SizedBox(height: 20.h));
@@ -626,11 +637,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ...addIf('vehicle',    () => _assetCard("Vehicle(s)",   p.vehicle,    'vehicle',    Icons.directions_car, Colors.blueGrey.shade300, scheme, onTapOverride: () => Get.to(() => const VehicleDetailScreen()))),
     ];
     if (physicalCards.isNotEmpty) {
-      sections.add(_sectionHeader("Physical Assets"));
+      sections.add(_sectionHeader("Physical Assets", scheme));
       sections.add(GridView.count(
-        crossAxisCount: 2, shrinkWrap: true,
+        crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
         children: physicalCards,
       ));
       sections.add(SizedBox(height: 20.h));
@@ -642,21 +653,22 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ...addIf('business',  () => detailCard("Business Capital", p.business, 'business', Icons.business_center, Colors.brown.shade300, AssetConfigs.business)),
     ];
     if (protectionCards.isNotEmpty) {
-      sections.add(_sectionHeader("Protection & Business"));
+      sections.add(_sectionHeader("Protection & Business", scheme));
       sections.add(GridView.count(
-        crossAxisCount: 2, shrinkWrap: true,
+        crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
         children: protectionCards,
       ));
       sections.add(SizedBox(height: 20.h));
     }
 
     // 7. Liabilities
-    final loanController = LoanController.to;
-    final loanCount = loanController.loans.length;
+    final hasLoanController = Get.isRegistered<LoanController>();
+    final loanController = hasLoanController ? Get.find<LoanController>() : null;
+    final loanCount = loanController?.loans.length ?? 0;
     final liabilityCards = <Widget>[
-      ...addIf('loans', () => _assetCard("Loans / Liabilities", loanController.totalOutstanding, 'loans',
+      ...addIf('loans', () => _assetCard("Loans / Liabilities", loanController?.totalOutstanding ?? 0, 'loans',
           Icons.money_off, Colors.red, scheme,
           secondaryLabel: loanCount > 0 ? "$loanCount loan${loanCount > 1 ? 's' : ''}" : null,
           onTapOverride: () => Get.to(() => const LoanTrackerScreen()))),
@@ -665,11 +677,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ...addIf('bnpl', () => detailCard("BNPL / Pay Later", p.bnpl, 'bnpl', Icons.schedule, Colors.deepOrange.shade700, AssetConfigs.bnpl)),
     ];
     if (liabilityCards.isNotEmpty) {
-      sections.add(_sectionHeader("Liabilities"));
+      sections.add(_sectionHeader("Liabilities", scheme));
       sections.add(GridView.count(
-        crossAxisCount: 2, shrinkWrap: true,
+        crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+        crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
         children: liabilityCards,
       ));
     }
@@ -689,11 +701,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               ))
           .toList();
       if (customCards.isNotEmpty) {
-        sections.add(_sectionHeader("Custom Assets"));
+        sections.add(_sectionHeader("Custom Assets", scheme));
         sections.add(GridView.count(
-          crossAxisCount: 2, shrinkWrap: true,
+          crossAxisCount: Responsive.wealthGridColumns(context), shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: 0.8,
+          crossAxisSpacing: 12.w, mainAxisSpacing: 12.h, childAspectRatio: Responsive.childAspectRatio(context),
           children: customCards,
         ));
       }
@@ -708,6 +720,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   void _showCustomAssetDialog(String key, double value) {
     final nameCtrl = TextEditingController(text: key);
     final valueCtrl = TextEditingController(text: value.toStringAsFixed(0));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -718,14 +731,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             TextField(
               controller: nameCtrl,
               decoration: const InputDecoration(labelText: "Name"),
-              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : null),
+              style: TextStyle(color: isDark ? Colors.white : null),
             ),
             SizedBox(height: 8.h),
             TextField(
               controller: valueCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: "Value"),
-              style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : null),
+              style: TextStyle(color: isDark ? Colors.white : null),
             ),
           ],
         ),
@@ -763,8 +776,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     });
   }
 
-  Widget _sectionHeader(String label) {
-    final scheme = Theme.of(context).colorScheme;
+  Widget _sectionHeader(String label, ColorScheme scheme) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h, top: 4.h),
       child: Row(
@@ -821,7 +833,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       // Allow tap even if readOnly (Bank) to update TARGET
       onTap: onTapOverride ?? () => _showUpdateDialog(title, key, amount, readOnly: readOnly),
       child: Container(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(14.w),
+        clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           color: scheme.surface.withValues(alpha: 0.1), // Glassy background
           borderRadius: BorderRadius.circular(20.r),
@@ -877,7 +890,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   ),
               ],
             ),
-            SizedBox(height: 12.h),
+            SizedBox(height: 10.h),
             Text(
               "$symbol${amount.toStringAsFixed(0)}",
               style: TextStyle(
@@ -1017,7 +1030,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           child: Material(
             color: Colors.transparent,
             child: Container(
-              width: 340.w,
+              width: () { final sw = MediaQuery.sizeOf(context).width; final raw = sw * 0.88; return raw > 380 ? 380.0 : raw < 280 ? 280.0 : raw; }(),
               padding: EdgeInsets.all(24.w),
               decoration: BoxDecoration(
                 // ... same premium decoration
@@ -1034,8 +1047,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.5),
-                    blurRadius: 30,
-                    offset: Offset(0, 10),
+                    blurRadius: 30.w,
+                    offset: Offset(0, 10.w),
                   ),
                 ],
               ),
@@ -1260,7 +1273,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             child: StatefulBuilder(
               builder: (context, setState) {
                 return Container(
-                  width: 340.w,
+                  width: () { final sw = MediaQuery.sizeOf(context).width; final raw = sw * 0.88; return raw > 380 ? 380.0 : raw < 280 ? 280.0 : raw; }(),
                   constraints: BoxConstraints(maxHeight: 600.h),
                   padding: EdgeInsets.all(24.w),
                   decoration: BoxDecoration(
@@ -1277,8 +1290,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
+                        blurRadius: 30.w,
+                        offset: Offset(0, 10.w),
                       ),
                     ],
                   ),
@@ -1420,9 +1433,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           PieChartSectionData(
             value: val,
             color: color,
-            radius: 50,
+            radius: 50.r,
             title: title,
-            titleStyle: const TextStyle(fontSize: 10, color: Colors.white),
+            titleStyle: TextStyle(fontSize: 10.sp, color: Colors.white),
           ),
         );
       }
@@ -1507,7 +1520,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       p.custom.forEach((key, val) { if (!hidden.contains(key)) total += val; });
 
       // Liabilities (subtract all)
-      sub('loans', LoanController.to.totalOutstanding);
+      if (Get.isRegistered<LoanController>()) {
+        sub('loans', Get.find<LoanController>().totalOutstanding);
+      }
       sub('creditCard', p.creditCard);
       sub('bnpl', p.bnpl);
     }
@@ -1527,8 +1542,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.deepPurple.withValues(alpha: 0.4),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 15.w,
+            offset: Offset(0, 8.w),
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class AdminUserListScreen extends StatefulWidget {
   const AdminUserListScreen({super.key});
@@ -109,8 +110,11 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                     }).toList();
                   }
 
-                  return ListView.builder(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                      child: ListView.builder(
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
                     itemCount: docs.length,
                     itemBuilder: (context, index) {
                       final data = docs[index].data() as Map<String, dynamic>;
@@ -122,6 +126,8 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
 
                       return _buildUserCard(email, isPro, expiryTimestamp);
                     },
+                        ),
+                      ),
                   );
                 },
               ),
@@ -276,10 +282,10 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                             DateFormat('MMM dd, yyyy').format(selectedDate),
                             style: TextStyle(color: Colors.white),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.calendar_today,
                             color: Colors.cyanAccent,
-                            size: 16,
+                            size: 16.sp,
                           ),
                         ],
                       ),

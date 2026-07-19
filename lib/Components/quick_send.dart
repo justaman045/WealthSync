@@ -82,8 +82,8 @@ class _QuickSendRowState extends State<QuickSendRow> {
               : [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+                    blurRadius: 10.w,
+                    offset: Offset(0.w, 5.w),
                   ),
                 ],
         ),
@@ -97,7 +97,7 @@ class _QuickSendRowState extends State<QuickSendRow> {
                       child: _neonQuickSender(
                         asset: CategoryInitialsIcon(
                           categoryName: topCategories.first,
-                          size: 40,
+                          size: 40.sp,
                         ),
                         name: topCategories.first,
                         color: const Color(0xFF00E5FF), // Neon Cyan
@@ -179,8 +179,8 @@ class _QuickSendRowState extends State<QuickSendRow> {
               boxShadow: [
                 BoxShadow(
                   color: color.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  spreadRadius: 2,
+                  blurRadius: 10.w,
+                  spreadRadius: 2.w,
                 ),
               ],
             ),

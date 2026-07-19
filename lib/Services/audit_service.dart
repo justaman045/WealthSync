@@ -14,9 +14,12 @@ class AuditService {
           '${tx.recipientName.toLowerCase()}_${tx.date.day}_${tx.date.month}_${tx.date.year}_${tx.amount.abs()}';
       groups.putIfAbsent(key, () => []).add(tx);
     }
+    final now = DateTime.now();
+    var counter = 0;
     return groups.entries
         .where((e) => e.value.length > 1)
         .map((e) => DuplicateGroup(
+              id: 'dupe_${now.millisecondsSinceEpoch}_${counter++}',
               merchant: e.value.first.recipientName,
               amount: e.value.first.amount.abs(),
               date: e.value.first.date,
@@ -32,21 +35,26 @@ class AuditService {
     String uid,
   ) {
     final errors = <SignError>[];
+    var counter = 0;
+    final now = DateTime.now();
     for (final tx in transactions) {
       if (tx.senderId == uid && tx.amount > 0) {
         errors.add(SignError(
+          id: 'sign_${now.millisecondsSinceEpoch}_${counter++}',
           transaction: tx,
           expected: 'negative (expense)',
           actual: 'positive (income)',
         ));
       } else if (tx.recipientId == uid && tx.amount < 0) {
         errors.add(SignError(
+          id: 'sign_${now.millisecondsSinceEpoch}_${counter++}',
           transaction: tx,
           expected: 'positive (income)',
           actual: 'negative (expense)',
         ));
       } else if (tx.amount == 0) {
         errors.add(SignError(
+          id: 'sign_${now.millisecondsSinceEpoch}_${counter++}',
           transaction: tx,
           expected: 'non-zero amount',
           actual: 'zero',
@@ -63,6 +71,7 @@ class AuditService {
   ) {
     final now = DateTime.now();
     final orphans = <OrphanedRecurring>[];
+    var counter = 0;
     for (final payment in payments) {
       if (!payment.isActive) continue;
       if (payment.nextDueDate.isAfter(now)) continue;
@@ -71,6 +80,7 @@ class AuditService {
           tx.date.isAfter(payment.nextDueDate.subtract(const Duration(days: 1))));
       if (!hasTx) {
         orphans.add(OrphanedRecurring(
+          id: 'orphan_${now.millisecondsSinceEpoch}_${counter++}',
           payment: payment,
           reason: 'No transaction found for due date ${payment.nextDueDate}',
         ));

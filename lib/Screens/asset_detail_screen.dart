@@ -9,6 +9,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 // ─── Field types ──────────────────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _AddSheet(
+      builder: (ctx) => Responsive.wrapSheetContent(ctx, _AddSheet(
         config: cfg,
         existingId: id,
         existingData: existingData,
@@ -123,7 +124,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
             if (mounted) setState(() => _saving = false);
           }
         },
-      ),
+      )),
     );
   }
 
@@ -214,8 +215,11 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
               total += (data[cfg.amountField.key] as num?)?.toDouble() ?? 0;
             }
 
-            return ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
               children: [
                 _buildSummary(total, symbol, docs.length),
                 SizedBox(height: 20.h),
@@ -232,7 +236,9 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                   final data = d.data() as Map<String, dynamic>;
                   return _buildCard(d.id, data, symbol, isDark);
                 }),
-              ],
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -596,8 +602,8 @@ class _AddSheetState extends State<_AddSheet> {
             lastDate: DateTime(2060),
           );
           if (picked != null) {
+            if (!mounted) return;
             setState(() {
-              _dateValues[f.key] = picked;
               ctrl?.text = DateFormat('dd MMM yyyy').format(picked);
             });
           }

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/import_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class ImportScreen extends StatefulWidget {
   const ImportScreen({super.key});
@@ -15,6 +16,7 @@ class ImportScreen extends StatefulWidget {
 }
 
 class _ImportScreenState extends State<ImportScreen> {
+  late ThemeData _cachedTheme;
   List<List<dynamic>>? _csvData;
   List<String> _headers = [];
   bool _isLoading = false;
@@ -118,7 +120,7 @@ class _ImportScreenState extends State<ImportScreen> {
         showDialog(
           context: context,
               builder: (dialogContext) {
-                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final isDark = _cachedTheme.brightness == Brightness.dark;
                 return AlertDialog(
                   backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
                   title: const Text(
@@ -156,7 +158,8 @@ class _ImportScreenState extends State<ImportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    _cachedTheme = Theme.of(context);
+    final isDark = _cachedTheme.brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
@@ -188,10 +191,13 @@ class _ImportScreenState extends State<ImportScreen> {
               )
             : SingleChildScrollView(
                 padding: EdgeInsets.all(20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStepHeader("1. Select File", Icons.attach_file),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildStepHeader("1. Select File", Icons.attach_file),
                     SizedBox(height: 10.h),
 
                     _buildNavCard(
@@ -261,6 +267,8 @@ class _ImportScreenState extends State<ImportScreen> {
                       _buildPreviewTable(),
                     ],
                   ],
+                    ),
+                  ),
                 ),
               ),
       ),
@@ -268,7 +276,7 @@ class _ImportScreenState extends State<ImportScreen> {
   }
 
   Widget _buildStepHeader(String title, IconData icon) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return Row(
       children: [
         Icon(icon, color: const Color(0xFF00E5FF), size: 18.sp),
@@ -291,7 +299,7 @@ class _ImportScreenState extends State<ImportScreen> {
     required VoidCallback onTap,
     bool isHighlight = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -335,7 +343,7 @@ class _ImportScreenState extends State<ImportScreen> {
     String? value,
     Function(String?) onChanged,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
       child: Container(
@@ -385,8 +393,8 @@ class _ImportScreenState extends State<ImportScreen> {
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
           ),
         ],
       ),
@@ -414,7 +422,7 @@ class _ImportScreenState extends State<ImportScreen> {
   Widget _buildPreviewTable() {
     if (_csvData == null || _csvData!.isEmpty) return const SizedBox();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
 
     // Show top 5 rows
     final previewRows = _csvData!.take(6).toList();

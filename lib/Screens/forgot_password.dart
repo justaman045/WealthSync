@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -68,11 +69,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         child: SafeArea(
           child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
@@ -94,8 +97,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.primary.withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          spreadRadius: 5,
+                          blurRadius: 20.w,
+                          spreadRadius: 5.w,
                         ),
                       ],
                     ),
@@ -201,7 +204,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16.r),
                               ),
-                              elevation: 4,
+                              elevation: 4.w,
                               shadowColor:
                                   AppColors.primary.withValues(alpha: 0.4),
                             ),
@@ -239,7 +242,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16.r),
                         ),
-                        elevation: 4,
+                        elevation: 4.w,
                         shadowColor: AppColors.primary.withValues(alpha: 0.4),
                       ),
                       child: Text(
@@ -252,6 +255,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   ],
                 ],
+                ),
               ),
             ),
           ),

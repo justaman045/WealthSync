@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart'; // Animations
 import 'package:money_control/Components/balance_card.dart';
-import 'package:money_control/Components/animated_bottom_nav.dart';
+import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/methods.dart';
@@ -37,6 +37,7 @@ import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Screens/add_transaction_from_recipt.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class BankingHomeScreen extends StatefulWidget {
   const BankingHomeScreen({super.key});
@@ -109,7 +110,11 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
+    return AdaptiveScaffold(
+      currentIndex: 0,
+      isVisible: _isBottomBarVisible,
+      navBarKey: _keyNavBar,
+      backgroundColor: Colors.transparent,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
@@ -117,9 +122,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
+      appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: Padding(
@@ -284,11 +287,6 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
 
           toolbarHeight: 64.h,
         ),
-        bottomNavigationBar: AnimatedBottomNav(
-          currentIndex: 0,
-          isVisible: _isBottomBarVisible,
-          navBarKey: _keyNavBar,
-        ),
         body: NotificationListener<UserScrollNotification>(
           onNotification: (notification) {
             if (notification.direction == rendering.ScrollDirection.reverse) {
@@ -306,7 +304,10 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
-                child: Column(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                    child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     BalanceCard()
@@ -365,6 +366,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             ),
           ),
         ),
+      ),
+    ),
         floatingActionButton: FloatingActionButton(
           backgroundColor: AppColors.primary,
           tooltip: 'Scan Receipt',
@@ -380,7 +383,6 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         extendBody: true,
-      ),
     );
   }
 

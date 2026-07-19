@@ -7,6 +7,7 @@ import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -103,8 +104,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           boxShadows: [
             BoxShadow(
               color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 5),
+              blurRadius: 20.w,
+              offset: Offset(0, 5.w),
             ),
           ],
         );
@@ -188,10 +189,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ? const Center(
                 child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
               )
-            : SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                child: Column(
-                  children: [
+            : Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                    child: Column(
+                      children: [
                     SizedBox(height: 20.h),
 
                     // Avatar with Glow
@@ -211,8 +215,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     color: const Color(
                                       0xFF00E5FF,
                                     ).withValues(alpha: 0.3),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
+                                    blurRadius: 20.w,
+                                    spreadRadius: 2.w,
                                   ),
                                 ],
                               ),
@@ -367,8 +371,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               color: const Color(
                                 0xFF6C63FF,
                               ).withValues(alpha: 0.4),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
+                              blurRadius: 15.w,
+                              offset: Offset(0, 8.w),
                             ),
                           ],
                         ),
@@ -426,6 +430,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ],
                 ),
               ),
+            ),
+          ),
       ),
     );
   }

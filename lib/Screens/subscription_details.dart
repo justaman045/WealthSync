@@ -11,6 +11,7 @@ import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class SubscriptionDetailsScreen extends StatefulWidget {
   final RecurringPayment payment;
@@ -82,7 +83,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     size: 20.sp,
                   ),
                 ),
-                offset: const Offset(0, 50),
+                offset: Offset(0, 50.w),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16.r),
                   side: BorderSide(
@@ -93,7 +94,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                   ),
                 ),
                 color: isDark ? const Color(0xFF25253B) : Colors.white,
-                elevation: 10,
+                elevation: 10.w,
                 onSelected: (value) {
                   if (value == 'toggle') {
                     _handleToggleStatus(paymentData);
@@ -236,10 +237,13 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
 
           return SingleChildScrollView(
             padding: EdgeInsets.all(20.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeaderCard(isDark, textColor, paymentData),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeaderCard(isDark, textColor, paymentData),
                 SizedBox(height: 24.h),
                 if (paymentData.isActive) ...[
                   _buildActionButtons(isDark, textColor, paymentData),
@@ -255,9 +259,11 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 ).animate().fadeIn(delay: 300.ms).slideX(),
                 SizedBox(height: 16.h),
                 _buildHistoryList(isDark, textColor),
-              ],
-            ),
-          );
+                    ],
+                  ),
+                ),
+              ),
+            );
         },
       ),
     );
@@ -282,8 +288,8 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 20.w,
+            offset: Offset(0, 10.w),
           ),
         ],
       ),
@@ -402,7 +408,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () => _showMarkPaidDialog(context, isDark, payment),
-        icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+        icon: Icon(Icons.check_circle_outline_rounded, size: 18.sp),
         label: const Text("Mark Paid"),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF6C63FF),

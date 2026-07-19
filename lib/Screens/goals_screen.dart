@@ -8,6 +8,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/goals_controller.dart';
 import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Screens/add_goal_screen.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -63,13 +64,38 @@ class _GoalsScreenState extends State<GoalsScreen> {
           if (ctrl.goals.isEmpty) {
             return _buildEmptyState(context);
           }
-          return ListView(
-            padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
-            children: [
-              _buildSummaryRow(ctrl, theme),
-              SizedBox(height: 16.h),
-              ...ctrl.goals.map((goal) => _buildGoalCard(context, goal, ctrl, theme)),
-            ],
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Responsive.isWideForm(context)
+                  ? SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSummaryRow(ctrl, theme),
+                          SizedBox(height: 16.h),
+                          GridView.count(
+                            crossAxisCount: Responsive.gridColumns(context),
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisSpacing: 12.w,
+                            mainAxisSpacing: 12.h,
+                            childAspectRatio: 1.6,
+                            children: ctrl.goals.map((goal) => _buildGoalCard(context, goal, ctrl, theme)).toList(),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView(
+                      padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
+                      children: [
+                        _buildSummaryRow(ctrl, theme),
+                        SizedBox(height: 16.h),
+                        ...ctrl.goals.map((goal) => _buildGoalCard(context, goal, ctrl, theme)),
+                      ],
+                    ),
+            ),
           );
         }),
       ),
@@ -140,8 +166,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                blurRadius: 12.w,
+                offset: Offset(0, 4.w),
               ),
             ],
           ),
@@ -260,6 +286,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       builder: (_) => Padding(
         padding: EdgeInsets.only(
           left: 24.w,
@@ -312,7 +339,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
                 ),
                 child: ctrl.isSaving.value
-                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
+                    ? SizedBox(width: 20.w, height: 20.h, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
                     : Text("Add Progress", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
               )),
             ),
@@ -352,7 +379,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -364,14 +392,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w700,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
+              color: theme.textTheme.bodyLarge?.color,
             ),
           ),
           SizedBox(height: 8.h),
           Text(
             "Set a savings or purchase goal\nand track your progress.",
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14.sp, color: Theme.of(context).textTheme.bodyMedium?.color),
+            style: TextStyle(fontSize: 14.sp, color: theme.textTheme.bodyMedium?.color),
           ),
           SizedBox(height: 28.h),
           ElevatedButton.icon(

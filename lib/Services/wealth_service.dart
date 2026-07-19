@@ -157,6 +157,7 @@ class WealthService {
         .collection('wealth')
         .doc('portfolio')
         .snapshots()
+        .handleError((e) => log('WealthService streamPortfolio error: $e'))
         .map((doc) {
       final data = doc.data();
           if (doc.exists && data != null) {

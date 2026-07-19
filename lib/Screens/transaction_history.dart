@@ -18,6 +18,9 @@ import 'package:money_control/Components/shimmer_loading.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/adaptive_panel.dart';
+import 'package:money_control/Components/hover_effect.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
   /// 0 = all, 1 = income, 2 = expense
@@ -38,7 +41,9 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   List<TransactionModel> _filteredTxs = [];
   Map<DateTime, List<TransactionModel>> _grouped = {};
   List<DateTime> _sections = [];
+  TransactionModel? _selectedTx;
   Worker? _txWorker;
+  Worker? _loadingWorker;
 
   @override
   void initState() {
@@ -47,12 +52,16 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     if (!Get.isRegistered<TransactionController>()) Get.put(TransactionController());
     final controller = Get.find<TransactionController>();
     _txWorker = ever(controller.transactions, (_) => _regroup());
+    _loadingWorker = ever(controller.isLoading, (_) {
+      if (mounted) setState(() {});
+    });
     _regroup();
   }
 
   @override
   void dispose() {
     _txWorker?.dispose();
+    _loadingWorker?.dispose();
     super.dispose();
   }
 
@@ -178,10 +187,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             SizedBox(width: 8.w),
           ],
         ),
-        body: Obx(() {
-          final TransactionController controller = Get.find();
+        body: Builder(
+          builder: (context) {
+            final TransactionController controller = Get.find();
 
-          if (controller.isLoading.value && controller.transactions.isEmpty) {
+            if (controller.isLoading.value && controller.transactions.isEmpty) {
             return Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
               child: const TransactionListShimmer(),
@@ -241,16 +251,20 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             ),
           );
 
-          return RefreshIndicator(
+          return AdaptivePanel(
+            master: RefreshIndicator(
             color: AppColors.secondary,
             backgroundColor: theme.scaffoldBackgroundColor,
             onRefresh: () async {
               HapticFeedback.mediumImpact();
               await controller.refreshData();
             },
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
                 SliverToBoxAdapter(child: SizedBox(height: 10.h)),
                 SliverToBoxAdapter(child: tabSelector),
                 SliverToBoxAdapter(child: SizedBox(height: 20.h)),
@@ -336,17 +350,23 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                   ),
                                 ],
                               ),
-                              child: GlassContainer(
+                              child: HoverEffect(
+                                child: GlassContainer(
                                 onTap: () {
-                                  Get.to(
-                                    () => TransactionResultScreen(
-                                      type: getTransactionTypeFromStatus(tx.status),
-                                      transaction: tx,
-                                    ),
-                                    curve: curve,
-                                    transition: transition,
-                                    duration: duration,
-                                  );
+                                  final isSplit = Responsive.isTablet(context) && Responsive.isLandscape(context);
+                                  if (isSplit) {
+                                    setState(() => _selectedTx = tx);
+                                  } else {
+                                    Get.to(
+                                      () => TransactionResultScreen(
+                                        type: getTransactionTypeFromStatus(tx.status),
+                                        transaction: tx,
+                                      ),
+                                      curve: curve,
+                                      transition: transition,
+                                      duration: duration,
+                                    );
+                                  }
                                 },
                                 padding: EdgeInsets.all(16.w),
                                 child: Row(
@@ -396,7 +416,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                 ),
                               ),
                             ),
-                          );
+                          ),
+                        );
                         },
                         childCount: flatItems.length,
                       ),
@@ -404,10 +425,44 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                   ),
                   SliverToBoxAdapter(child: SizedBox(height: 20.h)),
                 ],
-              ],
-            ),
+                  ],
+                ),
+              ),
+             ),
+             ),
+            detail: _selectedTx != null
+                ? TransactionResultScreen(
+                    type: getTransactionTypeFromStatus(_selectedTx!.status),
+                    transaction: _selectedTx!,
+                  )
+                : _buildDetailPlaceholder(),
+            showDetail: _selectedTx != null,
           );
         }),
+      ),
+    );
+  }
+
+  Widget _buildDetailPlaceholder() {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 64.sp,
+            color: theme.disabledColor.withValues(alpha: 0.3),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            "Select a transaction to view details",
+            style: TextStyle(
+              color: theme.disabledColor,
+              fontSize: 16.sp,
+            ),
+          ),
+        ],
       ),
     );
   }

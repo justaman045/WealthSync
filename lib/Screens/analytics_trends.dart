@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class AnalyticsTrendsScreen extends StatefulWidget {
   const AnalyticsTrendsScreen({super.key});
@@ -213,8 +214,11 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
     if (_selectedCategory == null || !cats.contains(_selectedCategory)) {
       _selectedCategory = "All Categories";
     }
-    return Padding(
-      padding: EdgeInsets.all(16.w),
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+        child: Padding(
+          padding: EdgeInsets.all(16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -320,8 +324,8 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+                    blurRadius: 20.w,
+                    offset: Offset(0, 10.w),
                   ),
                 ],
               ),
@@ -459,6 +463,8 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
           SizedBox(height: 30.h),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 }

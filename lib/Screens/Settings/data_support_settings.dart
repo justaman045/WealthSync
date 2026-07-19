@@ -14,8 +14,10 @@ import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/terms_and_policy.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/settings_widgets.dart';
 import 'package:money_control/Screens/import_screen.dart';
 import 'package:money_control/Screens/transaction_audit_screen.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class DataSupportSettingsScreen extends StatelessWidget {
   const DataSupportSettingsScreen({super.key});
@@ -308,167 +310,69 @@ class DataSupportSettingsScreen extends StatelessWidget {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-            child: Column(
-              children: [
-                _SectionHeader("Data Management"),
-                _SettingsTile(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: Column(
+                  children: [
+                SectionHeader("Data Management"),
+                SettingsTile(
                   icon: Icons.backup_outlined,
                   title: "Backup Data",
                   onTap: () => _handleBackup(context),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.restore_outlined,
                   title: "Restore Data",
                   onTap: () => _handleRestore(context),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.upload_file,
                   title: "Import Data (CSV)",
                   onTap: () => Get.to(() => const ImportScreen()),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.download,
                   title: "Export Transactions (CSV)",
                   onTap: () => _handleExportCsv(context),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.cloud_download,
                   title: "Export All Data (GDPR)",
                   onTap: () => _handleGdprExport(context),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.fact_check,
                   title: "Transaction Audit",
                   onTap: () => Get.to(() => const TransactionAuditScreen()),
                 ),
 
-                _Divider(),
+                SectionDivider(),
 
-                _SectionHeader("Support & Legal"),
-                _SettingsTile(
+                SectionHeader("Support & Legal"),
+                SettingsTile(
                   icon: Icons.feedback_outlined,
                   title: "Send Feedback",
                   onTap: () => Get.to(() => const FeedbackScreen()),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.info_outline,
                   title: "About App",
                   onTap: () => Get.to(() => const AboutApplicationScreen()),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.gavel_outlined,
                   title: "Terms & Conditions",
                   onTap: () => Get.to(() => const LegalTrustPage()),
                 ),
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: "Privacy Policy",
                   onTap: () => Get.to(() => const LegalTrustPage()),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---- Reusable Components ----
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: EdgeInsets.only(bottom: 15.h, top: 10.h, left: 5.w),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title.toUpperCase(),
-          style: TextStyle(
-            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData? icon;
-  final String title;
-  final VoidCallback? onTap;
-
-  const _SettingsTile({this.icon, required this.title, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16.r),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16.r),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightBorder.withValues(alpha: 0.05)),
-            ),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Container(
-                    padding: EdgeInsets.all(8.w),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      icon,
-                      color: const Color(0xFF00E5FF),
-                      size: 20.sp,
-                    ),
-                  ),
-                  SizedBox(width: 16.w),
-                ],
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  ],
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
-                  size: 16.sp,
-                ),
-              ],
+              ),
             ),
           ),
         ),

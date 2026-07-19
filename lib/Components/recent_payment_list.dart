@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/tx_tile.dart';
 import 'package:get/get.dart';
@@ -30,26 +31,27 @@ class RecentPaymentList extends StatefulWidget {
 }
 
 class _RecentPaymentListState extends State<RecentPaymentList> {
-  // Track whether the entrance animation has already played once.
-  // After first render, subsequent Obx rebuilds (data changes) skip animations
-  // to avoid janky re-animation of all tiles on every transaction update.
   bool _entranceAnimationDone = false;
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Center(
+        child: Text("Not logged in",
+            style: TextStyle(color: Theme.of(context).colorScheme.error)),
+      );
+    }
+
+    if (!Get.isRegistered<TransactionController>()) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        child: TransactionListShimmer(),
+      );
+    }
+    final controller = Get.find<TransactionController>();
+
     return Obx(() {
-      final user = FirebaseAuth.instance.currentUser;
-      final scheme = Theme.of(context).colorScheme;
-
-      if (user == null) {
-        return Center(
-          child: Text("Not logged in", style: TextStyle(color: scheme.error)),
-        );
-      }
-
-      if (!Get.isRegistered<TransactionController>()) return const SizedBox.shrink();
-      final controller = Get.find<TransactionController>();
-
       if (controller.isLoading.value) {
         return const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -58,10 +60,19 @@ class _RecentPaymentListState extends State<RecentPaymentList> {
       }
 
       if (controller.transactions.isEmpty) {
-        return const EmptyStateWidget(
+        return EmptyStateWidget(
           title: "No Transactions",
-          subtitle: "You haven't made any transactions yet.",
+          subtitle: kIsWeb
+              ? "Could not load transactions. Tap retry to try again."
+              : "You haven't made any transactions yet.",
           icon: Icons.receipt_long_outlined,
+          actionLabel: kIsWeb ? "Retry" : null,
+          onAction: kIsWeb
+              ? () {
+                  controller.bindTransactions();
+                  controller.bindCategories();
+                }
+              : null,
         );
       }
 
@@ -83,8 +94,6 @@ class _RecentPaymentListState extends State<RecentPaymentList> {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       final txTextColor = isDark ? Colors.white : Colors.black87;
 
-      // Mark animation as done after first successful build so subsequent
-      // reactive rebuilds (e.g. new transaction added) don't re-animate all tiles.
       final shouldAnimate = !_entranceAnimationDone;
       if (shouldAnimate) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -102,8 +111,6 @@ class _RecentPaymentListState extends State<RecentPaymentList> {
             final bool received = tx.recipientId == user.uid;
 
             final tile = TxTile(
-              // Stable key prevents Flutter from destroying/recreating the tile
-              // widget when the list order is unchanged, avoiding unnecessary repaints.
               key: ValueKey(tx.id),
               tx: tx,
               received: received,

@@ -125,11 +125,15 @@ class TransactionController extends GetxController {
     }
   }
 
+  int _txRetryCount = 0;
+  static const int _txMaxRetries = 5;
+
   void bindTransactions() {
     _txSub?.cancel();
     _txSub = _repository.getTransactionsStream().listen(
       (txList) {
         transactions.value = txList;
+        _txRetryCount = 0;
         if (_userEmail != null) {
           final cacheData = txList.map((t) {
             final map = t.toMap();
@@ -139,7 +143,18 @@ class TransactionController extends GetxController {
           LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.txs30);
         }
       },
-      onDone: () => Future.delayed(const Duration(seconds: 3), bindTransactions),
+      onDone: () {
+        final delay = kIsWeb ? 5 : 3;
+        Future.delayed(Duration(seconds: delay), bindTransactions);
+      },
+      onError: (e) {
+        debugPrint('TransactionController stream error: $e');
+        if (_txRetryCount < _txMaxRetries) {
+          _txRetryCount++;
+          final delay = kIsWeb ? 3 : 1;
+          Future.delayed(Duration(seconds: delay), bindTransactions);
+        }
+      },
     );
   }
 
@@ -152,10 +167,28 @@ class TransactionController extends GetxController {
     }
   }
 
+  int _catRetryCount = 0;
+  static const int _catMaxRetries = 5;
+
   void bindCategories() {
     _catSub?.cancel();
     _catSub = _repository.getCategoriesStream().listen(
-      (catList) => categories.value = catList,
+      (catList) {
+        categories.value = catList;
+        _catRetryCount = 0;
+      },
+      onDone: () {
+        final delay = kIsWeb ? 5 : 3;
+        Future.delayed(Duration(seconds: delay), bindCategories);
+      },
+      onError: (e) {
+        debugPrint('TransactionController categories stream error: $e');
+        if (_catRetryCount < _catMaxRetries) {
+          _catRetryCount++;
+          final delay = kIsWeb ? 3 : 1;
+          Future.delayed(Duration(seconds: delay), bindCategories);
+        }
+      },
     );
   }
 
@@ -433,7 +466,7 @@ class TransactionController extends GetxController {
       final email = user.email;
       if (email != null) LocalBackupService.backupUserTransactions(email);
       return true;
-    }     on TimeoutException {
+    } on TimeoutException {
       try {
         final deleteJson = {
           "_operation": "delete",

@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class UpdatePage extends StatefulWidget {
   const UpdatePage({super.key});
@@ -34,14 +36,20 @@ class _UpdatePageState extends State<UpdatePage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (data is! Map) {
+          if (!mounted) return;
+          setState(() { error = true; loading = false; });
+          return;
+        }
+        final mapData = Map<String, dynamic>.from(data);
         if (!mounted) return;
         setState(() {
-          releaseData = data;
+          releaseData = mapData;
           loading = false;
         });
 
         // Trigger smart analysis after fetching release
-        final tagName = data["tag_name"];
+        final tagName = mapData["tag_name"];
         if (tagName != null) {
           fetchAnalysis(tagName);
         }
@@ -76,10 +84,14 @@ class _UpdatePageState extends State<UpdatePage> {
       if (response.statusCode == 200) {
         if (mounted) {
           final data = jsonDecode(response.body);
-          setState(() {
-            analysisData = data;
-            analyzing = false;
-          });
+          if (data is Map) {
+            setState(() {
+              analysisData = Map<String, dynamic>.from(data);
+              analyzing = false;
+            });
+          } else {
+            setState(() => analyzing = false);
+          }
         }
       } else {
         if (mounted) setState(() => analyzing = false);
@@ -161,14 +173,17 @@ class _UpdatePageState extends State<UpdatePage> {
     final intelligentSummary = _generateIntelligentSummary();
 
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+          child: ListView(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
         children: [
           // ------------------------------------------------------------
           // HEADER CARD
           // ------------------------------------------------------------
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24.w),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(24),
@@ -176,67 +191,67 @@ class _UpdatePageState extends State<UpdatePage> {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+                  blurRadius: 15.w,
+                  offset: Offset(0, 8.w),
                 ),
               ],
             ),
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
                     color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.system_update_rounded,
-                    color: Color(0xFF00E5FF),
-                    size: 40,
+                    color: const Color(0xFF00E5FF),
+                    size: 40.sp,
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 Text(
                   "Version $tag",
-                  style: const TextStyle(
-                    fontSize: 22,
+                  style: TextStyle(
+                    fontSize: 22.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     letterSpacing: 0.5,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6.h),
                 Text(
                   publishedDate != null
                       ? "Released on ${publishedDate.toLocal().toString().split(' ')[0]}"
                       : "New Release",
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 14,
+                    fontSize: 14.sp,
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: 24.h),
 
           // ------------------------------------------------------------
           // CHANGELOG
           // ------------------------------------------------------------
           Text(
             "What’s New",
-            style: const TextStyle(
-              fontSize: 18,
+            style: TextStyle(
+              fontSize: 18.sp,
               fontWeight: FontWeight.bold,
               color: Colors.white,
               letterSpacing: 0.5,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
 
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(vertical: 12.h),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(20),
@@ -248,7 +263,7 @@ class _UpdatePageState extends State<UpdatePage> {
                     intelligentSummary.isEmpty &&
                     !analyzing)
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16.w),
                     child: Text(
                       "Bug fixes and improvements.",
                       style: TextStyle(
@@ -280,12 +295,12 @@ class _UpdatePageState extends State<UpdatePage> {
                 ],
 
                 if (analyzing)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(16.0),
                     child: Center(
                       child: SizedBox(
-                        width: 20,
-                        height: 20,
+                        width: 20.w,
+                        height: 20.h,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: Colors.white54,
@@ -297,14 +312,14 @@ class _UpdatePageState extends State<UpdatePage> {
             ),
           ),
 
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
 
           // ------------------------------------------------------------
           // ACTIONS
           // ------------------------------------------------------------
           SizedBox(
             width: double.infinity,
-            height: 54,
+            height: 54.h,
             child: ElevatedButton(
               onPressed: () => launchUrl(
                 Uri.parse(downloadUrl),
@@ -316,23 +331,23 @@ class _UpdatePageState extends State<UpdatePage> {
                 shadowColor: const Color(0xFF00E5FF).withValues(alpha: 0.4),
                 elevation: 8,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(16.r),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.download_rounded),
-                  SizedBox(width: 8),
+                  const Icon(Icons.download_rounded),
+                  SizedBox(width: 8.w),
                   Text(
                     "Download Update",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Center(
             child: TextButton(
               onPressed: () => launchUrl(
@@ -343,8 +358,10 @@ class _UpdatePageState extends State<UpdatePage> {
               child: const Text("View Full Changelog on GitHub"),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
         ],
+          ),
+        ),
       ),
     );
   }
@@ -357,14 +374,14 @@ class _UpdatePageState extends State<UpdatePage> {
           Icon(
             Icons.error_outline_rounded,
             color: Colors.redAccent.shade100,
-            size: 48,
+            size: 48.sp,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Text(
             "Could not fetch release info.",
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 16,
+              fontSize: 16.sp,
             ),
           ),
           TextButton(
@@ -418,21 +435,21 @@ class _UpdatePageState extends State<UpdatePage> {
 
   Widget _buildFeatureRow(String text, IconData icon, Color color) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(icon, color: color, size: 18),
+            padding: EdgeInsets.only(top: 2.h),
+            child: Icon(icon, color: color, size: 18.sp),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 14.5,
+                fontSize: 14.5.sp,
                 height: 1.4,
               ),
             ),

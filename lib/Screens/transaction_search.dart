@@ -12,6 +12,7 @@ import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/empty_state.dart'; // Empty State
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class TransactionSearchPage extends StatefulWidget {
   const TransactionSearchPage({super.key});
@@ -134,8 +135,8 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                           color: const Color(
                             0xFF00E5FF,
                           ).withValues(alpha: 0.1), // Neon Cyan Glow
-                          blurRadius: 20,
-                          spreadRadius: -5,
+                          blurRadius: 20.w,
+                          spreadRadius: -5.w,
                         ),
                       ],
                     ),
@@ -226,8 +227,11 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                               ],
                             ).animate().fadeIn(delay: 200.ms),
                           ))
-                  : ListView.builder(
-                      padding: EdgeInsets.only(top: 16.h, bottom: 30.h),
+                  : Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                        child: ListView.builder(
+                            padding: EdgeInsets.only(top: 16.h, bottom: 30.h),
                       itemCount: results.length,
                       itemBuilder: (context, i) {
                         final tx = results[i];
@@ -340,6 +344,8 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                               );
                             });
                       },
+                        ),
+                      ),
                     ),
             ),
           ],

@@ -2,12 +2,14 @@ import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 
 class DuplicateGroup {
+  final String id;
   final String merchant;
   final double amount;
   final DateTime date;
   final List<TransactionModel> transactions;
 
   DuplicateGroup({
+    required this.id,
     required this.merchant,
     required this.amount,
     required this.date,
@@ -16,11 +18,13 @@ class DuplicateGroup {
 }
 
 class SignError {
+  final String id;
   final TransactionModel transaction;
   final String expected;
   final String actual;
 
   SignError({
+    required this.id,
     required this.transaction,
     required this.expected,
     required this.actual,
@@ -28,10 +32,11 @@ class SignError {
 }
 
 class OrphanedRecurring {
+  final String id;
   final RecurringPayment payment;
   final String reason;
 
-  OrphanedRecurring({required this.payment, required this.reason});
+  OrphanedRecurring({required this.id, required this.payment, required this.reason});
 }
 
 class BankComparisonRow {

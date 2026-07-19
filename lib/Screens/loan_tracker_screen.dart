@@ -7,6 +7,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
 import 'package:money_control/Models/loan_model.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class LoanTrackerScreen extends StatefulWidget {
   const LoanTrackerScreen({super.key});
@@ -62,22 +63,27 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
           if (ctrl.loans.isEmpty) {
             return _buildEmptyState(isDark);
           }
-          return ListView(
-            padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
-            children: [
-              _buildSummaryCard(ctrl, isDark),
-              SizedBox(height: 20.h),
-              Text(
-                "Active Loans",
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                ),
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: ListView(
+                padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
+                children: [
+                  _buildSummaryCard(ctrl, isDark),
+                  SizedBox(height: 20.h),
+                  Text(
+                    "Active Loans",
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  ...ctrl.loans.map((loan) => _buildLoanCard(context, loan, ctrl, isDark)),
+                ],
               ),
-              SizedBox(height: 12.h),
-              ...ctrl.loans.map((loan) => _buildLoanCard(context, loan, ctrl, isDark)),
-            ],
+            ),
           );
         }),
       ),
@@ -98,8 +104,8 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            blurRadius: 16.w,
+            offset: Offset(0, 6.w),
           ),
         ],
       ),
@@ -335,6 +341,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       backgroundColor: Colors.transparent,
       builder: (_) => const _AddLoanSheet(),
     );
@@ -351,6 +358,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       backgroundColor: Colors.transparent,
       builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.75,

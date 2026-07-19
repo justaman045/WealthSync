@@ -8,6 +8,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -19,6 +20,7 @@ class CategoryManagementScreen extends StatefulWidget {
 
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   final CategoryService _categoryService = CategoryService();
+  late ThemeData _cachedTheme;
 
   void _showCategoryDialog({CategoryModel? category}) {
     showDialog(
@@ -36,7 +38,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               Navigator.pop(context); // Close dialog
               showModalBottomSheet(
                 context: context,
-                backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBackground : AppColors.lightBackground,
+                constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
+                backgroundColor: _cachedTheme.brightness == Brightness.dark ? AppColors.darkBackground : AppColors.lightBackground,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(24.r),
@@ -66,7 +69,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     }
     final txCtrl = Get.find<TransactionController>();
     final usageCount = txCtrl.getCategoryUsageCount(category.name);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
 
     if (usageCount == 0) {
       showDialog(
@@ -196,7 +199,8 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    _cachedTheme = Theme.of(context);
+    final isDark = _cachedTheme.brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -252,19 +256,24 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 );
               }
 
-              return GridView.builder(
-                padding: EdgeInsets.all(16.w),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                  childAspectRatio: 0.85,
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                  child: GridView.builder(
+                    padding: EdgeInsets.all(16.w),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: Responsive.gridColumns(context),
+                      crossAxisSpacing: 12.w,
+                      mainAxisSpacing: 12.h,
+                      childAspectRatio: 0.85,
+                    ),
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final cat = categories[index];
+                      return _buildCategoryTile(cat);
+                    },
+                  ),
                 ),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  final cat = categories[index];
-                  return _buildCategoryTile(cat);
-                },
               );
             },
           ),
@@ -279,7 +288,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   }
 
   Widget _buildCategoryTile(CategoryModel cat) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     final color = cat.color != null
         ? Color(cat.color!)
         : const Color(0xFF6C63FF);

@@ -7,6 +7,7 @@ import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -26,10 +27,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.lock_outline, size: 64, color: Colors.redAccent),
-              SizedBox(height: 16),
-              Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            children: [
+              Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
+              SizedBox(height: 16.h),
+              Text("Access Denied", style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -95,8 +96,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
             final docs = snapshot.data!.docs;
 
-            return ListView.builder(
-              padding: EdgeInsets.all(16.w),
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView.builder(
+                  padding: EdgeInsets.all(16.w),
               itemCount: docs.length,
               itemBuilder: (context, index) {
                 final data = docs[index].data() as Map<String, dynamic>;
@@ -181,10 +185,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   ErrorHandler.showError("User $email request rejected.", title: "Rejected");
                                 },
                                 icon: Icon(
-                                  Icons.close,
-                                  size: 18,
-                                  color: Colors.redAccent,
-                                ),
+                                   Icons.close,
+                                   size: 18.sp,
+                                   color: Colors.redAccent,
+                                 ),
                                 label: Text(
                                   "Reject",
                                   style: TextStyle(color: Colors.redAccent),
@@ -205,10 +209,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   ErrorHandler.showSuccess("User $email is now Pro!");
                                 },
                                 icon: Icon(
-                                  Icons.check,
-                                  size: 18,
-                                  color: Colors.black,
-                                ),
+                                   Icons.check,
+                                   size: 18.sp,
+                                   color: Colors.black,
+                                 ),
                                 label: Text(
                                   "Approve",
                                   style: TextStyle(
@@ -229,9 +233,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                 );
               },
-            );
-          },
-        ),
+            ),
+          ),
+        );
+      },
+    ),
         floatingActionButton: FloatingActionButton(
           backgroundColor: Colors.redAccent,
           child: const Icon(Icons.bug_report, color: Colors.white),
@@ -277,7 +283,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         actions: [
           TextButton(
             onPressed: () {
-              emailController.dispose();
               Navigator.pop(context);
             },
             child: const Text("Cancel"),
@@ -298,7 +303,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ErrorHandler.showSuccess("Expiry set to yesterday! Restart app to test.", title: "Test Mode");
                 if (context.mounted) Navigator.pop(context);
               }
-              emailController.dispose();
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             child: const Text("Expire Now"),

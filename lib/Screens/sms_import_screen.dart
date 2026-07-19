@@ -16,6 +16,7 @@ import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Screens/auto_tag_rules_screen.dart';
 import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class SmsImportScreen extends StatefulWidget {
   const SmsImportScreen({super.key});
@@ -273,7 +274,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
           IconButton(
             icon: Icon(Icons.rule, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             tooltip: "Auto-tag rules",
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AutoTagRulesScreen())),
+            onPressed: () => Get.to(() => const AutoTagRulesScreen()),
           ),
           Obx(() {
             if (subscriptionController.isPro && _transactions.isNotEmpty) {
@@ -320,7 +321,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                   children: [
                     Icon(
                       Icons.sms_failed,
-                      size: 60,
+                      size: 60.sp,
                       color: isDark ? Colors.white24 : AppColors.lightTextSecondary.withValues(alpha: 0.4),
                     ),
                     SizedBox(height: 16.h),
@@ -345,8 +346,11 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                     ),
                   ),
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: _transactions.length,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                        child: ListView.builder(
+                          itemCount: _transactions.length,
                       itemBuilder: (context, index) {
                         final tx = _transactions[index];
                         final isSelected = _selectedIndices.contains(index);
@@ -371,7 +375,9 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                           ),
                           child: Opacity(
                             opacity: isImported ? 0.55 : 1.0,
-                            child: CheckboxListTile(
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: CheckboxListTile(
                               value: isSelected,
                               activeColor: Colors.cyan,
                               checkColor: Colors.black,
@@ -492,9 +498,12 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                 }
                               },
                             ),
+                            ),
                           ),
                         );
                       },
+                        ),
+                      ),
                     ),
                   ),
                   Container(
@@ -504,8 +513,8 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black26,
-                          blurRadius: 10,
-                          offset: Offset(0, -5),
+                          blurRadius: 10.w,
+                          offset: Offset(0.w, -5.w),
                         ),
                       ],
                     ),
@@ -525,8 +534,8 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                         ),
                         child: _loading && _scanned
                             ? SizedBox(
-                                width: 20,
-                                height: 20,
+                                width: 20.w,
+                                height: 20.h,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.black,

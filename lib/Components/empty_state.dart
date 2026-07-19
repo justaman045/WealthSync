@@ -42,8 +42,8 @@ class EmptyStateWidget extends StatelessWidget {
                     boxShadow: [
                       BoxShadow(
                         color: accentColor.withValues(alpha: 0.2),
-                        blurRadius: 30,
-                        spreadRadius: 5,
+                        blurRadius: 30.w,
+                        spreadRadius: 5.w,
                       ),
                     ],
                     border: Border.all(
@@ -97,7 +97,7 @@ class EmptyStateWidget extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
-                      elevation: 4,
+                      elevation: 4.w,
                       shadowColor: accentColor.withValues(alpha: 0.4),
                     ),
                     child: Text(

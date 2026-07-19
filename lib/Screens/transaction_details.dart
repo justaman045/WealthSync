@@ -16,6 +16,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 // ----------------------------------------------------------------------
 
@@ -229,79 +230,84 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 10.h),
-      child: Column(
-        children: [
-          SizedBox(height: 20.h),
-          _statusIcon(isReceived),
-          SizedBox(height: 16.h),
-          _titleText(isReceived),
-          SizedBox(height: 6.h),
-          _subtitleText(isReceived),
-          SizedBox(height: 30.h),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+          child: Column(
             children: [
-              _capsuleButton(
-                icon: Icons.share_outlined,
-                label: "Share",
-                onTap: _shareScreenshot,
+              SizedBox(height: 20.h),
+              _statusIcon(isReceived),
+              SizedBox(height: 16.h),
+              _titleText(isReceived),
+              SizedBox(height: 6.h),
+              _subtitleText(isReceived),
+              SizedBox(height: 30.h),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _capsuleButton(
+                    icon: Icons.share_outlined,
+                    label: "Share",
+                    onTap: _shareScreenshot,
+                  ),
+                  SizedBox(width: 16.w),
+                  _capsuleButton(
+                    icon: Icons.picture_as_pdf,
+                    label: "Save PDF",
+                    onTap: _savePDF,
+                  ),
+                ],
               ),
-              SizedBox(width: 16.w),
-              _capsuleButton(
-                icon: Icons.picture_as_pdf,
-                label: "Save PDF",
-                onTap: _savePDF,
+
+              SizedBox(height: 30.h),
+              _detailsCard(tx, isReceived),
+
+              SizedBox(height: 30.h),
+              Container(
+                width: double.infinity,
+                height: 54.h,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF6A11CB),
+                      Color(0xFF2575FC),
+                    ], // Neon Blue/Purple
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(28.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2575FC).withValues(alpha: 0.4),
+                      blurRadius: 12.w,
+                      offset: Offset(0, 4.w),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28.r),
+                    ),
+                  ),
+                  child: Text(
+                    "Back",
+                    style: TextStyle(
+                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16.sp,
+                    ),
+                  ),
+                ),
               ),
+              SizedBox(height: 20.h),
             ],
           ),
-
-          SizedBox(height: 30.h),
-          _detailsCard(tx, isReceived),
-
-          SizedBox(height: 30.h),
-          Container(
-            width: double.infinity,
-            height: 54.h,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF6A11CB),
-                  Color(0xFF2575FC),
-                ], // Neon Blue/Purple
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(28.r),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF2575FC).withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28.r),
-                ),
-              ),
-              child: Text(
-                "Back",
-                style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16.sp,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 20.h),
-        ],
+        ),
       ),
     );
   }
@@ -359,11 +365,11 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 20.w,
+            offset: Offset(0, 8.w),
             color: colors.first.withValues(alpha: 0.4),
           ),
-          BoxShadow(blurRadius: 10, color: Colors.black.withValues(alpha: 0.2)),
+          BoxShadow(blurRadius: 10.w, color: Colors.black.withValues(alpha: 0.2)),
         ],
       ),
       child: Center(
@@ -441,8 +447,8 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 10.w,
+            offset: Offset(0, 4.w),
           ),
         ],
       ),
@@ -485,8 +491,8 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
           ),
         ],
       ),

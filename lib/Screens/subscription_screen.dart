@@ -10,6 +10,7 @@ import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:money_control/main.dart' show rootScaffoldMessengerKey;
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -63,19 +64,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               final days = SubscriptionController.to.daysLeftInTrial;
               return SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Column(
-                  children: [
-                    SizedBox(height: 40.h),
-                    Container(
-                      padding: EdgeInsets.all(20.w),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.1),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                    child: Column(
+                      children: [
+                        SizedBox(height: 40.h),
+                        Container(
+                          padding: EdgeInsets.all(20.w),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.amber.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                            blurRadius: 20.w,
+                            spreadRadius: 5.w,
                           ),
                         ],
                       ),
@@ -129,7 +133,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.cyanAccent,
                           foregroundColor: Colors.black,
-                          elevation: 10,
+                          elevation: 10.w,
                           shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16.r),
@@ -151,7 +155,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             child: Material(
                               color: Colors.transparent,
                               child: GlassContainer(
-                                width: 320.w,
+                                width: () { final sw = MediaQuery.sizeOf(context).width; final raw = sw * 0.85; return raw > 340 ? 340.0 : raw < 260 ? 260.0 : raw; }(),
                                 padding: EdgeInsets.all(24.w),
                                 borderRadius: BorderRadius.circular(24.r),
                                 child: Column(
@@ -218,6 +222,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     SizedBox(height: 40.h),
                   ],
+                    ),
+                  ),
                 ),
               );
             }
@@ -225,20 +231,23 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             if (SubscriptionController.to.isPro) {
               return SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 40.h),
-                    Container(
-                      padding: EdgeInsets.all(20.w),
-                      decoration: BoxDecoration(
-                        color: Colors.cyan.withValues(alpha: 0.1),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(height: 40.h),
+                        Container(
+                          padding: EdgeInsets.all(20.w),
+                          decoration: BoxDecoration(
+                            color: Colors.cyan.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.cyan.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                            blurRadius: 20.w,
+                            spreadRadius: 5.w,
                           ),
                         ],
                       ),
@@ -324,7 +333,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             child: Material(
                               color: Colors.transparent,
                               child: GlassContainer(
-                                width: 320.w,
+                                width: () { final sw = MediaQuery.sizeOf(context).width; final raw = sw * 0.85; return raw > 340 ? 340.0 : raw < 260 ? 260.0 : raw; }(),
                                 padding: EdgeInsets.all(24.w),
                                 borderRadius: BorderRadius.circular(24.r),
                                 child: Column(
@@ -451,15 +460,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       child: const Text("Cancel Subscription"),
                     ),
                   ],
+                    ),
+                  ),
                 ),
               );
             } else if (SubscriptionController.to.isPending) {
               return SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 100.h),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(height: 100.h),
                     Container(
                       padding: EdgeInsets.all(20.w),
                       decoration: BoxDecoration(
@@ -468,8 +482,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         boxShadow: [
                           BoxShadow(
                             color: Colors.orangeAccent.withValues(alpha: 0.2),
-                            blurRadius: 20,
-                            spreadRadius: 5,
+                            blurRadius: 20.w,
+                            spreadRadius: 5.w,
                           ),
                         ],
                       ),
@@ -522,25 +536,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       ),
                     ),
                   ],
+                    ),
+                  ),
                 ),
               );
             }
 
             return SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(20.w),
-                    decoration: BoxDecoration(
-                      color: Colors.cyan.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.cyan.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.cyan.withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          spreadRadius: 5,
+                                                     blurRadius: 20.w,
+                          spreadRadius: 5.w,
                         ),
                       ],
                     ),
@@ -584,7 +603,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.timer_outlined, color: Color(0xFF69F0AE), size: 20),
+                            Icon(Icons.timer_outlined, color: Color(0xFF69F0AE), size: 20.sp),
                             SizedBox(width: 8.w),
                             Text(
                               '${sub.daysLeftInTrial} day${sub.daysLeftInTrial == 1 ? '' : 's'} left in free trial',
@@ -609,7 +628,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.timer_off_outlined, color: Colors.redAccent, size: 20),
+                            Icon(Icons.timer_off_outlined, color: Colors.redAccent, size: 20.sp),
                             SizedBox(width: 8.w),
                             Text(
                               'Your free trial has ended',
@@ -708,7 +727,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     return isUpiMode ? _buildUpiFlow(isDark) : _buildIapFlow(isDark);
                   }),
                   SizedBox(height: 20.h),
-                ],
+                    ],
+                  ),
+                ),
               ),
             );
           }),
@@ -872,12 +893,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.cyanAccent,
                 foregroundColor: Colors.black,
-                elevation: 10,
+                elevation: 10.w,
                 shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
               ),
               child: loading
-                  ? const SizedBox(height: 24, width: 24,
+                  ? SizedBox(height: 24.h, width: 24.w,
                       child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
                   : Text(label, style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
             ),
@@ -923,7 +944,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Expanded(child: Text(upiId.isNotEmpty ? upiId : '—', style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 16.sp))),
                     if (upiId.isNotEmpty)
                       IconButton(
-                        icon: const Icon(Icons.copy, color: Colors.cyanAccent, size: 18),
+                        icon: Icon(Icons.copy, color: Colors.cyanAccent, size: 18.sp),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: upiId));
                           Get.snackbar('Copied', 'UPI ID copied to clipboard.',
@@ -986,12 +1007,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.cyanAccent,
                 foregroundColor: Colors.black,
-                elevation: 10,
+                elevation: 10.w,
                 shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
               ),
               child: _upiSubmitting
-                  ? const SizedBox(height: 24, width: 24,
+                  ? SizedBox(height: 24.h, width: 24.w,
                       child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
                   : Text('Submit for Verification', style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold)),
             ),
@@ -1021,6 +1042,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     showModalBottomSheet(
       context: context,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       builder: (_) => Padding(
@@ -1032,7 +1054,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             SizedBox(height: 20.h),
             ...apps.map((app) => ListTile(
               title: Text(app.name, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
-              trailing: Icon(Icons.arrow_forward_ios, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2), size: 14),
+              trailing: Icon(Icons.arrow_forward_ios, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2), size: 14.sp),
               onTap: () {
                 Navigator.pop(context);
                 _initiateUpiPayment(app.pkg, amount, upiId, setLocal);

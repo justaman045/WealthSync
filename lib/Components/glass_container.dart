@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:ui';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class GlassContainer extends StatelessWidget {
   static BoxDecoration glassDecoration({
@@ -27,8 +28,8 @@ class GlassContainer extends StatelessWidget {
               color: isDark
                   ? Colors.black.withValues(alpha: 0.1)
                   : Colors.black.withValues(alpha: 0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              blurRadius: 15.w,
+              offset: Offset(0.w, 8.w),
             ),
           ],
     );
@@ -58,41 +59,71 @@ class GlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rBorderRadius = borderRadius ?? BorderRadius.circular(20.r);
+    final isTablet = Responsive.isTablet(context);
 
     final container = RepaintBoundary(
       child: ClipRRect(
         borderRadius: rBorderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-          child: Container(
-            width: width,
-            height: height,
-            margin: margin ?? EdgeInsets.zero,
-            padding: padding ?? EdgeInsets.all(16.w),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.2)
-                  : AppColors.lightSurface.withValues(alpha: 0.85),
-              borderRadius: rBorderRadius,
-              border:
-                  border ??
-                  Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : AppColors.lightBorder.withValues(alpha: 0.5),
-                    width: 1.5,
-                  ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  spreadRadius: 2,
+        child: isTablet
+            ? Container(
+                width: width,
+                height: height,
+                margin: margin ?? EdgeInsets.zero,
+                padding: padding ?? EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : AppColors.lightSurface.withValues(alpha: 0.92),
+                  borderRadius: rBorderRadius,
+                  border:
+                      border ??
+                      Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : AppColors.lightBorder.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 12.w,
+                      spreadRadius: 1.w,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: child,
-          ),
-        ),
+                child: child,
+              )
+            : BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                child: Container(
+                  width: width,
+                  height: height,
+                  margin: margin ?? EdgeInsets.zero,
+                  padding: padding ?? EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.2)
+                        : AppColors.lightSurface.withValues(alpha: 0.85),
+                    borderRadius: rBorderRadius,
+                    border:
+                        border ??
+                        Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.1)
+                              : AppColors.lightBorder.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10.w,
+                        spreadRadius: 2.w,
+                      ),
+                    ],
+                  ),
+                  child: child,
+                ),
+              ),
       ),
     );
 

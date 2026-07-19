@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Screens/loginscreen.dart';
 import 'package:money_control/Services/user_service.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class DeactivateAccountScreen extends StatefulWidget {
   const DeactivateAccountScreen({super.key});
@@ -107,9 +107,12 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 20.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Container(
                 padding: EdgeInsets.all(24.w),
                 decoration: BoxDecoration(
@@ -123,8 +126,8 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                       color: Colors.black.withValues(
                         alpha: isDark ? 0.2 : 0.05,
                       ),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                      blurRadius: 15.w,
+                      offset: Offset(0, 5.w),
                     ),
                   ],
                 ),
@@ -303,10 +306,11 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                   ],
                 ),
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
-        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       ),
     );
   }

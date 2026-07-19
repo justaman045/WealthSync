@@ -8,6 +8,8 @@ import 'package:money_control/Services/biometric_service.dart';
 import 'package:money_control/Screens/deactivate_account.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/settings_widgets.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class SecuritySettingsScreen extends StatefulWidget {
   const SecuritySettingsScreen({super.key});
@@ -71,14 +73,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         child: SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-            child: Column(
-              children: [
-                _SectionHeader("Access Control"),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: Column(
+                  children: [
+                SectionHeader("Access Control"),
 
                 // Biometric Toggle
                 if (!kIsWeb)
                   Obx(
-                    () => _SettingsTile(
+                    () => SettingsTile(
                       icon: Icons.fingerprint,
                       title: "Biometric App Lock",
                       trailing: Switch(
@@ -91,7 +96,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
                 // Privacy Mode Toggle
                 Obx(
-                  () => _SettingsTile(
+                  () => SettingsTile(
                     icon: Icons.visibility_off_outlined,
                     title: "Privacy Mode (Blur)",
                     trailing: Switch(
@@ -102,146 +107,26 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   ),
                 ),
 
-                _Divider(),
+                SectionDivider(),
 
-                _SectionHeader("Account Security"),
+                SectionHeader("Account Security"),
 
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.lock_reset_outlined,
                   title: "Change Password",
                   onTap: () => _sendPasswordResetEmail(context),
                 ),
 
-                _SettingsTile(
+                SettingsTile(
                   icon: Icons.delete_forever_outlined,
                   title: "Delete Account",
                   iconColor: Colors.redAccent,
                   textColor: Colors.redAccent,
                   onTap: () => Get.to(() => const DeactivateAccountScreen()),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---- Reusable Components (Ideally verify if we can share these) ----
-// Since these are small enough, I'll duplicate them for self-containment
-// or I can put them in a shared widgets file.
-// For now duplication is faster and less risky of breaking other things.
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: EdgeInsets.only(bottom: 15.h, top: 10.h, left: 5.w),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title.toUpperCase(),
-          style: TextStyle(
-            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  final IconData? icon;
-  final String title;
-  final VoidCallback? onTap;
-  final Color? iconColor;
-  final Color? textColor;
-  final Widget? trailing;
-
-  const _SettingsTile({
-    this.icon,
-    required this.title,
-    this.onTap,
-    this.iconColor,
-    this.textColor,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16.r),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16.r),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightBorder.withValues(alpha: 0.05)),
-            ),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Container(
-                    padding: EdgeInsets.all(8.w),
-                    decoration: BoxDecoration(
-                      color: (iconColor ?? const Color(0xFF00E5FF)).withValues(
-                        alpha: 0.1,
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      icon,
-                      color: iconColor ?? const Color(0xFF00E5FF),
-                      size: 20.sp,
-                    ),
-                  ),
-                  SizedBox(width: 16.w),
-                ],
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      color: textColor ?? (isDark ? Colors.white : AppColors.lightTextPrimary),
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  ],
                 ),
-                if (trailing != null)
-                  trailing!
-                else
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
-                    size: 16.sp,
-                  ),
-              ],
+              ),
             ),
           ),
         ),

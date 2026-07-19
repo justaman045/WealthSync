@@ -14,6 +14,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/empty_state.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/budget_controller.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class CategoriesHistoryScreen extends StatefulWidget {
   const CategoriesHistoryScreen({super.key});
@@ -65,21 +66,26 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = Responsive.isTablet(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        flexibleSpace: ClipRRect(
-          child: RepaintBoundary(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-              child: Container(
+        flexibleSpace: isTablet
+            ? Container(
                 color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+              )
+            : ClipRRect(
+                child: RepaintBoundary(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: Container(
+                      color: (isDark ? AppColors.darkBackground : AppColors.lightBackground).withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
@@ -219,16 +225,21 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                 // Sort by total descending
                 items.sort((a, b) => b.total.compareTo(a.total));
 
-                return ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 30.h),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final category = items[index];
-                    return _buildCategoryCard(category, category.budget)
-                        .animate(delay: (index * 50).ms)
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
-                  },
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                    child: ListView.builder(
+                      padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 30.h),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final category = items[index];
+                        return _buildCategoryCard(category, category.budget)
+                            .animate(delay: (index * 50).ms)
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
+                      },
+                    ),
+                  ),
                 );
               }),
             ),
@@ -371,7 +382,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                       shadows: [
                         BoxShadow(
                           color: primaryColor.withValues(alpha: 0.4),
-                          blurRadius: 10,
+                          blurRadius: 10.w,
                         ),
                       ],
                     ),

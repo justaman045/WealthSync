@@ -16,6 +16,8 @@ import 'package:money_control/Utils/icon_helper.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/category_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/responsive_form_row.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -28,6 +30,7 @@ class TransactionEditScreen extends StatefulWidget {
 
 class _TransactionEditScreenState extends State<TransactionEditScreen> {
   final _formKey = GlobalKey<FormState>();
+  late ThemeData _cachedTheme;
 
   late TextEditingController _recipientNameController;
   late TextEditingController _amountController;
@@ -100,7 +103,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
   Future<void> _addNewCategoryDialog() async {
     final controller = TextEditingController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
 
     try {
       await showDialog(
@@ -125,8 +128,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  spreadRadius: 2,
+                  blurRadius: 20.w,
+                  spreadRadius: 2.w,
                 ),
               ],
             ),
@@ -215,7 +218,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                           boxShadow: [
                             BoxShadow(
                               color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
-                              blurRadius: 10,
+                              blurRadius: 10.w,
                             ),
                           ],
                         ),
@@ -320,7 +323,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       _saving = false;
 
       if (mounted) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final isDark = _cachedTheme.brightness == Brightness.dark;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text("Saved locally"),
@@ -338,7 +341,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    _cachedTheme = Theme.of(context);
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -362,45 +366,59 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(24.w),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _fieldLabel("Recipient Name"),
-                  _inputField(
-                    controller: _recipientNameController,
-                    hint: "Recipient Name",
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'Required'
-                        : null,
-                  ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(24.w),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _fieldLabel("Recipient Name"),
+                      _inputField(
+                        controller: _recipientNameController,
+                        hint: "Recipient Name",
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                            ? 'Required'
+                            : null,
+                      ),
 
-                  _fieldLabel("Amount"),
-                  _amountField(_amountController),
+                      ResponsiveFormRow(
+                        left: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _fieldLabel("Amount"),
+                            _amountField(_amountController),
+                          ],
+                        ),
+                        right: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _fieldLabel("Tax"),
+                            _inputField(
+                              controller: _taxController,
+                              hint: "0.00",
+                              isNumber: true,
+                            ),
+                          ],
+                        ),
+                      ),
 
-                  _fieldLabel("Tax"),
-                  _inputField(
-                    controller: _taxController,
-                    hint: "0.00",
-                    isNumber: true,
-                  ),
+                      _fieldLabel("Category"),
+                      _categorySelector(),
 
-                  _fieldLabel("Category"),
-                  _categorySelector(),
+                      _fieldLabel("Note"),
+                      _inputField(
+                        controller: _noteController,
+                        hint: "Add a note...",
+                        maxLines: 2,
+                      ),
 
-                  _fieldLabel("Note"),
-                  _inputField(
-                    controller: _noteController,
-                    hint: "Add a note...",
-                    maxLines: 2,
-                  ),
-
-                  _fieldLabel("Date"),
-                  _dateSelector(),
+                      _fieldLabel("Date"),
+                      _dateSelector(),
 
                   SizedBox(height: 40.h),
                   SizedBox(
@@ -427,8 +445,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                               color: const Color(
                                 0xFF6C63FF,
                               ).withValues(alpha: 0.4),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                              blurRadius: 10.w,
+                              offset: Offset(0, 4.w),
                             ),
                           ],
                         ),
@@ -456,7 +474,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   // ------------------------------------------------------------------
@@ -464,7 +484,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   // ------------------------------------------------------------------
 
   Widget _fieldLabel(String text) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return Padding(
       padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
       child: Text(
@@ -479,7 +499,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _glassBox({required Widget child, EdgeInsetsGeometry? padding}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return Container(
       padding: padding ?? EdgeInsets.zero,
       decoration: BoxDecoration(
@@ -489,8 +509,8 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 10.w,
+            offset: Offset(0, 4.w),
           ),
         ],
       ),
@@ -499,7 +519,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _amountField(TextEditingController c) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return _glassBox(
       child: Row(
         children: [
@@ -558,7 +578,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     bool isNumber = false,
     String? Function(String?)? validator,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return _glassBox(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
       child: TextFormField(
@@ -587,7 +607,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _categorySelector() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -629,7 +649,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         ? [
                             BoxShadow(
                               color: catColor.withValues(alpha: 0.3),
-                              blurRadius: 12,
+                              blurRadius: 12.w,
                             ),
                           ]
                         : null,
@@ -695,7 +715,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
   }
 
   Widget _dateSelector() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedTheme.brightness == Brightness.dark;
     return GestureDetector(
       onTap: () async {
         final picked = await showDatePicker(

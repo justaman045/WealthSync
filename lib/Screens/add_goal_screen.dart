@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/goals_controller.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/responsive_form_row.dart';
 
 class AddGoalScreen extends StatefulWidget {
   const AddGoalScreen({super.key});
@@ -100,12 +102,15 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),
-        body: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _sectionLabel("Pick an emoji"),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sectionLabel("Pick an emoji"),
               SizedBox(height: 10.h),
               SizedBox(
                 height: 50.h,
@@ -139,67 +144,89 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                 ),
               ),
               SizedBox(height: 24.h),
-              _sectionLabel("Goal name"),
-              SizedBox(height: 8.h),
-              _buildTextField(
-                controller: _nameCtrl,
-                hint: "e.g. Emergency Fund, New iPhone",
+              ResponsiveFormRow(
+                left: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel("Goal name"),
+                    SizedBox(height: 8.h),
+                    _buildTextField(
+                      controller: _nameCtrl,
+                      hint: "e.g. Emergency Fund, New iPhone",
+                    ),
+                  ],
+                ),
+                right: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel("Target amount"),
+                    SizedBox(height: 8.h),
+                    _buildTextField(
+                      controller: _amountCtrl,
+                      hint: "0.00",
+                      prefix: "$sym ",
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ],
+                ),
               ),
               SizedBox(height: 20.h),
-              _sectionLabel("Target amount"),
-              SizedBox(height: 8.h),
-              _buildTextField(
-                controller: _amountCtrl,
-                hint: "0.00",
-                prefix: "$sym ",
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              SizedBox(height: 20.h),
-              _sectionLabel("Description (optional)"),
-              SizedBox(height: 8.h),
-              _buildTextField(
-                controller: _descCtrl,
-                hint: "Why are you saving for this?",
-                maxLines: 2,
-              ),
-              SizedBox(height: 20.h),
-              _sectionLabel("Target date (optional)"),
-              SizedBox(height: 8.h),
-              GestureDetector(
-                onTap: _pickDate,
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 15.h),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.black.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.calendar_today_outlined,
-                          size: 18.sp, color: AppColors.secondary),
-                      SizedBox(width: 10.w),
-                      Text(
-                        _targetDate != null
-                            ? DateFormat('MMM d, yyyy').format(_targetDate!)
-                            : "No deadline",
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          color: _targetDate != null
-                              ? theme.textTheme.bodyLarge?.color
-                              : theme.textTheme.bodyMedium?.color,
+              ResponsiveFormRow(
+                left: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel("Description (optional)"),
+                    SizedBox(height: 8.h),
+                    _buildTextField(
+                      controller: _descCtrl,
+                      hint: "Why are you saving for this?",
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+                right: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _sectionLabel("Target date (optional)"),
+                    SizedBox(height: 8.h),
+                    GestureDetector(
+                      onTap: _pickDate,
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 15.h),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.06)
+                              : Colors.black.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(14.r),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_today_outlined,
+                                size: 18.sp, color: AppColors.secondary),
+                            SizedBox(width: 10.w),
+                            Text(
+                              _targetDate != null
+                                  ? DateFormat('MMM d, yyyy').format(_targetDate!)
+                                  : "No deadline",
+                              style: TextStyle(
+                                fontSize: 15.sp,
+                                color: _targetDate != null
+                                    ? theme.textTheme.bodyLarge?.color
+                                    : theme.textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (_targetDate != null)
+                              GestureDetector(
+                                onTap: () => setState(() => _targetDate = null),
+                                child: Icon(Icons.close, size: 16.sp, color: Colors.grey),
+                              ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
-                      if (_targetDate != null)
-                        GestureDetector(
-                          onTap: () => setState(() => _targetDate = null),
-                          child: Icon(Icons.close, size: 16.sp, color: Colors.grey),
-                        ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: 36.h),
@@ -213,9 +240,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
                   ),
                   child: _ctrl.isSaving.value
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
+                      ? SizedBox(
+                          width: 22.w,
+                          height: 22.h,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : Text(
@@ -233,7 +260,9 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _sectionLabel(String text) => Text(

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class PaymentSettingsScreen extends StatefulWidget {
   const PaymentSettingsScreen({super.key});
@@ -78,9 +79,12 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.all(24.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Text('Payment Mode', style: TextStyle(color: Colors.white70, fontSize: 13.sp)),
               SizedBox(height: 12.h),
               _buildModeCard(
@@ -134,13 +138,15 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
                   ),
                   child: _saving
-                      ? const SizedBox(
-                          width: 22, height: 22,
+                      ? SizedBox(
+                          width: 22.w, height: 22.h,
                           child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
                       : Text('Save Settings', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),
@@ -195,7 +201,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 border: Border.all(color: selected ? color : Colors.white24, width: 2),
                 color: selected ? color : Colors.transparent,
               ),
-              child: selected ? const Icon(Icons.check, color: Colors.black, size: 14) : null,
+              child: selected ? Icon(Icons.check, color: Colors.black, size: 14.sp) : null,
             ),
           ],
         ),

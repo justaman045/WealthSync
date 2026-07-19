@@ -9,6 +9,7 @@ import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Components/glass_container.dart'; // Unified Glass Container
 import 'package:money_control/Components/colors.dart'; // App Colors
 import 'package:money_control/Screens/onboarding_screen.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -154,23 +155,26 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         child: SafeArea(
           child: Center(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                children: [
-                  SizedBox(height: 20.h),
-                  _buildHeader(
-                        isDark ? Colors.white : AppColors.lightTextPrimary,
-                      )
-                      .animate()
-                      .fadeIn(duration: 600.ms)
-                      .slideY(begin: -0.2, end: 0, curve: Curves.easeOutBack),
-                  SizedBox(height: 30.h),
-                  _buildFormCard(isDark, theme)
-                      .animate()
-                      .fadeIn(duration: 600.ms, delay: 200.ms)
-                      .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
-                ],
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Column(
+                  children: [
+                    SizedBox(height: 20.h),
+                    _buildHeader(
+                          isDark ? Colors.white : AppColors.lightTextPrimary,
+                        )
+                        .animate()
+                        .fadeIn(duration: 600.ms)
+                        .slideY(begin: -0.2, end: 0, curve: Curves.easeOutBack),
+                    SizedBox(height: 30.h),
+                    _buildFormCard(isDark, theme)
+                        .animate()
+                        .fadeIn(duration: 600.ms, delay: 200.ms)
+                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                  ],
+                ),
               ),
             ),
           ),
@@ -286,8 +290,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+                    blurRadius: 10.w,
+                    offset: Offset(0.w, 4.w),
                   ),
                 ],
               ),
@@ -328,7 +332,7 @@ class _AuthScreenState extends State<AuthScreen> {
               height: 52.h,
               child: OutlinedButton.icon(
                 onPressed: _isLoading ? null : _signUpWithGoogle,
-                icon: const Icon(Icons.g_mobiledata, size: 28),
+                icon: Icon(Icons.g_mobiledata, size: 28.sp),
                 label: Text(
                   "Continue with Google",
                   style: TextStyle(

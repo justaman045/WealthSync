@@ -11,29 +11,64 @@ class PaymentConfigService extends GetxController {
   final RxString upiId = ''.obs;
 
   StreamSubscription? _sub;
+  Timer? _webPollTimer;
 
   @override
   void onInit() {
     super.onInit();
-    _sub = FirebaseFirestore.instance
-        .collection('app_config')
-        .doc('payment_settings')
-        .snapshots(includeMetadataChanges: true)
-        .listen((snap) {
+    if (!kIsWeb) {
+      _sub = FirebaseFirestore.instance
+          .collection('app_config')
+          .doc('payment_settings')
+          .snapshots(includeMetadataChanges: true)
+          .listen((snap) {
+        final exists = snap.exists && snap.data() != null;
+        if (exists) {
+          final data = snap.data()!;
+          paymentMode.value = data['paymentMode'] as String? ?? 'google_play';
+          upiId.value = data['upiId'] as String? ?? '';
+        }
+      }, onError: (e) {
+        debugPrint('PaymentConfigService: using defaults ($e)');
+      });
+    }
+    // On web, Firestore is NOT accessed during Phase 1 to avoid triggering
+    // the JS SDK WatchChangeAggregator ca9/b815 assertion bug.
+    // Call startPolling() after login instead.
+  }
+
+  /// Start periodic polling for payment config. Called after login on web.
+  void startPolling() {
+    if (!kIsWeb) return;
+    _fetchOnce();
+    _webPollTimer?.cancel();
+    _webPollTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _fetchOnce(),
+    );
+  }
+
+  Future<void> _fetchOnce() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('app_config')
+          .doc('payment_settings')
+          .get();
       final exists = snap.exists && snap.data() != null;
       if (exists) {
         final data = snap.data()!;
         paymentMode.value = data['paymentMode'] as String? ?? 'google_play';
         upiId.value = data['upiId'] as String? ?? '';
       }
-    }, onError: (e) {
+    } catch (e) {
       debugPrint('PaymentConfigService: using defaults ($e)');
-    });
+    }
   }
 
   @override
   void onClose() {
     _sub?.cancel();
+    _webPollTimer?.cancel();
     super.onClose();
   }
 

@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Services/cache_service.dart';
@@ -34,7 +35,10 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _userSub = _auth.userChanges().listen((user) => currentUser.value = user);
+    _userSub = _auth.userChanges().listen(
+      (user) => currentUser.value = user,
+      onError: (e) => debugPrint('ProfileController userChanges stream error: $e'),
+    );
     _workerUpdateUser = ever(currentUser, _updateUser);
 
     _loadFromCache();
@@ -142,8 +146,8 @@ class ProfileController extends GetxController {
         backgroundColor: AppColors.success,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(20),
-        borderRadius: 20,
+        margin: EdgeInsets.all(20.w),
+        borderRadius: 20.r,
       );
     } catch (e) {
       Get.snackbar(
@@ -152,8 +156,8 @@ class ProfileController extends GetxController {
         backgroundColor: AppColors.error,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(20),
-        borderRadius: 20,
+        margin: EdgeInsets.all(20.w),
+        borderRadius: 20.r,
       );
     } finally {
       isLoading.value = false;

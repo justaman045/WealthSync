@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class AboutApplicationScreen extends StatefulWidget {
   const AboutApplicationScreen({super.key});
@@ -80,9 +80,12 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
               // APP HEADER CARD
               _appInfoCard(
                 surface: cardColor,
@@ -123,7 +126,8 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             ],
           ),
         ),
-        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
+        ),
+      ),
       ),
     );
   }
@@ -161,8 +165,8 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
           ),
         ],
       ),
@@ -227,31 +231,34 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
-        leading: CircleAvatar(
-          radius: 24.r,
-          backgroundColor: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.05),
-          child: const Icon(Icons.code_rounded, color: Colors.teal),
-        ),
-        title: Text(
-          "Developed by Aman Ojha",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15.5.sp,
-            color: textColor,
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+          leading: CircleAvatar(
+            radius: 24.r,
+            backgroundColor: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
+            child: const Icon(Icons.code_rounded, color: Colors.teal),
           ),
-        ),
-        subtitle: Text(
-          "Software Engineer & Designer",
-          style: TextStyle(fontSize: 12.sp, color: secondary),
+          title: Text(
+            "Developed by Aman Ojha",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15.5.sp,
+              color: textColor,
+            ),
+          ),
+          subtitle: Text(
+            "Software Engineer & Designer",
+            style: TextStyle(fontSize: 12.sp, color: secondary),
+          ),
         ),
       ),
     );
@@ -274,8 +281,8 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
           ),
         ],
       ),

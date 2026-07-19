@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/shimmer_loading.dart'; // Reuse base ShimmerLoading
 
 class SkeletonBlock extends StatelessWidget {
@@ -89,7 +90,7 @@ class WealthSkeleton extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+              crossAxisCount: Responsive.wealthGridColumns(context),
               crossAxisSpacing: 12.w,
               mainAxisSpacing: 12.h,
               childAspectRatio: 0.8,
@@ -138,9 +139,9 @@ class InsightsSkeleton extends StatelessWidget {
         children: [
           // Forecast Card (Total Budget)
           SkeletonCard(
-            height: 200.h,
             width: double.infinity,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -160,7 +161,7 @@ class InsightsSkeleton extends StatelessWidget {
                     SkeletonBlock(width: 80.w, height: 14.h),
                   ],
                 ),
-                const Spacer(),
+                SizedBox(height: 20.h),
                 SkeletonBlock(width: double.infinity, height: 30.h, radius: 10),
               ],
             ),

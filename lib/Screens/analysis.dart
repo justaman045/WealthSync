@@ -8,8 +8,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:flutter/rendering.dart' as rendering;
 import 'package:money_control/Components/skeleton_loader.dart';
+import 'package:money_control/Utils/responsive.dart';
 
-import 'package:money_control/Components/animated_bottom_nav.dart';
+import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
@@ -414,7 +415,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    return AdaptiveScaffold(
+      currentIndex: 2,
+      isVisible: _isBottomBarVisible,
       backgroundColor: scheme.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -431,10 +434,6 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _runInsights),
         ],
-      ),
-      bottomNavigationBar: AnimatedBottomNav(
-        currentIndex: 2,
-        isVisible: _isBottomBarVisible,
       ),
       extendBody: true,
       body: NotificationListener<UserScrollNotification>(
@@ -460,14 +459,29 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   }
 
   Widget _buildContent(ColorScheme scheme) {
+    final isWide = Responsive.isWideForm(context);
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
-      child: Column(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StaggeredSlideFade(delay: 0, child: _buildForecastCard(scheme)),
-          SizedBox(height: 20.h),
-          _StaggeredSlideFade(delay: 100, child: _buildDailyLimitCard(scheme)),
+          if (isWide)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _StaggeredSlideFade(delay: 0, child: _buildForecastCard(scheme))),
+                SizedBox(width: 16.w),
+                Expanded(child: _StaggeredSlideFade(delay: 100, child: _buildDailyLimitCard(scheme))),
+              ],
+            )
+          else ...[
+            _StaggeredSlideFade(delay: 0, child: _buildForecastCard(scheme)),
+            SizedBox(height: 20.h),
+            _StaggeredSlideFade(delay: 100, child: _buildDailyLimitCard(scheme)),
+          ],
           SizedBox(height: 20.h),
           _StaggeredSlideFade(delay: 200, child: _buildHeatmapCard(scheme)),
           SizedBox(height: 24.h),
@@ -484,16 +498,29 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             ),
           ),
           SizedBox(height: 12.h),
-          ...insights.asMap().entries.map((entry) {
-            final index = entry.key;
-            final c = entry.value;
-            return _StaggeredSlideFade(
-              delay: 350 + (index * 100), // Stagger by 100ms
-              child: _buildInsightCard(c, scheme),
+          if (isWide)
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 12.w,
+              mainAxisSpacing: 12.h,
+              childAspectRatio: 1.8,
+              children: insights.map((c) => _buildInsightCard(c, scheme)).toList(),
+            )
+          else
+            ...insights.asMap().entries.map((entry) {
+              final index = entry.key;
+              final c = entry.value;
+              return _StaggeredSlideFade(
+                delay: 350 + (index * 100),
+                child: _buildInsightCard(c, scheme),
             );
           }),
-          SizedBox(height: 100.h),
+          SizedBox(height: (Responsive.isTablet(context) && Responsive.isLandscape(context)) ? 20.h : 100.h),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -543,8 +570,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           // "Glow" Effect
           BoxShadow(
             color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 20.w,
+            offset: Offset(0, 10.w),
           ),
         ],
       ),
@@ -737,8 +764,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 15.w,
+            offset: Offset(0, 8.w),
           ),
         ],
       ),
@@ -862,8 +889,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 15.w,
+            offset: Offset(0, 8.w),
           ),
         ],
       ),
@@ -947,8 +974,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
                       if (intensity > 0.3)
                         BoxShadow(
                           color: Colors.green.withValues(alpha: 0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
+                          blurRadius: 4.w,
+                          offset: Offset(0, 2.w),
                         ),
                     ],
                   ),
@@ -1010,15 +1037,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         final now = DateTime.now();
         final start = DateTime(now.year, now.month, 1);
         final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => CategoryTransactionsScreen(
-              categoryName: c.category,
-              startDate: start,
-              endDate: end,
-            ),
-          ),
-        );
+        Get.to(() => CategoryTransactionsScreen(
+          categoryName: c.category,
+          startDate: start,
+          endDate: end,
+        ));
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -1030,8 +1053,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         boxShadow: [
           BoxShadow(
             color: scheme.onSurface.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 10.w,
+            offset: Offset(0, 4.w),
           ),
         ],
       ),

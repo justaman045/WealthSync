@@ -7,6 +7,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class RealEstateDetailScreen extends StatefulWidget {
   const RealEstateDetailScreen({super.key});
@@ -40,7 +41,7 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _Sheet(
+      builder: (ctx) => Responsive.wrapSheetContent(ctx, _Sheet(
         title: id != null ? "Edit Property" : "Add Property",
         fields: const [
           _FieldDef("Property name / description", TextInputType.text),
@@ -74,7 +75,7 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
             if (mounted) setState(() => _saving = false);
           }
         },
-      ),
+      )),
     );
   }
 
@@ -169,8 +170,11 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
               totalValue += (data['currentValue'] as num?)?.toDouble() ?? 0;
               totalEmi += (data['monthlyEmi'] as num?)?.toDouble() ?? 0;
             }
-            return ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
               children: [
                 _buildSummary(totalValue, totalEmi, symbol, docs.length),
                 SizedBox(height: 20.h),
@@ -196,7 +200,9 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
                     isDark: isDark,
                   );
                 }),
-              ],
+                  ],
+                ),
+              ),
             );
           },
         ),

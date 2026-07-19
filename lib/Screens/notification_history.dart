@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class NotificationHistoryScreen extends StatelessWidget {
   const NotificationHistoryScreen({super.key});
@@ -12,7 +13,8 @@ class NotificationHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -92,8 +94,11 @@ class NotificationHistoryScreen extends StatelessWidget {
 
                     final docs = snapshot.data!.docs;
 
-                    return ListView.builder(
-                      padding: EdgeInsets.symmetric(
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                        child: ListView.builder(
+                            padding: EdgeInsets.symmetric(
                         horizontal: 16.w,
                         vertical: 10.h,
                       ),
@@ -110,7 +115,9 @@ class NotificationHistoryScreen extends StatelessWidget {
                           isRead: data['read'] ?? false,
                         );
                       },
-                    );
+                          ),
+                        ),
+                      );
                   },
                 ),
         ),

@@ -4,8 +4,8 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class LegalTrustPage extends StatefulWidget {
   const LegalTrustPage({super.key});
@@ -256,12 +256,14 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        bottomNavigationBar: const BottomNavBar(currentIndex: 3),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               _buildGlassSection(
                 title: "Terms of Service",
                 content: _termsOfServiceText,
@@ -315,7 +317,9 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
               SizedBox(height: 10.h),
               _buildDataActions(cardColor, borderColor, textColor, isDark),
               SizedBox(height: 40.h),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -352,8 +356,8 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            blurRadius: 10.w,
+            offset: Offset(0, 5.w),
           ),
         ],
       ),
@@ -397,22 +401,28 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       ),
       child: Column(
         children: [
-          _consentTile(
-            "Consent to Data Processing",
-            "Allow the app to process data to improve services.",
-            consentDataProcessing,
-            (v) => _toggleConsent('data', v),
-            textColor,
-            secondaryColor,
+          Material(
+            type: MaterialType.transparency,
+            child: _consentTile(
+              "Consent to Data Processing",
+              "Allow the app to process data to improve services.",
+              consentDataProcessing,
+              (v) => _toggleConsent('data', v),
+              textColor,
+              secondaryColor,
+            ),
           ),
           Divider(color: borderColor, height: 1),
-          _consentTile(
-            "Marketing Communication",
-            "Receive optional promotional updates.",
-            consentMarketing,
-            (v) => _toggleConsent('marketing', v),
-            textColor,
-            secondaryColor,
+          Material(
+            type: MaterialType.transparency,
+            child: _consentTile(
+              "Marketing Communication",
+              "Receive optional promotional updates.",
+              consentMarketing,
+              (v) => _toggleConsent('marketing', v),
+              textColor,
+              secondaryColor,
+            ),
           ),
         ],
       ),
@@ -472,8 +482,8 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                blurRadius: 10.w,
+                offset: Offset(0, 4.w),
               ),
             ],
           ),

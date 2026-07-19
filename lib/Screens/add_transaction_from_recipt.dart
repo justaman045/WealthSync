@@ -11,6 +11,7 @@ import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/receipt_platform.dart';
 import 'package:universal_io/io.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class ReceiptScanPage extends StatefulWidget {
   const ReceiptScanPage({super.key});
@@ -224,9 +225,12 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         ),
         body: Padding(
           padding: EdgeInsets.all(20.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
               // Image Container
               Expanded(
                 flex: 2,
@@ -240,8 +244,8 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 10,
-                        spreadRadius: 2,
+                        blurRadius: 10.w,
+                        spreadRadius: 2.w,
                       ),
                     ],
                   ),
@@ -347,8 +351,8 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
+                        blurRadius: 15.w,
+                        offset: Offset(0, 8.w),
                       ),
                     ],
                   ),
@@ -365,7 +369,9 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                 ),
               ),
               SizedBox(height: 16.h),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

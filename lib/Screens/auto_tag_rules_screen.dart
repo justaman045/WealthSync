@@ -5,6 +5,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/category_service.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class AutoTagRulesScreen extends StatefulWidget {
   const AutoTagRulesScreen({super.key});
@@ -316,8 +317,11 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                     ),
                   ),
                   Expanded(
-                    child: ListView.separated(
-                      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                        child: ListView.separated(
+                          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
                       itemCount: _rules.length,
                       separatorBuilder: (_, __) => SizedBox(height: 12.h),
                       itemBuilder: (_, i) {
@@ -325,6 +329,8 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                         final keywords = _rules[cat] ?? [];
                         return _buildCategoryCard(cat, keywords, theme, isDark);
                       },
+                        ),
+                      ),
                     ),
                   ),
                 ],

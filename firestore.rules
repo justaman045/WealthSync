@@ -26,17 +26,15 @@ service cloud.firestore {
       let isReferralFields = affected.hasOnly(['referralCount', 'subscriptionStatus', 'trialEndDate']);
       let targetHasCode = resource.data.keys().hasAny(['referralCode']);
       let d = request.resource.data;
-      let validValues = true;
-      if (affected.hasAny(['referralCount'])) {
-        validValues = validValues && d.referralCount is number && d.referralCount >= 0 && d.referralCount < 10000;
-      }
-      if (affected.hasAny(['trialEndDate'])) {
-        validValues = validValues && d.trialEndDate is timestamp;
-      }
-      if (affected.hasAny(['subscriptionStatus'])) {
-        validValues = validValues && d.subscriptionStatus in ['free', 'pending', 'pro'];
-      }
-      return request.auth != null && targetHasCode && isReferralFields && validValues;
+      return request.auth != null
+          && targetHasCode
+          && isReferralFields
+          && (!affected.hasAny(['referralCount'])
+              || (d.referralCount is number && d.referralCount >= 0 && d.referralCount < 10000))
+          && (!affected.hasAny(['trialEndDate'])
+              || d.trialEndDate is timestamp)
+          && (!affected.hasAny(['subscriptionStatus'])
+              || d.subscriptionStatus in ['free', 'pending', 'pro']);
     }
 
     function isPrivilegeElevation() {
@@ -81,6 +79,10 @@ service cloud.firestore {
       }
 
       match /category_rules/{ruleId} {
+        allow read, write: if isOwner(userEmail);
+      }
+
+      match /learning_data/{docId} {
         allow read, write: if isOwner(userEmail);
       }
 

@@ -59,8 +59,8 @@ class NavItem extends StatelessWidget {
                 ? [
                     BoxShadow(
                       color: activeColor.withValues(alpha: 0.2),
-                      blurRadius: 12,
-                      spreadRadius: -2,
+                      blurRadius: 12.w,
+                      spreadRadius: -2.w,
                     ),
                   ]
                 : null,

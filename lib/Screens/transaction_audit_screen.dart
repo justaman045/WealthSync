@@ -6,6 +6,9 @@ import 'package:money_control/Controllers/audit_controller.dart';
 import 'package:money_control/Models/audit_models.dart';
 import 'package:money_control/Services/audit_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Screens/edit_transaction.dart';
+import 'package:money_control/Models/transaction.dart';
 
 class TransactionAuditScreen extends StatefulWidget {
   const TransactionAuditScreen({super.key});
@@ -129,190 +132,712 @@ class _IssuesTab extends StatelessWidget {
           ),
         );
       }
-      return ListView(
-        padding: EdgeInsets.all(16.w),
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+          child: ListView(
+            padding: EdgeInsets.all(16.w),
         children: [
           if (dupes.isNotEmpty) ...[
             _sectionHeader('Duplicate Transactions (${dupes.length})', isDark),
             SizedBox(height: 8.h),
-            ...dupes.map((g) => _duplicateCard(g, isDark)),
+            ...dupes.map((g) => _duplicateCard(context, g, isDark)),
             SizedBox(height: 16.h),
           ],
           if (signs.isNotEmpty) ...[
             _sectionHeader('Sign Errors (${signs.length})', isDark),
             SizedBox(height: 8.h),
-            ...signs.map((s) => _signErrorCard(s, isDark)),
+            ...signs.map((s) => _signErrorCard(context, s, isDark)),
           ],
           if (orphans.isNotEmpty) ...[
             _sectionHeader('Orphaned Recurring (${orphans.length})', isDark),
             SizedBox(height: 8.h),
-            ...orphans.map((o) => _orphanCard(o, isDark)),
+            ...orphans.map((o) => _orphanCard(context, o, isDark)),
           ],
-        ],
+            ],
+          ),
+        ),
       );
     });
   }
 
-  Widget _duplicateCard(DuplicateGroup group, bool isDark) {
-    return Card(
-      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-      margin: EdgeInsets.only(bottom: 8.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: BorderSide(color: Colors.orangeAccent.withValues(alpha: 0.3)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.content_copy, color: Colors.orangeAccent, size: 16.sp),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    '${group.merchant} — ${group.amount.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.sp,
+  Widget _duplicateCard(BuildContext context, DuplicateGroup group, bool isDark) {
+    return GestureDetector(
+      onTap: () => _showDuplicateResolutionSheet(context, group, isDark),
+      child: Card(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        margin: EdgeInsets.only(bottom: 8.h),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          side: BorderSide(color: Colors.orangeAccent.withValues(alpha: 0.3)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(12.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.content_copy, color: Colors.orangeAccent, size: 16.sp),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      '${group.merchant} — ${group.amount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.sp,
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  '${group.transactions.length}×',
+                  Text(
+                    '${group.transactions.length}×',
+                    style: TextStyle(
+                        color: Colors.orangeAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13.sp),
+                  ),
+                ],
+              ),
+              SizedBox(height: 6.h),
+              ...group.transactions.map((tx) => Padding(
+                    padding: EdgeInsets.only(left: 24.w, top: 2.h),
+                    child: Text(
+                      '${tx.date.toIso8601String().substring(0, 16)} — ${tx.amount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                          color: isDark ? Colors.white54 : Colors.grey[600],
+                          fontSize: 11.sp),
+                    ),
+                  )),
+              SizedBox(height: 6.h),
+              Row(
+                children: [
+                  Icon(Icons.touch_app, size: 12.sp, color: Colors.orangeAccent.withValues(alpha: 0.6)),
+                  SizedBox(width: 4.w),
+                  Text(
+                    'Tap to resolve',
+                    style: TextStyle(
+                      color: Colors.orangeAccent.withValues(alpha: 0.6),
+                      fontSize: 10.sp,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _signErrorCard(BuildContext context, SignError error, bool isDark) {
+    return GestureDetector(
+      onTap: () => _showSignErrorResolutionSheet(context, error, isDark),
+      child: Card(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        margin: EdgeInsets.only(bottom: 8.h),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(12.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.redAccent, size: 16.sp),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      error.transaction.recipientName.isNotEmpty
+                          ? error.transaction.recipientName
+                          : 'Unknown',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 4.h),
+              Padding(
+                padding: EdgeInsets.only(left: 24.w),
+                child: Text(
+                  'Expected: ${error.expected} | Got: ${error.actual}',
                   style: TextStyle(
-                      color: Colors.orangeAccent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.sp),
+                      color: Colors.redAccent, fontSize: 11.sp),
                 ),
-              ],
-            ),
-            SizedBox(height: 6.h),
-            ...group.transactions.map((tx) => Padding(
-                  padding: EdgeInsets.only(left: 24.w, top: 2.h),
-                  child: Text(
-                    '${tx.date.toIso8601String().substring(0, 16)} — ${tx.amount.toStringAsFixed(2)}',
+              ),
+              Padding(
+                padding: EdgeInsets.only(left: 24.w, top: 2.h),
+                child: Text(
+                  '${error.transaction.date.toIso8601String().substring(0, 10)} — ${error.transaction.amount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.grey[600],
+                      fontSize: 11.sp),
+                ),
+              ),
+              SizedBox(height: 6.h),
+              Row(
+                children: [
+                  Icon(Icons.touch_app, size: 12.sp, color: Colors.redAccent.withValues(alpha: 0.6)),
+                  SizedBox(width: 4.w),
+                  Text(
+                    'Tap to resolve',
                     style: TextStyle(
-                        color: isDark ? Colors.white54 : Colors.grey[600],
-                        fontSize: 11.sp),
+                      color: Colors.redAccent.withValues(alpha: 0.6),
+                      fontSize: 10.sp,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                )),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _signErrorCard(SignError error, bool isDark) {
-    return Card(
-      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-      margin: EdgeInsets.only(bottom: 8.h),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Colors.redAccent, size: 16.sp),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    error.transaction.recipientName.isNotEmpty
-                        ? error.transaction.recipientName
-                        : 'Unknown',
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.sp,
+  Widget _orphanCard(BuildContext context, OrphanedRecurring orphan, bool isDark) {
+    return GestureDetector(
+      onTap: () => _showOrphanResolutionSheet(context, orphan, isDark),
+      child: Card(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        margin: EdgeInsets.only(bottom: 8.h),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          side: BorderSide(color: Colors.purpleAccent.withValues(alpha: 0.3)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(12.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.replay_circle_filled, color: Colors.purpleAccent, size: 16.sp),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      orphan.payment.title,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13.sp,
+                      ),
                     ),
                   ),
+                ],
+              ),
+              SizedBox(height: 4.h),
+              Padding(
+                padding: EdgeInsets.only(left: 24.w),
+                child: Text(
+                  orphan.reason,
+                  style: TextStyle(
+                      color: Colors.purpleAccent, fontSize: 11.sp),
                 ),
-              ],
-            ),
-            SizedBox(height: 4.h),
-            Padding(
-              padding: EdgeInsets.only(left: 24.w),
-              child: Text(
-                'Expected: ${error.expected} | Got: ${error.actual}',
-                style: TextStyle(
-                    color: Colors.redAccent, fontSize: 11.sp),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(left: 24.w, top: 2.h),
-              child: Text(
-                '${error.transaction.date.toIso8601String().substring(0, 10)} — ${error.transaction.amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                    color: isDark ? Colors.white54 : Colors.grey[600],
-                    fontSize: 11.sp),
+              Padding(
+                padding: EdgeInsets.only(left: 24.w, top: 2.h),
+                child: Text(
+                  'Amount: ${orphan.payment.amount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                      color: isDark ? Colors.white54 : Colors.grey[600],
+                      fontSize: 11.sp),
+                ),
               ),
-            ),
-          ],
+              SizedBox(height: 6.h),
+              Row(
+                children: [
+                  Icon(Icons.touch_app, size: 12.sp, color: Colors.purpleAccent.withValues(alpha: 0.6)),
+                  SizedBox(width: 4.w),
+                  Text(
+                    'Tap to resolve',
+                    style: TextStyle(
+                      color: Colors.purpleAccent.withValues(alpha: 0.6),
+                      fontSize: 10.sp,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _orphanCard(OrphanedRecurring orphan, bool isDark) {
-    return Card(
-      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-      margin: EdgeInsets.only(bottom: 8.h),
+  // ---------------------------------------------------------------------------
+  // Resolution Bottom Sheets
+  // ---------------------------------------------------------------------------
+
+  void _showDuplicateResolutionSheet(BuildContext context, DuplicateGroup group, bool isDark) {
+    final bgColor = isDark ? const Color(0xFF1A1F36) : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
+
+    showModalBottomSheet(
+      context: context,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
+      backgroundColor: bgColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-        side: BorderSide(color: Colors.purpleAccent.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
-      child: Padding(
-        padding: EdgeInsets.all(12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.replay_circle_filled, color: Colors.purpleAccent, size: 16.sp),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    orphan.payment.title,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13.sp,
-                    ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2.r),
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: 4.h),
-            Padding(
-              padding: EdgeInsets.only(left: 24.w),
-              child: Text(
-                orphan.reason,
-                style: TextStyle(
-                    color: Colors.purpleAccent, fontSize: 11.sp),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(left: 24.w, top: 2.h),
-              child: Text(
-                'Amount: ${orphan.payment.amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                    color: isDark ? Colors.white54 : Colors.grey[600],
-                    fontSize: 11.sp),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Icon(Icons.content_copy, color: Colors.orangeAccent, size: 20.sp),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      'Duplicate Transaction',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-      ),
+              SizedBox(height: 8.h),
+              Text(
+                '${group.transactions.length} transactions for "${group.merchant}" on the same day, each ${group.amount.toStringAsFixed(2)}.',
+                style: TextStyle(color: subtextColor, fontSize: 12.sp),
+              ),
+              SizedBox(height: 6.h),
+              ...group.transactions.asMap().entries.map((entry) {
+                final tx = entry.value;
+                return Padding(
+                  padding: EdgeInsets.only(left: 8.w, top: 4.h),
+                  child: Row(
+                    children: [
+                      Icon(Icons.circle, size: 6.sp, color: Colors.orangeAccent),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Text(
+                          '${tx.date.toIso8601String().substring(0, 16)} — ${tx.amount.toStringAsFixed(2)}',
+                          style: TextStyle(color: subtextColor, fontSize: 11.sp),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              SizedBox(height: 16.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.check_circle_outline,
+                label: 'Keep newest, delete others',
+                color: const Color(0xFF00E5FF),
+                isDark: isDark,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final newestIdx = 0;
+                  final deleted = await controller.resolveDuplicate(group, keepIndex: newestIdx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Removed $deleted duplicate(s)'),
+                        backgroundColor: const Color(0xFF0FA958),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 8.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.history,
+                label: 'Keep oldest, delete others',
+                color: Colors.orangeAccent,
+                isDark: isDark,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final oldestIdx = group.transactions.length - 1;
+                  final deleted = await controller.resolveDuplicate(group, keepIndex: oldestIdx);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Removed $deleted duplicate(s)'),
+                        backgroundColor: const Color(0xFF0FA958),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 8.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.delete_sweep_outlined,
+                label: 'Delete all in this group',
+                color: Colors.redAccent,
+                isDark: isDark,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final confirmed = await _confirmDestructive(
+                    context,
+                    title: 'Delete all duplicates?',
+                    message: 'This will delete all ${group.transactions.length} transactions for "${group.merchant}". This action cannot be undone.',
+                    isDark: isDark,
+                  );
+                  if (confirmed && context.mounted) {
+                    final deleted = await controller.resolveDuplicate(group, keepIndex: -1);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Deleted $deleted transaction(s)'),
+                          backgroundColor: const Color(0xFF0FA958),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              SizedBox(height: 8.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.close,
+                label: 'Dismiss',
+                color: subtextColor,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  controller.dismissIssue(group.id);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
+
+  void _showSignErrorResolutionSheet(BuildContext context, SignError error, bool isDark) {
+    final bgColor = isDark ? const Color(0xFF1A1F36) : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
+    final tx = error.transaction;
+
+    showModalBottomSheet(
+      context: context,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
+      backgroundColor: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20.sp),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      'Sign Convention Error',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                '${tx.recipientName.isNotEmpty ? tx.recipientName : "Unknown"} — ${tx.amount.toStringAsFixed(2)} on ${tx.date.toIso8601String().substring(0, 10)}',
+                style: TextStyle(color: subtextColor, fontSize: 12.sp),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                'Expected: ${error.expected}  •  Got: ${error.actual}',
+                style: TextStyle(color: Colors.redAccent, fontSize: 11.sp),
+              ),
+              SizedBox(height: 16.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.auto_fix_high,
+                label: 'Auto-correct sign (flip to ${error.expected})',
+                color: const Color(0xFF00E5FF),
+                isDark: isDark,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final ok = await controller.resolveSignError(error);
+                  if (context.mounted && ok) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Sign corrected'),
+                        backgroundColor: const Color(0xFF0FA958),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 8.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.edit_outlined,
+                label: 'Edit transaction manually',
+                color: Colors.orangeAccent,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  Get.to(() => _EditTransactionProxy(transaction: tx));
+                },
+              ),
+              SizedBox(height: 8.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.close,
+                label: 'Dismiss',
+                color: subtextColor,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  controller.dismissIssue(error.id);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOrphanResolutionSheet(BuildContext context, OrphanedRecurring orphan, bool isDark) {
+    final bgColor = isDark ? const Color(0xFF1A1F36) : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
+    final pmt = orphan.payment;
+
+    showModalBottomSheet(
+      context: context,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
+      backgroundColor: bgColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Icon(Icons.replay_circle_filled, color: Colors.purpleAccent, size: 20.sp),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      'Missing Recurring Payment',
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                '"${pmt.title}" was due on ${pmt.nextDueDate.toIso8601String().substring(0, 10)}, but no transaction was found.',
+                style: TextStyle(color: subtextColor, fontSize: 12.sp),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                'Amount: ${pmt.amount.toStringAsFixed(2)}  •  Category: ${pmt.category}',
+                style: TextStyle(color: subtextColor, fontSize: 11.sp),
+              ),
+              SizedBox(height: 16.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.add_circle_outline,
+                label: 'Create missing transaction & advance due date',
+                color: const Color(0xFF00E5FF),
+                isDark: isDark,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final ok = await controller.resolveOrphan(orphan);
+                  if (context.mounted && ok) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Created transaction for "${pmt.title}"'),
+                        backgroundColor: const Color(0xFF0FA958),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 8.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.skip_next,
+                label: 'Skip this cycle (advance due date only)',
+                color: Colors.orangeAccent,
+                isDark: isDark,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  final ok = await controller.skipOrphan(orphan);
+                  if (context.mounted && ok) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Skipped cycle for "${pmt.title}"'),
+                        backgroundColor: const Color(0xFF0FA958),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(height: 8.h),
+              _resolutionButton(
+                context: sheetContext,
+                icon: Icons.close,
+                label: 'Dismiss',
+                color: subtextColor,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  controller.dismissIssue(orphan.id);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared resolution helpers
+// ---------------------------------------------------------------------------
+
+Widget _resolutionButton({
+  required BuildContext context,
+  required IconData icon,
+  required String label,
+  required Color color,
+  required bool isDark,
+  required VoidCallback onTap,
+}) {
+  return SizedBox(
+    width: double.infinity,
+    child: OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, color: color, size: 18.sp),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 13.sp,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      style: OutlinedButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        side: BorderSide(color: color.withValues(alpha: 0.3)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+      ),
+    ),
+  );
+}
+
+Future<bool> _confirmDestructive(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required bool isDark,
+}) async {
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: isDark ? const Color(0xFF1A1F36) : Colors.white,
+      title: Text(title, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
+      content: Text(message, style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[600], fontSize: 13.sp)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
+          child: Text('Cancel', style: TextStyle(color: Colors.grey[500])),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
+          child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
 }
 
 class _BankCompareTab extends StatelessWidget {
@@ -383,15 +908,20 @@ class _BankCompareTab extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
               children: [
                 ...bankOnly.map((row) => _bankOnlyCard(row, isDark)),
               ],
             ),
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
     });
   }
 
@@ -517,8 +1047,11 @@ class _LedgerTab extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
               itemCount: entries.length,
               itemBuilder: (context, i) {
                 final e = entries[i];
@@ -588,8 +1121,10 @@ class _LedgerTab extends StatelessWidget {
               },
             ),
           ),
-        ],
-      );
+        ),
+      ),
+    ],
+  );
     });
   }
 }
@@ -685,6 +1220,16 @@ class _SummaryTab extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _EditTransactionProxy extends StatelessWidget {
+  final TransactionModel transaction;
+  const _EditTransactionProxy({required this.transaction});
+
+  @override
+  Widget build(BuildContext context) {
+    return TransactionEditScreen(transaction: transaction);
   }
 }
 

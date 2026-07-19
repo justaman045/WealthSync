@@ -8,6 +8,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class InsurancePolicyScreen extends StatefulWidget {
   const InsurancePolicyScreen({super.key});
@@ -41,7 +42,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _Sheet(
+      builder: (ctx) => Responsive.wrapSheetContent(ctx, _Sheet(
         title: id != null ? "Edit Policy" : "Add Policy",
         fields: const [
           _FieldDef("Policy name / insurer", TextInputType.text),
@@ -76,7 +77,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
             if (mounted) setState(() => _saving = false);
           }
         },
-      ),
+      )),
     );
   }
 
@@ -158,8 +159,11 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
               totalCorpus += (data['sumAssured'] as num?)?.toDouble() ?? 0;
               totalPremium += (data['annualPremium'] as num?)?.toDouble() ?? 0;
             }
-            return ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
               children: [
                 _buildSummary(totalCorpus, totalPremium, symbol),
                 SizedBox(height: 20.h),
@@ -186,7 +190,9 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
                     isDark: isDark,
                   );
                 }),
-              ],
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -424,6 +430,7 @@ class _SheetState extends State<_Sheet> {
       lastDate: DateTime(2060),
     );
     if (picked != null) {
+      if (!mounted) return;
       setState(() {
         _ctrls[i].text = DateFormat('dd MMM yyyy').format(picked);
         _dateValues[widget.fields[i].label] = picked;

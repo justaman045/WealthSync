@@ -5,6 +5,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class _Participant {
   TextEditingController nameCtrl;
@@ -195,10 +196,13 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _sectionLabel("Total bill amount"),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sectionLabel("Total bill amount"),
               SizedBox(height: 8.h),
               _buildTextField(
                 controller: _totalCtrl,
@@ -363,9 +367,9 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
+                      ? SizedBox(
+                          width: 22.w,
+                          height: 22.h,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : Text(
@@ -379,7 +383,9 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                 ),
               ),
               SizedBox(height: 32.h),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

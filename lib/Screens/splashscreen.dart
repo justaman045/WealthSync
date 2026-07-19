@@ -95,9 +95,11 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                 flex: 3,
                 child: GestureDetector(
                   onHorizontalDragEnd: (details) {
-                    if (details.primaryVelocity! < 0) {
+                    final v = details.primaryVelocity;
+                    if (v == null) return;
+                    if (v < 0) {
                       _nextPage();
-                    } else if (details.primaryVelocity! > 0) {
+                    } else if (v > 0) {
                       _prevPage();
                     }
                   },
@@ -117,8 +119,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                       : const Color(
                                           0xFF3F51B5,
                                         ).withValues(alpha: 0.1),
-                                  blurRadius: 60,
-                                  spreadRadius: 20,
+                                  blurRadius: 60.w,
+                                  spreadRadius: 20.w,
                                 ),
                               ],
                             ),
@@ -234,8 +236,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                   color: const Color(
                                     0xFF6C63FF,
                                   ).withValues(alpha: 0.3),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 8),
+                                  blurRadius: 15.w,
+                                  offset: Offset(0, 8.w),
                                 ),
                               ],
                             ),

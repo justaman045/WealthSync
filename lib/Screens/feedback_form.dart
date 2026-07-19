@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -16,17 +17,20 @@ class FeedbackScreen extends StatefulWidget {
 
 class _FeedbackScreenState extends State<FeedbackScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _appVersion = "Loading...";
 
   Future<void> _loadAppVersion() async {
     try {
       final info = await PackageInfo.fromPlatform();
       if (!mounted) return;
-      setState(() => _appVersion = info.version);
+      setState(() {
+        _appVersionCtrl.text = info.version;
+      });
     } catch (e) {
       debugPrint('PackageInfo load error: $e');
       if (!mounted) return;
-      setState(() => _appVersion = "Unknown");
+      setState(() {
+        _appVersionCtrl.text = "Unknown";
+      });
     }
   }
 
@@ -39,7 +43,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _feedbackCtrl = TextEditingController();
-  late final _appVersionCtrl = TextEditingController(text: _appVersion);
+  final _appVersionCtrl = TextEditingController(text: 'Loading...');
   final _deviceModelCtrl = TextEditingController();
   final _osVersionCtrl = TextEditingController();
 
@@ -156,12 +160,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           elevation: 0,
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(20.w),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(20.w),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     "Help me improve WealthSync",
@@ -234,8 +241,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             color: const Color(
                               0xFF6C63FF,
                             ).withValues(alpha: 0.4),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
+                            blurRadius: 10.w,
+                            offset: Offset(0, 5.w),
                           ),
                         ],
                       ),
@@ -277,7 +284,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildGlassTextField({
@@ -303,8 +312,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
           ),
         ],
       ),

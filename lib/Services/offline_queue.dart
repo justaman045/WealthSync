@@ -96,7 +96,12 @@ class OfflineQueueService {
 
     List<dynamic> list;
     try {
-      list = jsonDecode(raw) as List<dynamic>;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        await _writeData('[]');
+        return [];
+      }
+      list = decoded;
     } catch (e) {
       debugPrint('Offline queue JSON decode error: $e');
       await _writeData('[]');

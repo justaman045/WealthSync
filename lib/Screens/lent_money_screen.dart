@@ -11,6 +11,8 @@ import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Screens/add_lent_money_screen.dart';
 import 'package:money_control/Screens/split_bill_screen.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/adaptive_panel.dart';
 
 class LentMoneyScreen extends StatefulWidget {
   const LentMoneyScreen({super.key});
@@ -22,6 +24,7 @@ class LentMoneyScreen extends StatefulWidget {
 class _LentMoneyScreenState extends State<LentMoneyScreen> {
   late final LentMoneyController _controller;
   late final CurrencyController _currencyController;
+  LentMoneyModel? _selectedEntry;
 
   @override
   void initState() {
@@ -69,12 +72,22 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
-        body: Column(
-          children: [
-            _buildSummaryCard(theme),
-            _buildNetBalanceIndicator(theme),
-            Expanded(child: _buildList(theme)),
-          ],
+        body: AdaptivePanel(master: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+            child: Column(
+              children: [
+                _buildSummaryCard(theme),
+                _buildNetBalanceIndicator(theme),
+                Expanded(child: _buildList(theme)),
+              ],
+            ),
+          ),
+        ),
+            detail: _selectedEntry != null
+                ? AddLentMoneyScreen(existingEntry: _selectedEntry!)
+                : _buildDetailPlaceholder(),
+            showDetail: _selectedEntry != null,
         ),
       ),
     );
@@ -103,8 +116,8 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                blurRadius: 10.w,
+                offset: Offset(0, 4.w),
               ),
             ],
           ),
@@ -201,8 +214,8 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                blurRadius: 8.w,
+                offset: Offset(0, 2.w),
               ),
             ],
           ),
@@ -306,7 +319,12 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
       padding: EdgeInsets.only(bottom: 12.h),
       child: GestureDetector(
         onTap: () {
-          Get.to(() => AddLentMoneyScreen(existingEntry: entry));
+          final isSplit = Responsive.isTablet(context) && Responsive.isLandscape(context);
+          if (isSplit) {
+            setState(() => _selectedEntry = entry);
+          } else {
+            Get.to(() => AddLentMoneyScreen(existingEntry: entry));
+          }
         },
         child: Slidable(
           key: ValueKey(entry.id),
@@ -444,5 +462,30 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
         ),
       ),
     ).animate().fadeIn().slideX(begin: 0.1, end: 0, curve: Curves.easeOut);
+  }
+
+  Widget _buildDetailPlaceholder() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.account_balance_wallet_outlined,
+            size: 64.sp,
+            color: textColor.withValues(alpha: 0.2),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            "Select an entry to view details",
+            style: TextStyle(
+              color: textColor.withValues(alpha: 0.4),
+              fontSize: 16.sp,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

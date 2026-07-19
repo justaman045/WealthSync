@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -61,22 +62,43 @@ class SubscriptionController extends GetxController {
   void onClose() {
     _statusSub?.cancel();
     _authSub?.cancel();
+    _webPollTimer?.cancel();
     super.onClose();
   }
 
+  Future<void> _fetchSubscriptionOnce(String email) async {
+    try {
+      final snapshot = await _firestore.collection('users').doc(email).get();
+      _onSubscriptionSnapshot(snapshot, email);
+    } catch (e) {
+      debugPrint('SubscriptionController get error: $e');
+    }
+  }
+
+  Timer? _webPollTimer;
+
   void checkSubscriptionStatus() {
-    _statusSub?.cancel();
+    try { _statusSub?.cancel(); } catch (_) {}
     _statusSub = null;
+    _webPollTimer?.cancel();
+    _webPollTimer = null;
     final user = _auth.currentUser;
     final email = _userEmail;
     if (user != null && email != null) {
-      _statusSub = _firestore.collection('users').doc(email).snapshots().listen((
-        snapshot,
-      ) {
-        _onSubscriptionSnapshot(snapshot, email);
-      }, onError: (e) {
-        debugPrint('SubscriptionController stream error: $e');
-      });
+      if (kIsWeb) {
+        _fetchSubscriptionOnce(email);
+        _webPollTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+          _fetchSubscriptionOnce(email);
+        });
+      } else {
+        _statusSub = _firestore.collection('users').doc(email).snapshots().listen((
+          snapshot,
+        ) {
+          _onSubscriptionSnapshot(snapshot, email);
+        }, onError: (e) {
+          debugPrint('SubscriptionController stream error: $e');
+        });
+      }
     } else {
       subscriptionStatus.value = SubscriptionStatus.free;
       isAdmin.value = false;

@@ -18,7 +18,7 @@ import 'package:money_control/Screens/Settings/general_settings.dart';
 import 'package:money_control/Screens/Settings/security_settings.dart';
 import 'package:money_control/Screens/Settings/data_support_settings.dart';
 import 'package:money_control/Screens/edit_profile.dart';
-import 'package:money_control/Components/animated_bottom_nav.dart';
+import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Screens/sms_import_screen.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
@@ -28,6 +28,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Services/referral_service.dart';
 import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Utils/responsive.dart';
 import 'package:share_plus/share_plus.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -75,7 +76,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
+    return AdaptiveScaffold(
+      currentIndex: 4,
+      isVisible: _isBottomBarVisible,
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
@@ -83,10 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
+      appBar: AppBar(
           title: const Text("Settings"),
           centerTitle: true,
           backgroundColor: Colors.transparent,
@@ -112,212 +114,212 @@ class _SettingsScreenState extends State<SettingsScreen> {
             bottom: false,
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
-              child: Column(
-                children: [
-                  _buildProfileHeader(),
-                  SizedBox(height: 30.h),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                  child: Column(
+                    children: [
+                      _buildProfileHeader(),
+                      SizedBox(height: 30.h),
 
-                  // -- CATEGORIZED MENU --
-                  _SectionHeader("Menu"),
+                      // -- CATEGORIZED MENU --
+                      _SectionHeader("Menu"),
 
-                  // Subscription Card — hidden for admins (they are always Pro)
-                  Obx(() {
-                    if (!Get.isRegistered<SubscriptionController>()) return const SizedBox.shrink();
-                    final ctrl = Get.find<SubscriptionController>();
-                    if (ctrl.isAdmin.value) return const SizedBox.shrink();
-                    final isPro = ctrl.isPro;
-                    return _SettingsCategoryCard(
-                      title: isPro ? "Managing Subscription" : "Upgrade to Pro",
-                      subtitle: isPro
-                          ? "You are a Pro Member"
-                          : "Unlock limits & features",
-                      icon: isPro
-                          ? Icons.verified_user_rounded
-                          : Icons.diamond_outlined,
-                      color: isPro ? Colors.greenAccent : Colors.cyanAccent,
-                      onTap: () => Get.to(() => const SubscriptionScreen()),
-                    );
-                  }),
-                  SizedBox(height: 16.h),
-                  _SettingsCategoryCard(
-                    title: "General",
-                    subtitle: "Currency, Categories, Budget, Notifications",
-                    icon: Icons.tune_rounded,
-                    color: const Color(0xFF6C63FF),
-                    onTap: () => Get.to(() => const GeneralSettingsScreen()),
-                  ),
+                      // Subscription Card — hidden for admins (they are always Pro)
+                      Obx(() {
+                        if (!Get.isRegistered<SubscriptionController>()) return const SizedBox.shrink();
+                        final ctrl = Get.find<SubscriptionController>();
+                        if (ctrl.isAdmin.value) return const SizedBox.shrink();
+                        final isPro = ctrl.isPro;
+                        return _SettingsCategoryCard(
+                          title: isPro ? "Managing Subscription" : "Upgrade to Pro",
+                          subtitle: isPro
+                              ? "You are a Pro Member"
+                              : "Unlock limits & features",
+                          icon: isPro
+                              ? Icons.verified_user_rounded
+                              : Icons.diamond_outlined,
+                          color: isPro ? Colors.greenAccent : Colors.cyanAccent,
+                          onTap: () => Get.to(() => const SubscriptionScreen()),
+                        );
+                      }),
+                      SizedBox(height: 16.h),
+                      _SettingsCategoryCard(
+                        title: "General",
+                        subtitle: "Currency, Categories, Budget, Notifications",
+                        icon: Icons.tune_rounded,
+                        color: const Color(0xFF6C63FF),
+                        onTap: () => Get.to(() => const GeneralSettingsScreen()),
+                      ),
 
-                  SizedBox(height: 16.h),
+                      SizedBox(height: 16.h),
 
-                  _SettingsCategoryCard(
-                    title: "Security & Privacy",
-                    subtitle: "Lock, Password, Account",
-                    icon: Icons.security_rounded,
-                    color: const Color(0xFF00E5FF),
-                    onTap: () => Get.to(() => const SecuritySettingsScreen()),
-                  ),
+                      _SettingsCategoryCard(
+                        title: "Security & Privacy",
+                        subtitle: "Lock, Password, Account",
+                        icon: Icons.security_rounded,
+                        color: const Color(0xFF00E5FF),
+                        onTap: () => Get.to(() => const SecuritySettingsScreen()),
+                      ),
 
-                  SizedBox(height: 16.h),
+                      SizedBox(height: 16.h),
 
-                  _SettingsCategoryCard(
-                    title: "Data & Support",
-                    subtitle: "Backup, Feedback, Legal",
-                    icon: Icons.help_outline_rounded,
-                    color: Colors.orangeAccent,
-                    onTap: () =>
-                        Get.to(() => const DataSupportSettingsScreen()),
-                  ),
+                      _SettingsCategoryCard(
+                        title: "Data & Support",
+                        subtitle: "Backup, Feedback, Legal",
+                        icon: Icons.help_outline_rounded,
+                        color: Colors.orangeAccent,
+                        onTap: () =>
+                            Get.to(() => const DataSupportSettingsScreen()),
+                      ),
 
-                  SizedBox(height: 16.h),
+                      SizedBox(height: 16.h),
 
-                  _SettingsCategoryCard(
-                    title: "Automation",
-                    subtitle: "Import SMS",
-                    icon: Icons.auto_mode_rounded,
-                    color: Colors.greenAccent,
-                    onTap: () => Get.to(() => const SmsImportScreen()),
-                  ),
+                      _SettingsCategoryCard(
+                        title: "Automation",
+                        subtitle: "Import SMS",
+                        icon: Icons.auto_mode_rounded,
+                        color: Colors.greenAccent,
+                        onTap: () => Get.to(() => const SmsImportScreen()),
+                      ),
 
-                  SizedBox(height: 16.h),
+                      SizedBox(height: 16.h),
 
-                  // INVITE FRIENDS
-                  _InviteFriendsCard(),
+                      // INVITE FRIENDS
+                      _InviteFriendsCard(),
 
-                  SizedBox(height: 16.h),
+                      SizedBox(height: 16.h),
 
-                  // LENT MONEY (PRO FEATURE)
-                  _SettingsCategoryCard(
-                    title: "Future Money Tracker",
-                    subtitle: "Track money you lent and borrowed",
-                    icon: Icons.handshake_rounded,
-                    color: Colors.orangeAccent,
-                    onTap: () {
-                      if (!Get.isRegistered<SubscriptionController>()) return;
-                      final ctrl = Get.find<SubscriptionController>();
-                      if (!ctrl.isPro) {
-                        Get.to(() => const SubscriptionScreen());
-                        return;
-                      }
-                      Get.to(() => const LentMoneyScreen());
-                    },
-                  ),
-
-                  SizedBox(height: 40.h),
-
-                  // Admin Dashboard (Restricted)
-                  Obx(() {
-                    if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isAdmin.value) {
-                      return const SizedBox.shrink();
-                    }
-                    return Column(
-                      children: [
-                        _SettingsCategoryCard(
-                          key: const ValueKey("admin_utils_card"),
-                          title: "Admin Utils",
-                          subtitle: "Manage Data & Approvals",
-                          icon: Icons.admin_panel_settings_rounded,
-                          color: Colors.redAccent,
-                          onTap: () => Get.to(() => const AdminMenu()),
-                        ),
-                        SizedBox(height: 40.h),
-                      ],
-                    );
-                  }),
-
-                  _buildSignOutButton(),
-                  SizedBox(height: 24.h),
-                  Text(
-                    "Version $_version",
-                    style: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.3),
-                      fontSize: 12.sp,
-                    ),
-                  ),
-                  if (!kIsWeb)
-                    Padding(
-                      padding: EdgeInsets.only(top: 16.h),
-                      child: GlassContainer(
-                        onTap: () async {
-                          final url = Uri.parse(_webUrl);
-                          try {
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Could not open browser")),
-                              );
-                            }
+                      // LENT MONEY (PRO FEATURE)
+                      _SettingsCategoryCard(
+                        title: "Future Money Tracker",
+                        subtitle: "Track money you lent and borrowed",
+                        icon: Icons.handshake_rounded,
+                        color: Colors.orangeAccent,
+                        onTap: () {
+                          if (!Get.isRegistered<SubscriptionController>()) return;
+                          final ctrl = Get.find<SubscriptionController>();
+                          if (!ctrl.isPro) {
+                            Get.to(() => const SubscriptionScreen());
+                            return;
                           }
+                          Get.to(() => const LentMoneyScreen());
                         },
-                        padding: EdgeInsets.all(16.w),
-                        child: Row(
+                      ),
+
+                      SizedBox(height: 40.h),
+
+                      // Admin Dashboard (Restricted)
+                      Obx(() {
+                        if (!Get.isRegistered<SubscriptionController>() || !Get.find<SubscriptionController>().isAdmin.value) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
                           children: [
-                            Container(
-                              padding: EdgeInsets.all(12.w),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Icon(Icons.language, color: AppColors.primary, size: 28.sp),
+                            _SettingsCategoryCard(
+                              key: const ValueKey("admin_utils_card"),
+                              title: "Admin Utils",
+                              subtitle: "Manage Data & Approvals",
+                              icon: Icons.admin_panel_settings_rounded,
+                              color: Colors.redAccent,
+                              onTap: () => Get.to(() => const AdminMenu()),
                             ),
-                            SizedBox(width: 16.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "WealthSync Web",
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Text(
-                                    "Access from any device",
-                                    style: TextStyle(
-                                      fontSize: 12.sp,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Text(
-                                    _webUrl.replaceAll("https://", ""),
-                                    style: TextStyle(
-                                      fontSize: 11.sp,
-                                      color: AppColors.primary,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.open_in_new_rounded,
-                              color: AppColors.primary,
-                              size: 20.sp,
-                            ),
+                            SizedBox(height: 40.h),
                           ],
+                        );
+                      }),
+
+                      _buildSignOutButton(),
+                      SizedBox(height: 24.h),
+                      Text(
+                        "Version $_version",
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.3),
+                          fontSize: 12.sp,
                         ),
                       ),
-                    ),
-                  SizedBox(
-                    height: 150.h,
-                  ), // Increased padding to prevent cut-off
-                ],
+                      if (!kIsWeb)
+                        Padding(
+                          padding: EdgeInsets.only(top: 16.h),
+                          child: GlassContainer(
+                            onTap: () async {
+                              final url = Uri.parse(_webUrl);
+                              try {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Could not open browser")),
+                                  );
+                                }
+                              }
+                            },
+                            padding: EdgeInsets.all(16.w),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(12.w),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                  ),
+                                  child: Icon(Icons.language, color: AppColors.primary, size: 28.sp),
+                                ),
+                                SizedBox(width: 16.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "WealthSync Web",
+                                        style: TextStyle(
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4.h),
+                                      Text(
+                                        "Access from any device",
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                      SizedBox(height: 2.h),
+                                      Text(
+                                        _webUrl.replaceAll("https://", ""),
+                                        style: TextStyle(
+                                          fontSize: 11.sp,
+                                          color: AppColors.primary,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.open_in_new_rounded,
+                                  color: AppColors.primary,
+                                  size: 20.sp,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      SizedBox(
+                        height: 150.h,
+                      ), // Increased padding to prevent cut-off
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ),
         extendBody: true,
-        bottomNavigationBar: AnimatedBottomNav(
-          currentIndex: 4,
-          isVisible: _isBottomBarVisible,
-        ),
-      ),
     );
   }
 
@@ -347,7 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
-                      blurRadius: 15,
+                      blurRadius: 15.w,
                     ),
                   ],
                 ),
@@ -587,6 +589,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
       ));
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
+        if (data is! Map) return 'https://github.com/justaman045/Money_Control/releases/latest';
         final version = data['latest_version'] as String?;
         if (version != null && version.isNotEmpty) {
           return 'https://github.com/justaman045/Money_Control/releases/download/v$version/app-release.apk';

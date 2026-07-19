@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Screens/homescreen.dart';
 import 'package:money_control/Services/referral_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -128,9 +129,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             SafeArea(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 24.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                     SizedBox(height: 40.h),
                     Center(
                       child: Container(
@@ -320,8 +324,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.primary.withValues(alpha: 0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                              blurRadius: 12.w,
+                              offset: Offset(0, 4.w),
                             ),
                           ],
                         ),
@@ -341,7 +345,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                     SizedBox(height: 30.h),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -10,6 +10,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Components/shimmer_loading.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class ForecastScreen extends StatefulWidget {
   const ForecastScreen({super.key});
@@ -127,11 +128,14 @@ class _ForecastScreenState extends State<ForecastScreen> {
 
             return SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    currentMonthYear,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        currentMonthYear,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontSize: 24.sp,
                       letterSpacing: 1.2,
@@ -190,9 +194,11 @@ class _ForecastScreenState extends State<ForecastScreen> {
                     icon: Icons.trending_down_rounded,
                     isForecast: true,
                   ),
-                ],
-              ),
-            );
+                      ],
+                    ),
+                  ),
+                ),
+              );
           }),
         ),
       ),
@@ -204,12 +210,12 @@ class _ForecastScreenState extends State<ForecastScreen> {
       children: [
         Container(
           width: 4,
-          height: 16,
+          height: 16.h,
           decoration: BoxDecoration(
             color: color,
             borderRadius: BorderRadius.circular(2),
             boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6),
+              BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6.w),
             ],
           ),
         ),
@@ -294,7 +300,7 @@ class _ForecastCard extends StatelessWidget {
                   ? [
                       BoxShadow(
                         color: color.withValues(alpha: 0.4),
-                        blurRadius: 10,
+                        blurRadius: 10.w,
                       ),
                     ]
                   : null,

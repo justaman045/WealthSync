@@ -100,7 +100,8 @@ class CategoryRulesRepository {
 
     if (jsonString != null) {
       try {
-        final decoded = jsonDecode(jsonString) as Map<String, dynamic>;
+        final decoded = jsonDecode(jsonString);
+        if (decoded is! Map<String, dynamic>) return {};
         final Map<String, List<String>> rules = {};
         decoded.forEach((key, value) {
           if (value is List) {

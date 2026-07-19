@@ -8,8 +8,9 @@ import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
-import 'package:money_control/Components/animated_bottom_nav.dart';
+import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/analytics_trends.dart';
 import 'package:money_control/Screens/transaction_history.dart';
@@ -52,6 +53,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   // Restored State Variables
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
   Worker? _txWorker;
+  Worker? _loadingWorker;
   int _touchedIndex = -1;
   final GlobalKey _keyChart = GlobalKey();
   final ScreenshotController _screenshotController = ScreenshotController();
@@ -95,9 +97,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       TutorialController.showAnalyticsTutorial(context, keyChart: _keyChart);
     });
     _loadCalendarEvents();
-    // Re-run event detection whenever transaction data updates from the stream
     _txWorker = ever(_transactionController.transactions, (_) {
-      if (mounted) _loadCalendarEvents();
+      if (mounted) setState(() {});
+    });
+    _loadingWorker = ever(_transactionController.isLoading, (_) {
+      if (mounted) setState(() {});
     });
   }
 
@@ -155,6 +159,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   void dispose() {
     _txWorker?.dispose();
+    _loadingWorker?.dispose();
     _isBottomBarVisible.dispose();
     super.dispose();
   }
@@ -451,9 +456,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _showProLockModal(String title, String description) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     showModalBottomSheet(
       context: context,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
@@ -472,7 +478,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     _cachedTheme = Theme.of(context);
     _cachedIsDark = _cachedTheme.brightness == Brightness.dark;
     final isDark = _cachedIsDark;
-    return Container(
+    return AdaptiveScaffold(
+      currentIndex: 1,
+      isVisible: _isBottomBarVisible,
+      backgroundColor: Colors.transparent,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark ? AppColors.darkGradient : AppColors.lightGradient,
@@ -480,8 +489,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Scaffold(
-        appBar: AppBar(
+      appBar: AppBar(
           title: Text(
             "Analytics & Reports",
             style: TextStyle(
@@ -520,8 +528,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   PopupMenuItem(
                     value: "share",
                     child: Row(children: [
-                      Icon(Icons.share_outlined, color: c, size: 18),
-                      SizedBox(width: 10),
+                      Icon(Icons.share_outlined, color: c, size: 18.sp),
+                      SizedBox(width: 10.w),
                       Text("Share Report", style: TextStyle(color: c)),
                     ]),
                   ),
@@ -529,24 +537,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   PopupMenuItem(
                     value: "csv",
                     child: Row(children: [
-                      Icon(Icons.table_chart_outlined, color: c, size: 18),
-                      SizedBox(width: 10),
+                      Icon(Icons.table_chart_outlined, color: c, size: 18.sp),
+                      SizedBox(width: 10.w),
                       Text("Export CSV", style: TextStyle(color: c)),
                     ]),
                   ),
                   PopupMenuItem(
                     value: "pdf",
                     child: Row(children: [
-                      Icon(Icons.picture_as_pdf_outlined, color: c, size: 18),
-                      SizedBox(width: 10),
+                      Icon(Icons.picture_as_pdf_outlined, color: c, size: 18.sp),
+                      SizedBox(width: 10.w),
                       Text("Export PDF", style: TextStyle(color: c)),
                     ]),
                   ),
                   PopupMenuItem(
                     value: "tax",
                     child: Row(children: [
-                      Icon(Icons.receipt_long_outlined, color: c, size: 18),
-                      SizedBox(width: 10),
+                      Icon(Icons.receipt_long_outlined, color: c, size: 18.sp),
+                      SizedBox(width: 10.w),
                       Text("Tax Summary PDF", style: TextStyle(color: c)),
                     ]),
                   ),
@@ -555,12 +563,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.transparent,
         extendBody: true,
-        bottomNavigationBar: AnimatedBottomNav(
-          currentIndex: 1,
-          isVisible: _isBottomBarVisible,
-        ),
         body: NotificationListener<UserScrollNotification>(
           onNotification: (notification) {
             if (notification.direction == rendering.ScrollDirection.reverse) {
@@ -571,16 +574,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             }
             return true;
           },
-          child: Obx(() => _loading
+          child: _loading
               ? const Center(
                   child: CircularProgressIndicator(color: Color(0xFF00E5FF)),
                 )
               : Screenshot(
                   controller: _screenshotController,
                   child: _buildBody(),
-                )),
+                ),
         ),
-      ),
     );
   }
 
@@ -589,7 +591,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 100.h),
-      child: Column(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ------------ FILTER SECTION ------------------
@@ -612,8 +617,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     color: isDark
                         ? Colors.black.withValues(alpha: 0.1)
                         : Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
+                    blurRadius: 15.r,
+                    offset: Offset(0, 8.h),
                   ),
                 ],
               ),
@@ -676,8 +681,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   end: DateTime.now(),
                                 ),
                               );
-                              if (picked == null) return;
-                              setState(() {
+                               if (picked == null) return;
+                               if (!mounted) return;
+                               setState(() {
                                 _customRange = picked;
                                 _period = v;
                                 _filteredCache = null;
@@ -731,9 +737,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     totalIncome,
                     const Color(0xFF00E5FF),
                     Icons.arrow_upward_rounded,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => TransactionHistoryScreen(initialTab: 1, filterMonth: DateTime.now()),
-                    )),
+                    onTap: () => Get.to(() => TransactionHistoryScreen(initialTab: 1, filterMonth: DateTime.now())),
                   ),
                 ),
                 SizedBox(width: 16.w),
@@ -743,9 +747,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     totalExpense,
                     const Color(0xFFFF2975),
                     Icons.arrow_downward_rounded,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => TransactionHistoryScreen(initialTab: 2, filterMonth: DateTime.now()),
-                    )),
+                    onTap: () => Get.to(() => TransactionHistoryScreen(initialTab: 2, filterMonth: DateTime.now())),
                   ),
                 ),
               ],
@@ -762,9 +764,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   : const Color(0xFFFF2975),
               Icons.account_balance_wallet_rounded,
               isWide: true,
-              onTap: () => Navigator.push(context, MaterialPageRoute(
-                builder: (_) => TransactionHistoryScreen(initialTab: 0, filterMonth: DateTime.now()),
-              )),
+              onTap: () => Get.to(() => TransactionHistoryScreen(initialTab: 0, filterMonth: DateTime.now())),
             ),
           ),
 
@@ -775,11 +775,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: Center(
               child: GestureDetector(
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const AnalyticsTrendsScreen(),
-                    ),
-                  );
+                  Get.to(() => const AnalyticsTrendsScreen());
                 },
                 child: Container(
                   padding: EdgeInsets.symmetric(
@@ -864,6 +860,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           SizedBox(height: 50.h),
         ],
       ),
+        ),
+      ),
     );
   }
 
@@ -901,8 +899,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 15.r,
+            offset: Offset(0, 8.h),
           ),
         ],
       ),
@@ -991,7 +989,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     height: 6.h,
                     decoration: BoxDecoration(
                       color: _glassBg(),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                   ),
                   FractionallySizedBox(
@@ -1000,12 +998,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       height: 6.h,
                       decoration: BoxDecoration(
                         color: const Color(0xFF00E5FF),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10.r),
                         boxShadow: [
                           BoxShadow(
                             color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
-                            blurRadius: 6,
-                            spreadRadius: 1,
+                            blurRadius: 6.r,
+                            spreadRadius: 1.r,
                           ),
                         ],
                       ),
@@ -1050,7 +1048,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     height: 6.h,
                     decoration: BoxDecoration(
                       color: _glassBg(),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(10.r),
                     ),
                   ),
                   FractionallySizedBox(
@@ -1059,12 +1057,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       height: 6.h,
                       decoration: BoxDecoration(
                         color: const Color(0xFFFF2975),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10.r),
                         boxShadow: [
                           BoxShadow(
                             color: const Color(0xFFFF2975).withValues(alpha: 0.4),
-                            blurRadius: 6,
-                            spreadRadius: 1,
+                            blurRadius: 6.r,
+                            spreadRadius: 1.r,
                           ),
                         ],
                       ),
@@ -1100,7 +1098,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     required Function(T) onChanged,
     String Function(T)? format,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1163,7 +1161,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     bool isWide = false,
     VoidCallback? onTap,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1178,8 +1176,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            blurRadius: 12.r,
+            offset: Offset(0, 6.h),
           ),
         ],
       ),
@@ -1193,8 +1191,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               boxShadow: [
                 BoxShadow(
                   color: color.withValues(alpha: 0.2),
-                  blurRadius: 10,
-                  spreadRadius: 1,
+                  blurRadius: 10.r,
+                  spreadRadius: 1.r,
                 ),
               ],
             ),
@@ -1234,7 +1232,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
 
   Widget _buildTrendChart() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     final data = _monthlyTrend;
     if (data.isEmpty) {
       return _emptyCard("Not enough data for trend.");
@@ -1263,9 +1261,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
-            blurRadius: 15,
+            blurRadius: 15.r,
             spreadRadius: -2,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8.h),
           ),
         ],
       ),
@@ -1337,7 +1335,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         if (i < 0 || i >= data.length) return const SizedBox();
                         final parts = data[i].label.split(' ');
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
+                          padding: EdgeInsets.only(top: 8.0.h),
                           child: Text(
                             parts.first,
                             style: TextStyle(
@@ -1377,9 +1375,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       show: true,
                       getDotPainter: (spot, percent, barData, index) =>
                           FlDotCirclePainter(
-                            radius: 4,
+                            radius: 4.r,
                             color: const Color(0xFF00E5FF),
-                            strokeWidth: 2,
+                            strokeWidth: 2.r,
                             strokeColor: isDark ? const Color(0xFF16213E) : AppColors.lightSurface,
                           ),
                     ),
@@ -1403,9 +1401,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       show: true,
                       getDotPainter: (spot, percent, barData, index) =>
                           FlDotCirclePainter(
-                            radius: 4,
+                            radius: 4.r,
                             color: const Color(0xFFFF2975),
-                            strokeWidth: 2,
+                            strokeWidth: 2.r,
                             strokeColor: isDark ? const Color(0xFF16213E) : AppColors.lightSurface,
                           ),
                     ),
@@ -1446,7 +1444,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildSingleMonthComparisonCard(_MonthPoint point) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     final maxY = [point.income, point.expense].reduce((a, b) => a > b ? a : b);
     final safeMax = maxY <= 0 ? 1.0 : maxY;
 
@@ -1462,9 +1460,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
-            blurRadius: 15,
+            blurRadius: 15.r,
             spreadRadius: -2,
-            offset: const Offset(0, 8),
+            offset: Offset(0, 8.h),
           ),
         ],
       ),
@@ -1521,7 +1519,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       showTitles: true,
                       getTitlesWidget: (v, meta) {
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
+                          padding: EdgeInsets.only(top: 8.0.h),
                           child: Text(
                             v == 0 ? "Income" : "Expense",
                             style: TextStyle(
@@ -1543,7 +1541,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         toY: point.income,
                         color: const Color(0xFF00E5FF),
                         width: 28.w,
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(4.r),
                       ),
                     ],
                   ),
@@ -1554,7 +1552,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         toY: point.expense,
                         color: const Color(0xFFFF2975),
                         width: 28.w,
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(4.r),
                       ),
                     ],
                   ),
@@ -1568,17 +1566,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _legendDot(Color c) => Container(
-    width: 10,
-    height: 10,
+    width: 10.w,
+    height: 10.h,
     margin: EdgeInsets.only(right: 4.w),
     decoration: BoxDecoration(
       color: c,
-      borderRadius: BorderRadius.circular(50),
+      borderRadius: BorderRadius.circular(50.r),
       boxShadow: [
         BoxShadow(
           color: c.withValues(alpha: 0.4),
-          blurRadius: 4,
-          spreadRadius: 1,
+          blurRadius: 4.r,
+          spreadRadius: 1.r,
         ),
       ],
     ),
@@ -1618,7 +1616,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       Colors.grey,
     ];
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     final sections = finalMap.entries.map((e) {
       final val = e.value;
       final pct = (val / total * 100).toStringAsFixed(1);
@@ -1682,7 +1680,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ),
                       sections: sections,
                       centerSpaceRadius: 30.r,
-                      sectionsSpace: 2,
+                      sectionsSpace: 2.r,
                       borderData: FlBorderData(show: false),
                     ),
                   ),
@@ -1735,7 +1733,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _emptyCard(String text) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark = _cachedIsDark;
     return Container(
       height: 200.h,
       decoration: BoxDecoration(
@@ -1763,8 +1761,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final now = DateTime.now();
     final displayMonth = DateTime(now.year, now.month + _calendarMonthOffset, 1);
     final daysInMonth = DateTime(displayMonth.year, displayMonth.month + 1, 0).day;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final theme = _cachedTheme;
+    final isDark = _cachedIsDark;
     final sym = CurrencyController.to.currencySymbol.value;
 
     // Build daily spend map for the displayed month
@@ -1955,7 +1953,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2.r)),
         ),
         SizedBox(width: 4.w),
-        Text(label, style: TextStyle(fontSize: 10.sp, color: Theme.of(context).textTheme.bodySmall?.color)),
+        Text(label, style: TextStyle(fontSize: 10.sp, color: _cachedTheme.textTheme.bodySmall?.color)),
       ],
     );
   }
@@ -1964,8 +1962,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildMerchantInsights() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final theme = _cachedTheme;
+    final isDark = _cachedIsDark;
     final sym = CurrencyController.to.currencySymbol.value;
 
     final Map<String, ({int count, double total})> merchants = {};
@@ -2047,8 +2045,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Widget _buildSalaryDetection() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final theme = _cachedTheme;
+    final isDark = _cachedIsDark;
     final sym = CurrencyController.to.currencySymbol.value;
 
     // Pre-filter: exclude obvious non-salary credits by recipient name only
@@ -2224,8 +2222,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildSpendingPersonality() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final theme = _cachedTheme;
+    final isDark = _cachedIsDark;
     final p = _spendingPersonality;
     final income = totalIncome;
     final expense = totalExpense;

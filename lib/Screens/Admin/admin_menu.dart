@@ -10,6 +10,7 @@ import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Screens/Admin/payment_settings_screen.dart';
 import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class AdminMenu extends StatefulWidget {
   const AdminMenu({super.key});
@@ -58,22 +59,26 @@ class _AdminMenuState extends State<AdminMenu> {
     setState(() => _isImporting = true);
     try {
       final count = await BackgroundWorker.triggerSmsImport(days: 7);
-      Get.snackbar(
-        'SMS Import Complete',
-        count > 0
-            ? '$count new transaction${count > 1 ? 's' : ''} imported.'
-            : 'No new transactions found in the last 7 days.',
-        backgroundColor: count > 0 ? const Color(0xFF0FA958) : Colors.grey[700]!,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 4),
-      );
+      if (mounted && Get.overlayContext != null) {
+        Get.snackbar(
+          'SMS Import Complete',
+          count > 0
+              ? '$count new transaction${count > 1 ? 's' : ''} imported.'
+              : 'No new transactions found in the last 7 days.',
+          backgroundColor: count > 0 ? const Color(0xFF0FA958) : Colors.grey[700]!,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+      }
     } catch (e) {
-      Get.snackbar(
-        'Import Failed',
-        'Something went wrong: $e',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
+      if (mounted && Get.overlayContext != null) {
+        Get.snackbar(
+          'Import Failed',
+          'Something went wrong: $e',
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+      }
     } finally {
       if (mounted) setState(() => _isImporting = false);
     }
@@ -87,10 +92,10 @@ class _AdminMenuState extends State<AdminMenu> {
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.lock_outline, size: 64, color: Colors.redAccent),
-              SizedBox(height: 16),
-              Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            children: [
+              Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
+              SizedBox(height: 16.h),
+              Text("Access Denied", style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -101,10 +106,10 @@ class _AdminMenuState extends State<AdminMenu> {
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.lock_outline, size: 64, color: Colors.redAccent),
-              SizedBox(height: 16),
-              Text("Access Denied", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            children: [
+              Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
+              SizedBox(height: 16.h),
+              Text("Access Denied", style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -136,9 +141,12 @@ class _AdminMenuState extends State<AdminMenu> {
         ),
         body: Padding(
           padding: EdgeInsets.all(24.w),
-          child: Column(
-            children: [
-              _buildMenuCard(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                children: [
+                  _buildMenuCard(
                 context,
                 title: "Pending Approvals",
                 subtitle: "Review upgrade requests",
@@ -175,6 +183,8 @@ class _AdminMenuState extends State<AdminMenu> {
                 onTap: _isImporting ? null : _triggerSmsImport,
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),

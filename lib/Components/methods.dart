@@ -59,9 +59,19 @@ Future<void> gotoScreen(int index, int currentIndex) async {
               .doc(user.email)
               .get();
 
-          final age = doc.data()?['age'];
+          final data = doc.data();
+          int? age = data?['age'] is num ? (data!['age'] as num).toInt() : null;
+          if (age == null && data?['dob'] != null) {
+            final dobTs = data!['dob'];
+            final dob = dobTs is Timestamp ? dobTs.toDate() : null;
+            if (dob != null) {
+              final now = DateTime.now();
+              age = now.year - dob.year;
+              if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) age--;
+            }
+          }
 
-          if (age == null || (age is int && age <= 0)) {
+          if (age == null || age <= 0) {
             final overlayCtx = Get.overlayContext;
             if (overlayCtx == null) return;
             // Get.overlayContext always resolves a fresh context — false positive.
@@ -77,7 +87,7 @@ Future<void> gotoScreen(int index, int currentIndex) async {
                   child: Material(
                     color: Colors.transparent,
                     child: Container(
-                      width: 320.w,
+                      width: () { final sw = MediaQuery.sizeOf(ctx).width; final raw = sw * 0.85; return raw > 340 ? 340.0 : raw < 260 ? 260.0 : raw; }(),
                       padding: EdgeInsets.all(24.w),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -90,13 +100,13 @@ Future<void> gotoScreen(int index, int currentIndex) async {
                           color: Colors.white.withValues(alpha: 0.15),
                           width: 1.5,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 30.w,
+                              offset: Offset(0.w, 10.w),
+                            ),
+                          ],
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

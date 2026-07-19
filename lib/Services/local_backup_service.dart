@@ -40,31 +40,38 @@ class LocalBackupService {
   }
 
   static Future<void> backupUserTransactions(String userEmail) async {
-    try {
-      if (userEmail.isEmpty) return;
+    if (userEmail.isEmpty) return;
 
-      final col = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userEmail)
-          .collection('transactions');
+    const maxRetries = 3;
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        final col = FirebaseFirestore.instance
+            .collection('users')
+            .doc(userEmail)
+            .collection('transactions');
 
-      final snap = await col.get(const GetOptions(source: Source.server));
+        final snap = await col.get(const GetOptions(source: Source.server));
 
-      final List<Map<String, dynamic>> list = snap.docs.map((d) {
-        final data = _convertFirestoreTypes(d.data());
-        return {'id': d.id, ...data};
-      }).toList();
+        final List<Map<String, dynamic>> list = snap.docs.map((d) {
+          final data = _convertFirestoreTypes(d.data());
+          return {'id': d.id, ...data};
+        }).toList();
 
-      await _writeData(_prefsKey(userEmail), jsonEncode(list));
+        await _writeData(_prefsKey(userEmail), jsonEncode(list));
 
-      debugPrint(
-        '[LocalBackupService] Backup success: ${list.length} items for $userEmail',
-      );
-    } catch (e, st) {
-      debugPrint('[LocalBackupService] backupUserTransactions ERROR: $e');
-      debugPrint('$st');
-      ErrorHandler.showError('Backup failed. Data is safe in the cloud.', title: 'Backup');
+        debugPrint(
+          '[LocalBackupService] Backup success: ${list.length} items for $userEmail',
+        );
+        return;
+      } catch (e) {
+        debugPrint('[LocalBackupService] Backup attempt ${attempt + 1} failed: $e');
+        if (attempt < maxRetries - 1) {
+          await Future.delayed(Duration(seconds: 2 * (attempt + 1)));
+        }
+      }
     }
+    debugPrint('[LocalBackupService] All backup attempts failed for $userEmail');
+    ErrorHandler.showError('Backup failed. Data is safe in the cloud.', title: 'Backup');
   }
 
   static Future<List<Map<String, dynamic>>> readUserTransactionsBackup(
@@ -74,6 +81,7 @@ class LocalBackupService {
       final raw = await _readData(_prefsKey(email));
       if (raw == null) return [];
       final data = jsonDecode(raw);
+      if (data is! List) return [];
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
       debugPrint("[LocalBackupService] read error: $e");

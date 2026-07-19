@@ -122,7 +122,7 @@ class ForecastShimmer extends StatelessWidget {
     return ShimmerLoading(
       child: Row(
         children: [
-          Container(width: 4, height: 16, color: Colors.white),
+          Container(width: 4.w, height: 16.h, color: Colors.white),
           SizedBox(width: 8.w),
           Container(width: 60.w, height: 16.h, color: Colors.white),
           SizedBox(width: 8.w),

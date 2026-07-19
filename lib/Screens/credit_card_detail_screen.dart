@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
+import 'package:money_control/Utils/responsive.dart';
 
 class CreditCardDetailScreen extends StatefulWidget {
   const CreditCardDetailScreen({super.key});
@@ -40,7 +41,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _AddSheet(
+      builder: (ctx) => Responsive.wrapSheetContent(ctx, _AddSheet(
         title: id != null ? "Edit Credit Card" : "Add Credit Card",
         fields: const [
           _FieldDef("Card / Bank name", TextInputType.text),
@@ -74,7 +75,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
             if (mounted) setState(() => _saving = false);
           }
         },
-      ),
+      )),
     );
   }
 
@@ -153,8 +154,11 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
             for (final d in docs) {
               totalOutstanding += (d.data() as Map<String, dynamic>)['outstanding'] as num? ?? 0;
             }
-            return ListView(
-              padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
               children: [
                 _buildSummary(totalOutstanding, symbol, isDark),
                 SizedBox(height: 20.h),
@@ -180,7 +184,9 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                     isDark: isDark,
                   );
                 }),
-              ],
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -449,6 +455,7 @@ class _AddSheetState extends State<_AddSheet> {
       lastDate: DateTime.now().add(const Duration(days: 60)),
     );
     if (picked != null) {
+      if (!mounted) return;
       setState(() {
         _ctrls[i].text = DateFormat('dd MMM yyyy').format(picked);
         _dateValues[widget.fields[i].label] = picked;

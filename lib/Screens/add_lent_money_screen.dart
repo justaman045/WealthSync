@@ -8,6 +8,8 @@ import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Models/lent_money_model.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/responsive_form_row.dart';
 
 class AddLentMoneyScreen extends StatefulWidget {
   final LentMoneyModel? existingEntry;
@@ -124,10 +126,13 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
         ),
         body: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildAmountField(context),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildAmountField(context),
               SizedBox(height: 16.h),
               _buildTypeSelector(context),
               SizedBox(height: 24.h),
@@ -135,6 +140,8 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
               SizedBox(height: 32.h),
               _buildSaveButton(),
             ],
+              ),
+            ),
           ),
         ),
       ),
@@ -246,29 +253,27 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
       borderRadius: BorderRadius.circular(24.r),
       child: Column(
         children: [
-          _buildInputRow(
-            icon: Icons.person_outline,
-            child: TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: "Friend's Name",
+          ResponsiveFormRow(
+            left: _buildInputRow(
+              icon: Icons.person_outline,
+              child: TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: "Friend's Name",
+                ),
               ),
             ),
-          ),
-          Divider(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
-            height: 32.h,
-          ),
-          _buildInputRow(
-            icon: Icons.calendar_today_outlined,
-            child: InkWell(
-              onTap: () => _selectDate(context),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                child: Text(
-                  DateFormat('MMM dd, yyyy').format(_selectedDate),
-                  style: TextStyle(fontSize: 16.sp),
+            right: _buildInputRow(
+              icon: Icons.calendar_today_outlined,
+              child: InkWell(
+                onTap: () => _selectDate(context),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                  child: Text(
+                    DateFormat('MMM dd, yyyy').format(_selectedDate),
+                    style: TextStyle(fontSize: 16.sp),
+                  ),
                 ),
               ),
             ),
