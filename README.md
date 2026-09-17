@@ -118,7 +118,7 @@ flutter build apk --release
 
 ## Download
 
-**Latest APK:** https://github.com/justaman045/WealthSync/releases/download/v2.0.154/app-release.apk
+**Latest APK:** https://github.com/justaman045/WealthSync/releases/download/v2.0.156/app-release.apk
 
 *Installation:* Download the `.apk` on your Android device, open it, and allow installation from unknown sources.
 
