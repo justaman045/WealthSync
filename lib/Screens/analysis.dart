@@ -468,11 +468,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         },
         child: SafeArea(
           bottom: false,
-          child: loading
-              ? const InsightsSkeleton()
-              : error != null
-              ? Center(child: Text(error!))
-              : _buildContent(scheme),
+child: loading
+          ? const InsightsSkeleton()
+          : error != null
+          ? Center(child: Text(error!))
+          : Obx(() => _buildContent(scheme)),
         ),
       ),
       ),

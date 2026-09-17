@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
@@ -206,6 +208,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             IconButton(
               icon: Icon(Icons.edit, color: isDark ? Colors.white : AppColors.lightTextPrimary),
               onPressed: () async {
+                if (!ensureFeatureVisible(context, 'transactions')) return;
                 await Get.to(
                   () => TransactionEditScreen(transaction: widget.transaction),
                 );
@@ -214,7 +217,10 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             ),
             IconButton(
               icon: Icon(Icons.delete_outline, color: isDark ? Colors.white : AppColors.lightTextPrimary),
-              onPressed: _deleteTransaction,
+              onPressed: () {
+                if (!ensureFeatureVisible(context, 'transactions')) return;
+                _deleteTransaction();
+              },
             ),
           ],
         ),
@@ -537,16 +543,19 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             valueColor: isReceived
                 ? AppColors.primary
                 : AppColors.error,
+            masked: true,
           ),
 
           _detailRow(
             "Tax",
             "${CurrencyController.to.currencySymbol.value}${tx.tax.toStringAsFixed(2)}",
+            masked: true,
           ),
           _detailRow(
             "Total",
             "${CurrencyController.to.currencySymbol.value}${tx.total.toStringAsFixed(2)}",
             bold: true,
+            masked: true,
           ),
           _detailRow("Currency", tx.currency),
           _detailRow("Category", tx.category ?? "-"),
@@ -563,7 +572,19 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     String value, {
     bool bold = false,
     Color? valueColor,
+    bool masked = false,
   }) {
+    final TextStyle style = TextStyle(
+      fontSize: bold ? 15.sp : 13.5.sp,
+      fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+      color: valueColor ??
+          (bold
+              ? (isDark ? Colors.white : AppColors.lightTextPrimary)
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.9)
+                  : AppColors.lightTextPrimary.withValues(alpha: 0.9))),
+      letterSpacing: 0.3,
+    );
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h), // More spacing
       child: Row(
@@ -581,21 +602,16 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
           ),
           Expanded(
             flex: 6,
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: bold ? 15.sp : 13.5.sp,
-                fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-                color: valueColor ??
-                    (bold
-                        ? (isDark ? Colors.white : AppColors.lightTextPrimary)
-                        : (isDark
-                            ? Colors.white.withValues(alpha: 0.9)
-                            : AppColors.lightTextPrimary.withValues(alpha: 0.9))),
-                letterSpacing: 0.3,
-              ),
-            ),
+            child: masked
+                ? Align(
+                    alignment: Alignment.centerRight,
+                    child: PrivacyText(value, style: style),
+                  )
+                : Text(
+                    value,
+                    textAlign: TextAlign.right,
+                    style: style,
+                  ),
           ),
         ],
       ),

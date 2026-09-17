@@ -50,15 +50,23 @@ class BiometricService extends GetxController {
   Future<bool> authenticate({
     String reason = 'Please authenticate to access Finance Control',
   }) async {
-    if (kIsWeb) return false;
-    if (auth == null) return false;
+    // No local-auth backend (web, or platform without the plugin): auto-unlock
+    // instead of permanently locking the user out of the app.
+    if (kIsWeb || auth == null) {
+      _fallbackUnlock();
+      return true;
+    }
     try {
       final bool canAuthenticateWithBiometrics = await auth!.canCheckBiometrics;
       final bool canAuthenticate =
           canAuthenticateWithBiometrics || await auth!.isDeviceSupported();
 
       if (!canAuthenticate) {
-        return false;
+        // Device dropped biometric/PIN support since the pref was set.
+        // Auto-unlock (persisted off) so the app stays reachable; a purely
+        // device-initiated failure must not be a permanent lockout.
+        _fallbackUnlock();
+        return true;
       }
 
       final bool didAuthenticate = await auth!.authenticate(
@@ -74,6 +82,17 @@ class BiometricService extends GetxController {
     } on PlatformException catch (e) {
       log("Biometric Error: $e");
       return false;
+    }
+  }
+
+  /// Unlocks the app when local auth is unavailable, and persists the pref
+  /// back off so the Settings toggle reflects reality on the next launch.
+  Future<void> _fallbackUnlock() async {
+    isAuthenticated.value = true;
+    isBiometricEnabled.value = false;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('biometric_enabled') ?? false) {
+      await prefs.setBool('biometric_enabled', false);
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:money_control/Components/cateogary_initial_icon.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Components/colors.dart';
 
 import 'package:money_control/Screens/add_transaction.dart';
@@ -42,6 +43,10 @@ class _QuickSendRowState extends State<QuickSendRow> {
 
     return Obx(() {
       if (_controller.isLoading.value) {
+        if (PerformanceController.to.liteMode.value) {
+          // Lite mode: static placeholder — no shimmer animation.
+          return _buildShimmer(isDark, containerColor, animated: false);
+        }
         return _buildShimmer(isDark, containerColor);
       }
 
@@ -212,7 +217,27 @@ class _QuickSendRowState extends State<QuickSendRow> {
     );
   }
 
-  Widget _buildShimmer(bool isDark, Color containerColor) {
+  Widget _buildShimmer(bool isDark, Color containerColor,
+      {bool animated = true}) {
+    final Widget placeholder = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: List.generate(4, (index) {
+        return Column(
+          children: [
+            Container(
+              width: 50.r,
+              height: 50.r,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Container(width: 40.w, height: 10.h, color: Colors.white),
+          ],
+        );
+      }),
+    );
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(vertical: 20.h, horizontal: 16.w),
@@ -225,33 +250,17 @@ class _QuickSendRowState extends State<QuickSendRow> {
               : Colors.grey.withValues(alpha: 0.1),
         ),
       ),
-      child: Shimmer.fromColors(
-        baseColor: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.grey.withValues(alpha: 0.1),
-        highlightColor: isDark
-            ? Colors.white.withValues(alpha: 0.1)
-            : Colors.grey.withValues(alpha: 0.3),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (index) {
-            return Column(
-              children: [
-                Container(
-                  width: 50.r,
-                  height: 50.r,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Container(width: 40.w, height: 10.h, color: Colors.white),
-              ],
-            );
-          }),
-        ),
-      ),
+      child: animated
+          ? Shimmer.fromColors(
+              baseColor: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey.withValues(alpha: 0.1),
+              highlightColor: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.3),
+              child: placeholder,
+            )
+          : placeholder,
     );
   }
 }

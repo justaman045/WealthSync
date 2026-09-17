@@ -10,6 +10,7 @@ import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Screens/sms_import_screen.dart';
 import 'package:money_control/Components/empty_state.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
@@ -390,7 +391,13 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                       extentRatio: 0.25,
                                       children: [
                                         SlidableAction(
-                                          onPressed: (context) {
+                                          onPressed: (actionCtx) {
+                                            if (!ensureFeatureVisible(
+                                              actionCtx,
+                                              'transactions',
+                                            )) {
+                                              return;
+                                            }
                                             Get.to(
                                               () => TransactionEditScreen(
                                                 transaction: tx,
@@ -414,7 +421,15 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                       extentRatio: 0.25,
                                       children: [
                                         SlidableAction(
-                                          onPressed: (_) => _confirmDelete(tx),
+                                          onPressed: (actionCtx) {
+                                            if (!ensureFeatureVisible(
+                                              actionCtx,
+                                              'transactions',
+                                            )) {
+                                              return;
+                                            }
+                                            _confirmDelete(tx);
+                                          },
                                           backgroundColor: const Color(
                                             0xFFFE4A49,
                                           ),
@@ -504,7 +519,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                                 ],
                                               ),
                                             ),
-                                            Text(
+                                            PrivacyText(
                                               '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}',
                                               style: TextStyle(
                                                 color: amountColor,

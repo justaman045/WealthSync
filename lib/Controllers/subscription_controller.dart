@@ -149,16 +149,31 @@ class SubscriptionController extends GetxController {
             planType.value = data['planType'] as String? ?? '';
           }
 
-          if (!adminFlag &&
-              newStatus == SubscriptionStatus.pro &&
-              data.containsKey('expiryDate')) {
-            final expiry = (data['expiryDate'] as Timestamp?)?.toDate();
-            if (expiry != null) {
-              expiryDate.value = expiry;
-              if (DateTime.now().isAfter(expiry)) {
+          var referralProActive = false;
+          if (!adminFlag && newStatus == SubscriptionStatus.pro) {
+            if (data.containsKey('expiryDate')) {
+              final expiry = (data['expiryDate'] as Timestamp?)?.toDate();
+              if (expiry != null) {
+                expiryDate.value = expiry;
+                if (DateTime.now().isAfter(expiry)) {
+                  newStatus = SubscriptionStatus.free;
+                  expiryDate.value = null;
+                  _expireSubscription(email);
+                }
+              }
+            } else {
+              // Referral-granted 'pro': written by applyReferralCode with a
+              // trialEndDate grant window and no expiryDate. Honor that window
+              // instead of granting permanent Pro (the grant capped at 45 days
+              // in firestore.rules).
+              expiryDate.value = null;
+              final trialEnd = (data['trialEndDate'] as Timestamp?)?.toDate();
+              if (trialEnd == null || DateTime.now().isAfter(trialEnd)) {
                 newStatus = SubscriptionStatus.free;
-                expiryDate.value = null;
-                _expireSubscription(email);
+              } else {
+                trialEndDate.value = trialEnd;
+                trialUsed.value = true;
+                referralProActive = true;
               }
             }
           } else if (!adminFlag) {
@@ -167,7 +182,7 @@ class SubscriptionController extends GetxController {
 
           if (!adminFlag && newStatus == SubscriptionStatus.free) {
             _handleTrialLogic(data, email);
-          } else {
+          } else if (!referralProActive) {
             trialEndDate.value = null;
           }
 

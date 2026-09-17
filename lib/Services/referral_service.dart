@@ -103,7 +103,10 @@ class ReferralService {
           .limit(1)
           .get();
       if (existing.docs.isNotEmpty && existing.docs.first.id != user.email) {
-        code = '$code${user.uid.substring(0, 2).toUpperCase()}';
+        final tail = user.uid.length >= 2
+            ? user.uid.substring(user.uid.length - 2)
+            : user.uid;
+        code = '$code${tail.toUpperCase()}';
       }
       await _db.collection('users').doc(user.email).set({
         'referralCode': code,
@@ -159,10 +162,15 @@ class ReferralService {
         final currentExpiry = referrerSnap.exists
             ? (referrerSnap.data()?['trialEndDate'] as Timestamp?)?.toDate()
             : null;
-        final newExpiry =
-            currentExpiry != null && currentExpiry.isAfter(DateTime.now())
-            ? currentExpiry.add(const Duration(days: 30))
-            : DateTime.now().add(const Duration(days: 30));
+        final base = DateTime.now().add(const Duration(days: 30));
+        // Extending an already-active grant can push past the rules' 45-day
+        // validTrialCap (which counts from request time), so clamp to it.
+        final cap = DateTime.now().add(const Duration(days: 45));
+        final newExpiry = currentExpiry != null && currentExpiry.isAfter(DateTime.now())
+            ? (currentExpiry.add(const Duration(days: 30)).isAfter(cap)
+                ? cap
+                : currentExpiry.add(const Duration(days: 30)))
+            : base;
 
         txn.set(referrerRef, {
           'referralCount': FieldValue.increment(1),

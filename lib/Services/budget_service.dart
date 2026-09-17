@@ -62,11 +62,17 @@ class BudgetService {
       }
 
       final symbol = CurrencyController.to.currencySymbol.value;
+      final masked = prefs.getBool('privacy_mode_enabled') ?? false;
+      // Privacy mode: never leak amounts into notification bodies.
+      final spentStr =
+          masked ? '••••' : '$symbol${totalSpent.toStringAsFixed(0)}';
+      final limitStr =
+          masked ? '••••' : '$symbol${budgetLimit.toStringAsFixed(0)}';
 
       if (totalSpent > budgetLimit) {
         const title = "🚨 Budget Exceeded!";
         final body =
-            "You've spent $symbol${totalSpent.toStringAsFixed(0)} of your $symbol${budgetLimit.toStringAsFixed(0)} $category budget.";
+            "You've spent $spentStr of your $limitStr $category budget.";
 
         await NotificationService.showNotification(
           title: title,

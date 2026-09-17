@@ -12,6 +12,7 @@ import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/about_application.dart';
 import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/terms_and_policy.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
@@ -71,7 +72,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: const Text("Restore Data"),
         content: const Text(
-            "This handles restoring from local cache. Overwrite current data?"),
+            "This handles restoring from local cache. Merge restored transactions with current data?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -88,11 +89,30 @@ class DataSupportSettingsScreen extends StatelessWidget {
     if (confirmed != true) return;
 
     try {
-      await LocalBackupService.restoreUserTransactions(userEmail);
+      if (!await LocalBackupService.hasUserBackup(userEmail)) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("No local backup found. Tap 'Backup Data' first."),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      final restored =
+          await LocalBackupService.restoreUserTransactions(userEmail);
+      // The restore re-writes Firestore; drop the cold-load cache so a reload
+      // within the TTL doesn't surface stale data (mirrors import_screen).
+      LocalCacheService.invalidate('transactions_$userEmail');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Data restored from backup"),
+          content: Text(
+            restored > 0
+                ? "Restored $restored transaction${restored == 1 ? '' : 's'} from backup"
+                : "Backup had no transactions to restore",
+          ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -114,15 +134,29 @@ class DataSupportSettingsScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     if (user?.email == null) return;
 
+    // Mirrors UserService._subcollections (the canonical account-deletion
+    // list) so "export all" and "delete all" stay in sync.
     const collections = [
-      'transactions', 'categories', 'budgets', 'goals', 'loans', 'challenges',
-      'lent_money', 'recurring_payments', 'sms_rules', 'category_rules',
+      // Core
+      'transactions', 'recurring_payments', 'categories', 'budgets',
+      'notifications', 'goals', 'loans', 'challenges', 'lent_money',
+      'sms_rules', 'category_rules', 'learning_data',
+      // Liquid & Fixed Income
       'fd_accounts', 'ppf_accounts', 'post_office_schemes', 'bonds', 'chit_funds',
+      // Equity & Growth
       'stock_holdings', 'sip_holdings', 'etf_holdings', 'foreign_stocks',
-      'startup_investments', 'pf_accounts', 'vpf_accounts', 'nps_accounts',
+      'startup_investments',
+      // Retirement
+      'pf_accounts', 'vpf_accounts', 'nps_accounts',
+      // Alternative Assets
       'gold_holdings', 'sgb_holdings', 'jewelry_items', 'crypto_holdings',
-      'reit_holdings', 'p2p_loans', 'agri_land', 'properties', 'vehicles',
-      'insurance_policies', 'business_assets', 'bnpl_entries', 'credit_cards',
+      'reit_holdings', 'p2p_loans',
+      // Physical Assets
+      'agri_land', 'properties', 'vehicles',
+      // Protection & Business
+      'insurance_policies', 'business_assets',
+      // Liabilities
+      'bnpl_entries', 'credit_cards',
     ];
 
     final nav = Navigator.of(context, rootNavigator: true);
@@ -138,25 +172,48 @@ class DataSupportSettingsScreen extends StatelessWidget {
       final data = <String, dynamic>{};
       data['exported_at'] = DateTime.now().toUtc().toIso8601String();
       data['user_email'] = user!.email;
+      final skipped = <String>[];
+
+      // Fetch the user profile doc (name, phone, address, DOB — personal data
+      // that must be part of a GDPR export).
+      try {
+        final profileDoc = await FirebaseFirestore.instance
+            .doc('users/${user.email}')
+            .get();
+        data['profile'] = profileDoc.exists ? profileDoc.data() : null;
+      } catch (e) {
+        debugPrint('GDPR export: skipping profile ($e)');
+        skipped.add('profile');
+      }
 
       // Fetch wealth portfolio document
-      final wealthDoc = await FirebaseFirestore.instance
-          .doc('users/${user.email}/wealth/portfolio')
-          .get();
-      data['wealth_portfolio'] = wealthDoc.exists ? wealthDoc.data() : null;
-
-      // Fetch all subcollections
-      for (final col in collections) {
-        final snap = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .collection(col)
+      try {
+        final wealthDoc = await FirebaseFirestore.instance
+            .doc('users/${user.email}/wealth/portfolio')
             .get();
-        data[col] = snap.docs.map((d) {
-          final m = d.data();
-          m['_id'] = d.id;
-          return m;
-        }).toList();
+        data['wealth_portfolio'] = wealthDoc.exists ? wealthDoc.data() : null;
+      } catch (e) {
+        debugPrint('GDPR export: skipping wealth portfolio ($e)');
+        skipped.add('wealth_portfolio');
+      }
+
+      // Fetch all subcollections — one failed read must not abort the export.
+      for (final col in collections) {
+        try {
+          final snap = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.email)
+              .collection(col)
+              .get();
+          data[col] = snap.docs.map((d) {
+            final m = d.data();
+            m['_id'] = d.id;
+            return m;
+          }).toList();
+        } catch (e) {
+          debugPrint('GDPR export: skipping $col ($e)');
+          skipped.add(col);
+        }
       }
 
       // Serialize with Timestamp handling
@@ -180,9 +237,12 @@ class DataSupportSettingsScreen extends StatelessWidget {
       if (result == null) return;
 
       if (!context.mounted) return;
+      final summary = skipped.isEmpty
+          ? "GDPR export saved to: $result"
+          : "GDPR export saved to: $result (skipped: ${skipped.join(', ')})";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("GDPR export saved to: $result"),
+          content: Text(summary),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),

@@ -17,6 +17,7 @@ import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 
@@ -181,7 +182,9 @@ class TransactionController extends GetxController {
         return;
       }
       final sym = CurrencyController.to.currencySymbol.value;
-      WidgetService.updateBalance(totalBalance, sym);
+      final masked = Get.isRegistered<PrivacyController>() &&
+          Get.find<PrivacyController>().isPrivacyMode.value;
+      WidgetService.updateBalance(totalBalance, sym, masked: masked);
       // Persist the authoritative balance so background workers and the
       // widget can read it from the portfolio doc without a full scan.
       WealthService.updateBalance(totalBalance);

@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering;
 import 'package:flutter/services.dart';
@@ -10,6 +9,8 @@ import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/methods.dart';
+import 'package:money_control/Components/profile_avatar.dart';
+import 'package:money_control/Services/performance_controller.dart';
 
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Components/quick_send.dart';
@@ -115,6 +116,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    // Lite mode: skip entrance animations entirely (reduced jank + battery).
+    final liteMode = PerformanceController.to.liteMode.value;
 
     return AdaptiveScaffold(
       currentTab: 'home',
@@ -150,19 +153,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                       color: scheme.onSurface.withValues(alpha: 0.1),
                       width: 1.5,
                     ),
-                    image: DecorationImage(
-                      image: url.isNotEmpty
-                          ? CachedNetworkImageProvider(url)
-                          : const AssetImage('assets/profile.png')
-                                as ImageProvider,
-                      fit: BoxFit.cover,
-                    ),
                   ),
-                  child: Container(
-                    width: 34.w,
-                    height: 34.w,
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
-                  ),
+                  child: AppAvatar(url: url, size: 34.w),
                 ),
               );
             }),
@@ -380,82 +372,121 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      BalanceCard()
-                          .animate()
-                          .fadeIn(duration: 600.ms)
-                          .slideY(
-                            begin: -0.1,
-                            end: 0,
-                            curve: Curves.easeOutBack,
-                          ),
+                      !liteMode
+                              ? BalanceCard().animate().fadeIn(duration: 600.ms).slideY(
+                                  begin: -0.1,
+                                  end: 0,
+                                  curve: Curves.easeOutBack,
+                                )
+                              : BalanceCard(),
                       SizedBox(height: 12.h), // Added some spacing after card
                       FeatureVisible(
                         flagKey: 'category',
                         child:
-                            SectionTitle(
-                                  title: AppLocalizations.of(
-                                    context,
-                                  )!.quickSend,
-                                  color: scheme.onSurface,
-                                  accentColor: AppColors.primary,
-                                  onTap: () =>
-                                      gotoPage(const CategoriesHistoryScreen()),
-                                )
-                                .animate()
-                                .fadeIn(delay: 200.ms, duration: 500.ms)
-                                .slideX(
-                                  begin: -0.1,
-                                  end: 0,
-                                  curve: Curves.easeOut,
-                                ),
+                            !liteMode
+                                  ? SectionTitle(
+                                      title: AppLocalizations.of(
+                                        context,
+                                      )!.quickSend,
+                                      color: scheme.onSurface,
+                                      accentColor: AppColors.primary,
+                                      onTap: () => gotoPage(
+                                        const CategoriesHistoryScreen(),
+                                      ),
+                                    ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideX(
+                                      begin: -0.1,
+                                      end: 0,
+                                      curve: Curves.easeOut,
+                                    )
+                                  : SectionTitle(
+                                      title: AppLocalizations.of(
+                                        context,
+                                      )!.quickSend,
+                                      color: scheme.onSurface,
+                                      accentColor: AppColors.primary,
+                                      onTap: () => gotoPage(
+                                        const CategoriesHistoryScreen(),
+                                      ),
+                                    ),
                       ),
                       SizedBox(height: 12.h),
                       FeatureVisible(
                         flagKey: 'upi_pay',
                         child:
-                            QuickSendRow(
-                                  cardColor: isDark
-                                      ? AppColors.darkSurface.withValues(
-                                          alpha: 0.5,
-                                        )
-                                      : AppColors.lightSurface.withValues(
-                                          alpha: 0.6,
-                                        ),
-                                  textColor: scheme.onSurface,
-                                )
-                                .animate()
-                                .fadeIn(delay: 300.ms, duration: 500.ms)
-                                .slideX(
-                                  begin: 0.1,
-                                  end: 0,
-                                  curve: Curves.easeOut,
-                                ),
+                            !liteMode
+                                  ? QuickSendRow(
+                                      cardColor: isDark
+                                          ? AppColors.darkSurface.withValues(
+                                              alpha: 0.5,
+                                            )
+                                          : AppColors.lightSurface.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                      textColor: scheme.onSurface,
+                                    ).animate().fadeIn(delay: 300.ms, duration: 500.ms).slideX(
+                                      begin: 0.1,
+                                      end: 0,
+                                      curve: Curves.easeOut,
+                                    )
+                                  : QuickSendRow(
+                                      cardColor: isDark
+                                          ? AppColors.darkSurface.withValues(
+                                              alpha: 0.5,
+                                            )
+                                          : AppColors.lightSurface.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                      textColor: scheme.onSurface,
+                                    ),
                       ),
                       SizedBox(height: 18.h),
-                      SectionTitle(
-                            title: AppLocalizations.of(
-                              context,
-                            )!.recentTransactions,
-                            color: scheme.onSurface,
-                            accentColor: AppColors.primary,
-                            onTap: () => gotoPage(TransactionHistoryScreen()),
-                          )
-                          .animate()
-                          .fadeIn(delay: 400.ms, duration: 500.ms)
-                          .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
+                      !liteMode
+                            ? SectionTitle(
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.recentTransactions,
+                                color: scheme.onSurface,
+                                accentColor: AppColors.primary,
+                                onTap: () =>
+                                    gotoPage(TransactionHistoryScreen()),
+                              ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(
+                                begin: 0.2,
+                                end: 0,
+                                curve: Curves.easeOut,
+                              )
+                            : SectionTitle(
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.recentTransactions,
+                                color: scheme.onSurface,
+                                accentColor: AppColors.primary,
+                                onTap: () =>
+                                    gotoPage(TransactionHistoryScreen()),
+                              ),
                       SizedBox(height: 12.h),
-                      RecentPaymentList(
-                            key: _keyTransactionList,
-                            cardColor: isDark
-                                ? AppColors.darkSurface.withValues(alpha: 0.5)
-                                : AppColors.lightSurface.withValues(alpha: 0.6),
-                            textColor: scheme.onSurface,
-                            receivedColor: AppColors.success,
-                            sentColor: AppColors.error,
-                          )
-                          .animate()
-                          .fadeIn(delay: 500.ms, duration: 600.ms)
-                          .slideY(begin: 0.1, end: 0, curve: Curves.easeOut),
+                      !liteMode
+                            ? RecentPaymentList(
+                                key: _keyTransactionList,
+                                cardColor: isDark
+                                    ? AppColors.darkSurface.withValues(alpha: 0.5)
+                                    : AppColors.lightSurface.withValues(alpha: 0.6),
+                                textColor: scheme.onSurface,
+                                receivedColor: AppColors.success,
+                                sentColor: AppColors.error,
+                              ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideY(
+                                begin: 0.1,
+                                end: 0,
+                                curve: Curves.easeOut,
+                              )
+                            : RecentPaymentList(
+                                key: _keyTransactionList,
+                                cardColor: isDark
+                                    ? AppColors.darkSurface.withValues(alpha: 0.5)
+                                    : AppColors.lightSurface.withValues(alpha: 0.6),
+                                textColor: scheme.onSurface,
+                                receivedColor: AppColors.success,
+                                sentColor: AppColors.error,
+                              ),
                     ],
                   ),
                 ),

@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:money_control/Components/profile_avatar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering;
@@ -456,13 +456,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primary, width: 2),
-                    image: DecorationImage(
-                      image: url.isNotEmpty
-                          ? CachedNetworkImageProvider(url)
-                          : const AssetImage("assets/profile.png")
-                                as ImageProvider,
-                      fit: BoxFit.cover,
-                    ),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.primary.withValues(alpha: 0.3),
@@ -470,6 +463,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
+                  child: AppAvatar(url: url, size: 60.w),
                 );
               }),
               SizedBox(width: 16.w),

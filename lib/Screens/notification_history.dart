@@ -159,18 +159,22 @@ class NotificationHistoryScreen extends StatelessWidget {
     );
 
     if (confirm == true) {
-      final batch = FirebaseFirestore.instance.batch();
-      final snapshots = await FirebaseFirestore.instance
+      final collection = FirebaseFirestore.instance
           .collection('users')
           .doc(email)
-          .collection('notifications')
-          .get();
+          .collection('notifications');
 
-      for (var doc in snapshots.docs) {
-        batch.delete(doc.reference);
+      // Chunked deletes: a single batch caps at 500 writes, so heavy users
+      // would throw. Paginate instead (mirrors UserService._deleteCollection).
+      while (true) {
+        final snapshots = await collection.limit(500).get();
+        if (snapshots.docs.isEmpty) break;
+        final batch = FirebaseFirestore.instance.batch();
+        for (var doc in snapshots.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
       }
-
-      await batch.commit();
 
       ErrorHandler.showSuccess("History cleared");
     }
@@ -210,6 +214,7 @@ class _NotificationTile extends StatelessWidget {
 
     switch (normalizedType) {
       case 'budget_alert':
+      case 'budget_alerts':
         icon = Icons.warning_amber_rounded;
         color = AppColors.error;
         break;

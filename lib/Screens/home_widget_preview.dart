@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
@@ -126,14 +127,12 @@ class _HomeWidgetPreviewScreenState extends State<HomeWidgetPreviewScreen> {
             ),
           ),
           SizedBox(height: 4.h),
-          Obx(
-            () => Text(
-              "$currency${_transactionController.totalBalance.toStringAsFixed(2)}",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-              ),
+          PrivacyText(
+            "$currency${_transactionController.totalBalance.toStringAsFixed(2)}",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
             ),
           ),
           SizedBox(height: 6.h),

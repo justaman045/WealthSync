@@ -299,7 +299,7 @@ class WealthAgeRecommendations {
   static Color phaseColor(int phase) => switch (phase) {
         1 => AppColors.success,
         2 => AppColors.primary,
-        _ => const Color(0xFF00E5FF),
+        _ => AppColors.secondary,
       };
 
   /// Show the age-based wealth prompt dialog

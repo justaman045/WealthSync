@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/import_service.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Services/error_handler.dart';
@@ -104,17 +105,36 @@ class _ImportScreenState extends State<ImportScreen> {
       final userEmail = FirebaseAuth.instance.currentUser?.email;
       if (userId == null) throw Exception("User not logged in");
 
-      final transactions = await ImportService.processCSVData(
+      final result = await ImportService.processCSVData(
         _csvData!,
         headerMap,
         userId,
         currency: CurrencyController.to.currencyCode.value,
       );
 
-      await ImportService.saveTransactionsToFirestore(transactions, userEmail!);
+      final saved = await ImportService.saveTransactionsToFirestore(
+        result.transactions,
+        userEmail!,
+      );
+
+      // Invalidate the transactions cache so the next cold load is fresh.
+      LocalCacheService.invalidate('transactions_$userEmail');
 
       // Success Feedback
       if (mounted) {
+        final parsed = result.transactions.length;
+        final skipped = result.skipped;
+        final String message;
+        if (saved > 0) {
+          message = "Imported $saved transaction${saved == 1 ? '' : 's'} "
+              "successfully${skipped > 0 ? ' ($skipped rows skipped).' : '.'}";
+        } else if (parsed > 0) {
+          message = "No new transactions added (all rows were duplicates)"
+              "${skipped > 0 ? ' $skipped rows skipped.' : '.'}";
+        } else {
+          message = "No transactions found to import"
+              "${skipped > 0 ? ' ($skipped rows skipped).' : '.'}";
+        }
         showDialog(
           context: context,
               builder: (dialogContext) {
@@ -126,7 +146,7 @@ class _ImportScreenState extends State<ImportScreen> {
                   style: TextStyle(color: AppColors.primary),
                 ),
                 content: Text(
-                  "Imported ${transactions.length} transactions successfully.",
+                  message,
                   style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
                 ),
                 actions: [

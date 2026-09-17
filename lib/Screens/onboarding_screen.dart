@@ -87,7 +87,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // 2. Apply referral code if provided
         final referralCode = _referralController.text.trim();
         if (referralCode.isNotEmpty) {
-          await ReferralService.applyReferralCode(referralCode);
+          final applied = await ReferralService.applyReferralCode(referralCode);
+          if (applied) {
+            ErrorHandler.showSuccess("Referral code applied");
+          } else {
+            ErrorHandler.showError(
+              "Invalid referral code. Setup continues — you can enter a "
+              "different code later.",
+              title: "Referral",
+            );
+          }
         }
 
         // 3. Save to SharedPreferences for local check

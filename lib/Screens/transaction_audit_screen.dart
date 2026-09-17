@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Controllers/audit_controller.dart';
 import 'package:money_control/Models/audit_models.dart';
 import 'package:money_control/Services/audit_service.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Screens/edit_transaction.dart';
@@ -633,6 +634,9 @@ class _IssuesTab extends StatelessWidget {
                 isDark: isDark,
                 onTap: () {
                   Navigator.pop(sheetContext);
+                  if (!ensureFeatureVisible(sheetContext, 'transactions')) {
+                    return;
+                  }
                   Get.to(() => _EditTransactionProxy(transaction: tx));
                 },
               ),

@@ -64,7 +64,8 @@ service cloud.firestore {
       return request.auth != null
           && request.auth.token.email == userEmail
           && affected.hasOnly(['referredBy', 'trialEndDate'])
-          && (!affected.hasAny(['trialEndDate']) || d.trialEndDate is timestamp);
+          && (!affected.hasAny(['trialEndDate'])
+              || (d.trialEndDate is timestamp && validTrialCap(d.trialEndDate)));
     }
 
     // A user earns Pro by referring someone: only a write to a DIFFERENT
@@ -79,6 +80,7 @@ service cloud.firestore {
           && affected.hasOnly(['referralCount', 'subscriptionStatus', 'trialEndDate'])
           && d.subscriptionStatus == 'pro'
           && d.trialEndDate is timestamp
+          && validTrialCap(d.trialEndDate)
           && d.referralCount is number
           && d.referralCount >= 0
           && d.referralCount < 10000;

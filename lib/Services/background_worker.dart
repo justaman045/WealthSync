@@ -56,6 +56,17 @@ class BackgroundWorker {
     return _processSmsMessages(prefs, scanFrom: scanFrom);
   }
 
+  /// Mirrors the live feature-flag status map (from the foreground
+  /// `FeatureFlagService`) into SharedPreferences so the background isolate
+  /// has an authoritative, fail-closed source when its own network read is
+  /// unavailable or racing an auth restore. Safe to call on every change.
+  static Future<void> mirrorFeatureFlags(Map<String, String> statusMap) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_mirrorFlagsKey, jsonEncode(statusMap));
+    } catch (_) {}
+  }
+
   /// Show notification helper
   static Future<void> showNotification(
     String title,
@@ -176,11 +187,27 @@ void callbackDispatcher() {
 
       final prefs = await SharedPreferences.getInstance();
 
-      // Global kill switches: one small app_config read per tick, cached in
-      // SharedPreferences so a network blip reuses the last known state.
+      // Await a restored session before the flags read. On a cold start the
+      // auth SDK rehydrates asynchronously; reading `app_config` before that
+      // can hit a transient permission-denied (the rules require
+      // `request.auth != null`), which used to make the kill-switch read fail
+      // OPEN. `currentUser` is polled instead of listening to
+      // `authStateChanges().first` because the first emission is often null on
+      // a cold start.
+      if (FirebaseAuth.instance.currentUser == null) {
+        for (var i = 0; i < 8; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          if (FirebaseAuth.instance.currentUser != null) break;
+        }
+      }
+
+      // Global kill switches: one small app_config read per tick, mirrored
+      // into SharedPreferences so a network blip reuses the last known state.
       // `hidden` halts all background work for that feature — `comingSoon` is
       // a UI-level state and this isolate can't cheaply tell admins from
-      // customers.
+      // customers. The read is fail-closed: if the server read fails, the
+      // foreground mirror (kept fresh by the authenticated realtime listener)
+      // is preferred over defaulting back to enabled.
       final flags = await _fetchFeatureFlags(prefs);
 
       // --- LOGIC 1: SMS AUTO-IMPORT ---
@@ -287,11 +314,15 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
       if (data['recipientId'] == uid) received += amount;
     }
 
-    final symbol = prefs.getString('currency_symbol') ?? '\$';
+    final symbol = prefs.getString('currency_symbol') ?? '\u20B9';
+    final masked = prefs.getBool('privacy_mode_enabled') ?? false;
+    final spentStr = masked ? '••••' : '$symbol${spent.toStringAsFixed(0)}';
+    final receivedStr =
+        masked ? '••••' : '$symbol${received.toStringAsFixed(0)}';
 
     await BackgroundWorker.showNotification(
       "Daily Insight 📊",
-      "Today: Spent $symbol${spent.toStringAsFixed(0)}, Received $symbol${received.toStringAsFixed(0)}",
+      "Today: Spent $spentStr, Received $receivedStr",
       'insight_channel',
       'Daily Insights',
       userEmail: userEmail,
@@ -413,11 +444,15 @@ Future<void> _showPendingReminder(
 ) async {
   final symbol = prefs.getString('currency_symbol') ?? '\u20B9';
   final count = pending.length;
+  final masked = prefs.getBool('privacy_mode_enabled') ?? false;
 
   String listPreview;
   if (count == 1) {
     final p = pending.first;
-    listPreview = '$symbol${p.amount.toStringAsFixed(0)} — ${p.title}';
+    listPreview = masked ? p.title : '$symbol${p.amount.toStringAsFixed(0)} — ${p.title}';
+  } else if (masked) {
+    final names = pending.take(2).map((p) => p.title).join(', ');
+    listPreview = '$names, +${count - 2} more';
   } else {
     final names = pending
         .take(2)
@@ -608,7 +643,8 @@ Future<void> _updateWidgetBalance(String email) async {
       }
     }
     final symbol = prefs.getString('currency_symbol') ?? '\u20B9';
-    await WidgetService.updateBalance(total, symbol);
+    final masked = prefs.getBool('privacy_mode_enabled') ?? false;
+    await WidgetService.updateBalance(total, symbol, masked: masked);
   } catch (e) {
     developer.log('Widget balance update error: $e');
   }
@@ -671,9 +707,12 @@ Future<void> _checkWeeklyDigest(SharedPreferences prefs) async {
       }
     }
 
-    final symbol = prefs.getString('currency_symbol') ?? '\$';
+    final symbol = prefs.getString('currency_symbol') ?? '\u20B9';
+    final masked = prefs.getBool('privacy_mode_enabled') ?? false;
     String body;
-    if (lastWeekSpend > 0) {
+    if (masked) {
+      body = 'You have activity this week. Open the app for details.';
+    } else if (lastWeekSpend > 0) {
       final pct = ((thisWeekSpend - lastWeekSpend) / lastWeekSpend * 100).abs();
       final dir = thisWeekSpend <= lastWeekSpend ? 'less' : 'more';
       body =
@@ -713,16 +752,45 @@ int _isoWeekNumber(DateTime date) {
   return woy;
 }
 
-/// SharedPreferences key for the cached feature-flag map. Persisted after
-/// every successful Firestore read so a network blip never re-enables a
+/// SharedPreferences key for the foreground-mirrored feature-flag map. The
+/// foreground app (which has an authenticated realtime listener + a web poll)
+/// writes the authoritative status map here on every change. The background
+/// isolate prefers this mirror when its own server read fails, so a value the
+/// admin explicitly hid can never silently default back to enabled.
+const String _mirrorFlagsKey = 'bg_feature_flags';
+
+/// SharedPreferences key for the cached feature-flag map (legacy). Persisted
+/// after every successful Firestore read so a network blip never re-enables a
 /// feature the admin explicitly hid.
 const String _cachedFlagsKey = 'bg_cached_feature_flags';
 
+/// Pure kill-switch resolution shared by [_fetchFeatureFlags] and unit tests.
+///
+/// The background isolate must never run a hidden feature just because its
+/// network read failed. Precedence:
+///   1. a live server read (authoritative),
+///   2. the foreground mirror (known, survives restarts, fail-closed),
+///   3. the legacy cached map,
+///   4. `null`/empty everywhere -> `{}` (documented safe default: enabled).
+Map<String, String> resolveBackgroundFlags({
+  required Map<String, String>? server,
+  required Map<String, String>? mirror,
+  required Map<String, String>? legacyCache,
+}) {
+  if (server != null) return server;
+  if (mirror != null && mirror.isNotEmpty) return mirror;
+  if (legacyCache != null && legacyCache.isNotEmpty) return legacyCache;
+  return const {};
+}
+
 /// Reads the `app_config/feature_flags` kill switches for the background
 /// isolate. On success the result is cached in SharedPreferences; on failure
-/// the cache is returned instead of an empty map so hidden features stay dead
-/// across network outages.
+/// the foreground mirror (then the legacy cache) is returned instead of an
+/// empty map so hidden features stay dead across network outages and auth
+/// races.
 Future<Map<String, String>> _fetchFeatureFlags(SharedPreferences prefs) async {
+  final mirror = _loadMapFromPrefs(prefs, _mirrorFlagsKey);
+  final legacyCache = _loadMapFromPrefs(prefs, _cachedFlagsKey);
   try {
     final snap = await FirebaseFirestore.instance
         .collection('app_config')
@@ -731,8 +799,13 @@ Future<Map<String, String>> _fetchFeatureFlags(SharedPreferences prefs) async {
         .timeout(const Duration(seconds: 5));
     final data = snap.exists ? snap.data() : null;
     if (data == null) {
-      await _cacheFlags(prefs, const {});
-      return const {};
+      developer.log("Feature flag doc missing; using background mirror");
+      await _cacheFlags(prefs, mirror);
+      return resolveBackgroundFlags(
+        server: null,
+        mirror: mirror,
+        legacyCache: legacyCache,
+      );
     }
     final out = <String, String>{};
     data.forEach((key, value) {
@@ -742,10 +815,15 @@ Future<Map<String, String>> _fetchFeatureFlags(SharedPreferences prefs) async {
       }
     });
     await _cacheFlags(prefs, out);
+    await BackgroundWorker.mirrorFeatureFlags(out);
     return out;
   } catch (e) {
-    developer.log("Feature flag fetch failed (using cache): $e");
-    return _loadCachedFlags(prefs);
+    developer.log("Feature flag fetch failed (using mirror/cache): $e");
+    return resolveBackgroundFlags(
+      server: null,
+      mirror: mirror,
+      legacyCache: legacyCache,
+    );
   }
 }
 
@@ -755,11 +833,12 @@ Future<void> _cacheFlags(
 ) async {
   try {
     await prefs.setString(_cachedFlagsKey, jsonEncode(flags));
+    await prefs.setString(_mirrorFlagsKey, jsonEncode(flags));
   } catch (_) {}
 }
 
-Map<String, String> _loadCachedFlags(SharedPreferences prefs) {
-  final raw = prefs.getString(_cachedFlagsKey);
+Map<String, String> _loadMapFromPrefs(SharedPreferences prefs, String key) {
+  final raw = prefs.getString(key);
   if (raw == null) return const {};
   try {
     final decoded = jsonDecode(raw);

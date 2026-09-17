@@ -37,13 +37,17 @@ class ImportService {
   /// [headerMap] maps internal keys ('amount', 'date', 'note', 'merchant', 'category') to CSV column indices.
   /// If no explicit category column is mapped, the merchant name is run through
   /// the SMS categorization engine for an automatic suggestion.
-  static Future<List<TransactionModel>> processCSVData(
+  /// Returns the parsed transactions plus the number of rows skipped because
+  /// they were unreadable (missing mapping, empty cell, parse error).
+  static Future<({List<TransactionModel> transactions, int skipped})>
+      processCSVData(
     List<List<dynamic>> rawData,
     Map<String, int> headerMap,
     String currentUserId, {
     String currency = 'INR',
   }) async {
     List<TransactionModel> transactions = [];
+    var skipped = 0;
 
     // Prime the SMS categorization caches once so the per-row
     // suggestCategory() calls below are pure in-memory lookups.
@@ -62,20 +66,30 @@ class ImportService {
         final merchantIndex = headerMap['merchant']; // Optional
         final categoryIndex = headerMap['category']; // Optional
 
-        if (dateIndex == null || amountIndex == null) {
-          continue; // Skip invalid mapping
+        if (dateIndex == null ||
+            amountIndex == null ||
+            dateIndex >= row.length ||
+            amountIndex >= row.length) {
+          skipped++; // Skip invalid mapping
+          continue;
         }
 
         // 1. Parse Date
-        DateTime date = DateTime.now();
+        DateTime? parsedDate;
         final rawDate = row[dateIndex];
-        if (rawDate is String) {
-          // Attempt standard formats
-          date =
-              DateTime.tryParse(rawDate) ??
-              _tryParseCustomDate(rawDate) ??
-              DateTime.now();
+        if (rawDate is String && rawDate.trim().isNotEmpty) {
+          parsedDate =
+              DateTime.tryParse(rawDate) ?? _tryParseCustomDate(rawDate);
+          if (parsedDate == null) {
+            skipped++; // Unrecognized date format — never silently stamp "today"
+            continue;
+          }
+        } else if (rawDate is num) {
+          skipped++; // Numeric/Excel-serial dates aren't supported
+          continue;
         }
+        // Empty date cells default to today so the row can still import.
+        final date = parsedDate ?? DateTime.now();
 
         // 2. Parse Amount
         double amount = 0.0;
@@ -83,10 +97,29 @@ class ImportService {
         if (rawAmount is num) {
           amount = rawAmount.toDouble();
         } else if (rawAmount is String) {
-          final isAccounting = rawAmount.contains('(') && rawAmount.contains(')');
-          final cleaned = rawAmount.replaceAll(RegExp(r'[^0-9.-]'), '');
+          final trimmed = rawAmount.trim();
+          final isAccounting = trimmed.contains('(') && trimmed.contains(')');
+          final lower = trimmed.toLowerCase();
+          // Bank exports often carry a DR/CR (or Debit/Credit) suffix that
+          // decides the direction — honor it when present.
+          final isDebitSuffix =
+              RegExp(r'\b(dr|debit|withdrawn|sent|deducted)$').hasMatch(lower);
+          final isCreditSuffix = RegExp(
+            r'\b(cr|credit|deposit|received|credited)$',
+          ).hasMatch(lower);
+          final cleaned = trimmed.replaceAll(RegExp(r'[^0-9.-]'), '');
           final parsed = double.tryParse(cleaned);
-          amount = parsed != null ? (isAccounting ? -parsed.abs() : parsed) : 0.0;
+          if (parsed == null) {
+            skipped++; // Unreadable amount
+            continue;
+          }
+          amount = isAccounting ? -parsed.abs() : parsed;
+          if (isDebitSuffix) amount = -amount.abs();
+          if (isCreditSuffix) amount = amount.abs();
+        }
+        if (amount == 0.0) {
+          skipped++; // Blank/zero-amount rows aren't meaningful transactions
+          continue;
         }
 
         // 3. Parse Note/Description
@@ -135,10 +168,11 @@ class ImportService {
         transactions.add(tx);
       } catch (e) {
         log("Error parsing row $i: $e");
+        skipped++; // Skip unreadable row
         continue;
       }
     }
-    return transactions;
+    return (transactions: transactions, skipped: skipped);
   }
 
   static DateTime? _tryParseCustomDate(String dateStr) {
@@ -147,9 +181,12 @@ class ImportService {
       DateFormat("MM/dd/yyyy"),
       DateFormat("yyyy-MM-dd"),
       DateFormat("dd-MM-yyyy"),
+      DateFormat("dd/MM/yy"),
+      DateFormat("dd-MMM-yy"),
+      DateFormat("dd-MMM-yyyy"),
+      DateFormat("dd/MMM/yyyy"),
       DateFormat("dd MMM yyyy"),
       DateFormat("MMM dd, yyyy"),
-      DateFormat("dd/MM/yy"),
     ];
 
     for (var format in formats) {
@@ -164,11 +201,12 @@ class ImportService {
   /// [userEmail] is the Firestore doc id (`users/{userEmail}/transactions`).
   /// Rows that already exist (same date + merchant + amount) are skipped so
   /// re-importing the same file does not create duplicates.
-  static Future<void> saveTransactionsToFirestore(
+  /// Returns the number of transactions actually written.
+  static Future<int> saveTransactionsToFirestore(
     List<TransactionModel> transactions,
     String userEmail,
   ) async {
-    if (transactions.isEmpty) return;
+    if (transactions.isEmpty) return 0;
     const chunkSize = 499;
     final collection = FirebaseFirestore.instance
         .collection('users')
@@ -192,7 +230,7 @@ class ImportService {
         .where((tx) =>
             !existing.contains(_fingerprint(tx.date, tx.recipientName, tx.amount)))
         .toList();
-    if (toSave.isEmpty) return;
+    if (toSave.isEmpty) return 0;
 
     for (int i = 0; i < toSave.length; i += chunkSize) {
       final chunk = toSave.sublist(
@@ -206,6 +244,7 @@ class ImportService {
       }
       await batch.commit();
     }
+    return toSave.length;
   }
 
   static String _fingerprint(dynamic date, dynamic merchant, dynamic amount) {

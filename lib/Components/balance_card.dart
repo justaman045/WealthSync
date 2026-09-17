@@ -16,6 +16,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Controllers/recurring_payment_controller.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
+import 'package:money_control/Services/performance_controller.dart';
 
 class BalanceCard extends StatefulWidget {
   const BalanceCard({super.key});
@@ -258,7 +259,10 @@ class _BalanceCardState extends State<BalanceCard> {
                                     ),
                                     child: Text(
                                       _subtractSubscriptions.value
-                                          ? "- ${CurrencyController.to.currencySymbol.value}${_recurringPaymentController.pendingSubscriptions.value.toStringAsFixed(0)} (Subs)"
+                                          ? _privacyController
+                                                  .isPrivacyMode.value
+                                              ? "- •••• (Subs)"
+                                              : "- ${CurrencyController.to.currencySymbol.value}${_recurringPaymentController.pendingSubscriptions.value.toStringAsFixed(0)} (Subs)"
                                           : "- Subs",
                                       style: TextStyle(
                                         color: Colors.white,
@@ -289,24 +293,29 @@ class _BalanceCardState extends State<BalanceCard> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Obx(() {
-                                if (_privacyController.isPrivacyMode.value) {
-                                  return Text(
-                                    "••••",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 36.sp,
-                                      color: Colors.white,
-                                      letterSpacing: -1.0,
-                                      shadows: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(
-                                            alpha: 0.1,
-                                          ),
-                                          blurRadius: 10.w,
-                                          offset: Offset(0.w, 4.w),
-                                        ),
-                                      ],
+                                final style = TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 36.sp,
+                                  color: Colors.white,
+                                  letterSpacing: -1.0,
+                                  shadows: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 10.w,
+                                      offset: Offset(0.w, 4.w),
                                     ),
+                                  ],
+                                );
+                                if (_privacyController.isPrivacyMode.value) {
+                                  return Text("••••", style: style);
+                                } else if (PerformanceController
+                                    .to
+                                    .liteMode
+                                    .value) {
+                                  // Lite mode: skip the count-up tween.
+                                  return Text(
+                                    '${CurrencyController.to.currencySymbol.value} ${_computeTotal().toStringAsFixed(2)}',
+                                    style: style,
                                   );
                                 } else {
                                   return TweenAnimationBuilder<double>(
@@ -321,21 +330,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                     builder: (context, value, child) {
                                       return Text(
                                         '${CurrencyController.to.currencySymbol.value} ${value.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 36.sp,
-                                          color: Colors.white,
-                                          letterSpacing: -1.0,
-                                          shadows: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                              blurRadius: 10.w,
-                                              offset: Offset(0.w, 4.w),
-                                            ),
-                                          ],
-                                        ),
+                                        style: style,
                                       );
                                     },
                                     onEnd: () {

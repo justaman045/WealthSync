@@ -8,6 +8,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
@@ -523,7 +524,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 ? AppColors.primary
                 : isDark
                     ? AppColors.primary
-                    : const Color(0xFF0A8EA0),
+                    : AppColors.secondary,
             size: 18.sp,
           ),
           SizedBox(width: 10.w),
@@ -616,7 +617,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               color: zoneColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Text(
+            child: PrivacyText(
               '~${CurrencyController.to.currencySymbol.value}${(geo.baselineMonthlyIncome / 1000).toStringAsFixed(0)}K/mo',
               style: TextStyle(
                 color: zoneColor,
@@ -1128,23 +1129,54 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     }
 
     // Custom Assets
-    if (p.custom.isNotEmpty) {
-      final customCards = p.custom.entries
-          .where((e) => !p.hiddenKeys.contains(e.key))
-          .map(
-            (e) => _assetCard(
-              e.key,
-              e.value,
-              e.key,
-              Icons.category,
-              Colors.grey.shade500,
-              scheme,
-              onTapOverride: () => _showCustomAssetDialog(e.key, e.value),
-            ),
-          )
-          .toList();
+    final customCards = p.custom.entries
+        .where((e) => isVisible(e.key))
+        .map(
+          (e) => _assetCard(
+            e.key,
+            e.value,
+            e.key,
+            Icons.category,
+            Colors.grey.shade500,
+            scheme,
+            onTapOverride: () => _showCustomAssetDialog(e.key, e.value),
+          ),
+        )
+        .toList();
+    if (_ageBasedEnabled) {
+      // Smart Mode: custom keys are never age-recommended, so they stay hidden.
       if (customCards.isNotEmpty) {
         sections.add(header(_sectionHeader("Custom Assets", scheme)));
+        sections.add(
+          SliverGrid(
+            gridDelegate: gridDelegate(),
+            delegate: SliverChildListDelegate(customCards),
+          ),
+        );
+      }
+    } else {
+      sections.add(
+        header(
+          _sectionHeader(
+            "Custom Assets",
+            scheme,
+            trailing: FeatureVisible(
+              flagKey: 'custom_mode',
+              child: IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: "Add Custom Asset",
+                onPressed: () => _showCustomAssetDialog('', 0),
+                icon: Icon(
+                  Icons.add_circle_outline,
+                  color: AppColors.primary,
+                  size: 20.sp,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      if (customCards.isNotEmpty) {
         sections.add(
           SliverGrid(
             gridDelegate: gridDelegate(),
@@ -1198,13 +1230,16 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   void _showCustomAssetDialog(String key, double value) {
+    final isNew = key.isEmpty;
     final nameCtrl = TextEditingController(text: key);
-    final valueCtrl = TextEditingController(text: value.toStringAsFixed(0));
+    final valueCtrl = TextEditingController(
+      text: value > 0 ? value.toStringAsFixed(0) : '',
+    );
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Custom Asset"),
+        title: Text(isNew ? "Add Custom Asset" : "Custom Asset"),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1223,13 +1258,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () async {
-              await WealthService.deleteCustomAsset(key);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
+          if (!isNew)
+            TextButton(
+              onPressed: () async {
+                await WealthService.deleteCustomAsset(key);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text("Cancel"),
@@ -1239,7 +1275,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               final newName = nameCtrl.text.trim();
               final newVal = double.tryParse(valueCtrl.text.trim()) ?? 0;
               if (newName.isNotEmpty && newVal > 0) {
-                if (newName != key) {
+                if (newName != key && !isNew) {
                   await WealthService.deleteCustomAsset(key);
                 }
                 await WealthService.setCustomAsset(newName, newVal);
@@ -1256,7 +1292,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     });
   }
 
-  Widget _sectionHeader(String label, ColorScheme scheme) {
+  Widget _sectionHeader(String label, ColorScheme scheme, {Widget? trailing}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h, top: 4.h),
       child: Row(
@@ -1285,6 +1321,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               height: 1,
             ),
           ),
+          if (trailing != null) trailing,
         ],
       ),
     );
@@ -1395,7 +1432,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               ],
             ),
             SizedBox(height: 10.h),
-            Text(
+            PrivacyText(
               "$symbol${amount.toStringAsFixed(0)}",
               style: TextStyle(
                 fontSize: 20.sp,
@@ -1429,18 +1466,22 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      wealthTarget?.isEstimated == true
-                          ? (coverageStyle
-                                ? "Suggested coverage: ${formatter.format(target)}"
-                                : "Suggested: ${formatter.format(target)}")
-                          : (coverageStyle
-                                ? "Coverage: ${formatter.format(target)}"
-                                : "Target: ${formatter.format(target)}"),
+                      wealthTarget?.isOverridden == true
+                          ? "Manual target: ${formatter.format(target)}"
+                          : wealthTarget?.isEstimated == true
+                              ? (coverageStyle
+                                    ? "Suggested coverage: ${formatter.format(target)}"
+                                    : "Suggested: ${formatter.format(target)}")
+                              : (coverageStyle
+                                    ? "Coverage: ${formatter.format(target)}"
+                                    : "Target: ${formatter.format(target)}"),
                       style: TextStyle(
                         fontSize: 10.sp,
-                        color: wealthTarget?.isEstimated == true
-                            ? color.withValues(alpha: 0.8)
-                            : scheme.onSurface.withValues(alpha: 0.5),
+                        color: wealthTarget?.isOverridden == true
+                            ? AppColors.primary
+                            : wealthTarget?.isEstimated == true
+                                ? color.withValues(alpha: 0.8)
+                                : scheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -1453,6 +1494,21 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         fontStyle: FontStyle.italic,
                       ),
                     ),
+                  if (!_ageBasedEnabled) ...[
+                    SizedBox(width: 2.w),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      iconSize: 14.sp,
+                      tooltip: "Update Value / Target",
+                      onPressed: () => _showUpdateDialog(title, key, amount),
+                      icon: Icon(
+                        Icons.tune_rounded,
+                        color: scheme.onSurface.withValues(alpha: 0.4),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ] else if (wealthTarget != null) ...[
@@ -1511,8 +1567,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     final wealthTarget = assetTargets[key];
     final formulaVal = wealthTarget?.formula ?? 0;
+    final manualOverride = portfolio?.targets[key];
 
     // For Bank, we want to show/edit the Monthly Expense, not the Total Target.
+    // Any other asset prefills from its manual override when one is set.
     double displayTargetVal = formulaVal;
     if (isBank) {
       int multiplier = 6;
@@ -1524,6 +1582,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         }
       }
       if (multiplier > 0) displayTargetVal = formulaVal / multiplier;
+    } else if (manualOverride != null && manualOverride > 0) {
+      displayTargetVal = manualOverride;
     }
 
     final targetController = TextEditingController(
@@ -1635,11 +1695,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       // Target Input (Editable for Bank Expense)
                       TextField(
                         controller: targetController,
-                        // Bank Expense is EDITABLE. Formula Targets are READ-ONLY.
-                        readOnly: !isBank,
+                        // Bank Expense is always editable. Other assets are
+                        // editable in Custom Mode so targets can be overridden.
+                        readOnly: !isBank && _ageBasedEnabled,
                         keyboardType: TextInputType.number,
                         style: TextStyle(
-                          color: !isBank
+                          color: !isBank && _ageBasedEnabled
                               ? isDark
                                   ? Colors.white.withValues(alpha: 0.7)
                                   : AppColors.lightTextPrimary
@@ -1651,18 +1712,20 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         decoration: InputDecoration(
                           labelText: isBank
                               ? "Monthly Expense Basis"
-                              : "Target Goal (Formula)",
+                              : _ageBasedEnabled
+                                  ? "Target Goal (Formula)"
+                                  : "Target Goal (Manual)",
                           labelStyle: TextStyle(color: AppColors.primary),
                           hintText: isBank
                               ? "Enter expense"
                               : "Auto-calculated",
                           helperText: isBank
                               ? "Leave empty to use auto-calculated average"
-                              : "Calculated based on expenses & age",
+                              : _ageBasedEnabled
+                                  ? "Calculated based on expenses & age"
+                                  : "Set your own goal — leave empty for formula",
                           helperStyle: TextStyle(
-                            color: const Color(
-                              0xFF00E5FF,
-                            ).withValues(alpha: 0.5),
+                            color: AppColors.secondary.withValues(alpha: 0.5),
                             fontSize: 11.sp,
                           ),
                           filled: true,
@@ -1675,9 +1738,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12.r),
                             borderSide: BorderSide(
-                              color: const Color(
-                                0xFF00E5FF,
-                              ).withValues(alpha: 0.5),
+                              color: AppColors.secondary.withValues(alpha: 0.5),
                             ),
                           ),
                           prefixText: symbol,
@@ -1737,6 +1798,34 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                       ) ??
                                       0;
                                   await WealthService.updateAsset(key, val);
+                                }
+
+                                // Manual target override (Custom Mode only)
+                                if (!isBank && !_ageBasedEnabled) {
+                                  final targetText = targetController.text
+                                      .trim();
+                                  // Empty means "revert to formula target"
+                                  if (targetText.isEmpty) {
+                                    if (manualOverride != null &&
+                                        manualOverride > 0) {
+                                      await WealthService.removeAssetTarget(
+                                        key,
+                                      );
+                                    }
+                                  } else {
+                                    final targetVal =
+                                        double.tryParse(
+                                          targetText.replaceAll(',', ''),
+                                        ) ??
+                                        0;
+                                    if (targetVal > 0 &&
+                                        targetVal != manualOverride) {
+                                      await WealthService.updateAssetTarget(
+                                        key,
+                                        targetVal,
+                                      );
+                                    }
+                                  }
                                 }
                                 // Formula targets are not updated explicitly
 
@@ -1818,6 +1907,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       'creditCard': "Credit Card Outstanding",
       'bnpl': "BNPL / Pay Later",
     };
+
+    // Custom assets — standard keys take precedence on a name collision.
+    portfolio?.custom.keys.forEach((key) => assets.putIfAbsent(key, () => key));
 
     final hidden = List<String>.from(portfolio?.hiddenKeys ?? []);
 
@@ -2083,18 +2175,54 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       }
     }
 
-    add(bankBalance, 'bank', Colors.teal, 'Bank');
-    add(p.sip, 'sip', Colors.blue, 'SIP');
-    add(p.fd, 'fd', Colors.orange, 'FD');
-    add(p.stocks, 'stocks', Colors.purple, 'Stocks');
-    add(p.pf, 'pf', Colors.green, 'PF');
-    add(p.crypto, 'crypto', Colors.amber, 'Crypto');
-    add(p.gold, 'gold', Colors.yellow[700]!, 'Gold');
-    add(p.realEstate, 'realEstate', Colors.brown, 'RE');
-    add(p.nps, 'nps', Colors.indigo, 'NPS');
-    add(p.etf, 'etf', Colors.cyan, 'ETF');
-    add(p.reit, 'reit', Colors.tealAccent.shade700, 'REIT');
-    add(p.p2p, 'p2p', Colors.lime, 'P2P');
+    // All 26 asset classes (liabilities excluded — allocation shows assets
+    // only), mirroring the net-worth card's full set plus custom assets.
+    final assetSections = <MapEntry<String, (double, Color, String)>>[
+      MapEntry('bank', (bankBalance, Colors.teal, 'Bank')),
+      MapEntry('sip', (p.sip, Colors.blue, 'SIP')),
+      MapEntry('fd', (p.fd, Colors.orange, 'FD')),
+      MapEntry('stocks', (p.stocks, Colors.purple, 'Stocks')),
+      MapEntry('pf', (p.pf, Colors.green, 'PF')),
+      MapEntry('crypto', (p.crypto, Colors.amber, 'Crypto')),
+      MapEntry('gold', (p.gold, Colors.yellow[700]!, 'Gold')),
+      MapEntry('realEstate', (p.realEstate, Colors.brown, 'RE')),
+      MapEntry('nps', (p.nps, Colors.indigo, 'NPS')),
+      MapEntry('etf', (p.etf, Colors.cyan, 'ETF')),
+      MapEntry('reit', (p.reit, Colors.tealAccent.shade700, 'REIT')),
+      MapEntry('p2p', (p.p2p, Colors.lime, 'P2P')),
+      MapEntry('ppf', (p.ppf, Colors.lightBlue, 'PPF')),
+      MapEntry('sgb', (p.sgb, Colors.amber.shade300, 'SGB')),
+      MapEntry('bonds', (p.bonds, Colors.blueGrey, 'Bonds')),
+      MapEntry('insurance', (p.insurance, Colors.pink, 'Insurance')),
+      MapEntry(
+        'foreignStocks',
+        (p.foreignStocks, Colors.deepPurple, 'Foreign'),
+      ),
+      MapEntry('vpf', (p.vpf, Colors.green.shade300, 'VPF')),
+      MapEntry(
+        'postOffice',
+        (p.postOffice, Colors.red.shade300, 'Post Office'),
+      ),
+      MapEntry('chitFund', (p.chitFund, Colors.teal.shade300, 'Chit Fund')),
+      MapEntry(
+        'startupEquity',
+        (p.startupEquity, Colors.deepOrange, 'Startup'),
+      ),
+      MapEntry('business', (p.business, Colors.brown.shade300, 'Business')),
+      MapEntry('vehicle', (p.vehicle, Colors.blueGrey.shade300, 'Vehicle')),
+      MapEntry('jewelry', (p.jewelry, Colors.pink.shade300, 'Jewelry')),
+      MapEntry('agriLand', (p.agriLand, Colors.green, 'Agri Land')),
+    ];
+
+    for (final section in assetSections) {
+      final (val, color, title) = section.value;
+      add(val, section.key, color, title);
+    }
+
+    // Custom assets
+    p.custom.forEach((key, val) {
+      add(val, key, Colors.grey.shade500, key);
+    });
 
     if (sections.isEmpty) {
       return Center(
@@ -2208,7 +2336,15 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               currencyCode: code,
               symbol: symbol,
             ),
-            sub: "incl. savings of $savingsLabel /mo",
+            sub: Obx(
+              () => Text(
+                "incl. savings of ${Get.isRegistered<PrivacyController>() && Get.find<PrivacyController>().isPrivacyMode.value ? '••••' : savingsLabel} /mo",
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  color: scheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
             color: AppColors.primary,
           ),
           SizedBox(height: 16.h),
@@ -2220,7 +2356,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               currencyCode: code,
               symbol: symbol,
             ),
-            sub: "annually",
+            sub: Text(
+              "annually",
+              style: TextStyle(
+                fontSize: 10.sp,
+                color: scheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
             color: AppColors.success,
           ),
           Padding(
@@ -2271,7 +2413,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     ColorScheme scheme, {
     required String label,
     required String value,
-    required String sub,
+    required Widget sub,
     required Color color,
   }) {
     return Column(
@@ -2286,7 +2428,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ),
         ),
         SizedBox(height: 4.h),
-        Text(
+        PrivacyText(
           value,
           style: TextStyle(
             fontSize: 26.sp,
@@ -2296,13 +2438,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ),
         ),
         SizedBox(height: 2.h),
-        Text(
-          sub,
-          style: TextStyle(
-            fontSize: 10.sp,
-            color: scheme.onSurface.withValues(alpha: 0.5),
-          ),
-        ),
+        sub,
       ],
     );
   }
@@ -2332,7 +2468,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               ),
             ),
           ),
-          Text(
+          PrivacyText(
             value,
             style: TextStyle(
               fontSize: 12.sp,
@@ -2396,10 +2532,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         if (!hidden.contains(key)) total += val;
       });
 
-      // Liabilities (subtract all)
-      if (Get.isRegistered<LoanController>()) {
-        sub('loans', Get.find<LoanController>().totalOutstanding);
-      }
+      // Liabilities (subtract all); fall back to the persisted loans figure
+      // when the LoanController isn't available yet.
+      final loanController = Get.isRegistered<LoanController>()
+          ? Get.find<LoanController>()
+          : null;
+      sub('loans', loanController?.totalOutstanding ?? p.loans);
       sub('creditCard', p.creditCard);
       sub('bnpl', p.bnpl);
     }
@@ -2431,7 +2569,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             style: TextStyle(color: Colors.white70, fontSize: 14.sp),
           ),
           SizedBox(height: 8.h),
-          Text(
+          PrivacyText(
             "$symbol${total.toStringAsFixed(0)}",
             style: TextStyle(
               color: Colors.white,

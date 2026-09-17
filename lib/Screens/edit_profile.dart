@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:money_control/Components/profile_avatar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -199,24 +199,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         ),
                                       ],
                                     ),
-                                    child: CircleAvatar(
-                                      radius: 50.r,
-                                      backgroundColor: isDark
-                                          ? Colors.white.withValues(alpha: 0.1)
-                                          : Colors.black.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                      backgroundImage: url.isNotEmpty
-                                          ? CachedNetworkImageProvider(url)
-                                          : const AssetImage(
-                                                  'assets/profile.png',
-                                                )
-                                                as ImageProvider,
-                                      child: isLoading
-                                          ? CircularProgressIndicator(
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : AppColors.lightTextPrimary,
+                                    child: AppAvatar(
+                                      url: url,
+                                      size: 100.r,
+                                      overlay: isLoading
+                                          ? Padding(
+                                              padding: EdgeInsets.all(24.r),
+                                              child: const Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  color: AppColors.primary,
+                                                ),
+                                              ),
                                             )
                                           : null,
                                     ),

@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_animate/flutter_animate.dart'; // Animation
 
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Screens/transaction_details.dart';
@@ -320,7 +321,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Text(
+                                      PrivacyText(
                                         "${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
                                         style: TextStyle(
                                           color: isDark ? Colors.white : AppColors.lightTextPrimary,

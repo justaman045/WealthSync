@@ -147,6 +147,19 @@ class WealthService {
     }
   }
 
+  /// Remove a manual asset target override, reverting to the formula target.
+  static Future<void> removeAssetTarget(String key) async {
+    try {
+      await _portfolioRef.set({
+        'targets.$key': FieldValue.delete(),
+        'lastUpdated': Timestamp.now(),
+      }, SetOptions(merge: true));
+      LocalCacheService.invalidate(_cacheKey);
+    } catch (e) {
+      log("Error removing asset target $key: $e");
+    }
+  }
+
   /// Update the monthly expense override value
   static Future<void> updateMonthlyExpenseOverride(double? value) async {
     try {
@@ -570,6 +583,21 @@ class WealthService {
           formula: val,
           isOverridden: false,
           isEstimated: est,
+        );
+      });
+
+      // Apply manual target overrides from portfolio.targets. The bank card
+      // drives its input through monthlyExpenseOverride instead, so it stays
+      // formula-driven here. Custom keys not in formulaTargets get a target
+      // that is pure override (formula 0) so their cards show progress.
+      portfolio.targets.forEach((key, override) {
+        if (key == 'bank') return;
+        final double value = override.toDouble();
+        if (value <= 0) return;
+        result[key] = WealthTarget(
+          effective: value,
+          formula: result[key]?.formula ?? 0.0,
+          isOverridden: true,
         );
       });
 

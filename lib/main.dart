@@ -232,8 +232,29 @@ Future<void> mainCommon({bool isTest = false}) async {
   // every platform including the web b815 constraints; every masking widget
   // already listens to isPrivacyMode, so one flip un-blurs them reactively.
   ever(FeatureFlagService.to.statusMap, (_) {
+    // Mirror the live status map into SharedPreferences so the background
+    // isolate (WorkManager) can honor `hidden` kill-switches even when its own
+    // auth/network read fails (the isolate is fail-closed on this mirror).
+    unawaited(BackgroundWorker.mirrorFeatureFlags(FeatureFlagService.to.statusMap));
     if (FeatureFlagService.to.isHidden('privacy_mode')) {
       Get.find<PrivacyController>().isPrivacyMode.value = false;
+    }
+    // Mirror for biometric lock: hiding the flag must force-flip the lock
+    // state off (isAuthenticated → true + pref down) so `lockActive` is false
+    // everywhere the instant the admin hides it.
+    if (Get.isRegistered<BiometricService>() &&
+        FeatureFlagService.to.isHidden('biometric_app_lock')) {
+      final bio = Get.find<BiometricService>();
+      bio.isAuthenticated.value = true;
+      bio.isBiometricEnabled.value = false;
+      unawaited(
+        SharedPreferences.getInstance().then((prefs) {
+          if (prefs.getBool('biometric_enabled') ?? false) {
+            return prefs.setBool('biometric_enabled', false);
+          }
+          return Future.value();
+        }),
+      );
     }
   });
   Get.put(PerformanceController());
@@ -255,6 +276,11 @@ Future<void> mainCommon({bool isTest = false}) async {
   // Init Notifications with callback
   await NotificationService.init(
     onDidReceiveNotificationResponse: (response) {
+      // Biometric lock: a locked app must never let a notification deep-link
+      // push content over the lock screen.
+      if (bioService.lockActive && !bioService.isAuthenticated.value) {
+        return;
+      }
       switch (response.payload) {
         case 'budget':
           // Route budget alerts to the budget screen (respect the kill-switch;
@@ -332,10 +358,14 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
     // Kill-switch: a `hidden` home_widget flag makes widget taps dead — the
     // feature reads as if it never existed (no cold/warm-start navigation).
     if (FeatureFlagService.to.isHidden('home_widget')) return;
+    // Biometric lock: only route widget taps when the app is unlocked, so a
+    // locked device cannot push a payment screen over the lock screen.
+    bool unlocked() =>
+        !_bioService.lockActive || _bioService.isAuthenticated.value;
     // Cold start: app opened via widget tap
     HomeWidget.initiallyLaunchedFromHomeWidget()
         .then((uri) {
-          if (uri?.host == 'add_transaction') {
+          if (uri?.host == 'add_transaction' && unlocked()) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               Get.to(() => const PaymentScreen(type: PaymentType.send));
             });
@@ -346,7 +376,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
         });
     // Warm start: app already running when widget tapped
     _widgetClickSub = HomeWidget.widgetClicked.listen((uri) {
-      if (uri?.host == 'add_transaction') {
+      if (uri?.host == 'add_transaction' && unlocked()) {
         Get.to(() => const PaymentScreen(type: PaymentType.send));
       }
     });
@@ -410,7 +440,8 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.lock_outline, size: 64.sp, color: Colors.grey),
+                      Icon(Icons.lock_outline, size: 64.sp,
+                          color: Colors.grey),
                       SizedBox(height: 16.h),
                       Text(
                         "App Locked",
@@ -418,6 +449,29 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
                           fontSize: 20.sp,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      SizedBox(height: 8.h),
+                      Text(
+                        "Authenticate to continue",
+                        style: TextStyle(fontSize: 14.sp,
+                            color: Colors.grey),
+                      ),
+                      SizedBox(height: 24.h),
+                      FilledButton.icon(
+                        onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final ok = await _bioService.authenticate();
+                          if (!ok) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    "Authentication failed. Try again."),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.fingerprint),
+                        label: const Text("Unlock"),
                       ),
                     ],
                   ),
@@ -605,6 +659,19 @@ class _AuthCheckerState extends State<AuthChecker> {
         }
         SmsService.resetCache();
         RecurringService.resetCache();
+        // Reset biometric lock state on logout so the next sign-in on a shared
+        // device starts unlocked and can set its own preference — a stale
+        // device-wide pref must not lock the new session.
+        if (Get.isRegistered<BiometricService>()) {
+          final bio = Get.find<BiometricService>();
+          bio.isAuthenticated.value = true;
+          bio.isBiometricEnabled.value = false;
+          unawaited(
+            SharedPreferences.getInstance().then(
+              (prefs) => prefs.setBool('biometric_enabled', false),
+            ),
+          );
+        }
         LocalCacheService.clearAll();
         _didInitialBackup = false;
         if (user != null && !user.emailVerified && !isOAuthUser) {

@@ -18,15 +18,16 @@ class LocalBackupService {
   // PUBLIC API
   // ============================
 
-  static Future<void> restoreUserTransactions(String email) async {
+  static Future<int> restoreUserTransactions(String email) async {
     final transactions = await readUserTransactionsBackup(email);
-    if (transactions.isEmpty) return;
+    if (transactions.isEmpty) return 0;
 
     final col = FirebaseFirestore.instance
         .collection('users')
         .doc(email)
         .collection('transactions');
 
+    var restored = 0;
     // Firestore batches are capped at 500 writes — chunk large restores so a
     // big backup does not fail wholesale.
     const chunkSize = 499;
@@ -39,10 +40,12 @@ class LocalBackupService {
           final Map<String, dynamic> writeData = Map.from(data)..remove('id');
           _restoreDates(writeData);
           batch.set(docRef, writeData, SetOptions(merge: true));
+          restored++;
         }
       }
       await batch.commit();
     }
+    return restored;
   }
 
   static Future<void> backupUserTransactions(String userEmail) async {
@@ -94,6 +97,13 @@ class LocalBackupService {
       ErrorHandler.showError('Could not read local backup. Please try again.', title: 'Restore');
       return [];
     }
+  }
+
+  /// Whether a non-empty backup exists for this email on this device. Lets the
+  /// UI tell "no backup yet" apart from a successful-but-empty restore.
+  static Future<bool> hasUserBackup(String email) async {
+    final transactions = await readUserTransactionsBackup(email);
+    return transactions.isNotEmpty;
   }
 
   static Future<void> clearUserBackup(String userEmail) async {
@@ -164,13 +174,23 @@ class LocalBackupService {
     return result;
   }
 
-  /// Converts ISO8601 strings back to Timestamp values, recursing into nested maps.
+  /// Converts ISO8601 strings back to Timestamp values, recursing into nested
+  /// maps and lists.
   static void _restoreDates(Map<String, dynamic> data) {
     data.forEach((key, value) {
       if (value is String && _looksLikeIsoDate(value)) {
         data[key] = Timestamp.fromDate(DateTime.parse(value));
       } else if (value is Map<String, dynamic>) {
         _restoreDates(value);
+      } else if (value is List) {
+        for (var i = 0; i < value.length; i++) {
+          final item = value[i];
+          if (item is String && _looksLikeIsoDate(item)) {
+            value[i] = Timestamp.fromDate(DateTime.parse(item));
+          } else if (item is Map<String, dynamic>) {
+            _restoreDates(item);
+          }
+        }
       }
     });
   }
