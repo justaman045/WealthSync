@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:money_control/Screens/Settings/general_settings.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -91,6 +92,49 @@ void main() {
       expect(
         resolveSmsScanStart(lastScanMs: ms),
         DateTime.fromMillisecondsSinceEpoch(ms),
+      );
+    });
+  });
+
+  group('nextSmsAutoImportEstimate', () {
+    test('null when never scanned', () {
+      expect(nextSmsAutoImportEstimate(lastScanMs: 0), isNull);
+      expect(nextSmsAutoImportEstimate(lastScanMs: -1), isNull);
+    });
+
+    test('projects watermark + scan interval', () {
+      final base = DateTime(2026, 1, 10, 8, 30).millisecondsSinceEpoch;
+      expect(
+        nextSmsAutoImportEstimate(lastScanMs: base),
+        DateTime.fromMillisecondsSinceEpoch(base + smsScanInterval.inMilliseconds),
+      );
+    });
+
+    test('estimate tracks the smsScanInterval const', () {
+      expect(smsScanInterval, const Duration(minutes: 15));
+    });
+  });
+
+  group('formatCountdown', () {
+    test('zero renders as 00:00', () {
+      expect(formatCountdown(Duration.zero), '00:00');
+    });
+
+    test('clamps negative to 00:00', () {
+      expect(formatCountdown(const Duration(seconds: -5)), '00:00');
+    });
+
+    test('sub-hour renders as mm:ss', () {
+      expect(formatCountdown(const Duration(seconds: 61)), '01:01');
+      expect(formatCountdown(const Duration(minutes: 14, seconds: 32)), '14:32');
+    });
+
+    test('past an hour renders as h:mm:ss', () {
+      expect(
+        formatCountdown(
+          const Duration(hours: 1, minutes: 2, seconds: 3),
+        ),
+        '1:02:03',
       );
     });
   });

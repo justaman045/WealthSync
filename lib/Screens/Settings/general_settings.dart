@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -17,6 +20,102 @@ import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Utils/responsive.dart';
+
+/// "mm:ss", or "h:mm:ss" past an hour. Clamps negatives to 00:00.
+String formatCountdown(Duration remaining) {
+  final total = remaining.inSeconds < 0 ? 0 : remaining.inSeconds;
+  final h = total ~/ 3600;
+  final m = (total % 3600) ~/ 60;
+  final s = total % 60;
+  final mm = m.toString().padLeft(2, '0');
+  final ss = s.toString().padLeft(2, '0');
+  if (h > 0) return '$h:$mm:$ss';
+  return '$mm:$ss';
+}
+
+Future<String?> _resolveSmsUserEmail(SharedPreferences prefs) async {
+  var email = prefs.getString('user_email');
+  if (email == null || email.isEmpty) {
+    try {
+      email = FirebaseAuth.instance.currentUser?.email;
+    } catch (_) {}
+  }
+  return email;
+}
+
+/// Live "next auto-import" estimate shown under the Auto-Import SMS tile.
+/// Self-contained: tick rebuilds only this line, not the whole screen.
+class _NextSmsAutoImportCountdown extends StatefulWidget {
+  const _NextSmsAutoImportCountdown();
+
+  @override
+  State<_NextSmsAutoImportCountdown> createState() =>
+      _NextSmsAutoImportCountdownState();
+}
+
+class _NextSmsAutoImportCountdownState
+    extends State<_NextSmsAutoImportCountdown> {
+  Timer? _timer;
+  final _text = ValueNotifier<String>('');
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _refresh());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(SmsService.autoImportEnabledKey) == true;
+    final email = await _resolveSmsUserEmail(prefs);
+    String text;
+    if (!enabled) {
+      text = 'Auto-Import is off — SMS will not be imported automatically';
+    } else {
+      final watermarkMs =
+          prefs.getInt(SmsService.autoImportWatermarkKey(email ?? '')) ?? 0;
+      final estimate = nextSmsAutoImportEstimate(lastScanMs: watermarkMs);
+      if (estimate == null) {
+        text = 'Waiting for the first scan…';
+      } else {
+        final remaining = estimate.difference(DateTime.now());
+        if (remaining.inSeconds <= 0) {
+          text = 'Next auto-import ≈ 00:00 — due any moment';
+        } else {
+          text = 'Next auto-import ≈ ${formatCountdown(remaining)}';
+        }
+      }
+    }
+    if (_text.value != text) _text.value = text;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: EdgeInsets.only(left: 88.w, right: 16.w, top: 4.h),
+      child: ValueListenableBuilder<String>(
+        valueListenable: _text,
+        builder: (_, text, __) => Text(
+          text,
+          style: TextStyle(
+            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
+            fontSize: 12.sp,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class GeneralSettingsScreen extends StatefulWidget {
   const GeneralSettingsScreen({super.key});
@@ -150,19 +249,26 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                           FeatureVisible(
                             flagKey: 'sms_auto_import',
                             child: Obx(
-                              () => SettingsTile(
-                                icon: Icons.smart_toy_outlined,
-                                title: "Auto-Import SMS",
-                                trailing: Switch(
-                                  value: _autoImport,
-                                  activeThumbColor: AppColors.primary,
-                                  onChanged:
-                                      FeatureFlagService.to.visibleToMe(
-                                        'sms_auto_import',
-                                      )
-                                      ? _toggleAutoImport
-                                      : null,
-                                ),
+                              () => Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SettingsTile(
+                                    icon: Icons.smart_toy_outlined,
+                                    title: "Auto-Import SMS",
+                                    trailing: Switch(
+                                      value: _autoImport,
+                                      activeThumbColor: AppColors.primary,
+                                      onChanged:
+                                          FeatureFlagService.to.visibleToMe(
+                                            'sms_auto_import',
+                                          )
+                                          ? _toggleAutoImport
+                                          : null,
+                                    ),
+                                  ),
+                                  const _NextSmsAutoImportCountdown(),
+                                ],
                               ),
                             ),
                           ),

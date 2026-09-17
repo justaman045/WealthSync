@@ -39,7 +39,7 @@ class BackgroundWorker {
     await Workmanager().registerPeriodicTask(
       'periodic_checks_unique_v2', // Changed name to ensure fresh policy
       taskName,
-      frequency: const Duration(minutes: 15),
+      frequency: smsScanInterval,
       existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
     );
   }
@@ -477,6 +477,23 @@ Future<void> _showPendingReminder(
 DateTime resolveSmsScanStart({required int lastScanMs, DateTime? now}) {
   if (lastScanMs <= 0) return now ?? DateTime.now();
   return DateTime.fromMillisecondsSinceEpoch(lastScanMs);
+}
+
+/// Cadence of the periodic SMS auto-import background task (Android minimum).
+/// Single source of truth for the scheduler and the General-settings
+/// "next auto-import" countdown estimate — they must never drift apart.
+const Duration smsScanInterval = Duration(minutes: 15);
+
+/// Estimate of when the next auto-import scan should land, projected from the
+/// last scan watermark (which advances to `now` after every successful
+/// background/foreground scan). Returns null when the watermark is 0 (never
+/// scanned yet). An ESTIMATE: the OS may defer the actual WorkManager fire
+/// time (Doze), so the settings UI labels it with "≈".
+DateTime? nextSmsAutoImportEstimate({required int lastScanMs}) {
+  if (lastScanMs <= 0) return null;
+  return DateTime.fromMillisecondsSinceEpoch(
+    lastScanMs + smsScanInterval.inMilliseconds,
+  );
 }
 
 Future<int> _processSmsMessages(
