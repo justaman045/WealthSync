@@ -196,6 +196,10 @@ jobs:
           else
             git add pubspec.yaml
             git commit -m "CI: Auto-update version to 2.0.${{ github.run_number }}"
+            # Reconcile with any commits pushed mid-build so the push stays a
+            # fast-forward (a bare push fails with "[rejected] master -> master
+            # (fetch first)" if another commit landed on master meanwhile).
+            git pull --rebase origin master
             git push
           fi
         env:
@@ -288,6 +292,8 @@ jobs:
           else
             git add README.md
             git commit -m "CI: Update README APK link v2.0.${{ github.run_number }}"
+            # Reconcile with any commits pushed mid-build (see pubspec step).
+            git pull --rebase origin master
             git push
           fi
         env:
@@ -309,6 +315,8 @@ jobs:
           git config --local user.name "GitHub Actions"
           git add app_version.json
           git commit -m "CI: Update version JSON to $VERSION"
+          # Reconcile with any commits pushed mid-build (see pubspec step).
+          git pull --rebase origin master
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
