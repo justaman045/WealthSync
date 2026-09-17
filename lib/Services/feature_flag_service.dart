@@ -78,6 +78,7 @@ class FeatureFlagService extends GetxController {
   }
 
   Future<void> _fetchOnce() async {
+    if (FirebaseAuth.instance.currentUser == null) return;
     try {
       final snap = await FirebaseFirestore.instance
           .collection('app_config')
@@ -99,19 +100,19 @@ class FeatureFlagService extends GetxController {
   void applyRaw(Map<String, dynamic>? data) => _applyData(data);
 
   void _applyData(Map<String, dynamic>? data) {
-    if (data == null) {
-      _status.clear();
-    } else {
-      final next = <String, String>{};
-      data.forEach((key, value) {
-        final status = value?.toString() ?? '';
-        if (_isValidStatus(status)) next[key] = status;
-      });
-      _status.value = next;
-    }
+    final next = <String, String>{};
+    data?.forEach((key, value) {
+      final status = value?.toString() ?? '';
+      if (_isValidStatus(status)) next[key] = status;
+    });
+    // Skip when nothing changed: metadata-only snapshot flips
+    // (includeMetadataChanges: true) and identical 60s web polls otherwise
+    // rewrite bg_feature_flags prefs and rebuild every GetBuilder subscriber.
+    if (mapEquals(next, _status)) return;
+    _status.value = next;
     // One-line diag so an admin reporting "feature still visible" can see what
     // the service actually has without guessing (map is sorted for stable log).
-    final entries = _status.entries.toList()
+    final entries = next.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key));
     debugPrint('FeatureFlagService: flags=${entries.map((e) => '${e.key}:${e.value}').join(', ')}');
     // Notify GetBuilder listeners (screens that rebuild whole subtrees). The

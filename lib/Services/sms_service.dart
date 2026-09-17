@@ -202,6 +202,53 @@ class SmsService {
     _rulesLoaded = false;
   }
 
+  /// Per-user scan watermark: only SMS received AFTER this timestamp are
+  /// auto-imported. Also used as the key by the background worker, so the
+  /// enable-time seed and the background scan point can never drift apart.
+  static String autoImportWatermarkKey(String email) =>
+      'last_sms_scan_ms_$email';
+
+  /// Master pref for background SMS auto-import (also read by
+  /// `background_worker.dart`); the general-settings toggle writes through
+  /// [setAutoImportEnabled].
+  static const String autoImportEnabledKey = 'sms_auto_import_enabled';
+
+  /// Master toggle for the background SMS auto-import. Enabling seeds the
+  /// per-user watermark to `now` (SMS received before enabling are never
+  /// backfilled, and re-enabling restarts from the new enable time); disabling
+  /// just flips the flag and leaves the watermark untouched. The email comes
+  /// from the `user_email` pref — the same source the background isolate uses.
+  static Future<void> setAutoImportEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(autoImportEnabledKey, value);
+    if (value) {
+      await seedAutoImportWatermark(email: prefs.getString('user_email'));
+    }
+  }
+
+  /// Seeds the auto-import watermark to right now. Called every time the user
+  /// enables Auto-Import SMS: historical SMS (received before enabling) are
+  /// never backfilled, and re-enabling restarts from the new enable time (SMS
+  /// received while the feature was off stay un-imported). [email] comes from
+  /// the `user_email` pref (same source the background isolate uses); falls
+  /// back to the signed-in user's email. No-op when no email is resolvable.
+  static Future<void> seedAutoImportWatermark({String? email}) async {
+    var resolved = email;
+    if (resolved == null || resolved.isEmpty) {
+      try {
+        resolved = FirebaseAuth.instance.currentUser?.email;
+      } catch (_) {
+        return;
+      }
+    }
+    if (resolved == null || resolved.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      autoImportWatermarkKey(resolved),
+      DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+
   // ---- Static helpers used by BackgroundWorker (no plugin/Firebase deps) ----
 
   static bool isBankSms(String body) {

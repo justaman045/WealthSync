@@ -16,6 +16,7 @@ import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Screens/auto_tag_rules_screen.dart';
 import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class SmsImportScreen extends StatefulWidget {
@@ -271,10 +272,16 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
         elevation: 0,
         leading: BackButton(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         actions: [
-          IconButton(
-            icon: Icon(Icons.rule, color: isDark ? Colors.white : AppColors.lightTextPrimary),
-            tooltip: "Auto-tag rules",
-            onPressed: () => Get.to(() => const AutoTagRulesScreen()),
+          FeatureVisible(
+            flagKey: 'sms_rules',
+            child: IconButton(
+              icon: Icon(Icons.rule, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+              tooltip: "Auto-tag rules",
+              onPressed: () {
+                if (!ensureFeatureVisible(context, 'sms_rules')) return;
+                Get.to(() => const AutoTagRulesScreen());
+              },
+            ),
           ),
           Obx(() {
             if (subscriptionController.isPro && _transactions.isNotEmpty) {

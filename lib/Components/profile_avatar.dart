@@ -36,7 +36,13 @@ class AppAvatar extends StatelessWidget {
         errorWidget: (_, __, ___) => Image.asset(asset, fit: BoxFit.cover),
       );
     }
-    return ClipOval(
+    // Inscribe a true circle (diameter = shortest side) rather than ClipOval,
+    // which clips the FULL ellipse of the render box: in the home AppBar the
+    // leading slot forces a tight width, so the box is non-square and ClipOval
+    // renders an oval. ShapeBorderClipper(CircleBorder()) always matches the
+    // BoxShape.circle border used by callers.
+    return ClipPath(
+      clipper: ShapeBorderClipper(shape: const CircleBorder()),
       child: SizedBox(
         width: size,
         height: size,

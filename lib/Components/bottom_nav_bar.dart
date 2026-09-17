@@ -54,12 +54,17 @@ class BottomNavBar extends StatelessWidget {
     final glowColor = isDark ? AppColors.primary : AppColors.primary;
 
     final navRow = Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 10.h),
       // spaceEvenly (NOT spaceBetween) so the remaining tabs are distributed
       // evenly whenever an admin hides one: spaceBetween crams the items to
       // the two edges and leaves a single wide gap where the tab used to be.
       // Each item keeps its natural width (the active label pill can be ~120px
       // wide, so forcing equal Flex slices overflows at 5 tabs on a phone).
+      // The 13.w horizontal padding is deliberate headroom: pill widths come
+      // from fractional screenutil values + scaled text, and their sum can
+      // exceed the spaceEvenly Row by <1px at ~390dp width (a 0.209px
+      // RenderFlex overflow was seen on-device) unless the Row keeps slack.
+      // SpaceEvenly then rebalances the extra room across the gaps.
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [

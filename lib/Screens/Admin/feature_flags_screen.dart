@@ -190,8 +190,10 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
                     SizedBox(height: 20.h),
                     for (final group in FeatureFlag.groups) ...[
                       _buildGroupHeader(isDark, group),
-                      for (final key in group.keys)
-                        _buildRow(context, isDark, FeatureFlag.find(key)!),
+                      for (final key in group.keys) ...[
+                        if (FeatureFlag.find(key) case final flag?)
+                          _buildRow(context, isDark, flag),
+                      ],
                       SizedBox(height: 10.h),
                     ],
                   ],

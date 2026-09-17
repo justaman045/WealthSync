@@ -44,7 +44,13 @@ class NavItem extends StatelessWidget {
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
           height: 42.h,
-          padding: EdgeInsets.symmetric(horizontal: active ? 16.w : 12.w),
+          // Floor the horizontal padding to whole logical pixels: the summed
+          // pill widths feed a spaceEvenly Row, and leftover fractional
+          // screenutil values can collectively exceed the row by <1px at
+          // certain device widths, causing a RenderFlex overflow.
+          padding: EdgeInsets.symmetric(
+            horizontal: (active ? 16 : 12).w.floorToDouble(),
+          ),
           decoration: BoxDecoration(
             color: active
                 ? activeColor.withValues(alpha: 0.15)
@@ -75,7 +81,7 @@ class NavItem extends StatelessWidget {
                 size: 22.sp,
               ),
               if (active && label != null) ...[
-                SizedBox(width: 8.w),
+                SizedBox(width: (8.w).floorToDouble()),
                 Text(
                   label!,
                   style: TextStyle(

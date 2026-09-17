@@ -1,6 +1,37 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_control/Config/feature_flags.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
+
+/// Patterns for extracting feature keys from gate call-sites in `lib/`. Keep in
+/// sync with the gate APIs: adding a new gate widget/guard must extend this list
+/// so the call-site tests below still prove every referenced key is registered.
+final List<RegExp> _gateKeyPatterns = [
+  RegExp(r"ensureFeature(?:Visible|Usable)\(\s*context\s*,\s*'([^']+)'"),
+  RegExp(r"flagKey:\s*'([^']+)'"),
+  RegExp(
+      r"\b(?:statusOf|isEnabled|isComingSoon|isHidden|visibleToMe|setStatus)\(\s*'([^']+)'"),
+  RegExp(r"FeatureFlag\.find\(\s*'([^']+)'"),
+  RegExp(r"_flagHidden\(\s*[A-Za-z_][\w.]*\s*,\s*'([^']+)'"),
+  RegExp(r"_requireFeature\(\s*'([^']+)'"),
+  RegExp(r"ComingSoonScreen\.forFlag\(\s*'([^']+)'"),
+  RegExp(r"featureKey:\s*'([^']+)'"),
+];
+
+/// Yields every feature key referenced by a gate/check in [source].
+Iterable<String> gateKeysIn(String source) sync* {
+  for (final pattern in _gateKeyPatterns) {
+    for (final match in pattern.allMatches(source)) {
+      yield match.group(1)!;
+    }
+  }
+  for (final match in RegExp(r"FeatureSection\(\s*\[([^\]]*)\]").allMatches(source)) {
+    for (final key in RegExp(r"'([^']+)'").allMatches(match.group(1)!)) {
+      yield key.group(1)!;
+    }
+  }
+}
 
 void main() {
   group('FeatureFlag registry', () {
@@ -120,6 +151,48 @@ void main() {
           );
         }
       }
+    });
+  });
+
+  group('gate call-site validation', () {
+    final libDir = Directory('lib');
+
+    test('every gate key in lib/ resolves to a registry entry', () {
+      final registryKeys = FeatureFlag.all.map((f) => f.key).toSet();
+      final unknown = <String>{};
+      for (final entity in libDir.listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final source = entity.readAsStringSync();
+        for (final key in gateKeysIn(source)) {
+          if (!registryKeys.contains(key)) unknown.add('$key -> ${entity.path}');
+        }
+      }
+      expect(
+        unknown,
+        isEmpty,
+        reason: 'Gate keys missing from the registry: $unknown',
+      );
+    });
+
+    test('every registry key is referenced by a gate or check', () {
+      final referenced = <String>{};
+      for (final entity in libDir.listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        // The registry itself lists every key in `groups`, so it can't prove
+        // anything is actually gated — exclude it from this check.
+        if (entity.path == 'lib/Config/feature_flags.dart') continue;
+        referenced.addAll(gateKeysIn(entity.readAsStringSync()));
+      }
+      final unreferenced = FeatureFlag.all
+          .map((f) => f.key)
+          .where((k) => !referenced.contains(k))
+          .toList()
+        ..sort();
+      expect(
+        unreferenced,
+        isEmpty,
+        reason: 'Registry keys never referenced in code: $unreferenced',
+      );
     });
   });
 

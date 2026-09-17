@@ -7,6 +7,7 @@ import 'package:money_control/Screens/home_widget_preview.dart';
 import 'package:money_control/Screens/notification_settings.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Services/performance_controller.dart';
+import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/main.dart'; // For ThemeController
 import 'package:money_control/Components/colors.dart';
@@ -38,14 +39,14 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      _autoImport = prefs.getBool('sms_auto_import_enabled') == true;
+      _autoImport =
+          prefs.getBool(SmsService.autoImportEnabledKey) == true;
       _expenseReminder = prefs.getBool(transactionReminderEnabledKey) ?? true;
     });
   }
 
   Future<void> _toggleAutoImport(bool val) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('sms_auto_import_enabled', val);
+    await SmsService.setAutoImportEnabled(val);
     if (!mounted) return;
     setState(() => _autoImport = val);
   }

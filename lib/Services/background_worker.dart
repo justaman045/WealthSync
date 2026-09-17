@@ -214,7 +214,7 @@ void callbackDispatcher() {
       // Runs before the inactivity reminder so a run that just imported
       // transactions does not also nag the user in the same tick.
       if (!_flagHidden(flags, 'sms_auto_import') &&
-          prefs.getBool('sms_auto_import_enabled') == true) {
+          prefs.getBool(SmsService.autoImportEnabledKey) == true) {
         await _processSmsMessages(prefs);
       }
 
@@ -470,6 +470,15 @@ Future<void> _showPendingReminder(
   );
 }
 
+/// The SMS auto-import scan point. A watermark of 0 means "seed": start from
+/// now, NOT epoch — auto-import must never backfill SMS received before the
+/// feature was (re)enabled. An explicit [scanFrom] override (admin trigger)
+/// bypasses both.
+DateTime resolveSmsScanStart({required int lastScanMs, DateTime? now}) {
+  if (lastScanMs <= 0) return now ?? DateTime.now();
+  return DateTime.fromMillisecondsSinceEpoch(lastScanMs);
+}
+
 Future<int> _processSmsMessages(
   SharedPreferences prefs, {
   DateTime? scanFrom,
@@ -486,11 +495,13 @@ Future<int> _processSmsMessages(
   if (!smsStatus.isGranted) return 0;
 
   // Per-user watermark so one account's scan point never skips another
-  // user's older bank SMS on a shared device.
-  final lastScanKey = 'last_sms_scan_ms_$userEmail';
+  // user's older bank SMS on a shared device. Seeded to `now` whenever the
+  // user enables Auto-Import SMS (SmsService.seedAutoImportWatermark), and a
+  // MISSING watermark resolves to `now` too — never epoch — so an enable that
+  // predates this fix can't silently backfill months of history.
+  final lastScanKey = SmsService.autoImportWatermarkKey(userEmail);
   final lastScanMs = prefs.getInt(lastScanKey) ?? 0;
-  final lastScanDate =
-      scanFrom ?? DateTime.fromMillisecondsSinceEpoch(lastScanMs);
+  final lastScanDate = scanFrom ?? resolveSmsScanStart(lastScanMs: lastScanMs);
 
   try {
     final query = SmsQuery();

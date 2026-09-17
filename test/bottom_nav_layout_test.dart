@@ -82,4 +82,38 @@ void main() {
     expect(tester.takeException(), isNull);
     await _expectEvenGaps(tester, 2);
   });
+
+  for (final width in const [340, 360, 390, 410, 411, 432]) {
+    testWidgets('no overflow at $width logical px', (tester) async {
+      // Regression: pill widths are fractionally scaled by screenutil plus
+      // scaled text, and their natural sum once exceeded the spaceEvenly Row
+      // by a hair (a 0.209px RenderFlex overflow was seen on-device at the
+      // ~390-411dp pinch point). nav_item.dart floors the fractional paddings
+      // and bottom_nav_bar.dart keeps ~2.6px+ of Row headroom. Reproduce with
+      // a realistic text scale (the test's default font metrics are too
+      // narrow to ever fail) and the real tab destinations, one width per
+      // test: a single test looping widths under-detects (only the first loop
+      // iteration reports the overflow reliably).
+      tester.view.physicalSize = Size(width * 3, 844 * 3);
+      tester.view.devicePixelRatio = 3.0;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.2;
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(ScreenUtilInit(
+        designSize: const Size(390, 844),
+        builder: (_, __) => GetMaterialApp(
+          home: Scaffold(
+            body: BottomNavBar(
+              currentTab: 'home',
+              destinations: allTabs,
+            ),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'overflow at width=$width');
+    });
+  }
 }
