@@ -20,6 +20,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
+import 'package:money_control/Utils/num_parse.dart';
 
 class TransactionController extends GetxController {
   final TransactionRepository _repository = TransactionRepository();
@@ -376,7 +377,7 @@ class TransactionController extends GetxController {
       return false;
     }
 
-    if (amount <= 0) {
+    if (!isValidAmount(amount)) {
       ErrorHandler.showError("Enter a valid amount");
       isSaving.value = false;
       return false;
@@ -451,7 +452,7 @@ class TransactionController extends GetxController {
     }
 
     // 4. Local Backup
-    LocalBackupService.backupUserTransactions(email);
+    LocalBackupService.backupUserTransactions(email, reportErrors: false);
 
     // 5. Budget Check (Side Effect)
     if (isSend) {
@@ -535,7 +536,9 @@ class TransactionController extends GetxController {
 
       // Local Backup
       final email = user.email;
-      if (email != null) LocalBackupService.backupUserTransactions(email);
+      if (email != null) {
+        LocalBackupService.backupUserTransactions(email, reportErrors: false);
+      }
       return true;
     } on TimeoutException {
       try {

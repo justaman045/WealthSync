@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Utils/num_parse.dart';
 
 class SavingsChallengeModel {
   final String id;
@@ -49,12 +50,7 @@ class SavingsChallengeModel {
     );
   }
 
-  static double _parseNum(dynamic value) {
-    if (value == null) return 0;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0;
-    return 0;
-  }
+  static double _parseNum(dynamic value) => safeToDouble(value);
 
   Map<String, dynamic> toMap() {
     return {

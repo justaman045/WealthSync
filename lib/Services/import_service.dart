@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/budget_service.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:intl/intl.dart';
 import 'package:universal_io/io.dart';
@@ -66,6 +68,7 @@ class ImportService {
         final merchantIndex = headerMap['merchant']; // Optional
         final categoryIndex = headerMap['category']; // Optional
 
+        final typeIndex = headerMap['type']; // Optional direction column
         if (dateIndex == null ||
             amountIndex == null ||
             dateIndex >= row.length ||
@@ -147,9 +150,20 @@ class ImportService {
           if (suggested != 'Uncategorized') category = suggested;
         }
 
-        // Create Model — amount sign determines direction:
-        // positive amount → income (recipientId = user), negative → expense (senderId = user)
-        final isExpense = amount < 0;
+        // Direction: an explicit Type/Dr-Cr column wins over the sign, because
+        // most bank and card exports keep expenses positive and record the
+        // direction in their own column. Without that column the sign is the
+        // only signal available, so it is what decides.
+        var isExpense = amount < 0;
+        if (typeIndex != null && typeIndex < row.length) {
+          isExpense =
+              _isDebitType(row[typeIndex].toString(), amount, fallback: isExpense);
+        }
+        if (isExpense) {
+          amount = -amount.abs();
+        } else {
+          amount = amount.abs();
+        }
         final tx = TransactionModel(
           id: '',
           senderId: isExpense ? currentUserId : 'csv_import',
@@ -175,15 +189,65 @@ class ImportService {
     return (transactions: transactions, skipped: skipped);
   }
 
+  /// Decides a row's direction from its Type/Dr-Cr cell, falling back to the
+  /// amount's sign when the cell is absent or merely descriptive (an "ATM
+  /// Withdrawal" narration carries no direction token to match on).
+  static bool _isDebitType(String rawType, double amount, {bool? fallback}) {
+    final signFallback = fallback ?? amount < 0;
+    final type = rawType.trim().toLowerCase();
+    if (type.isEmpty) return signFallback;
+    final isDebit = RegExp(
+      r'^(dr|debit|expense|payment|paid|out|withdrawal|spent)\b',
+    ).hasMatch(type);
+    final isCredit = RegExp(
+      r'^(cr|credit|income|refund|received|deposit|in)\b',
+    ).hasMatch(type);
+    if (isDebit || isCredit) return isDebit;
+    return signFallback;
+  }
+
+  /// Test seam for [processCSVData]'s direction decision.
+  @visibleForTesting
+  static bool debugDirection(String type, double amount) =>
+      _isDebitType(type, amount);
+
+  /// Test seam for the date disambiguation in [_tryParseCustomDate].
+  @visibleForTesting
+  static DateTime? debugTryParseDate(String raw) => _tryParseCustomDate(raw);
+
   static DateTime? _tryParseCustomDate(String dateStr) {
-    final formats = [
-      DateFormat("dd/MM/yyyy"),
-      DateFormat("MM/dd/yyyy"),
-      DateFormat("yyyy-MM-dd"),
-      DateFormat("dd-MM-yyyy"),
-      DateFormat("dd/MM/yy"),
-      DateFormat("dd-MMM-yy"),
-      DateFormat("dd-MMM-yyyy"),
+    final trimmed = dateStr.trim();
+    final dayFirst = _dayComesFirst(trimmed);
+    final parts = trimmed.split(RegExp(r'[/.\-\s]'));
+    // intl's yyyy token happily reads a 2-digit year, so "28-01-26" would
+    // otherwise land on year 26. The year leads in ISO order and trails in
+    // day/month-first order, so both ends have to be checked.
+    final fourDigitYear =
+        parts.isNotEmpty && (parts.first.length >= 4 || parts.last.length >= 4);
+    final isoLeading = RegExp(r'^\d{4}[-/.]').hasMatch(trimmed);
+
+    List<DateFormat> numeric(bool day) {
+      final long = day
+          ? [DateFormat("dd/MM/yyyy"), DateFormat("dd-MM-yyyy")]
+          : [DateFormat("MM/dd/yyyy"), DateFormat("MM-dd-yyyy")];
+      final short = day
+          ? [DateFormat("dd/MM/yy"), DateFormat("dd-MM-yy")]
+          : [DateFormat("MM/dd/yy"), DateFormat("MM-dd-yy")];
+      return fourDigitYear ? [...long, ...short] : short;
+    }
+
+    final named = fourDigitYear
+        ? [DateFormat("dd-MMM-yyyy"), DateFormat("dd-MMM-yy")]
+        : [DateFormat("dd-MMM-yy")];
+
+    final formats = <DateFormat>[
+      if (isoLeading && fourDigitYear) ...[
+        DateFormat("yyyy-MM-dd"),
+        DateFormat("yyyy/MM/dd"),
+      ],
+      ...numeric(dayFirst),
+      ...numeric(!dayFirst),
+      ...named,
       DateFormat("dd/MMM/yyyy"),
       DateFormat("dd MMM yyyy"),
       DateFormat("MMM dd, yyyy"),
@@ -191,10 +255,28 @@ class ImportService {
 
     for (var format in formats) {
       try {
-        return format.parse(dateStr);
+        return format.parse(trimmed);
       } catch (e) { debugPrint('Date format parse attempt failed: $e'); }
     }
     return null;
+  }
+
+  /// Decides whether a numeric `d/m/y` date reads day-first or month-first.
+  ///
+  /// A leading component above 12 can only be a day, a second component above
+  /// 12 can only be a month, so "13/02/2026" and "02/13/2026" are each
+  /// unambiguous even though a fixed format order would misread one of them.
+  /// When both fit either reading the date is genuinely ambiguous, and dd/MM
+  /// wins because the app's exports are Indian.
+  static bool _dayComesFirst(String dateStr) {
+    final parts = dateStr.split(RegExp(r'[/.\-\s]'));
+    if (parts.length < 2) return true;
+    final first = int.tryParse(parts[0]);
+    final second = int.tryParse(parts[1]);
+    if (first == null || second == null) return true;
+    if (first > 12) return true;
+    if (second > 12) return false;
+    return true;
   }
 
   /// Batch save transactions to Firestore (chunked to respect 500-op limit).
@@ -243,6 +325,29 @@ class ImportService {
         batch.set(docRef, tx.toMap());
       }
       await batch.commit();
+    }
+    if (toSave.isNotEmpty) {
+      // A bulk CSV import is the one write path most likely to lose a lot of
+      // data at once, so the on-device mirror must cover it. The coalescing
+      // service makes the extra call free inside the throttle window.
+      LocalBackupService.backupUserTransactions(
+        userEmail,
+        reportErrors: false,
+      );
+      // Bulk imports bypass the add/edit screens that normally raise the
+      // alert, so a file that blows a budget stayed silent. Only expense
+      // categories are checked, matching the `isSend` gate in the controller.
+      for (final category in toSave
+          .where((t) => t.amount < 0)
+          .map((t) => t.category)
+          .whereType<String>()
+          .where((c) => c.isNotEmpty)
+          .toSet()) {
+        await BudgetService.checkBudgetExceeded(
+          userId: userEmail,
+          category: category,
+        );
+      }
     }
     return toSave.length;
   }

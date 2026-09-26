@@ -31,7 +31,6 @@ class _BalanceCardState extends State<BalanceCard> {
   late final LentMoneyController _lentMoneyController;
   late final RecurringPaymentController _recurringPaymentController;
   final RxBool _includeLentMoney = false.obs;
-  final RxBool _subtractSubscriptions = false.obs;
   final ValueNotifier<double> _lastAnimatedValue = ValueNotifier<double>(0);
   Worker? _flagResetWorker;
 
@@ -53,22 +52,22 @@ class _BalanceCardState extends State<BalanceCard> {
     );
   }
 
-  /// "As if never there": drop the lent/subs toggles from the running total the
+  /// "As if never there": drop the lent toggle from the running total the
   /// moment an admin hides the feature, so the balance never silently keeps
   /// counting a hidden feature's amount (mirrors the privacy-mode ever worker).
   void _resetFlaggedToggles() {
     final flags = FeatureFlagService.to;
     if (flags.isHidden('lent_money')) _includeLentMoney.value = false;
-    if (flags.isHidden('recurring')) _subtractSubscriptions.value = false;
   }
 
+  /// Commitments due this month are shown alongside the balance, never
+  /// subtracted from it: a subscription that has not been debited yet is not
+  /// money the user has spent, and deducting it reports a balance the account
+  /// does not hold.
   double _computeTotal() {
     double total = _transactionController.totalBalance;
     if (_includeLentMoney.value) {
       total += _lentMoneyController.netBalance;
-    }
-    if (_subtractSubscriptions.value) {
-      total -= _recurringPaymentController.pendingSubscriptions.value;
     }
     return total;
   }
@@ -77,7 +76,6 @@ class _BalanceCardState extends State<BalanceCard> {
   void dispose() {
     _flagResetWorker?.dispose();
     _includeLentMoney.close();
-    _subtractSubscriptions.close();
     _lastAnimatedValue.dispose();
     super.dispose();
   }
@@ -227,52 +225,43 @@ class _BalanceCardState extends State<BalanceCard> {
                                 ),
                               ),
                             ),
-                            // New Subscription Toggle Button
+                            // Commitments due this month. Informational only:
+                            // a not-yet-debited subscription is never deducted
+                            // from the headline balance.
                             FeatureVisible(
                               flagKey: 'recurring',
-                              child: Obx(
-                                () => GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    if (_privacyController.isPrivacyMode.value) {
-                                      return;
-                                    }
-                                    _subtractSubscriptions.value =
-                                        !_subtractSubscriptions.value;
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10.w,
-                                      vertical: 4.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _subtractSubscriptions.value
-                                          ? Colors.white.withValues(alpha: 0.2)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12.r),
-                                      border: Border.all(
-                                        color: _subtractSubscriptions.value
-                                            ? Colors.white.withValues(alpha: 0.4)
-                                            : Colors.white.withValues(alpha: 0.1),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _subtractSubscriptions.value
-                                          ? _privacyController
-                                                  .isPrivacyMode.value
-                                              ? "- •••• (Subs)"
-                                              : "- ${CurrencyController.to.currencySymbol.value}${_recurringPaymentController.pendingSubscriptions.value.toStringAsFixed(0)} (Subs)"
-                                          : "- Subs",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10.sp,
-                                        fontWeight: FontWeight.w600,
+                              child: Obx(() {
+                                final committed =
+                                    _recurringPaymentController
+                                        .pendingSubscriptions.value;
+                                return Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 4.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
+                                  child: Text(
+                                    committed <= 0
+                                        ? "- No Dues"
+                                        : _privacyController
+                                                  .isPrivacyMode.value
+                                            ? "- •••• due"
+                                            : "- ${CurrencyController.to.currencySymbol.value}${committed.toStringAsFixed(0)} due",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                );
+                              }),
                             ),
                           ],
                         ),

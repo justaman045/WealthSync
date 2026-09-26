@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Utils/num_parse.dart';
 
 class WealthPortfolio {
   // ── Original assets ───────────────────────────────────────────────────────
@@ -164,12 +165,9 @@ class WealthPortfolio {
     if (value == null) return {};
     if (value is! Map) return {};
     final raw = value as Map<String, dynamic>;
-    return raw.map((k, v) {
-      if (v == null) return MapEntry(k.toString(), 0.0);
-      if (v is num) return MapEntry(k.toString(), v.toDouble());
-      if (v is String) return MapEntry(k.toString(), double.tryParse(v) ?? 0.0);
-      return MapEntry(k.toString(), 0.0);
-    });
+    return raw.map(
+      (k, v) => MapEntry(k.toString(), safeToDouble(v)),
+    );
   }
 
   double get totalAssets =>
@@ -187,7 +185,6 @@ class WealthPortfolio {
       ppf +
       sgb +
       bonds +
-      insurance +
       foreignStocks +
       vpf +
       postOffice +

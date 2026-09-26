@@ -420,6 +420,39 @@ class SmsService {
   }) {
     final lower = body.toLowerCase();
 
+    // A balance/statement alert is not a transaction. "alert" is a bank-SMS
+    // signal, so "Balance alert: Avl Bal Rs. 5,000" reaches this parser, the
+    // amount regex matches the balance, and with no debit/credit wording the
+    // direction would default to debit — importing the entire balance as an
+    // expense. Require a real movement signal before any amount is trusted.
+    final hasMovementSignal = lower.contains('debited') ||
+        lower.contains('credited') ||
+        lower.contains('deducted') ||
+        lower.contains('withdraw') ||
+        lower.contains('spent') ||
+        lower.contains('sent') ||
+        lower.contains('paid') ||
+        lower.contains('received') ||
+        lower.contains('refund') ||
+        lower.contains('cashback') ||
+        lower.contains('deposit') ||
+        lower.contains('purchase') ||
+        lower.contains('transferred') ||
+        lower.contains('txn');
+
+    final mentionsBalance = lower.contains('avl bal') ||
+        lower.contains('avail bal') ||
+        lower.contains('available balance') ||
+        lower.contains('a/c balance') ||
+        lower.contains('account balance') ||
+        lower.contains('closing balance') ||
+        lower.contains('opening balance') ||
+        lower.contains('balance as on') ||
+        lower.contains('lim bal') ||
+        lower.contains('total balance');
+
+    if (mentionsBalance && !hasMovementSignal) return null;
+
     final amountRegex = RegExp(
       r'(?:Rs\.?|INR|MRP|Amt|Amount|debited by|credited by|by Rs\.?)\W*(\d+(?:,\d+)*(?:\.\d{1,2})?)',
       caseSensitive: false,
@@ -428,8 +461,10 @@ class SmsService {
 
     // Fallback: match bare amount if no currency prefix found. Skip candidates
     // that look like OTPs/ref numbers (8+ digit runs) or card numbers (4-digit),
-    // and keep scanning so a trailing real amount is still found.
-    if (match == null) {
+    // and keep scanning so a trailing real amount is still found. Only trusted
+    // when a movement signal is present, otherwise a stray number ("OTP 123456
+    // for your card", "order 4471 delivered") becomes a transaction.
+    if (match == null && hasMovementSignal) {
       final bareAmountRegex = RegExp(r'(?:^|[^\d])(\d{2,}(?:\.\d{1,2})?)(?:\b|$)');
       for (final m in bareAmountRegex.allMatches(body)) {
         final digits = (m.group(1) ?? '').replaceAll(RegExp(r'[^0-9]'), '');

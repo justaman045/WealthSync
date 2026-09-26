@@ -15,6 +15,10 @@ class AdminUserListScreen extends StatefulWidget {
 }
 
 class _AdminUserListScreenState extends State<AdminUserListScreen> {
+  /// Hoisted out of build(): a stream built inline re-registers its
+  /// listener on every rebuild.
+  Stream<QuerySnapshot<Object?>>? _usersStream;
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
@@ -94,9 +98,9 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
             ),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore
+                stream: _usersStream ??= _firestore
                     .collection('users')
-                    .orderBy('email') // Ensure indexed
+                    .orderBy('__name__')
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {

@@ -66,6 +66,13 @@ class WealthService {
   }
 
   /// Update a specific asset value (e.g., 'sip', 'fd', etc.)
+  /// True only when [snap] is an empty collection that came from the server
+  /// rather than the local cache. A cached empty snapshot (cold cache, offline
+  /// launch) must never sync a zero total, because that zero is then served
+  /// back on every later read.
+  static bool isServerConfirmedEmpty(QuerySnapshot<Object?> snap) =>
+      snap.docs.isEmpty && !snap.metadata.isFromCache;
+
   static Future<void> updateAsset(String key, double value) async {
     try {
       await _portfolioRef.set({
@@ -328,7 +335,6 @@ class WealthService {
           getVisible('ppf', portfolio.ppf) +
           getVisible('sgb', portfolio.sgb) +
           getVisible('bonds', portfolio.bonds) +
-          getVisible('insurance', portfolio.insurance) +
           getVisible('foreignStocks', portfolio.foreignStocks) +
           getVisible('vpf', portfolio.vpf) +
           getVisible('postOffice', portfolio.postOffice) +
@@ -549,7 +555,6 @@ class WealthService {
           visible('ppf', portfolio.ppf) +
           visible('sgb', portfolio.sgb) +
           visible('bonds', portfolio.bonds) +
-          visible('insurance', portfolio.insurance) +
           visible('foreignStocks', portfolio.foreignStocks) +
           visible('vpf', portfolio.vpf) +
           visible('postOffice', portfolio.postOffice) +

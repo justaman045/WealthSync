@@ -23,6 +23,7 @@ import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/responsive_form_row.dart';
+import 'package:money_control/Utils/num_parse.dart';
 
 enum PaymentType { send, receive }
 
@@ -281,7 +282,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     String cleanAmount = _amount.text.replaceAll(',', '').trim();
     final amountVal = double.tryParse(cleanAmount) ?? 0;
 
-    if (amountVal <= 0) {
+    if (!isValidAmount(amountVal)) {
       ErrorHandler.showError("Please enter a valid amount");
       return;
     }

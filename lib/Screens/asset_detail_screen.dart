@@ -79,6 +79,16 @@ class AssetDetailScreen extends StatefulWidget {
 }
 
 class _AssetDetailScreenState extends State<AssetDetailScreen> {
+
+  /// Held across rebuilds: building the stream inside build() re-issues the
+  /// query on every rebuild, and a 25-doc cap disagreed with the persisted
+  /// portfolio total that the sync writes back.
+  Stream<QuerySnapshot<Object?>>? _entryStream;
+
+  Stream<QuerySnapshot<Object?>> get _entries =>
+      _entryStream ??=
+          _col.orderBy('createdAt', descending: true).snapshots();
+
   bool _saving = false;
   bool _syncedEmpty = false;
 
@@ -193,7 +203,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                 ),
               ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _col.orderBy('createdAt', descending: true).limit(25).snapshots(),
+          stream: _entries,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -201,9 +211,12 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
             if (snap.hasError) {
               return Center(child: Text("Error: ${snap.error}"));
             }
-            final docs = snap.data?.docs ?? [];
+            final snapData = snap.data;
+            final docs = snapData?.docs ?? const [];
             if (docs.isEmpty) {
-              if (!_syncedEmpty) {
+              if (!_syncedEmpty &&
+                  snapData != null &&
+                  WealthService.isServerConfirmedEmpty(snapData)) {
                 _syncedEmpty = true;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) WealthService.updateAsset(cfg.assetKey, 0);
@@ -211,6 +224,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
               }
               return _buildEmpty(isDark);
             }
+            _syncedEmpty = false;
 
             double total = 0;
             for (final d in docs) {

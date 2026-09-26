@@ -1,0 +1,29 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "moneycontroljustaman045",
+          "appId": "1:823109031805:android:9fb6d047fc753301295e14",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "moneycontroljustaman045",
+          "configurations": {
+            "android": "1:823109031805:android:9fb6d047fc753301295e14",
+            "ios": "1:823109031805:ios:b4d3c7df3af6e83f295e14",
+            "macos": "1:823109031805:ios:b4d3c7df3af6e83f295e14",
+            "web": "1:823109031805:web:bf79f0a10db08009295e14",
+            "windows": "1:823109031805:web:170738853189d013295e14"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

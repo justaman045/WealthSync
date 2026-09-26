@@ -17,12 +17,20 @@ double milestone(int age, Map<int, double> milestones) {
 }
 
 /// Compact number formatting: 1.2Cr, 5L, 10K, or raw.
+///
+/// Rounds down at every step, so the label never reports more than the actual
+/// amount: rounding up turns 99999 into "100K" and 1500 into "2K", which
+/// overstates a balance the user is looking at.
 String compact(double v) {
   final sign = v < 0 ? '-' : '';
   final absVal = v.abs();
-  if (absVal >= 10000000) return "$sign${(absVal / 10000000).toStringAsFixed(1)}Cr";
-  if (absVal >= 100000) return "$sign${(absVal / 100000).toStringAsFixed(1)}L";
-  if (absVal >= 1000) return "$sign${(absVal / 1000).toStringAsFixed(0)}K";
+  if (absVal >= 10000000) {
+    return "$sign${(absVal / 1000000).floor() / 10.0}Cr";
+  }
+  if (absVal >= 100000) {
+    return "$sign${(absVal / 10000).floor() / 10.0}L";
+  }
+  if (absVal >= 1000) return "$sign${(absVal / 1000).floor()}K";
   return v.toStringAsFixed(0);
 }
 

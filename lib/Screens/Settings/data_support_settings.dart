@@ -36,7 +36,10 @@ class DataSupportSettingsScreen extends StatelessWidget {
     );
 
     try {
-      await LocalBackupService.backupUserTransactions(user!.email!);
+      await LocalBackupService.backupUserTransactions(
+        user!.email!,
+        force: true,
+      );
 
       if (!context.mounted) return;
       nav.pop();

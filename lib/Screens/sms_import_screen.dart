@@ -7,6 +7,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/budget_service.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
@@ -49,10 +51,19 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('imported_sms_keys');
     if (raw != null) {
-      final decoded = jsonDecode(raw);
-      _importedKeys = decoded is List
-          ? decoded.cast<String>().toSet()
-          : <String>{};
+      // A corrupt preference must not take the whole screen down with a
+      // FormatException from initState, so fall back to an empty set and drop
+      // the unusable value instead of re-reading it on every launch.
+      try {
+        final decoded = jsonDecode(raw);
+        _importedKeys = decoded is List
+            ? decoded.whereType<String>().toSet()
+            : <String>{};
+      } catch (e) {
+        debugPrint('Discarding unreadable imported_sms_keys: $e');
+        _importedKeys = <String>{};
+        await prefs.remove('imported_sms_keys');
+      }
     }
   }
 
@@ -242,6 +253,21 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
       }
 
       await batch.commit();
+    }
+
+    if (count > 0) {
+      LocalBackupService.backupUserTransactions(user.email!, reportErrors: false);
+      final email = user.email!;
+      for (final category in selectedList
+          .map((i) => _transactions[i])
+          .where((t) => t.amount < 0)
+          .map((t) => t.category)
+          .toSet()) {
+        await BudgetService.checkBudgetExceeded(
+          userId: email,
+          category: category,
+        );
+      }
     }
 
     for (final i in selectedList) {

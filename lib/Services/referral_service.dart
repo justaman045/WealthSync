@@ -85,35 +85,155 @@ class ReferralService {
     return '$nameChars$uidPart';
   }
 
-  /// Ensures the current user has a referralCode field in Firestore.
+  static CollectionReference<Map<String, dynamic>> get _codes =>
+      _db.collection('referralCodes');
+
+  /// Reserves [code] for this user, extending it on collision.
+  ///
+  /// The write is a plain create, so a collision is detected by the failure
+  /// itself — no uniqueness query is needed, and no query is possible: the
+  /// rules grant per-document reads only, so a `where('referralCode', …)`
+  /// collection query can never be proven and always fails.
+  static Future<String> _reserveCode(
+    String code,
+    String email,
+    String uid,
+  ) async {
+    final tail = uid.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    final extra = tail.length >= 4 ? tail : tail.padRight(4, '0');
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final candidate = attempt == 0
+          ? code
+          : '$code${extra.substring(attempt - 1, attempt + 1)}';
+      try {
+        await _codes.doc(candidate).set({
+          'owner': email,
+          'ownerUid': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+          'claims': <String, dynamic>{},
+          'credited': <String, dynamic>{},
+        });
+        return candidate;
+      } catch (e) {
+        log("Referral code $candidate unavailable: $e");
+      }
+    }
+    return '';
+  }
+
+  /// Ensures this user has a referral code, a matching `referralCodes` doc
+  /// (lazily created for pre-migration accounts), and credits any referral
+  /// claims that are waiting for them.
+  ///
+  /// Runs on every login, so the claim queue drains without a batch script and
+  /// without ever reading another user's document.
   static Future<void> ensureReferralCode() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.email == null) return;
+    final email = user.email!;
     try {
-      final doc = await _db.collection('users').doc(user.email).get();
-      if (doc.exists && (doc.data()?['referralCode'] != null)) return;
-      String code = generateReferralCode(
-        user.displayName ?? user.email!,
-        user.uid,
-      );
-      // Collision check: if code already exists for another user, append uid suffix
-      final existing = await _db
-          .collection('users')
-          .where('referralCode', isEqualTo: code)
-          .limit(1)
-          .get();
-      if (existing.docs.isNotEmpty && existing.docs.first.id != user.email) {
-        final tail = user.uid.length >= 2
-            ? user.uid.substring(user.uid.length - 2)
-            : user.uid;
-        code = '$code${tail.toUpperCase()}';
+      final userRef = _db.collection('users').doc(email);
+      final doc = await userRef.get();
+      final existing = doc.data()?['referralCode'] as String?;
+      String code = existing ?? '';
+
+      if (code.isEmpty) {
+        code = await _reserveCode(
+          generateReferralCode(user.displayName ?? email, user.uid),
+          email,
+          user.uid,
+        );
+        if (code.isEmpty) return;
+        await userRef.set({
+          'referralCode': code,
+          'referralCount': (doc.data()?['referralCount'] as int?) ?? 0,
+        }, SetOptions(merge: true));
+      } else {
+        await _ensureCodeDoc(code, email, user.uid);
       }
-      await _db.collection('users').doc(user.email).set({
-        'referralCode': code,
-        'referralCount': 0,
-      }, SetOptions(merge: true));
+
+      await _drainClaims(code, email);
     } catch (e) {
       log("Error ensuring referral code: $e");
+    }
+  }
+
+  /// Creates the `referralCodes` doc for an account that predates the
+  /// collection, without ever overwriting a code owned by someone else.
+  static Future<void> _ensureCodeDoc(
+    String code,
+    String email,
+    String uid,
+  ) async {
+    final ref = _codes.doc(code);
+    final snap = await ref.get();
+    if (snap.exists) {
+      if (snap.data()?['owner'] != email) {
+        log("Referral code $code is owned by another account");
+      }
+      return;
+    }
+    try {
+      await ref.set({
+        'owner': email,
+        'ownerUid': uid,
+        'createdAt': FieldValue.serverTimestamp(),
+        'claims': <String, dynamic>{},
+        'credited': <String, dynamic>{},
+      });
+    } catch (e) {
+      log("Error creating referral code doc: $e");
+    }
+  }
+
+  /// Applies referral rewards this user has earned but not yet collected.
+  ///
+  /// A referee can only append its own uid to `claims`, so crediting — which
+  /// touches the referrer's own trial and count — happens here, in the
+  /// referrer's own document, on their next login.
+  static Future<void> _drainClaims(String code, String email) async {
+    try {
+      final codeRef = _codes.doc(code);
+      final codeSnap = await codeRef.get();
+      if (!codeSnap.exists) return;
+      final data = codeSnap.data() ?? {};
+      final claims = data['claims'];
+      final credited = data['credited'];
+      if (claims is! Map || claims.isEmpty) return;
+      final creditedMap =
+          credited is Map ? Map<String, dynamic>.from(credited) : <String, dynamic>{};
+
+      final pending = <String, dynamic>{};
+      claims.forEach((uid, at) {
+        if (!creditedMap.containsKey(uid)) pending[uid.toString()] = at;
+      });
+      if (pending.isEmpty) return;
+
+      final userRef = _db.collection('users').doc(email);
+      final userSnap = await userRef.get();
+      final userData = userSnap.data() ?? {};
+      final currentExpiry =
+          (userData['trialEndDate'] as Timestamp?)?.toDate();
+      final now = DateTime.now();
+      final cap = now.add(const Duration(days: 45));
+      final rewardDays = 30 * pending.length;
+      final base = now.add(Duration(days: rewardDays));
+      final extended = currentExpiry != null && currentExpiry.isAfter(now)
+          ? currentExpiry.add(Duration(days: rewardDays))
+          : base;
+      final newExpiry = extended.isAfter(cap) ? cap : extended;
+
+      await userRef.set({
+        'referralCount':
+            ((userData['referralCount'] as int?) ?? 0) + pending.length,
+        'subscriptionStatus': 'pro',
+        'trialEndDate': Timestamp.fromDate(newExpiry),
+      }, SetOptions(merge: true));
+
+      creditedMap.addAll(pending);
+      await codeRef.set({'credited': creditedMap}, SetOptions(merge: true));
+    } catch (e) {
+      log("Error draining referral claims: $e");
     }
   }
 
@@ -126,25 +246,24 @@ class ReferralService {
     if (upperCode.isEmpty) return false;
 
     try {
-      // Find the referrer by their referralCode field
-      final query = await _db
-          .collection('users')
-          .where('referralCode', isEqualTo: upperCode)
-          .limit(1)
-          .get();
+      final codeRef = _codes.doc(upperCode);
+      final codeSnap = await codeRef.get();
+      if (!codeSnap.exists) return false;
 
-      if (query.docs.isEmpty) return false;
-
-      final referrerEmail = query.docs.first.id;
+      final codeData = codeSnap.data() ?? {};
+      final ownerEmail = codeData['owner'] as String?;
 
       // Don't allow self-referral
-      if (referrerEmail == currentUser.email) return false;
+      if (ownerEmail == null || ownerEmail == currentUser.email) return false;
 
-      final referrerRef = _db.collection('users').doc(referrerEmail);
-      final currentUserRef = _db.collection('users').doc(currentUser.email);
+      final claims = codeData['claims'];
+      if (claims is Map && claims.containsKey(currentUser.uid)) return false;
+
+      final currentUserRef =
+          _db.collection('users').doc(currentUser.email);
+      final trialEnd = DateTime.now().add(const Duration(days: 30));
 
       await _db.runTransaction((txn) async {
-        final referrerSnap = await txn.get(referrerRef);
         final currentUserSnap = await txn.get(currentUserRef);
 
         // Prevent double-application
@@ -153,30 +272,17 @@ class ReferralService {
             (currentUserSnap.data()?['referredBy'] != null);
         if (alreadyReferred) return;
 
-        final trialEnd = DateTime.now().add(const Duration(days: 30));
+        final nextClaims = claims is Map
+            ? Map<String, dynamic>.from(claims)
+            : <String, dynamic>{};
+        nextClaims[currentUser.uid] = FieldValue.serverTimestamp();
+
         txn.set(currentUserRef, {
           'referredBy': upperCode,
           'trialEndDate': Timestamp.fromDate(trialEnd),
         }, SetOptions(merge: true));
 
-        final currentExpiry = referrerSnap.exists
-            ? (referrerSnap.data()?['trialEndDate'] as Timestamp?)?.toDate()
-            : null;
-        final base = DateTime.now().add(const Duration(days: 30));
-        // Extending an already-active grant can push past the rules' 45-day
-        // validTrialCap (which counts from request time), so clamp to it.
-        final cap = DateTime.now().add(const Duration(days: 45));
-        final newExpiry = currentExpiry != null && currentExpiry.isAfter(DateTime.now())
-            ? (currentExpiry.add(const Duration(days: 30)).isAfter(cap)
-                ? cap
-                : currentExpiry.add(const Duration(days: 30)))
-            : base;
-
-        txn.set(referrerRef, {
-          'referralCount': FieldValue.increment(1),
-          'subscriptionStatus': 'pro',
-          'trialEndDate': Timestamp.fromDate(newExpiry),
-        }, SetOptions(merge: true));
+        txn.set(codeRef, {'claims': nextClaims}, SetOptions(merge: true));
       });
 
       return true;

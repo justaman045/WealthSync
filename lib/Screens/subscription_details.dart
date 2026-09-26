@@ -28,6 +28,10 @@ class SubscriptionDetailsScreen extends StatefulWidget {
 }
 
 class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
+  /// Hoisted out of build(): a stream built inline re-registers its
+  /// listener on every rebuild.
+  Stream<DocumentSnapshot<Object?>>? _paymentStream;
+
   final RecurringService _service = RecurringService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   Timer? _loadTimer;
@@ -85,7 +89,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         ),
         actions: [
           StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
+            stream: _paymentStream ??= FirebaseFirestore.instance
                 .collection('users')
                 .doc(_auth.currentUser?.email)
                 .collection('recurring_payments')
@@ -242,7 +246,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
+        stream: _paymentStream ??= FirebaseFirestore.instance
             .collection('users')
             .doc(_auth.currentUser?.email)
             .collection('recurring_payments')

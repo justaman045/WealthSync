@@ -49,15 +49,10 @@ class NotificationHistoryScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: user == null
+          child: user?.email == null
               ? const Center(child: Text("Not logged in"))
-              : StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(user.email)
-                      .collection('notifications')
-                      .orderBy('timestamp', descending: true)
-                      .snapshots(),
+              : _NotificationStream(
+                  email: user!.email!,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
@@ -315,5 +310,42 @@ class _NotificationTile extends StatelessWidget {
     } else {
       return DateFormat('MMM d').format(d);
     }
+  }
+}
+
+/// Owns the notifications query so it is registered once instead of on every
+/// rebuild of [NotificationHistoryScreen]. The stream is rebuilt when the
+/// signed-in account changes, not merely when the widget rebuilds.
+class _NotificationStream extends StatefulWidget {
+  const _NotificationStream({required this.email, required this.builder});
+
+  final String email;
+  final Widget Function(BuildContext, AsyncSnapshot<QuerySnapshot<Object?>>)
+  builder;
+
+  @override
+  State<_NotificationStream> createState() => _NotificationStreamState();
+}
+
+class _NotificationStreamState extends State<_NotificationStream> {
+  Stream<QuerySnapshot<Object?>>? _stream;
+
+  @override
+  void didUpdateWidget(covariant _NotificationStream oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.email != widget.email) _stream = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Object?>>(
+      stream: _stream ??= FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.email)
+          .collection('notifications')
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
+      builder: widget.builder,
+    );
   }
 }

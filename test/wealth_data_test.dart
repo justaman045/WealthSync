@@ -34,9 +34,24 @@ void main() {
         loans: 500000,
         lastUpdated: DateTime.now(),
       );
-      // sum of all asset fields only (no liabilities)
-      // 100000+200000+300000+400000+50000+60000+5000000+150000+80000+90000+25000+180000+70000+110000+500000+200000+60000+100000+50000+300000+1000000+800000+400000+2000000
-      expect(p.totalAssets, closeTo(12225000, 1));
+      // Sum of all asset fields only (no liabilities, and no insurance: a
+      // policy's sum assured is coverage, not money the user owns).
+      // 100000+200000+300000+400000+50000+60000+5000000+150000+80000+90000+25000+180000+70000+110000+200000+60000+100000+50000+300000+1000000+800000+400000+2000000
+      expect(p.totalAssets, closeTo(11725000, 1));
+    });
+
+    test('insurance coverage is excluded from totalAssets', () {
+      final withPolicy = WealthPortfolio(
+        insurance: 10000000,
+        lastUpdated: DateTime.now(),
+      );
+      final withoutPolicy = WealthPortfolio(lastUpdated: DateTime.now());
+      expect(withPolicy.totalAssets, 0.0);
+      expect(
+        withPolicy.totalAssets,
+        withoutPolicy.totalAssets,
+        reason: 'a 1 Cr term policy must not inflate net worth by 1 Cr',
+      );
     });
 
     test('totalLiabilities sums liability fields', () {
@@ -124,7 +139,7 @@ void main() {
       expect(p.targets['sip'], 50000.0);
       expect(p.hiddenKeys, ['crypto']);
       expect(p.monthlyExpenseOverride, 30000.0);
-      expect(p.totalAssets, closeTo(127250, 1));
+      expect(p.totalAssets, closeTo(122250, 1));
       expect(p.totalLiabilities, 10600);
     });
   });

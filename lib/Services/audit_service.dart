@@ -106,7 +106,7 @@ class AuditService {
     final usedTxIds = <String>{};
 
     for (final row in csvRows) {
-      final amount = _parseBankAmount(row, columnMap['amount'] ?? 0);
+      final amount = _parseBankAmount(row, columnMap);
       final date = _parseBankDate(row, columnMap['date'] ?? 0);
       final merchant = _parseBankString(row, columnMap['merchant'] ?? 0);
 
@@ -119,7 +119,7 @@ class AuditService {
       var bestScore = 0;
       for (final tx in transactions) {
         if (usedTxIds.contains(tx.id)) continue;
-        if ((tx.amount.abs() - amount.abs()).abs() > 0.01) continue;
+        if ((tx.amount - amount).abs() > 0.01) continue;
         final dateDiff = tx.date.difference(date).inDays.abs();
         if (dateDiff > 1) continue;
         var score = 100 - dateDiff * 10;
@@ -197,10 +197,48 @@ class AuditService {
     return const ListToCsvConverter().convert(rows);
   }
 
-  static double? _parseBankAmount(List<dynamic> row, int idx) {
-    if (idx >= row.length) return null;
-    final raw = row[idx].toString().replaceAll(RegExp(r'[^0-9.-]'), '');
-    return double.tryParse(raw);
+  /// Parses a bank row into a signed amount, matching the app's convention
+  /// (expense negative, income positive).
+  ///
+  /// Bank exports come in two shapes: a single Amount cell that carries the
+  /// direction in a DR/CR suffix, or separate Debit and Credit columns. Both
+  /// are handled, because comparing magnitudes instead of signs reports an
+  /// app income as reconciled with a bank debit of the same value.
+  static double? _parseBankAmount(List<dynamic> row, Map<String, int> columnMap) {
+    double? valueAt(String key) {
+      final idx = columnMap[key];
+      if (idx == null || idx >= row.length) return null;
+      final cell = row[idx].toString();
+      final cleaned = cell.replaceAll(RegExp(r'[^0-9.-]'), '');
+      return double.tryParse(cleaned);
+    }
+
+    final debit = valueAt('debit');
+    final credit = valueAt('credit');
+    if (debit != null || credit != null) {
+      final d = debit == null || debit == 0 ? 0.0 : -debit.abs();
+      final c = credit == null ? 0.0 : credit.abs();
+      final combined = d + c;
+      if (combined != 0) return combined;
+    }
+
+    final amount = valueAt('amount');
+    if (amount == null) return null;
+
+    final raw = row[columnMap['amount']!].toString();
+    final lower = raw.toLowerCase();
+    final isAccountingNegative = raw.contains('(') && raw.contains(')');
+    final isDebit = RegExp(
+      r'\b(dr|debit|withdrawn|sent|deducted|paid)\b',
+    ).hasMatch(lower);
+    final isCredit = RegExp(
+      r'\b(cr|credit|deposit|received|credited|refund)\b',
+    ).hasMatch(lower);
+
+    var signed = isAccountingNegative ? -amount.abs() : amount;
+    if (isDebit) signed = -signed.abs();
+    if (isCredit) signed = signed.abs();
+    return signed;
   }
 
   static DateTime? _parseBankDate(List<dynamic> row, int idx) {

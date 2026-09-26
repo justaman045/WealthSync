@@ -461,9 +461,9 @@ class ExportService {
         monthMap[month] = (spend: (m?.spend ?? 0) + tx.amount.abs() + tx.tax, income: m?.income ?? 0);
       }
       if (isIncome) {
-        totalIncome += tx.amount;
+        totalIncome += tx.amount.abs();
         final m = monthMap[month];
-        monthMap[month] = (spend: m?.spend ?? 0, income: (m?.income ?? 0) + tx.amount);
+        monthMap[month] = (spend: m?.spend ?? 0, income: (m?.income ?? 0) + tx.amount.abs());
       }
     }
 

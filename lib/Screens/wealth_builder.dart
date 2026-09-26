@@ -20,6 +20,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/rendering.dart' as rendering;
 
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
@@ -59,6 +60,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   Set<String> _recommendedKeys = {};
   StreamSubscription<WealthPortfolio>? _portfolioSub;
   StreamSubscription<UserModel?>? _profileSub;
+  Worker? _txWorker;
+  Timer? _targetDebounce;
 
   @override
   void initState() {
@@ -67,6 +70,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       if (mounted) setState(() => portfolio = p);
     }, onError: (e) => debugPrint('WealthBuilder portfolio stream error: $e'));
     _initProfileListener();
+    _initTransactionWorker();
     _loadData();
   }
 
@@ -74,8 +78,66 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   void dispose() {
     _portfolioSub?.cancel();
     _profileSub?.cancel();
+    _txWorker?.dispose();
+    _targetDebounce?.cancel();
     _isBottomBarVisible.dispose();
     super.dispose();
+  }
+
+  /// Cash, income and insights are all derived from the transaction list, and
+  /// this tab stays alive behind the bottom nav, so `initState` runs once per
+  /// app session: without this worker the Wealth tab keeps reporting the
+  /// balance from the moment it was first opened while the home balance is
+  /// live.
+  void _initTransactionWorker() {
+    if (!Get.isRegistered<TransactionController>()) return;
+    final txController = Get.find<TransactionController>();
+    _txWorker = ever(txController.transactions, (_) {
+      _refreshTransactionDerived();
+    });
+  }
+
+  void _refreshTransactionDerived() {
+    if (!Get.isRegistered<TransactionController>()) return;
+    final transactions = Get.find<TransactionController>().transactions;
+    final balance = WealthService.calculateBankBalance(transactions);
+    final income = WealthService.calculateAverageMonthlyIncome(transactions);
+    if (!mounted) return;
+    setState(() {
+      bankBalance = balance;
+      actualMonthlyIncome = income;
+      final p = portfolio;
+      if (p != null) {
+        smartInsights = WealthService.generateSmartInsights(p, transactions);
+      }
+    });
+    _scheduleTargetRecompute(transactions, balance);
+  }
+
+  /// Asset targets depend on the bank balance, but computing them is async and
+  /// touches Firestore, so a burst of transaction edits collapses into one
+  /// recompute instead of one per edit.
+  void _scheduleTargetRecompute(
+    List<TransactionModel> transactions,
+    double balance,
+  ) {
+    _targetDebounce?.cancel();
+    _targetDebounce = Timer(const Duration(milliseconds: 800), () async {
+      if (!mounted || !Get.isRegistered<ProfileController>()) return;
+      final p = portfolio;
+      if (p == null) return;
+      final userProfile = Get.find<ProfileController>().userProfile.value;
+      final quickGeo = await GeoService.getCached();
+      final targets = await WealthService.calculateAssetTargets(
+        p,
+        transactions,
+        userProfile,
+        baselineMonthlyIncome: quickGeo?.baselineMonthlyIncome ?? 25000,
+        bankBalance: balance,
+      );
+      if (!mounted) return;
+      setState(() => assetTargets = targets);
+    });
   }
 
   // The profile may arrive late (async Firestore fetch) or be edited after the
@@ -2193,7 +2255,6 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       MapEntry('ppf', (p.ppf, Colors.lightBlue, 'PPF')),
       MapEntry('sgb', (p.sgb, Colors.amber.shade300, 'SGB')),
       MapEntry('bonds', (p.bonds, Colors.blueGrey, 'Bonds')),
-      MapEntry('insurance', (p.insurance, Colors.pink, 'Insurance')),
       MapEntry(
         'foreignStocks',
         (p.foreignStocks, Colors.deepPurple, 'Foreign'),
@@ -2516,7 +2577,6 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       add('ppf', p.ppf);
       add('sgb', p.sgb);
       add('bonds', p.bonds);
-      add('insurance', p.insurance);
       add('foreignStocks', p.foreignStocks);
       add('vpf', p.vpf);
       add('postOffice', p.postOffice);

@@ -53,8 +53,8 @@ ios/Runner/GoogleService-Info.plist
 *.jks
 *.keystore
 local.properties
-firebase.json
-.firebaserc
+# firebase.json / .firebaserc are tracked on purpose: they hold only the public
+# projectId/appId, and firestore.indexes.json cannot be deployed without them.
 service_account.json
 *.base64
 

@@ -30,6 +30,10 @@ class RecurringPaymentsScreen extends StatefulWidget {
 }
 
 class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
+  /// Hoisted out of build(): a stream built inline re-registers its
+  /// listener on every rebuild.
+  Stream<List<RecurringPayment>>? _paymentsStream;
+
   final RecurringService _service = RecurringService();
   late final TransactionController _txController;
   RecurringPayment? _selectedPayment;
@@ -155,7 +159,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                     ),
 
                     StreamBuilder<List<RecurringPayment>>(
-                      stream: _service.getPayments(),
+                      stream: _paymentsStream ??= _service.getPayments(),
                       builder: (context, snapshot) {
                         final offline =
                             Get.isRegistered<ConnectivityController>() &&
@@ -959,6 +963,9 @@ class _MonthlyCommitmentCard extends StatefulWidget {
 
 class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
     with AutomaticKeepAliveClientMixin {
+  /// Hoisted out of build(): a stream built inline re-registers its
+  /// listener on every rebuild.
+  Stream<double>? _monthlyStream;
   final RecurringService _service = RecurringService();
 
   @override
@@ -968,7 +975,7 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
   Widget build(BuildContext context) {
     super.build(context);
     return StreamBuilder<double>(
-      stream: _service.getMonthlyTotal(),
+      stream: _monthlyStream ??= _service.getMonthlyTotal(),
       builder: (context, snapshot) {
         final total = snapshot.data ?? 0;
         return Container(

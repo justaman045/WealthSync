@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
+import 'package:money_control/Services/local_backup_service.dart';
 import 'package:uuid/uuid.dart';
 
 /// Advance a date by one calendar month, clamping the day to the last day of
@@ -418,6 +419,11 @@ class RecurringService {
     }
 
     await batch.commit();
+
+      LocalBackupService.backupUserTransactions(
+        email,
+        reportErrors: false,
+      );
   }
 
   // Process Due Payments (called by Background Worker). uid is passed explicitly
@@ -505,6 +511,10 @@ class RecurringService {
       });
 
       await batch.commit();
+      LocalBackupService.backupUserTransactions(
+        userEmail,
+        reportErrors: false,
+      );
     }
 
     return pending;

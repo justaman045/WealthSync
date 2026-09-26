@@ -41,11 +41,13 @@ class RecurringPaymentController extends GetxController {
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
     if (cached is List) {
-      final list = cached.map((e) {
+      final list = cached.whereType<Map>().map((e) {
         final map = LocalCacheService.hiveRestore(
-          Map<String, dynamic>.from(e as Map),
+          Map<String, dynamic>.from(e),
         );
-        final id = map.remove('_id') as String? ?? '';
+        // Stored ids are strings, but a cast throws rather than yielding null
+        // when a legacy/hand-edited cache holds something else.
+        final id = (map.remove('_id') as dynamic)?.toString() ?? '';
         return RecurringPayment.fromMap(id, map);
       }).toList();
       pendingSubscriptions.value = _computeMonthlyTotal(list);

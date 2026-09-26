@@ -19,6 +19,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Components/responsive_form_row.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/num_parse.dart';
 
 class TransactionEditScreen extends StatefulWidget {
   final TransactionModel transaction;
@@ -267,8 +268,17 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       return;
     }
 
-    double rawAmount = double.tryParse(_amountController.text.trim()) ?? 0;
-    rawAmount = rawAmount.abs();
+    final rawAmount =
+        safeToDouble(double.tryParse(_amountController.text.trim()));
+    if (!isValidAmount(rawAmount)) {
+      _saving = false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please enter a valid amount")),
+        );
+      }
+      return;
+    }
 
     final isExpense = user.uid == widget.transaction.senderId;
     final finalAmount = isExpense ? -rawAmount : rawAmount;
@@ -280,7 +290,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       recipientName: _recipientNameController.text.trim(),
       amount: finalAmount,
       currency: widget.transaction.currency,
-      tax: double.tryParse(_taxController.text.trim()) ?? 0,
+      tax: safeToDouble(double.tryParse(_taxController.text.trim())),
       note: _noteController.text.trim().isEmpty
           ? null
           : _noteController.text.trim(),
@@ -304,7 +314,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
 
       final email = user.email;
       if (email != null) {
-        LocalBackupService.backupUserTransactions(email);
+        LocalBackupService.backupUserTransactions(email, reportErrors: false);
       }
 
       _saving = false;
@@ -566,7 +576,9 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               ),
               validator: (val) {
                 if (val == null || val.isEmpty) return "Required";
-                if (double.tryParse(val) == null) return "Invalid";
+                final parsed = double.tryParse(val);
+                if (parsed == null) return "Invalid";
+                if (!isValidAmount(parsed)) return "Invalid";
                 return null;
               },
             ),

@@ -17,6 +17,10 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
+  /// Hoisted out of build(): a stream built inline re-registers its
+  /// listener on every rebuild.
+  Stream<QuerySnapshot<Object?>>? _pendingStream;
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -67,7 +71,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _firestore
+          stream: _pendingStream ??= _firestore
               .collection('users')
               .where('subscriptionStatus', isEqualTo: 'pending')
               .snapshots(),

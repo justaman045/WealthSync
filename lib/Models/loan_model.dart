@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Utils/num_parse.dart';
 
 enum LoanType { home, car, personal, education, other }
 
@@ -125,12 +126,7 @@ class LoanModel {
     );
   }
 
-  static double _parseNum(dynamic value) {
-    if (value == null) return 0;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0;
-    return 0;
-  }
+  static double _parseNum(dynamic value) => safeToDouble(value);
 
   static int _parseInt(dynamic value) {
     if (value == null) return 0;

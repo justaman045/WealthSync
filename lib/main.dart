@@ -496,6 +496,10 @@ class AuthChecker extends StatefulWidget {
 }
 
 class _AuthCheckerState extends State<AuthChecker> {
+  /// Hoisted out of build(): a stream built inline re-registers its
+  /// listener on every rebuild.
+  Stream<User?>? _authStream;
+
   bool _didInitialBackup = false;
   StreamSubscription<User?>? _authSub;
 
@@ -624,7 +628,9 @@ class _AuthCheckerState extends State<AuthChecker> {
         final email = user.email;
         if (!_didInitialBackup && email != null) {
           _didInitialBackup = true;
-          unawaited(LocalBackupService.backupUserTransactions(email));
+          unawaited(
+            LocalBackupService.backupUserTransactions(email, reportErrors: false),
+          );
         }
       } else {
         // Bail if a new user signed in while a stale logout/verification
@@ -714,7 +720,7 @@ class _AuthCheckerState extends State<AuthChecker> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: _authStream ??= FirebaseAuth.instance.authStateChanges(),
       builder: (_, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(

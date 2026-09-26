@@ -26,7 +26,8 @@ class _ImportScreenState extends State<ImportScreen> {
   String? _amountColumn;
   String? _noteColumn;
   String? _merchantColumn;
-  String? _categoryColumn;
+
+  String? _typeColumn;  String? _categoryColumn;
 
   Future<void> _pickFile() async {
     if (mounted) setState(() => _isLoading = true);
@@ -62,7 +63,11 @@ class _ImportScreenState extends State<ImportScreen> {
           'name',
           'company',
         ]);
-        _categoryColumn = _findSimilarHeader(['category', 'tag', 'type']);
+        _categoryColumn = _findSimilarHeader(['category', 'tag']);
+        // Direction lives in its own column on most bank/card exports, and
+        // those exports keep expenses positive — so this column decides the
+        // sign that the amount column no longer carries.
+        _typeColumn = _findDirectionHeader();
       });
     }
     if (mounted) setState(() => _isLoading = false);
@@ -73,6 +78,33 @@ class _ImportScreenState extends State<ImportScreen> {
       if (keywords.any((k) => header.toLowerCase().contains(k))) {
         return header;
       }
+    }
+    return null;
+  }
+
+  /// Matches a direction column without the substring hazards of
+  /// [keywords]-style matching — "Address" contains "dr", which would map the
+  /// address column as a direction column.
+  String? _findDirectionHeader() {
+    const exact = {
+      'dr',
+      'cr',
+      'debit',
+      'credit',
+      'withdrawal',
+      'deposit',
+      'direction',
+      'transaction type',
+      'txn type',
+      'type',
+    };
+    for (var header in _headers) {
+      final h = header.toLowerCase().trim();
+      if (exact.contains(h)) return header;
+    }
+    for (var header in _headers) {
+      final h = header.toLowerCase();
+      if (h.contains('dr/cr') || h.contains('debit/credit')) return header;
     }
     return null;
   }
@@ -99,6 +131,7 @@ class _ImportScreenState extends State<ImportScreen> {
         'category': _categoryColumn != null
             ? _headers.indexOf(_categoryColumn!)
             : -1,
+        'type': _typeColumn != null ? _headers.indexOf(_typeColumn!) : -1,
       };
 
       final userId = FirebaseAuth.instance.currentUser?.uid;

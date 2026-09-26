@@ -66,6 +66,10 @@ tool/check_ui_strings.sh            # UI-revamp audit: report only
 tool/check_ui_strings.sh --strict   # fail if mechanical debts exceed caps
 ```
 
+**Pre-commit order (what CI's `test` job runs):** `flutter analyze --no-fatal-infos` → `tool/check_ui_strings.sh --strict` → `flutter test`. All three must pass; `flutter analyze` treats warnings as errors (`--no-fatal-infos` only tolerates infos).
+
+**Generated l10n Dart is committed**: `lib/l10n/app_localizations.dart` + `app_localizations_en.dart` are tracked, so an ARB edit must ship with a regenerated pair in the same commit.
+
 **Integration tests never run under plain `flutter test`** — they only run when explicitly invoked. Manual local run (emulator-5554, live Firebase account):
 
 ```bash
@@ -93,6 +97,33 @@ dart run tool/generate_test_report.dart --unit=build/report/unit.json \
 
 CI (`.github/workflows/flutter_build.yml`, Flutter 3.44.8): analyze → unit/widget test → build (`test` job). Integration (E2E) tests are **skipped by default in CI** — the `integration_test` job only runs on a manual `workflow_dispatch` fired with the `run_integration_tests` input set to `true` (Android emulator, live Firebase test accounts via `TEST_EMAIL`/`TEST_PASSWORD` (free) + `PRO_TEST_EMAIL`/`PRO_TEST_PASSWORD` (Pro) secrets); on normal master pushes/manual runs it stays skipped and `build`/`build_web` ship on analyze + unit tests alone. When an opt-in E2E run happens it still **gates**: `build`/`build_web` use an explicit status guard (`needs.integration_test.result` success-or-skipped), so a failing E2E opt-in run blocks the release while a skipped one proceeds. Re-enabling the hard master-push E2E gate later = drop the job's `if` condition (tooling + secrets fully intact). Integration tests and release builds never run on PRs (E2E mutates the shared test accounts), so a green PR check means analyze + unit tests only. On merge to `master`, CI auto-bumps `pubspec.yaml` to `2.0.<run_number>`, updates `app_version.json` + README download link, creates a signed GitHub release (`v2.0.<run_number>`), and deploys web to GitHub Pages under base-href `/WealthSync/`. Version-commit/README-commit loops are avoided by skipping the commit when the message starts with `CI:`. Every run uploads a self-contained `report.html` artifact (pass/fail per test, collapsible errors, base64 screenshots) — generated even on red runs.
 
+## Firestore Deployment
+
+`firestore.rules` and `firestore.indexes.json` are **not** deployed by CI (no
+credentials in the repo). Deploy them by hand when either changes:
+
+```bash
+firebase login
+firebase use moneycontroljustaman045   # .firebaserc is tracked
+firebase deploy --only firestore:rules,firestore:indexes
+# always dry-run first — it COMPILES the rules and reads the index file:
+firebase deploy --only firestore:rules,firestore:indexes --dry-run
+```
+
+The dry run is the only local rules linter available: it catches invalid type
+identifiers (`is Map` fails to compile — the compiler only accepts lowercase
+`map`, `timestamp`, `list`, `number`, …). Unit tests assert rules *source text*
+only, so they cannot catch a rules-language error. `firebase.json` and
+`.firebaserc` are tracked deliberately (public projectId/appId only);
+`google-services.json` and service accounts stay ignored.
+
+**4 composite indexes** are required — every other query in the app is
+single-field (auto-indexed): `challenges{isActive,createdAt}`,
+`loans{isActive,createdAt}`, `transactions{category,date}` (desc, category
+history) and `transactions{category,date}` (asc, budget month range). Firestore
+needs equality fields before the range/orderBy field. Adding a multi-field
+query means adding its index here or the query fails at runtime in production.
+
 ## Architecture
 
 **MVC-Service-Repository** with GetX. Package name is `money_control` (used in imports).
@@ -110,20 +141,22 @@ CI (`.github/workflows/flutter_build.yml`, Flutter 3.44.8): analyze → unit/wid
 | `lib/Platform/` | Platform abstraction stubs for 9 services (biometric, geocoding, IAP, notification, SMS, etc.) |
 | `lib/l10n/` | ARB localization files (`app_en.arb` template) |
 | `lib/data/` | Challenge preset seed data |
-| `test/` | 16 unit/widget test files (background_flags, bottom_nav_layout, feature_flags, feature_flags_widget, feature_gate, inactivity_reminder, lent_money_model, recurring_payment_model, sms_auto_import, sms_category, toggle_gate, upi_apps, upi_qr, wealth_data, wealth_math, widget) |
-| `integration_test/` | 25 integration tests — require a live Firebase backend and run against emulator-5554 with the four account dart-defines (see `test_credentials.dart`). `mainCommon(isTest: true)` only skips Crashlytics/notifications. Tests: add_transaction, ai_insights, analytics_reports, budget_categories (Pro), data_management, edit_profile, free_paywall_gates (free), full_app_e2e_tabs (login→home→tab-tour smoke; subsumes the old app_test), goals_challenges (Pro), lent_money_split_bill (Pro), loan_tracker, login, login_valid, misc_settings, pro_features (Pro), receive_transaction_e2e, search_transaction, settings (free), subscription_flow (Pro), subscription_screen (Pro), transaction_management, wealth_assets, wealth_sweep_1/2/3. Helpers in `test_helpers.dart`: `launchAndSignIn` (with `account: TestAccount.free|pro`), `tapNavTab` (auto-reveals the auto-hiding bottom bar), `handleSplashAndOnboarding`, `loginIfNeeded`, `createTransaction`, `waitForHome`, `waitForGone`, `ensureAccountState`, `sweepAssetEntry`. |
+| `test/` | unit/widget tests — `flutter test test/<name>_test.dart` for one. Biggest ones: `feature_flags_test.dart` (enforces the flag registry) and `background_flags_test.dart`. |
+| `integration_test/` | 25 E2E tests + `test_credentials.dart` (dart-defines) + `test_helpers.dart` (all shared helpers — read before writing a test). Require a live Firebase backend and emulator-5554. `mainCommon(isTest: true)` only skips Crashlytics/notifications. New **Pro** tests must be added to the `PRO_FILES` list in `tool/run_integration_tests.sh` or they silently run against the free account. |
 
 ## Integration Test Gotchas
 
+**Read `integration_test/test_helpers.dart` before writing a test** — every E2E test starts with `launchAndSignIn(account: TestAccount.free|pro)` and wraps its body in `testWidgetsWithScreenshots`. The helpers already absorb the suite's flakiness: `handleSplashAndOnboarding`/`loginIfNeeded`, `waitForHome`/`waitFor`/`waitForGone`/`waitForCheck`/`waitForController`, `tapNavTab` (auto-reveals the auto-hiding bottom bar), `scrollUntilVisible`/`tapUntilMarker`/`tapWhenVisible`, `createTransaction`/`createReceiveTransaction`, `ensureCategoryExists`/`seedCategory`, `clearAccountData`/`resetTestData`, `probePro`/`assertUpgradeScreen`, `dismissDialogs`, `pumpAndSettleSafe`/`pumpReal`, `sweepAssetEntry`. Hand-rolled pumps are the main source of new flakes.
+
 1. **Tests need the dart-defines** — `flutter test integration_test -d emulator-5554 --dart-define=TEST_EMAIL=... --dart-define=TEST_PASSWORD=... --dart-define=PRO_TEST_EMAIL=... --dart-define=PRO_TEST_PASSWORD=...` or auth fails with `[firebase_auth/channel-error]` ("Given String is empty or null"). `test_credentials.dart` uses `String.fromEnvironment` with empty defaults on purpose.
-2. **Two accounts, never shared** — `TEST_EMAIL`/`TEST_PASSWORD` is the FREE account; `PRO_TEST_EMAIL`/`PRO_TEST_PASSWORD` is the PRO account. `ensureAccountState()` force-resets the free account to Free on every launch (subscriptionStatus:'free', isPro:false, past-dated trialEndDate — all rule-legal owner writes, and with the opt-in-trial change login never re-grants a trial), and fails loudly if the Pro account doesn't report Pro (configure it in the Firebase console: subscriptionStatus:'pro' + a far-future expiryDate — the app cannot self-grant Pro). Free-path assertions (`'Budgeting'`, `'Upgrade to Pro'`, `'Monthly'`) only work against the free account. A subscribed-Pro account shows the subscription management view (`'You are a Pro Member!'`, `'Renews on:'`) — NOT the paywall/trial banner, so `subscription_screen_test` asserts accordingly and never taps "Cancel Plan".
+2. **Two accounts, never shared** — `TEST_EMAIL`/`TEST_PASSWORD` is the FREE account; `PRO_TEST_EMAIL`/`PRO_TEST_PASSWORD` is the PRO account. `ensureAccountState()` force-resets the free account to Free on every launch (subscriptionStatus:'free', isPro:false, past-dated trialEndDate — all rule-legal owner writes, and with the opt-in-trial change login never re-grants a trial), and fails loudly if the Pro account doesn't report Pro (configure it in the Firebase console: subscriptionStatus:'pro' + a far-future expiryDate — the app cannot self-grant Pro). Free-path assertions (`'Budgeting'`, `'Upgrade to Pro'`, `'Monthly'`) only work against the free account. A subscribed-Pro account shows the subscription management view (`'You are a Pro Member!'`, `'Renews on:'`) — NOT the paywall/trial banner, so `subscription_screen_test` asserts accordingly and never taps "Cancel Plan". Account selection is the *script's* job, not the test's: `PRO_FILES` in `tool/run_integration_tests.sh` lists the 6 Pro files (`subscription_flow_test budget_categories_test goals_challenges_test lent_money_split_bill_test subscription_screen_test pro_features_test`); a new Pro file missing from that list runs against the free account and fails on paywall assertions.
 3. **`createTransaction` waits for the payment screen to open AND pop** — after submit the screen lingers ~700 ms for the confetti celebration before `Navigator.pop`, and 'Total Balance' is already present in the offstage home route below, so `waitForHome` alone races into the next tap.
 4. **Decorative blobs must not block taps** — the balance-card gradient circles are wrapped in `IgnorePointer`; they overlap the Send/Receive buttons once the streak banner grows the card (`balance_card.dart`).
 5. **`_InviteFriendsCard` listener needs an `onError`** — the `users/{email}` snapshots stream errors with permission-denied after sign-out; without the handler the settings sign-out test fails on an unhandled exception (`settings.dart`).
 6. **Data-dependent analytics markers** — 'Monthly Trend' only renders with ≥2 months of data ('Current Period' otherwise), and 'Expense Breakdown' needs non-zero expenses. `analytics_reports_test.dart` seeds an expense + income first and accepts either trend title.
 7. **`flutter test` uninstalls the app after integration runs** — the `--uninstall` flag defaults to true (Flutter tool), wiping the device cache that holds the screenshots. Always pass `--no-uninstall` (CI does) so the `adb exec-out run-as ... cat` pull after the run finds them. Per-file reinstalls use `adb install -r`, so screenshots accumulate across test files while the app stays installed.
 8. **`testWidgetsWithScreenshots` auto-captures screenshots** — every integration test uses the wrapper in `test_helpers.dart`; on success it writes `result_<name>.png` to `<app cache>/screenshots/`, on failure `failure_<name>.png` (error is rethrown so the test still fails). Capture is engine-first (`layer.toImage()` — no `convertFlutterSurfaceToImage()` surface swap, which is what stresses the emulator's fragile gfxstream ColorBuffer path); it falls back to `binding.takeScreenshot()` only if the engine path yields nothing. `tool/generate_test_report.dart` embeds them base64 into the single-file `report.html`; new integration tests must keep using the wrapper so their screenshots land in the report. FAIL rows with no error text are labeled **HOST LOST** — the emulator/adb connection dropped mid-test (an infra failure, never a test assertion).
-9. **Emulator dies from host-GL accumulation across app launches — restart between files** — `analytics_insights_test` deterministically killed the emulator process (qemu gone; `adb -s emulator-5554 emu kill` at job end failed with `Connection refused` on TCP 5554) after ~7 min in three consecutive runs. The death is tied to the SECOND app launch: `add_transaction_test` (first file) always survives ~11 min, the second file dies ~7 min in. `-gpu guest` does NOT help (API 34 google_apis image doesn't support guest rendering — it silently falls back to host `lavapipe`). Fix: `restart_emulator()` in `tool/run_integration_tests.sh` kills qemu and boots a fresh emulator before every file after the first, so each file runs as a first app instance on clean host GL state. `recover_device()` only helps an adb wedge — after recovery fails the script tries a full restart, and only gives up (setting `EMULATOR_DEAD`, skipping remaining files fast) when the restart itself fails.
+9. **Emulator dies from host-GL accumulation across app launches — restart between files** — `ai_insights_test` deterministically killed the emulator process (qemu gone; `adb -s emulator-5554 emu kill` at job end failed with `Connection refused` on TCP 5554) after ~7 min in three consecutive runs. The death is tied to the SECOND app launch: `add_transaction_test` (first file) always survives ~11 min, the second file dies ~7 min in. `-gpu guest` does NOT help (API 34 google_apis image doesn't support guest rendering — it silently falls back to host `lavapipe`). Fix: `restart_emulator()` in `tool/run_integration_tests.sh` kills qemu and boots a fresh emulator before every file after the first, so each file runs as a first app instance on clean host GL state. `recover_device()` only helps an adb wedge — after recovery fails the script tries a full restart, and only gives up (setting `EMULATOR_DEAD`, skipping remaining files fast) when the restart itself fails.
 
 ThemeController is inline in `main.dart` (registered before any screen). Note: `PerformanceController` and `ConnectivityController` are GetX controllers but live in `lib/Services/` (not `lib/Controllers/`).
 
@@ -156,7 +189,26 @@ One Firestore subcollection per asset type under `users/{userEmail}/`, plus `wea
 
 **WealthPortfolio** (`lib/Models/wealth_data.dart`): 24 asset fields + `custom` map, `targets`, `hiddenKeys`. `totalAssets` sums all 24 + custom entries. `totalLiabilities = loans + creditCard + bnpl`.
 
-**Dashboard** must use `streamPortfolio()` (not `getPortfolio()`) — one-shot fetch leaves amounts stale after navigating back. Confirmed in `wealth_builder.dart:63` (primary subscription in `initState`). Note: `_loadData()` also calls `getPortfolio()` (~line 106) for geo-enrichment, but the primary real-time data comes from the stream.
+**Dashboard** must use `streamPortfolio()` (not `getPortfolio()`) — one-shot fetch leaves amounts stale after navigating back. Confirmed in `wealth_builder.dart:66` (primary subscription in `initState`). Note: `_loadData()` also calls `getPortfolio()` (~line 109) for geo-enrichment, but the primary real-time data comes from the stream.
+
+**Insurance `sumAssured` is NOT an asset.** A policy's cover is not money the
+user owns, so it is excluded from `totalAssets`, `WealthService` visible
+totals/net worth, the allocation breakdown, and the net-worth accumulator. It
+is still persisted, still listed as a policy (with `coverageStyle`), and still
+feeds the insurance coverage insight. Changing that exclusion is a product
+decision, not a bug fix.
+
+**Transaction-derived Wealth values must be reactive.** Bank balance, monthly
+income, smart insights, and asset targets all read transactions, not the
+portfolio doc, so `_initTransactionWorker` in `wealth_builder.dart` recomputes
+them via an `ever` worker (targets debounced) — otherwise they go stale until
+the screen is rebuilt.
+
+**Never cap an asset list at 25 docs.** The list is a *view* of the
+subcollection, but the total written back to the portfolio summary comes from a
+full read, so a cap makes the visible list and the stored total disagree. The 5
+asset screens each hold one cached stream (`_entries`) instead of rebuilding the
+query in `build()`.
 
 **Generic screen**: `AssetDetailScreen(config:)` — 22 configs in `lib/Config/asset_screen_configs.dart` (all types except the four below). Custom screens: `RealEstateDetailScreen` (properties), `VehicleDetailScreen`, `InsurancePolicyScreen`, `CreditCardDetailScreen`.
 
@@ -179,7 +231,7 @@ Admins toggle live feature availability from Settings → Admin Utils → Featur
 - `ensureFeatureUsable(context, key)` is the same guard minus the placeholder — `hidden` is a hard no-op. Use it for surfaces that must STAY on screen when the flag is hidden but whose taps are still gated (home AppBar avatar + "Welcome back" greeting under `profile`: always visible, taps dead when hidden).
 - Entry-point inventory (several surfaces share a key — know what a toggle really hides):
   - Send/Receive on the home balance card + the core add/send flow → `transactions` (`FeatureVisible` + tap guards in `balance_card.dart`); the same-card "+ Add Lent" / "- Subs" chips → `lent_money` / `recurring` (a worker force-flips the toggles off when hidden).
-  - Home "Quick Send" UPI row (`QuickSendRow`, guards in `quick_send.dart`) **and** the Add-Send form's "Scan & Pay with UPI" button (`_upiPayButton` in `add_transaction.dart`, only when `type == send && !kIsWeb`) **both reuse `upi_pay`** — hiding it removes the UPI pay surface everywhere at once; keep it that way (deliberate reuse decision).
+  - Home "Quick Send" UPI row (`QuickSendRow`, guards in `lib/Components/quick_send.dart`) **and** the Add-Send form's "Scan & Pay with UPI" button (`_upiPayButton` in `add_transaction.dart`, only when `type == send && !kIsWeb`) **both reuse `upi_pay`** — hiding it removes the UPI pay surface everywhere at once; keep it that way (deliberate reuse decision).
   - Home "Scan QR to Pay" FAB → `qr_scan` (Pro-check runs before the flag guard).
   - SMS import is THREE screens under THREE keys: Settings "Automation → Import SMS" tile → `sms_tracking`; Transaction History AppBar SMS button → `sms_import`; background auto-import → `sms_auto_import` (enforced per-tick in `background_worker.dart`). All three open `SmsImportScreen` — the key is distinct per entry surface, don't conflate them.
   - Decision rule that produced the above: a surface gets its own key when it lives on a different screen/place and wants independent control (`sms_import`); it reuses an existing key when it's the same feature reached from another spot (`upi_pay` on the Add-Send form).
@@ -205,6 +257,18 @@ Admins toggle live feature availability from Settings → Admin Utils → Featur
 
 **Auto-import watermark**: the background auto-import scans forward from a per-user watermark (`last_sms_scan_ms_<email>`, `SmsService.autoImportWatermarkKey`). `SmsService.setAutoImportEnabled(true)` (the general-settings "Auto-Import SMS" toggle) seeds the watermark to `now` on every enable, so SMS received BEFORE enabling are never backfilled and re-enabling restarts from the new enable time. A missing watermark resolves to `now` in the background worker (`resolveSmsScanStart`), never epoch — no silent history import for users who enabled before this shipped. Disabling only flips the flag; the manual Import SMS screens and the admin `triggerSmsImport(days: N)` are unaffected by the toggle. The periodic cadence is the `smsScanInterval` const (15 min, `background_worker.dart`) — single source for both the scheduler and the General-settings "Next auto-import ≈" countdown (`_NextSmsAutoImportCountdown` in `general_settings.dart`, which estimates next = watermark + `smsScanInterval` and labels it `≈` because Doze can defer the actual WorkManager fire time).
 
+**A balance alert is not a transaction.** `isBankSms` accepts anything
+containing "alert", so "Balance alert: Avl Bal Rs. 12,345" reaches the parser,
+matches the amount, and with no debit/credit wording defaults to *debit* —
+importing the whole balance as an expense. `parseMessage` therefore requires a
+real movement signal, and returns null for balance-only wording ("avl bal",
+"available balance", "closing balance", …) unless such a signal is present.
+
+**The bare-amount fallback is signal-gated.** Without a prefix like `Rs`, only
+trust a bare number when a movement word is present, or "123456 is your OTP" and
+"order 4471 shipped" become transactions. (4-digit and 8+ digit bare runs are
+still skipped as card/OTP candidates — that's deliberate, not a gap.)
+
 Primary regex must include `debited by`/`credited by` for Indian UPI messages ("debited by 86.00" has no `Rs`/`INR` prefix):
 
 ```
@@ -220,7 +284,7 @@ Priority: refund/cashback→credit, debited/deducted/withdrawn/spent/sent→debi
 3. **Salary detection false positives** — filter EMI/loans from candidates BEFORE median/max. Check `recipientName` for exclusion keywords only (not `note`/`category`).
 4. **`fromMap` Timestamp cast** — use `(map['lastUpdated'] as dynamic)?.toDate()` (works with real Timestamp and test mocks).
 5. **Test values drift** — when adding asset fields, update `totalAssets` expected values in both `wealth_data_test.dart` tests and the comment sum.
-6. **`compact()` formats** — `wealth_math.dart`: ≥10M (1Cr) → `"x.xCr"`, ≥100K (1L) → `"x.xL"`, ≥1K → integer `K`. So `compact(1500)` → `"2K"` and `compact(1_000_000)` → `"10.0L"` (1M is below the 1Cr threshold, not `"1.0M"`).
+6. **`compact()` floors, never rounds up** — `wealth_math.dart`: ≥10M (1Cr) → `"x.xCr"`, ≥100K (1L) → `"x.xL"`, ≥1K → integer `K`. Rounding up would overstate a balance the user is reading, so `compact(1500)` → `"1K"`, `compact(99999)` → `"99K"`, `compact(1_000_000)` → `"10.0L"` (1M is below the 1Cr threshold, not `"1.0M"`).
 7. **Don't mix GetX + Flutter navigator** — `Get.dialog()` + `Navigator.pop()` + `Get.snackbar()` crashes. Use `showDialog()` + `Navigator.of(context, rootNavigator: true).pop()` + `ScaffoldMessenger.showSnackBar()`.
 8. **FilePicker.saveFile() returns content:// on Android** — cannot `File(uri).writeAsString()`. Pass `bytes: Uint8List.fromList(utf8.encode(csv))`.
 9. **`orderBy() as Query` is unnecessary cast** — triggers `unnecessary_cast` warning.
@@ -233,6 +297,44 @@ Priority: refund/cashback→credit, debited/deducted/withdrawn/spent/sent→debi
 16. **Cache Theme.of** — 13 calls per build in `analytics.dart` → cache `_cachedTheme` and `_cachedIsDark` in `build()`, restore `get isDark => _cachedIsDark`.
 17. **Unchecked `jsonDecode` casts** — always check `is Map` / `is List` before `as`. Prevents crashes on corrupted cache (`category_service.dart`, `offline_queue.dart`, `sms_import_screen.dart`).
 18. **Firestore JS SDK b815 corruption (web)** — after the AsyncQueue assertion the SDK is unrecoverable without a page reload; `main.dart` detects the error string and auto-reloads once via `reloadPage()` (`web_reload_web.dart`). The whole web auth flow in `main.dart` is shaped around avoiding this bug — do NOT "simplify" it: `enableNetwork()` is deferred until after login, Phase 2 controllers are registered with 500 ms delays on web, `ThemeController.resubscribe()` is re-invoked after `TransactionController` is up (with the `.get()` kept after `.snapshots()` listeners), `PaymentConfigService.startPolling()` only starts after all `.snapshots()` listeners exist, `_checkOnboardingStatus` skips the Firestore `.get()` on web, and `checkSubscriptionStatus()` is skipped on app resume. Any reordering can re-trigger the crash.
+19. **`LocalBackupService.backupUserTransactions` is a FULL collection read — never call it per-write expecting a read.** It does `col.get(Source.server)` over every `transactions` doc (~260 KB for 709 items), so every call is a full network download. It is called from all 5 write paths (launch, save, delete, edit, audit sign-fix), so the service coalesces: one in-flight run per account, `minInterval` (30 s) between successful runs, a `_dirty` flag, and a trailing `Timer` that flushes writes arriving inside the window. Callers get "scheduled", not "read" — a call inside the window returns immediately. Two rules: keep `reportErrors: false` on automatic callers (a red "Backup failed" SnackBar after a *successful* write reads as data loss, and `ErrorHandler._show` clears the confirmation SnackBar), and pass `force: true` from the explicit Settings action (`data_support_settings.dart`) so it really reads. The read deliberately stays un-ordered and server-sourced — do NOT add the listener's `orderBy('createdAt')` for a cache hit: docs missing that field (SMS imports, older rows) drop out of an ordered query, and this is the recovery path. `fetchOverride`/`writeOverride` + `resetSchedulingForTest()` are the test seams used by `test/local_backup_coalesce_test.dart`.
+
+## Write Paths & Backups (every transaction write must mirror)
+
+`LocalBackupService.backupUserTransactions(email, reportErrors: false)` must be
+called after **every** path that writes transactions, not just the add/edit
+screens: `transaction_controller` (add/delete), `edit_transaction`,
+`audit_controller` (sign fix), `import_service` (CSV bulk), `sms_import_screen`
+(manual SMS import), and `recurring_service` (`markAsPaid` +
+`processDuePayments`). The coalescing throttle makes the extra calls free; a
+missing one silently leaves the on-device mirror stale. Same for
+`BudgetService.checkBudgetExceeded` on the bulk import paths — the add/edit
+screens raise the alert, so a CSV/SMS import that blows a budget would stay
+silent. Only check categories from **expense** rows.
+
+## Common Gotchas (data-integrity additions)
+
+20. **Never trust a cache/pref/map blindly** — `jsonDecode` throws on corrupt
+    data and Dart infers a string-literal map as `Map<String, String>`, which
+    passes an `is Map<String, dynamic>` test but throws when you store a
+    Timestamp into it. Guard `jsonDecode` and use `_assignRestored`-style
+    try/catch writes. Same for numeric `as` casts: use `(x as dynamic)?.toString()`.
+21. **Backup restore must not rewrite free text** — `_restoreDates` converts
+    ISO strings back to Timestamps, so it is gated on a **field-name allow-list**
+    (`_dateFieldNames` + `*date`/`*dates`/`*timestamp` suffixes) with a
+    free-text denylist. A blanket "any ISO-looking string" rule destroyed notes
+    like "2026-01-15T10:00 was the party" on restore. List items are only
+    converted under a date-named parent, since a bare ISO string in a list is
+    far more likely to be text.
+22. **Never build a stream inside `build()`** — `StreamBuilder(stream: _col…)`
+    re-issues the query and re-registers a listener on every rebuild. Hold it in
+    a nullable field and use `??=` (see `_entries` in the asset screens,
+    `_usersStream` in the admin screens). For a stream that depends on a
+    changing filter (`cateogary_history`) leave it inline.
+23. **Amount parsing: match the year token to the input's width** — intl's
+    `yyyy` happily reads a 2-digit year, so "28-01-26" parsed as year 28 unless
+    `dd-MM-yy` is tried first. ISO order leads with the year, day/month-first
+    trails with it, so check both ends of the split.
 
 ## Platform-Specific
 

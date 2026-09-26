@@ -299,7 +299,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     double i = 0, e = 0;
     for (var tx in filtered) {
-      if (tx.recipientId == uid) i += tx.amount;
+      if (tx.recipientId == uid) i += tx.amount.abs();
       if (tx.senderId == uid) e += tx.amount.abs() + tx.tax;
     }
     return (i, e);
@@ -321,7 +321,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     double i = 0, e = 0;
     for (var tx in filtered) {
-      if (tx.recipientId == uid) i += tx.amount;
+      if (tx.recipientId == uid) i += tx.amount.abs();
       if (tx.senderId == uid) e += tx.amount.abs() + tx.tax;
     }
     return (i, e);
@@ -339,7 +339,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     double i = 0, e = 0;
     for (var tx in filtered) {
-      if (tx.recipientId == uid) i += tx.amount;
+      if (tx.recipientId == uid) i += tx.amount.abs();
       if (tx.senderId == uid) e += tx.amount.abs() + tx.tax;
     }
     return (i, e);
@@ -349,7 +349,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   double get totalIncome {
     return _filtered.fold(0, (prev, tx) {
-      if (tx.recipientId == uid) return prev + tx.amount;
+      if (tx.recipientId == uid) return prev + tx.amount.abs();
       return prev;
     });
   }
@@ -384,7 +384,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             _MonthPoint(label: "${_monthAbbr(tx.date.month)} ${tx.date.year}"),
       );
 
-      if (tx.recipientId == uid) map[key]!.income += tx.amount;
+      if (tx.recipientId == uid) map[key]!.income += tx.amount.abs();
       if (tx.senderId == uid) map[key]!.expense += (tx.amount.abs() + tx.tax);
     }
 

@@ -20,6 +20,9 @@ class CategoryManagementScreen extends StatefulWidget {
 }
 
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
+  /// Hoisted out of build(): a stream built inline re-registers its
+  /// listener on every rebuild.
+  Stream<List<CategoryModel>>? _categoriesStream;
   final CategoryService _categoryService = CategoryService();
   late ThemeData _cachedTheme;
 
@@ -232,7 +235,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         ),
         child: SafeArea(
           child: StreamBuilder<List<CategoryModel>>(
-            stream: _categoryService.getCategoriesStream(),
+            stream: _categoriesStream ??= _categoryService.getCategoriesStream(),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
                 return Center(

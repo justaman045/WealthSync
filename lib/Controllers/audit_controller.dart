@@ -108,7 +108,9 @@ class AuditController extends GetxController {
           .timeout(const Duration(seconds: 5));
 
       final email = user.email;
-      if (email != null) LocalBackupService.backupUserTransactions(email);
+      if (email != null) {
+        LocalBackupService.backupUserTransactions(email, reportErrors: false);
+      }
 
       signErrors.removeWhere((s) => s.id == error.id);
       _recalcTotal();
@@ -212,9 +214,18 @@ class AuditController extends GetxController {
     final map = <String, int>{};
     for (var i = 0; i < headers.length; i++) {
       final h = headers[i].toString().toLowerCase();
-      if (h.contains('amount') || h.contains('debit') || h.contains('credit')) {
-        map.putIfAbsent('amount', () => i);
+      // Debit/Credit are tracked separately: a statement with both columns
+      // carries the direction in the column itself, so collapsing them into
+      // one 'amount' column loses the sign on every row.
+      if (h.contains('debit') || h.contains('withdrawal')) {
+        map.putIfAbsent('debit', () => i);
+        continue;
       }
+      if (h.contains('credit') || h.contains('deposit')) {
+        map.putIfAbsent('credit', () => i);
+        continue;
+      }
+      if (h.contains('amount')) map.putIfAbsent('amount', () => i);
       if (h.contains('date')) map.putIfAbsent('date', () => i);
       if (h.contains('merchant') || h.contains('description') || h.contains('narration')) {
         map.putIfAbsent('merchant', () => i);

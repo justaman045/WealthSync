@@ -18,6 +18,16 @@ class CreditCardDetailScreen extends StatefulWidget {
 }
 
 class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
+
+  /// Held across rebuilds: building the stream inside build() re-issues the
+  /// query on every rebuild, and a 25-doc cap disagreed with the persisted
+  /// portfolio total that the sync writes back.
+  Stream<QuerySnapshot<Object?>>? _entryStream;
+
+  Stream<QuerySnapshot<Object?>> get _entries =>
+      _entryStream ??=
+          _col.orderBy('createdAt', descending: true).snapshots();
+
   CollectionReference get _col {
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return FirebaseFirestore.instance
@@ -135,7 +145,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 ),
               ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _col.orderBy('createdAt', descending: true).snapshots(),
+          stream: _entries,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -143,9 +153,12 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
             if (snap.hasError) {
               return Center(child: Text("Error: ${snap.error}"));
             }
-            final docs = snap.data?.docs ?? [];
+            final snapData = snap.data;
+            final docs = snapData?.docs ?? const [];
             if (docs.isEmpty) {
-              if (!_syncedEmpty) {
+              if (!_syncedEmpty &&
+                  snapData != null &&
+                  WealthService.isServerConfirmedEmpty(snapData)) {
                 _syncedEmpty = true;
                 // Firestore write during build is a side effect — defer it.
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -154,6 +167,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
               }
               return _buildEmpty(isDark);
             }
+            _syncedEmpty = false;
             double totalOutstanding = 0;
             for (final d in docs) {
               totalOutstanding += (d.data() as Map<String, dynamic>)['outstanding'] as num? ?? 0;

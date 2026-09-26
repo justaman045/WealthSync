@@ -19,6 +19,16 @@ class InsurancePolicyScreen extends StatefulWidget {
 }
 
 class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
+
+  /// Held across rebuilds: building the stream inside build() re-issues the
+  /// query on every rebuild, and a 25-doc cap disagreed with the persisted
+  /// portfolio total that the sync writes back.
+  Stream<QuerySnapshot<Object?>>? _entryStream;
+
+  Stream<QuerySnapshot<Object?>> get _entries =>
+      _entryStream ??=
+          _col.orderBy('createdAt', descending: true).snapshots();
+
   CollectionReference get _col {
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
     return FirebaseFirestore.instance
@@ -137,7 +147,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
                 ),
               ),
         body: StreamBuilder<QuerySnapshot>(
-          stream: _col.orderBy('createdAt', descending: true).snapshots(),
+          stream: _entries,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -145,9 +155,12 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
             if (snap.hasError) {
               return Center(child: Text("Error: ${snap.error}"));
             }
-            final docs = snap.data?.docs ?? [];
+            final snapData = snap.data;
+            final docs = snapData?.docs ?? const [];
             if (docs.isEmpty) {
-              if (!_syncedEmpty) {
+              if (!_syncedEmpty &&
+                  snapData != null &&
+                  WealthService.isServerConfirmedEmpty(snapData)) {
                 _syncedEmpty = true;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) WealthService.updateAsset('insurance', 0);
@@ -155,6 +168,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
               }
               return _buildEmpty(isDark);
             }
+            _syncedEmpty = false;
             double totalCorpus = 0;
             double totalPremium = 0;
             for (final d in docs) {

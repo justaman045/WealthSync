@@ -490,18 +490,4 @@ class SubscriptionController extends GetxController {
     }
   }
 
-  /// Manually set pro status (for testing / admin use)
-  Future<void> setProStatus(bool status) async {
-    final email = _userEmail;
-    if (email == null) return;
-    try {
-      await _firestore.collection('users').doc(email).set({
-        'subscriptionStatus': status ? 'pro' : 'free',
-        'isPro': status,
-      }, SetOptions(merge: true));
-    } catch (e) {
-      debugPrint('setProStatus error: $e');
-      ErrorHandler.showError("Failed to update status.");
-    }
-  }
 }

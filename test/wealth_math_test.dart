@@ -85,12 +85,12 @@ void main() {
 
     test('formats lakhs', () {
       expect(compact(500000), '5.0L');
-      expect(compact(999999), '10.0L');
+      expect(compact(999999), '9.9L');
     });
 
     test('formats thousands', () {
-      expect(compact(1500), '2K');
-      expect(compact(99999), '100K');
+      expect(compact(1500), '1K');
+      expect(compact(99999), '99K');
     });
 
     test('formats small numbers', () {
@@ -101,7 +101,20 @@ void main() {
 
     test('handles boundary between K and L', () {
       expect(compact(100000), '1.0L');
-      expect(compact(99999), '100K');
+      expect(compact(99999), '99K');
+    });
+
+    test('never overstates the amount', () {
+      expect(compact(1999), '1K');
+      expect(compact(1099999), '10.9L');
+      expect(compact(9999999), '99.9L');
+      expect(compact(19999999), '1.9Cr');
+    });
+
+    test('keeps the sign on negative amounts', () {
+      expect(compact(-1500), '-1K');
+      expect(compact(-99999), '-99K');
+      expect(compact(-250000), '-2.5L');
     });
   });
 

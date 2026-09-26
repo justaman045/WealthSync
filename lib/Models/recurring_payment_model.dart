@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:money_control/Utils/num_parse.dart';
 
 enum RecurringFrequency { monthly, weekly, yearly }
 
@@ -62,12 +63,7 @@ class RecurringPayment {
     );
   }
 
-  static double _parseNum(dynamic value) {
-    if (value == null) return 0;
-    if (value is num) return roundAmount(value.toDouble());
-    if (value is String) return roundAmount(double.tryParse(value) ?? 0);
-    return 0;
-  }
+  static double _parseNum(dynamic value) => roundAmount(safeToDouble(value));
 
   // Normalize money to paisa precision (2 decimals). Guards against legacy
   // float garbage like 10242.621637042335 leaking into new transactions.
