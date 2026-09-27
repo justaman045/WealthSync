@@ -209,6 +209,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         title: AppStrings.manageCategories,
                         onTap: () {
                           if (!ensureFeatureVisible(context, 'category')) {
+                            return;
                           }
                           Get.to(() => const CategoryManagementScreen());
                         },
@@ -232,6 +233,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         title: "Notifications",
                         onTap: () {
                           if (!ensureFeatureVisible(context, 'notifications')) {
+                            return;
                           }
                           Get.to(() => const NotificationSettingsScreen());
                         },
@@ -358,6 +360,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         subtitle: "Preview & setup the balance widget",
                         onTap: () {
                           if (!ensureFeatureVisible(context, 'home_widget')) {
+                            return;
                           }
                           Get.to(() => const HomeWidgetPreviewScreen());
                         },

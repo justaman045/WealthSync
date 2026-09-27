@@ -223,6 +223,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
           // 💎 PRO STATUS — hidden for admins (they are always Pro)
           Obx(() {
             if (!Get.isRegistered<SubscriptionController>()) {
+              return const SizedBox.shrink();
             }
             final ctrl = Get.find<SubscriptionController>();
             if (ctrl.isAdmin.value) return const SizedBox.shrink();

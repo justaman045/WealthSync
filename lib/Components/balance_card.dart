@@ -6,6 +6,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 import 'package:money_control/Screens/add_transaction.dart';
 import 'package:money_control/Components/methods.dart';
@@ -31,6 +32,11 @@ class _BalanceCardState extends State<BalanceCard> {
   late final LentMoneyController _lentMoneyController;
   late final RecurringPaymentController _recurringPaymentController;
   final RxBool _includeLentMoney = false.obs;
+
+  /// Temporary view switch, never persisted: when on, this month's pending
+  /// commitments are deducted from the headline balance. Off by default so the
+  /// card reports the money actually held until the user asks otherwise.
+  final RxBool _includeDues = false.obs;
   final ValueNotifier<double> _lastAnimatedValue = ValueNotifier<double>(0);
   Worker? _flagResetWorker;
 
@@ -55,27 +61,32 @@ class _BalanceCardState extends State<BalanceCard> {
   /// "As if never there": drop the lent toggle from the running total the
   /// moment an admin hides the feature, so the balance never silently keeps
   /// counting a hidden feature's amount (mirrors the privacy-mode ever worker).
+  /// The dues toggle is cleared the same way — the chip is hidden by
+  /// `FeatureVisible`, so leaving the deduction on would change the headline
+  /// for a feature the user can no longer see or undo.
   void _resetFlaggedToggles() {
     final flags = FeatureFlagService.to;
     if (flags.isHidden('lent_money')) _includeLentMoney.value = false;
+    if (flags.isHidden('recurring')) _includeDues.value = false;
   }
 
-  /// Commitments due this month are shown alongside the balance, never
-  /// subtracted from it: a subscription that has not been debited yet is not
-  /// money the user has spent, and deducting it reports a balance the account
-  /// does not hold.
+  /// Balance shown by the card. Delegates to the pure helper so the overlay
+  /// signs are unit-tested rather than buried in a widget.
   double _computeTotal() {
-    double total = _transactionController.totalBalance;
-    if (_includeLentMoney.value) {
-      total += _lentMoneyController.netBalance;
-    }
-    return total;
+    return computeDisplayTotal(
+      balance: _transactionController.totalBalance,
+      netLent: _lentMoneyController.netBalance,
+      includeLent: _includeLentMoney.value,
+      pendingDues: _recurringPaymentController.pendingSubscriptions.value,
+      includeDues: _includeDues.value,
+    );
   }
 
   @override
   void dispose() {
     _flagResetWorker?.dispose();
     _includeLentMoney.close();
+    _includeDues.close();
     _lastAnimatedValue.dispose();
     super.dispose();
   }
@@ -225,39 +236,54 @@ class _BalanceCardState extends State<BalanceCard> {
                                 ),
                               ),
                             ),
-                            // Commitments due this month. Informational only:
-                            // a not-yet-debited subscription is never deducted
-                            // from the headline balance.
+                            // Commitments due this month. Informational by
+                            // default; tapping deducts them from the headline
+                            // balance for this session only.
                             FeatureVisible(
                               flagKey: 'recurring',
                               child: Obx(() {
                                 final committed =
                                     _recurringPaymentController
                                         .pendingSubscriptions.value;
-                                return Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
-                                    vertical: 4.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12.r),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.1,
+                                return GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    if (_privacyController.isPrivacyMode.value) {
+                                      return; // Never move a hidden number
+                                    }
+                                    _includeDues.value = !_includeDues.value;
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 10.w,
+                                      vertical: 4.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _includeDues.value
+                                          ? Colors.white.withValues(alpha: 0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12.r),
+                                      border: Border.all(
+                                        color: _includeDues.value
+                                            ? Colors.white.withValues(alpha: 0.4)
+                                            : Colors.white.withValues(alpha: 0.1),
                                       ),
                                     ),
-                                  ),
-                                  child: Text(
-                                    committed <= 0
-                                        ? "- No Dues"
-                                        : _privacyController
-                                                  .isPrivacyMode.value
-                                            ? "- •••• due"
-                                            : "- ${CurrencyController.to.currencySymbol.value}${committed.toStringAsFixed(0)} due",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w600,
+                                    child: Text(
+                                      _includeDues.value
+                                          ? "Dues Deducted"
+                                          : committed <= 0
+                                              ? "- No Dues"
+                                              : _privacyController
+                                                    .isPrivacyMode.value
+                                                ? "- •••• due"
+                                                : "- ${CurrencyController.to.currencySymbol.value}${committed.toStringAsFixed(0)} due",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 );

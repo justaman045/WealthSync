@@ -139,6 +139,30 @@ String formatAnnualIncome(
   return "${formatter.format(annual)}/yr";
 }
 
+/// The balance the home card headlines, assembled from the opt-in overlays the
+/// user toggles on the card itself.
+///
+/// Both overlays are *temporary view* switches, never persisted: [includeLent]
+/// folds money owed back to the user into the figure, [includeDues] subtracts
+/// this month's not-yet-debited commitments. Dues are excluded by default
+/// because an undebited subscription is money the account still holds, and
+/// deducting it unasked reports a balance that does not exist.
+///
+/// Deliberately unclamped: a net-lent or dues overlay can legitimately take the
+/// headline negative, and hiding that would misreport the position.
+double computeDisplayTotal({
+  required double balance,
+  double netLent = 0,
+  bool includeLent = false,
+  double pendingDues = 0,
+  bool includeDues = false,
+}) {
+  var total = balance;
+  if (includeLent) total += netLent;
+  if (includeDues) total -= pendingDues;
+  return total;
+}
+
 /// Compact monthly label (e.g. ₹1.3L or $7.2K). Locale-aware for INR.
 String formatMonthlyIncome(
   double monthly, {
