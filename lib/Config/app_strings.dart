@@ -14,6 +14,12 @@ class AppStrings {
   static const String totalBalance = 'Total Balance';
   static const String showAllCards = 'Show All Cards';
 
+  // Title of the home section whose "View All" opens CategoriesHistoryScreen
+  // (a per-category transaction list). It used to read "Quick Send", which is
+  // the separate UPI row and never described this destination.
+  static const String categoryHistoryTitle = 'Category History';
+  static const String viewAll = 'View All';
+
   // ---- Onboarding / auth ----
   static const String getStarted = 'Get Started';
   static const String letsStart = "Let's Start";

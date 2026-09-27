@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'test_helpers.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -18,15 +19,17 @@ void main() {
       category: 'Salary',
     );
 
-    // 7a. Open Categories History via "Quick Send" -> "View All"
+    // 7a. Open Categories History via the home section -> "View All".
+    // Asserted through AppStrings so the section's copy can change without
+    // silently breaking this test (AGENTS.md rule: never re-type the literal).
     await pumpAndSettleSafe(tester);
-    final quickSendRow = find.ancestor(
-      of: find.text('Quick Send'),
+    final categorySectionRow = find.ancestor(
+      of: find.text(AppStrings.categoryHistoryTitle),
       matching: find.byType(Row),
     );
     final viewAllQuickSend = find.descendant(
-      of: quickSendRow,
-      matching: find.text('View All'),
+      of: categorySectionRow,
+      matching: find.text(AppStrings.viewAll),
     );
     await tester.ensureVisible(viewAllQuickSend);
     await pumpAndSettleSafe(tester);

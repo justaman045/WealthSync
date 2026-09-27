@@ -535,6 +535,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
+                  // Gated like the other profile entry points: a `hidden`
+                  // profile flag must not be routable from the wealth screen.
+                  if (!ensureFeatureUsable(context, 'profile')) return;
                   await Get.to(() => const EditProfileScreen());
                   // Re-load after returning in case user set their DOB
                   _loadData();

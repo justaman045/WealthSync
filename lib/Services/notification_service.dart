@@ -46,6 +46,31 @@ class NotificationService {
     String channelName = 'General Notifications',
     String? payload,
   }) async {
+    // Many callers fire this without awaiting (a subscription status change, a
+    // budget alert). A throw — plugin not registered, no Android channel, a
+    // prefs read failure — would then surface as an unhandled async error in
+    // whatever unrelated code happened to be running. A failed notification is
+    // never worth that, so this boundary swallows everything and logs.
+    try {
+      await _showNotification(
+        title: title,
+        body: body,
+        channelId: channelId,
+        channelName: channelName,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('Notification "$title" could not be shown: $e');
+    }
+  }
+
+  static Future<void> _showNotification({
+    required String title,
+    required String body,
+    required String channelId,
+    required String channelName,
+    String? payload,
+  }) async {
     // Kill-switch: a `hidden` notifications flag (admin) suppresses ALL
     // notification posting — no display and no Firestore history entry.
     if (Get.isRegistered<FeatureFlagService>() &&

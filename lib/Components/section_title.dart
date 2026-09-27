@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 class SectionTitle extends StatelessWidget {
   final String title;
@@ -33,7 +34,7 @@ class SectionTitle extends StatelessWidget {
           GestureDetector(
             onTap: onTap,
             child: Text(
-              'View All',
+              AppStrings.viewAll,
               style: TextStyle(
                 color: accentColor ?? scheme.primary,
                 fontWeight: FontWeight.w600,

@@ -67,11 +67,15 @@ class WealthService {
 
   /// Update a specific asset value (e.g., 'sip', 'fd', etc.)
   /// True only when [snap] is an empty collection that came from the server
-  /// rather than the local cache. A cached empty snapshot (cold cache, offline
-  /// launch) must never sync a zero total, because that zero is then served
-  /// back on every later read.
+  /// rather than the local cache, and carries no local writes. A cached empty
+  /// snapshot (cold cache, offline launch) must never sync a zero total,
+  /// because that zero is then served back on every later read — and a snapshot
+  /// with uncommitted local writes can look empty before the server has
+  /// answered, which would clobber a just-written asset.
   static bool isServerConfirmedEmpty(QuerySnapshot<Object?> snap) =>
-      snap.docs.isEmpty && !snap.metadata.isFromCache;
+      snap.docs.isEmpty &&
+      !snap.metadata.isFromCache &&
+      !snap.metadata.hasPendingWrites;
 
   static Future<void> updateAsset(String key, double value) async {
     try {

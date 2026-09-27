@@ -116,10 +116,24 @@ class SubscriptionController extends GetxController {
             );
       }
     } else {
-      subscriptionStatus.value = SubscriptionStatus.free;
-      isAdmin.value = false;
-      expiryDate.value = null;
+      resetForSignOut();
     }
+  }
+
+  /// Clears every subscription field the UI gates on.
+  ///
+  /// Resetting only `subscriptionStatus`/`expiryDate` left `trialEndDate` from
+  /// the previous account in place — and since `isPro` is
+  /// `status == pro || isTrial`, and `isTrial` only asks whether
+  /// `trialEndDate` is in the future, the *next* person to sign in on a shared
+  /// device would inherit that account's live trial and see Pro features.
+  void resetForSignOut() {
+    subscriptionStatus.value = SubscriptionStatus.free;
+    isAdmin.value = false;
+    expiryDate.value = null;
+    trialEndDate.value = null;
+    trialUsed.value = false;
+    planType.value = '';
   }
 
   void _onSubscriptionSnapshot(DocumentSnapshot snapshot, String email) {

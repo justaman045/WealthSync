@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
@@ -26,6 +28,17 @@ import 'package:money_control/Controllers/subscription_controller.dart';
 
 class AuthController extends GetxController {
   static AuthController get to => Get.find();
+
+  /// True while an email signup is completing its authenticated setup work.
+  ///
+  /// `createUserWithEmailAndPassword` signs the new account in immediately,
+  /// which fires the auth-state stream. `main.dart`'s `_handleAuthChange` sees
+  /// an unverified account and signs it straight back out — while the signup
+  /// screen is still calling `updateDisplayName`, `sendEmailVerification` and
+  /// the `users/{email}` Firestore write on that now-dead session. The signup
+  /// flow sets this flag so the app's teardown does not race it, then clears
+  /// it and performs its own `signOut()` once the setup work is done.
+  static bool signupInProgress = false;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -63,7 +76,21 @@ class AuthController extends GetxController {
     } on FirebaseAuthException catch (e) {
       errorMessage.value = _getFriendlyErrorMessage(e);
     } catch (e) {
-      errorMessage.value = 'Unexpected error occurred';
+      // Credentials were accepted, so the user IS signed in — but the profile
+      // write or referral-code bootstrap failed. Leaving them here is the worst
+      // outcome: the auth stream has already moved the app forward while this
+      // screen shows "unexpected error", and the user is stuck signed in with no
+      // way to retry. Sign them back out so the state is consistent and they
+      // can just try again.
+      debugPrint('Post-login setup failed, signing out: $e');
+      try {
+        await _auth.signOut();
+      } catch (signOutError) {
+        debugPrint('Sign out after failed login: $signOutError');
+      }
+      errorMessage.value =
+          'Could not finish setting up your account. Please try again.';
+      ErrorHandler.showError(errorMessage.value);
     } finally {
       isLoading.value = false;
     }
@@ -123,7 +150,16 @@ class AuthController extends GetxController {
     try {
       await _auth.signOut();
     } catch (e) {
+      // Tearing down user-scoped state while the session is still live would
+      // delete the controllers the *current* session is still using and leave
+      // the app on an authenticated screen with nothing behind it. Abort
+      // instead and report it.
       debugPrint('Firebase signOut error: $e');
+      final message = 'Sign out failed. Please try again.';
+      errorMessage.value = message;
+      ErrorHandler.showError(message);
+      isLoading.value = false;
+      return;
     }
     try {
       await _googleSignIn.signOut();
@@ -149,7 +185,13 @@ class AuthController extends GetxController {
 
   /// Deletes all user-scoped controllers and clears user-scoped caches so a
   /// later login can never reuse the previous account's in-memory state.
-  void _disposeUserScopedState() {
+  ///
+  /// Shared by the explicit sign-out path here AND by `main.dart`'s
+  /// `_handleAuthChange` teardown. The two lists used to be maintained by
+  /// hand and had already drifted: only this one included `AuditController`,
+  /// so a sign-out triggered by the auth stream leaked the previous account's
+  /// audit state into the next session. One list, one owner.
+  static Future<void> disposeUserScopedState() async {
     if (Get.isRegistered<TransactionController>()) {
       Get.delete<TransactionController>(force: true);
     }
@@ -182,8 +224,12 @@ class AuthController extends GetxController {
     }
     SmsService.resetCache();
     RecurringService.resetCache();
-    LocalCacheService.clearAll();
+    // Awaited: an unawaited clear could land AFTER a fast re-login had already
+    // written the new account's cache, silently wiping it.
+    await LocalCacheService.clearAll();
   }
+
+  void _disposeUserScopedState() => unawaited(disposeUserScopedState());
 
   String _getFriendlyErrorMessage(FirebaseAuthException e) {
     switch (e.code) {

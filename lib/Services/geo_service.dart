@@ -932,6 +932,12 @@ class GeoService {
 
   static Future<GeoResult> fetchAndCache() async {
     try {
+      // Checked before touching Geolocator: on web this method cannot produce
+      // a reverse-geocoded result anyway, but the late guard below still made
+      // the browser ask for a location permission the user would then see used
+      // for nothing.
+      if (kIsWeb) return _baseline();
+
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();

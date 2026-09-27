@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'test_helpers.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -32,10 +33,10 @@ void main() {
 
     // Open Transaction History from the home "Recent Transactions" header.
     // SectionTitle puts its onTap on the trailing 'View All' link (the second
-    // one on home — Quick Send is the first).
+    // one on home — the first belongs to the category-history section).
     await tapUntilMarker(
       tester,
-      find.text('View All').at(1),
+      find.text(AppStrings.viewAll).at(1),
       find.text('Transaction History'),
     );
     expect(find.text('Transaction History'), findsWidgets);

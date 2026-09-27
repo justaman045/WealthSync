@@ -208,8 +208,8 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         icon: Icons.category_outlined,
                         title: AppStrings.manageCategories,
                         onTap: () {
-                          if (!ensureFeatureVisible(context, 'category'))
-                            return;
+                          if (!ensureFeatureVisible(context, 'category')) {
+                          }
                           Get.to(() => const CategoryManagementScreen());
                         },
                       ),
@@ -231,8 +231,8 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         icon: Icons.notifications_none_rounded,
                         title: "Notifications",
                         onTap: () {
-                          if (!ensureFeatureVisible(context, 'notifications'))
-                            return;
+                          if (!ensureFeatureVisible(context, 'notifications')) {
+                          }
                           Get.to(() => const NotificationSettingsScreen());
                         },
                       ),
@@ -357,8 +357,8 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         title: "Home Widget",
                         subtitle: "Preview & setup the balance widget",
                         onTap: () {
-                          if (!ensureFeatureVisible(context, 'home_widget'))
-                            return;
+                          if (!ensureFeatureVisible(context, 'home_widget')) {
+                          }
                           Get.to(() => const HomeWidgetPreviewScreen());
                         },
                       ),

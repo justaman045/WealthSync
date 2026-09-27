@@ -400,10 +400,15 @@ class LocalBackupService {
   }
 
   /// Converts ISO8601 strings back to Timestamp values, recursing into nested
-  /// maps. [parentKey] gates list items, which have no key of their own: a bare
-  /// ISO string in a list is far more likely to be a note than a date, and a
-  /// missed conversion only leaves a readable string.
-  static void _restoreDates(Map<dynamic, dynamic> data, [String? parentKey]) {
+  /// maps and lists.
+  ///
+  /// Every conversion is gated on the *owning* field name matching
+  /// [_isDateField] — a blanket "any ISO-looking string" rule used to destroy
+  /// free text such as a note reading "2026-01-15T10:00 was the party". List
+  /// items have no key of their own, so they inherit the name of the field
+  /// holding the list: a bare ISO string in a list is far more likely to be a
+  /// note than a date, and a missed conversion only leaves a readable string.
+  static void _restoreDates(Map<dynamic, dynamic> data) {
     data.forEach((key, value) {
       final name = key is String ? key : '$key';
       if (value is String) {
@@ -411,7 +416,7 @@ class LocalBackupService {
           _assignRestored(data, key, Timestamp.fromDate(DateTime.parse(value)));
         }
       } else if (value is Map) {
-        _restoreDates(value, name);
+        _restoreDates(value);
       } else if (value is List) {
         final dateList = _isDateField(name);
         // Converted on a copy and reassigned: a string-literal list is inferred
@@ -424,7 +429,7 @@ class LocalBackupService {
               copy[i] = Timestamp.fromDate(DateTime.parse(item));
             }
           } else if (item is Map) {
-            _restoreDates(item, name);
+            _restoreDates(item);
           }
         }
         _assignRestored(data, key, copy);

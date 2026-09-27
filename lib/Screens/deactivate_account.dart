@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Screens/loginscreen.dart';
+import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/user_service.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/colors.dart';
@@ -30,17 +32,25 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
       // Hard Delete using UserService
       await UserService().deleteAccount();
 
-      if (mounted) {
-        setState(() {
-          success = "Your account has been deleted. You have been logged out.";
-          processing = false;
-        });
+      // The auth account is gone, but FirebaseAuth still holds the session
+      // until it is explicitly signed out. Doing that here (instead of a
+      // navigation-only "logout" after a delay) means the app tears the dead
+      // session down immediately, so no authenticated screen is left on the
+      // stack showing data the user no longer owns.
+      try {
+        await FirebaseAuth.instance.signOut();
+      } catch (e) {
+        debugPrint('Sign out after account deletion: $e');
       }
 
-      // Redirect to login after a short delay
-      Future.delayed(const Duration(seconds: 2), () {
-        Get.offAll(() => const LoginScreen());
-      });
+      if (!mounted) return;
+      ErrorHandler.showSuccess(
+        'Your account has been deleted. You have been logged out.',
+      );
+      Get.offAll(() => const LoginScreen());
+      if (mounted) {
+        setState(() => success = "Your account has been deleted.");
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {

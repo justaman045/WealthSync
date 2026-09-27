@@ -52,8 +52,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Platform/widget_platform.dart';
 import 'package:money_control/Screens/add_transaction.dart';
 import 'package:money_control/Services/cache_service.dart';
-import 'package:money_control/Services/sms_service.dart';
-import 'package:money_control/Services/recurring_service.dart';
 
 // ---- THEME CONTROLLER ----
 class ThemeController extends GetxController {
@@ -304,29 +302,40 @@ Future<void> mainCommon({bool isTest = false}) async {
 /// Runs after the first frame so expensive one-time platform init does not
 /// delay the initial render.
 Future<void> _deferredStartup(bool isTest) async {
-  await WidgetService.init();
-  await Get.find<IapService>().init();
-  await BackgroundWorker.init();
-
-  if (!isTest && !kIsWeb) {
-    await FlutterLocalNotificationsPlugin()
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+  // Each step is guarded individually. These run BEFORE runApp and are awaited
+  // in sequence, so a single throw (a plugin that fails to register, a
+  // notification permission query that errors) used to skip everything after
+  // it — most importantly `enableNetwork()`, leaving the app permanently
+  // offline and blank. One broken optional feature must not take the app down.
+  Future<void> step(String label, Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (e) {
+      debugPrint('$label failed at startup: $e');
+    }
   }
+
+  await step('WidgetService.init', WidgetService.init);
+  await step('IapService.init', () => Get.find<IapService>().init());
+  await step('BackgroundWorker.init', BackgroundWorker.init);
+
+  await step('Notification permission request', () async {
+    if (!isTest && !kIsWeb) {
+      await FlutterLocalNotificationsPlugin()
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.requestNotificationsPermission();
+    }
+  });
 
   // On web, enableNetwork() stays deferred to after login (see b815 note in
   // _handleAuthChange). Native platforms keep the existing behavior.
   if (!kIsWeb) {
-    FirebaseFirestore.instance
-        .enableNetwork()
-        .then((_) {
-          syncPendingTransactions();
-        })
-        .catchError((e) {
-          debugPrint('enableNetwork error: $e');
-        });
+    await step('Firestore enableNetwork', () async {
+      await FirebaseFirestore.instance.enableNetwork();
+      syncPendingTransactions();
+    });
   }
 }
 
@@ -528,6 +537,13 @@ class _AuthCheckerState extends State<AuthChecker> {
   }
 
   void _handleAuthChange(User? user) async {
+    // A fresh email signup is mid-flight and owns the session. Let it finish
+    // its authenticated setup (display name, verification mail, Firestore user
+    // doc) before the app tears that session down — it signs out on its own
+    // afterwards. Checked BEFORE the dedupe below so this emission is not
+    // recorded as handled, otherwise the account would be left signed in with
+    // no Phase-2 controllers registered.
+    if (AuthController.signupInProgress) return;
     // Skip re-processing the same session (initState call vs first stream
     // emission), but never drop a null→user transition — a null first
     // emission is also a no-op, so deduping it is harmless.
@@ -636,35 +652,12 @@ class _AuthCheckerState extends State<AuthChecker> {
         // Bail if a new user signed in while a stale logout/verification
         // invocation was in flight — never tear down the fresh session.
         if (authStale()) return;
-        if (Get.isRegistered<TransactionController>()) {
-          Get.delete<TransactionController>(force: true);
-        }
-        if (Get.isRegistered<ProfileController>()) {
-          Get.delete<ProfileController>(force: true);
-        }
-        if (Get.isRegistered<AnalyticsController>()) {
-          Get.delete<AnalyticsController>(force: true);
-        }
-        if (Get.isRegistered<BudgetController>()) {
-          Get.delete<BudgetController>(force: true);
-        }
-        if (Get.isRegistered<GoalsController>()) {
-          Get.delete<GoalsController>(force: true);
-        }
-        if (Get.isRegistered<LoanController>()) {
-          Get.delete<LoanController>(force: true);
-        }
-        if (Get.isRegistered<ChallengesController>()) {
-          Get.delete<ChallengesController>(force: true);
-        }
-        if (Get.isRegistered<LentMoneyController>()) {
-          Get.delete<LentMoneyController>(force: true);
-        }
-        if (Get.isRegistered<RecurringPaymentController>()) {
-          Get.delete<RecurringPaymentController>(force: true);
-        }
-        SmsService.resetCache();
-        RecurringService.resetCache();
+        // One shared teardown list (AuthController owns it) so a stream-driven
+        // sign-out cannot leak state that the explicit sign-out path clears —
+        // that drift had already cost us AuditController. Awaited for the same
+        // reason: an unawaited cache clear can land after a fast re-login.
+        await AuthController.disposeUserScopedState();
+        _didInitialBackup = false;
         // Reset biometric lock state on logout so the next sign-in on a shared
         // device starts unlocked and can set its own preference — a stale
         // device-wide pref must not lock the new session.
@@ -678,23 +671,38 @@ class _AuthCheckerState extends State<AuthChecker> {
             ),
           );
         }
-        LocalCacheService.clearAll();
-        _didInitialBackup = false;
         if (user != null && !user.emailVerified && !isOAuthUser) {
           FirebaseAuth.instance.signOut();
         }
       }
     } catch (e) {
+      // A throw mid-registration can leave a half-registered controller set
+      // while the app carries on. Clearing the dedupe marker means the next
+      // auth emission retries from the top instead of silently keeping the
+      // broken half-session alive.
       debugPrint('Auth change handler error: $e');
+      _handledUid = null;
     }
   }
 
+  /// Whether [email] still needs onboarding.
+  ///
+  /// `is_onboarded` lives in SharedPreferences, which is device-wide rather
+  /// than per-account, so a second person signing in on the same device used to
+  /// inherit it and be waved straight past setup. The pref is therefore stamped
+  /// with the email that owns it and is only trusted for that same email. A
+  /// pref with no stamp predates this and keeps the old behaviour, which is
+  /// what lets an existing install avoid being re-onboarded.
   Future<bool> _checkOnboardingStatus(String email) async {
     final prefs = await SharedPreferences.getInstance();
+    final owner = prefs.getString('is_onboarded_email');
+    final prefIsOurs = owner == null || owner == email;
+    bool prefValue() => prefIsOurs && (prefs.getBool('is_onboarded') ?? false);
+
     // On web, skip the Firestore .get() to avoid triggering the JS SDK
     // WatchChangeAggregator ca9/b815 assertion bug. Use SharedPreferences only.
     if (kIsWeb) {
-      return prefs.getBool('is_onboarded') ?? false;
+      return prefValue();
     }
     try {
       final doc = await FirebaseFirestore.instance
@@ -703,12 +711,13 @@ class _AuthCheckerState extends State<AuthChecker> {
           .get();
       if (doc.exists && doc.data()?['is_onboarded'] == true) {
         await prefs.setBool('is_onboarded', true);
+        await prefs.setString('is_onboarded_email', email);
         return true;
       }
     } catch (e) {
       debugPrint("Onboarding check failed: $e");
     }
-    return prefs.getBool('is_onboarded') ?? false;
+    return prefValue();
   }
 
   @override

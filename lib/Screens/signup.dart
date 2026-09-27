@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/methods.dart';
+import 'package:money_control/Controllers/auth_controller.dart';
 import 'package:money_control/Components/glass_container.dart'; // Unified Glass Container
 import 'package:money_control/Components/colors.dart'; // App Colors
 import 'package:money_control/Screens/onboarding_screen.dart';
@@ -55,23 +56,46 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     try {
+      // Serialize with the app's auth-state handling. createUser signs the new
+      // account in straight away; without this the app's unverified-account
+      // teardown signs it back out while the calls below are still running.
+      AuthController.signupInProgress = true;
       final credential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
       final user = credential.user;
-      if (user == null) return;
-      await user.updateDisplayName(_nameController.text.trim());
+      if (user == null) {
+        AuthController.signupInProgress = false;
+        return;
+      }
+      final email = user.email;
+      if (email == null) {
+        AuthController.signupInProgress = false;
+        return;
+      }
+      // Captured up front so the Firestore write below works off the address
+      // rather than a `user` that is about to be signed out.
+      final uid = user.uid;
+      final displayName = _nameController.text.trim();
+
+      await user.updateDisplayName(displayName);
       await user.sendEmailVerification();
 
-      await FirebaseFirestore.instance.collection('users').doc(user.email).set({
-        'name': _nameController.text.trim(),
-        'email': user.email,
-        'uid': user.uid,
+      await FirebaseFirestore.instance.collection('users').doc(email).set({
+        'name': displayName,
+        'email': email,
+        'uid': uid,
         'provider': 'email',
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      // The app keeps unverified email accounts signed out (see
+      // `_handleAuthChange`), so end the session here — after the setup work —
+      // rather than racing it from the auth stream.
+      AuthController.signupInProgress = false;
+      await _auth.signOut();
 
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -81,10 +105,18 @@ class _AuthScreenState extends State<AuthScreen> {
       await Future.delayed(const Duration(seconds: 2));
       goBack();
     } on FirebaseAuthException catch (e) {
+      AuthController.signupInProgress = false;
       if (!mounted) return;
       setState(() {
         _isLoading = false;
         _errorMessage = e.message ?? 'Sign up failed';
+      });
+    } catch (e) {
+      AuthController.signupInProgress = false;
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Sign up failed';
       });
     }
   }

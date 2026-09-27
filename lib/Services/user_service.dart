@@ -55,12 +55,36 @@ class UserService {
     'credit_cards',
   ];
 
+  /// How recently the user must have signed in for `user.delete()` to be
+  /// accepted. Kept comfortably inside Firebase Auth's own
+  /// `requires-recent-login` window so the pre-flight below trips *before* any
+  /// data is destroyed, rather than the delete failing halfway through.
+  static const Duration _recentLoginWindow = Duration(minutes: 5);
+
+  static const String _reauthRequiredMessage =
+      "Security Check: Please log out and log in again to delete your account.";
+
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
     if (user == null) throw Exception("No user logged in");
 
     final email = user.email;
     if (email == null) throw Exception("User has no email");
+
+    // 0. Pre-flight the auth freshness BEFORE deleting anything.
+    //
+    // `user.delete()` throws `requires-recent-login` for a stale session, and
+    // the old order (Firestore first, auth last) had already destroyed every
+    // transaction, goal and asset by then — the user was told to log in again
+    // to finish deleting an account whose data was already gone. Checking the
+    // sign-in time first turns a silent data-loss bug into a clean, actionable
+    // refusal with nothing deleted.
+    final lastSignIn = user.metadata.lastSignInTime;
+    final staleSession = lastSignIn == null ||
+        DateTime.now().difference(lastSignIn) > _recentLoginWindow;
+    if (staleSession) {
+      throw Exception(_reauthRequiredMessage);
+    }
 
     // 1. Delete wealth portfolio document
     await _db.doc('users/$email/wealth/portfolio').delete();
@@ -78,9 +102,7 @@ class UserService {
       await user.delete();
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
-        throw Exception(
-          "Security Check: Please log out and log in again to delete your account.",
-        );
+        throw Exception(_reauthRequiredMessage);
       }
       throw Exception("Failed to delete auth account: $e");
     }

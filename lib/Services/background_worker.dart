@@ -36,6 +36,13 @@ class BackgroundWorker {
     await Workmanager().initialize(callbackDispatcher);
 
     // Register periodic task (Android min is 15 minutes)
+    //
+    // iOS: the `uniqueName` below IS the BGTaskScheduler identifier and must
+    // also appear in `BGTaskSchedulerPermittedIdentifiers` in
+    // ios/Runner/Info.plist, or every iOS schedule fails with
+    // BGTaskSchedulerErrorDomain Code 3 and background work silently never
+    // runs. `test/platform_contract_test.dart` enforces that they stay in sync.
+    // `taskName` is the value `callbackDispatcher` receives back.
     await Workmanager().registerPeriodicTask(
       'periodic_checks_unique_v2', // Changed name to ensure fresh policy
       taskName,

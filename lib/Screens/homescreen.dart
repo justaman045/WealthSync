@@ -44,6 +44,8 @@ import 'package:money_control/Utils/upi_qr.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/platform_support.dart';
+import 'package:money_control/Config/app_strings.dart';
 
 class BankingHomeScreen extends StatefulWidget {
   final bool showNavigation;
@@ -220,8 +222,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         actions: [
           // 💎 PRO STATUS — hidden for admins (they are always Pro)
           Obx(() {
-            if (!Get.isRegistered<SubscriptionController>())
-              return const SizedBox.shrink();
+            if (!Get.isRegistered<SubscriptionController>()) {
+            }
             final ctrl = Get.find<SubscriptionController>();
             if (ctrl.isAdmin.value) return const SizedBox.shrink();
             return _buildActionButton(
@@ -385,9 +387,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                         child:
                             !liteMode
                                   ? SectionTitle(
-                                      title: AppLocalizations.of(
-                                        context,
-                                      )!.quickSend,
+                                      title: AppStrings.categoryHistoryTitle,
                                       color: scheme.onSurface,
                                       accentColor: AppColors.primary,
                                       onTap: () => gotoPage(
@@ -399,9 +399,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                                       curve: Curves.easeOut,
                                     )
                                   : SectionTitle(
-                                      title: AppLocalizations.of(
-                                        context,
-                                      )!.quickSend,
+                                      title: AppStrings.categoryHistoryTitle,
                                       color: scheme.onSurface,
                                       accentColor: AppColors.primary,
                                       onTap: () => gotoPage(
@@ -519,8 +517,14 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
   }
 
   Future<void> _openQrPay() async {
-    if (kIsWeb) {
-      ErrorHandler.showError("QR scan & UPI pay is not available in browser.");
+    if (!isAndroidPlatform) {
+      // The scanner is an Android-only camera flow and the UPI hand-off is a
+      // Kotlin MethodChannel, so this is unavailable on web and iOS alike.
+      ErrorHandler.showError(
+        kIsWeb
+            ? "QR scan & UPI pay is not available in browser."
+            : "QR scan & UPI pay is only available on Android.",
+      );
       return;
     }
 

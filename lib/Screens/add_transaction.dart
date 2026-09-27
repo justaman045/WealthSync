@@ -1,7 +1,6 @@
 // lib/Screens/add_transaction.dart
 
 import 'package:confetti/confetti.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -24,6 +23,7 @@ import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/responsive_form_row.dart';
 import 'package:money_control/Utils/num_parse.dart';
+import 'package:money_control/Utils/platform_support.dart';
 
 enum PaymentType { send, receive }
 
@@ -414,7 +414,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               : AppStrings.receiveCta,
                           onTap: saveTransaction,
                         ),
-                        if (widget.type == PaymentType.send && !kIsWeb) ...[
+                        // UPI pay is implemented as a Kotlin MethodChannel
+                        // (`money_control/upi`), so it is Android-only — not
+                        // merely "not on web". Gating on !kIsWeb let the iOS
+                        // build offer a button that can only throw.
+                        if (widget.type == PaymentType.send &&
+                            isAndroidPlatform) ...[
                           SizedBox(height: 12.h),
                           FeatureVisible(
                             flagKey: 'upi_pay',
@@ -475,15 +480,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       actions: [
         if (widget.type == PaymentType.send)
-          IconButton(
-            key: _keyReceipt,
-            icon: Icon(
-              Icons.qr_code_scanner,
-              color: theme.colorScheme.onSurface,
+          FeatureVisible(
+            flagKey: 'qr_scan',
+            child: IconButton(
+              key: _keyReceipt,
+              icon: Icon(
+                Icons.qr_code_scanner,
+                color: theme.colorScheme.onSurface,
+              ),
+              onPressed: () {
+                // `hidden` must remove the surface entirely, not leave a dead
+                // button that pushes the scanner anyway.
+                if (!ensureFeatureUsable(context, 'qr_scan')) return;
+                Get.to(() => const ReceiptScanPage());
+              },
             ),
-            onPressed: () {
-              Get.to(() => const ReceiptScanPage());
-            },
           ),
       ],
     );

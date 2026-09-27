@@ -124,6 +124,110 @@ history) and `transactions{category,date}` (asc, budget month range). Firestore
 needs equality fields before the range/orderBy field. Adding a multi-field
 query means adding its index here or the query fails at runtime in production.
 
+**`firestore.indexes.json` is the *required* set, not a mirror of production.**
+A real deploy (`firebase deploy --only firestore:rules,firestore:indexes`, run
+2026-09-27) warned that 5 indexes exist live that the file does not declare:
+`recurring_payments{isActive,nextDueDate}`,
+`transactions{participants,createdAt}`, `transactions{recipientId,createdAt}`,
+`transactions{recurringPaymentId,date}`, `transactions{senderId,createdAt}`.
+All 5 are **orphans** — `firebase firestore:indexes` (the CLI *does* have a list
+command; there is no `gcloud` here) plus `git log -S` over `lib/` confirmed no
+shipped version ever issued those queries. `participants` was never a Firestore
+field at all, and `where('senderId')`/`where('recipientId')` have only ever
+been equality-only with the sort done in Dart. Two of them are the very indexes
+the code deliberately sidesteps (`subscription_details.dart:706` sorts in Dart
+"to avoid a composite index (recurringPaymentId ASC, date DESC)"). They are
+console leftovers from queries that were refactored away.
+
+Do **not** "fix" this by pasting all 9 into the file: the contract test pins every
+declared index to a source that queries it, so 5 unsourced orphans would hollow
+out the test's whole purpose. Do **not** add `--force` casually either — it
+deletes live indexes absent from the file (harmless for these 5, since nothing
+queries them, but it is the mechanism that could drop a *real* one). The warning
+on every deploy is expected; leave it.
+
+`test/firestore_indexes_test.dart` is the enforcement mechanism — a **contract
+test**, not a regex parse of arbitrary Dart. `requiredIndexes` lists each query
+shape, `querySources` pins it to the file that issues it, and the test also
+asserts no redundant index, that every declared `collectionGroup` is actually
+queried in `lib/`, and that all four are `COLLECTION`-scoped. Adding a
+multi-field query without its index fails `flutter test`; editing a query in
+place fails it too, so the index update has to be deliberate.
+
+## Referral Codes — every write is a transaction
+
+`lib/Services/referral_service.dart`. Two rules the rules engine cannot enforce
+for you, both learned the hard way:
+
+1. **Read the code document INSIDE the transaction.** `runTransaction` only
+   conflicts on documents it actually read, so a `codeRef.get()` *outside* the
+   transaction leaves it out of the read set: two referees entering one code at
+   the same time both succeed and the second write clobbers the first one's
+   `claims` entry — a referral reward silently vanishes. `applyReferralCode`
+   therefore does `txn.get(codeRef)` *and* `txn.get(userRef)` before writing.
+2. **A transaction callback must return its real result.** Use
+   `runTransaction<bool>` and `return false` for "code invalid / already
+   referred" — an early bare `return` leaves `applied == true` and the UI
+   reports a referral that was never applied.
+
+`_drainClaims` writes the referrer's `trialEndDate`/`referralCount` and the
+`credited` marker in **one** transaction. As two writes, a failure between them
+paid the same referral again on the next login.
+
+The payout arithmetic is `debugComputeTrialEnd` (30 days per claim, hard 45-day
+cap, stacks onto a future expiry, restarts from now on an elapsed one) and is
+unit-tested in `test/referral_reward_math_test.dart` — it is the only place the
+app grants Pro without a purchase, so pin the numbers. `SubscriptionController`
+client status is cosmetic; the authoritative check is the valid-pro-claim rule
+on the user document.
+
+## Auth / Session Teardown
+
+- **One teardown list.** `AuthController.disposeUserScopedState()` owns the nine
+  user-scoped controllers + `AuditController`, clears the SMS/recurring caches
+  and **awaits** `LocalCacheService.clearAll()`. Both sign-out paths (the
+  explicit `logout()` and `main.dart`'s `_handleAuthChange` teardown) call it.
+  Two hand-maintained lists had already drifted — only one had
+  `AuditController`, so a stream-driven sign-out leaked the previous account's
+  audit state. An *unawaited* cache clear can also land after a fast re-login
+  and wipe the new account's fresh cache.
+- **Account deletion pre-flights auth freshness.** `UserService.deleteAccount`
+  checks `user.metadata.lastSignInTime` (5 min window) and refuses with the
+  "log out and log in again" message **before** touching Firestore. The old
+  order deleted every transaction/goal/asset first, then hit
+  `requires-recent-login` and reported a recoverable error for an account whose
+  data was already gone. After the data is gone, `DeactivateAccountScreen` must
+  actually `signOut()` — deleting the auth user does not clear
+  `FirebaseAuth.currentUser` on its own.
+- **Sign-up is serialized with the auth stream.**
+  `createUserWithEmailAndPassword` signs the new account in immediately, which
+  fires `_handleAuthChange`, which signs unverified accounts straight back out
+  *while* the signup screen is still writing the user doc. `signup.dart` sets
+  `AuthController.signupInProgress` (checked at the very top of
+  `_handleAuthChange`, **before** the `_handledUid` dedupe so the emission is
+  not recorded as handled) and performs its own `await signOut()` at the end.
+- **Never fall through a null session.** Onboarding shows an error and stays put
+  if `currentUser` (or its email) is null instead of discarding the typed setup
+  and navigating home unauthenticated.
+- `SubscriptionController.resetForSignOut()` clears `trialEndDate`/`trialUsed`/
+  `planType` too — `isPro` is `status == pro || isTrial` and `isTrial` only asks
+  whether `trialEndDate` is future, so a stale date hands Pro to the next person
+  on a shared device.
+- `is_onboarded` is a **device-wide** pref, so it is stamped with the owning
+  email (`is_onboarded_email`) and only trusted for that email. A pref with no
+  stamp predates this and keeps the old behavior (so existing installs are not
+  re-onboarded). `currency_code`/`currency_symbol` stay device-level on
+  purpose — a display preference, and clearing them would lose the user's own
+  choice.
+- A failed `signOut()` must **abort** teardown (the session is still live);
+  a Firestore failure *after* a successful sign-in must sign the user back out
+  rather than leave them signed in with a stuck error screen. A throw inside
+  `_handleAuthChange` resets `_handledUid` so the next emission retries instead
+  of preserving a half-registered controller set.
+- `_deferredStartup` guards each step individually (`step(label, action)`).
+  These run before `runApp` and were awaited in sequence, so one throw used to
+  skip `enableNetwork()` and leave the app permanently offline and blank.
+
 ## Architecture
 
 **MVC-Service-Repository** with GetX. Package name is `money_control` (used in imports).
@@ -141,7 +245,7 @@ query means adding its index here or the query fails at runtime in production.
 | `lib/Platform/` | Platform abstraction stubs for 9 services (biometric, geocoding, IAP, notification, SMS, etc.) |
 | `lib/l10n/` | ARB localization files (`app_en.arb` template) |
 | `lib/data/` | Challenge preset seed data |
-| `test/` | unit/widget tests — `flutter test test/<name>_test.dart` for one. Biggest ones: `feature_flags_test.dart` (enforces the flag registry) and `background_flags_test.dart`. |
+| `test/` | unit/widget tests — `flutter test test/<name>_test.dart` for one. Contract tests that guard silent-failure risks: `feature_flags_test.dart` (flag registry), `background_flags_test.dart`, `firestore_indexes_test.dart` (composite index coverage), `platform_contract_test.dart` (iOS BGTask identifier / registrant / Android-only gates), `referral_reward_math_test.dart` (the Pro-granting payout). |
 | `integration_test/` | 25 E2E tests + `test_credentials.dart` (dart-defines) + `test_helpers.dart` (all shared helpers — read before writing a test). Require a live Firebase backend and emulator-5554. `mainCommon(isTest: true)` only skips Crashlytics/notifications. New **Pro** tests must be added to the `PRO_FILES` list in `tool/run_integration_tests.sh` or they silently run against the free account. |
 
 ## Integration Test Gotchas
@@ -163,6 +267,7 @@ ThemeController is inline in `main.dart` (registered before any screen). Note: `
 ## UI Copy / Revamp Audit
 
 - When restyling a screen, move the copy that integration tests assert on into `lib/Config/app_strings.dart` in the same change. Integration tests must assert `find.text(AppStrings.x)` — never re-type the literal — so copy changes stay compile-time safe on both sides. Data-dependent literals (amounts, counts, plan prices) stay inline.
+- **A section title must describe where its tap goes.** The home section rendered as `quickSend` ("Quick Send") while `onTap` pushed `CategoriesHistoryScreen`; it now uses `AppStrings.categoryHistoryTitle` ("Category History"), and `SectionTitle`'s trailing link is `AppStrings.viewAll`. `receive_transaction_e2e_test` and `transaction_management_test` assert those constants, so this copy can change again without breaking a test. A title reused from a *different* feature is how that happened — check the destination before picking the key.
 - `tool/check_ui_strings.sh --strict` (wired into CI in the `test` job, after `flutter analyze`) tracks mechanical design-debt caps (raw `Color(0x…)`, `GlassContainer`, gradients, `BackdropFilter`) recorded in `tool/revamp_baseline.env`. Lower the caps after each revamp wave; never raise — a regression above a cap is new debt.
 - Design tokens live in `lib/Components/colors.dart`: `AppColors` (indigo `primary` `0xFF4F46E5`, zinc neutrals, `success`/`error`/`warning`), `AppRadius`, `AppShadows`, `chartSeries`. Pre-revamp brand hexes (cyan `0xFF00E5FF`, purple `0xFF6C63FF`, navy `0xFF1A1A2E`, mint `0xFF69F0AE`, pink `0xFFFF2975`) are fully rebranded to tokens — never reintroduce them. Category data colors (Material palette, seeded `0xFFFF7043`) stay inline.
 
@@ -231,8 +336,9 @@ Admins toggle live feature availability from Settings → Admin Utils → Featur
 - `ensureFeatureUsable(context, key)` is the same guard minus the placeholder — `hidden` is a hard no-op. Use it for surfaces that must STAY on screen when the flag is hidden but whose taps are still gated (home AppBar avatar + "Welcome back" greeting under `profile`: always visible, taps dead when hidden).
 - Entry-point inventory (several surfaces share a key — know what a toggle really hides):
   - Send/Receive on the home balance card + the core add/send flow → `transactions` (`FeatureVisible` + tap guards in `balance_card.dart`); the same-card "+ Add Lent" / "- Subs" chips → `lent_money` / `recurring` (a worker force-flips the toggles off when hidden).
-  - Home "Quick Send" UPI row (`QuickSendRow`, guards in `lib/Components/quick_send.dart`) **and** the Add-Send form's "Scan & Pay with UPI" button (`_upiPayButton` in `add_transaction.dart`, only when `type == send && !kIsWeb`) **both reuse `upi_pay`** — hiding it removes the UPI pay surface everywhere at once; keep it that way (deliberate reuse decision).
-  - Home "Scan QR to Pay" FAB → `qr_scan` (Pro-check runs before the flag guard).
+  - Home "Quick Send" UPI row (`QuickSendRow`, guards in `lib/Components/quick_send.dart`) **and** the Add-Send form's "Scan & Pay with UPI" button (`_upiPayButton` in `add_transaction.dart`, only when `type == send && isAndroidPlatform`) **both reuse `upi_pay`** — hiding it removes the UPI pay surface everywhere at once; keep it that way (deliberate reuse decision).
+  - Home "Scan QR to Pay" FAB **and** the Add-Send AppBar receipt-scanner button → `qr_scan` (Pro-check runs before the flag guard on the FAB). Both are wrapped in `FeatureVisible` + an `ensureFeatureUsable` tap guard, so `hidden` removes the button rather than leaving a dead affordance.
+  - `profile` has three entry points and all three are gated: Settings → Profile (`ensureFeatureVisible`), the profile sheet's edit button in `main_shell.dart`, and "Go to Profile" in `wealth_builder.dart` (both use `ensureFeatureUsable`, since the surface must stay put when only the *taps* die).
   - SMS import is THREE screens under THREE keys: Settings "Automation → Import SMS" tile → `sms_tracking`; Transaction History AppBar SMS button → `sms_import`; background auto-import → `sms_auto_import` (enforced per-tick in `background_worker.dart`). All three open `SmsImportScreen` — the key is distinct per entry surface, don't conflate them.
   - Decision rule that produced the above: a surface gets its own key when it lives on a different screen/place and wants independent control (`sms_import`); it reuses an existing key when it's the same feature reached from another spot (`upi_pay` on the Add-Send form).
 - Bodies: `FeatureGate(flagKey:, child:)` — reactive (GetBuilder on the service), returns `child` unchanged when visible so layout never shifts. Used on the three tab bodies (Analytics, AI Insights, Wealth).
@@ -340,5 +446,8 @@ silent. Only check categories from **expense** rows.
 
 - **Google Sign-In**: Pinned to `^6.2.2` (`pubspec.yaml`). Do not upgrade to v7+ — `signIn()` replaced with stream-based API that has a race condition.
 - **UPI Payments**: Kotlin MethodChannel (`money_control/upi`), not `url_launcher`. Hard-coded package names: GPay, PhonePe, Paytm, BHIM, CRED, null (system chooser). `canLaunchUrl()` unreliable on Android 11+ — show all apps and handle `APP_NOT_FOUND` via try/catch.
+- **Android-only capabilities** go through `isAndroidPlatform` (`lib/Utils/platform_support.dart`), never `dart:io`'s `Platform` — importing `dart:io` breaks the web build, and `defaultTargetPlatform` alone would match a mobile browser. UPI (Kotlin channel) and SMS import (no iOS pod macro/entitlement) must be gated with it; `_initiateUpiPayment` also catches `MissingPluginException` so the spinner can never stick.
+- **iOS background work**: `WorkmanagerPlugin.setPluginRegistrantCallback` in `ios/Runner/AppDelegate.swift` (module is `workmanager_apple` since 0.8.0, *not* `workmanager_ios`), and the `registerPeriodicTask` **`uniqueName`** (`periodic_checks_unique_v2`) must be listed in `BGTaskSchedulerPermittedIdentifiers` in `Info.plist` — on iOS the uniqueName *is* the BGTaskScheduler identifier, and a mismatch fails every schedule with Code 3 so background SMS import/reminders silently never run. `test/platform_contract_test.dart` enforces all of this; `UIBackgroundModes` declares `fetch`+`processing`.
+- **Fail-closed stubs**: `iap_platform_stub.dart`'s `PurchaseDetails.status` defaults to `error`, never `purchased` (an omitted status plus empty verification data is a latent instant-Pro). `openfile_platform_stub.dart` returns `bool?` while native returns `Result` — keep the result discarded at call sites; consuming it compiles on only one platform.
 - **Built-in Kotlin**: As of Flutter 3.35, plugins that apply KGP directly (`file_picker`, `firebase_storage`, `home_widget`, `share_plus`, `shared_preferences_android`, `workmanager_android`, `package_info_plus`) trigger a migration warning. Track upstream updates; no action needed until Flutter drops KGP support.
 - **google-services.json**: Gitignored. CI injects from `secrets.GOOGLE_SERVICES_JSON`. For local builds, download from Firebase Console to `android/app/google-services.json`.

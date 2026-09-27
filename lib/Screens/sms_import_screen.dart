@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +21,7 @@ import 'package:money_control/Platform/permission_platform.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/platform_support.dart';
 
 class SmsImportScreen extends StatefulWidget {
   const SmsImportScreen({super.key});
@@ -286,6 +288,39 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
   Widget build(BuildContext context) {
     final subscriptionController = _subController;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // SMS reading is Android-only in this build: the iOS Podfile declares no
+    // `PERMISSION_SMS` macro and there is no SMS entitlement, so the permission
+    // request can never be granted there. Guarding in the screen (rather than
+    // at each of the three entry points) keeps any future entry point honest.
+    if (!isAndroidPlatform) {
+      return Scaffold(
+        backgroundColor:
+            isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        appBar: AppBar(
+          title: const Text("Import from SMS"),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: BackButton(
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              kIsWeb
+                  ? "SMS import is not available in the browser. Import a CSV instead."
+                  : "SMS import is only available on Android. Import a CSV instead.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,

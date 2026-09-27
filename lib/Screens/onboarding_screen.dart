@@ -71,45 +71,65 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // 1. Save to Firestore
-        final budget = double.tryParse(_budgetController.text) ?? 0;
-
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.email)
-            .set({
-              'currency': _selectedCurrency,
-              'monthly_budget': budget,
-              'is_onboarded': true,
-            }, SetOptions(merge: true));
-
-        // 2. Apply referral code if provided
-        final referralCode = _referralController.text.trim();
-        if (referralCode.isNotEmpty) {
-          final applied = await ReferralService.applyReferralCode(referralCode);
-          if (applied) {
-            ErrorHandler.showSuccess("Referral code applied");
-          } else {
-            ErrorHandler.showError(
-              "Invalid referral code. Setup continues — you can enter a "
-              "different code later.",
-              title: "Referral",
-            );
-          }
-        }
-
-        // 3. Save to SharedPreferences for local check
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_onboarded', true);
-        final currencyCode = _currencies
-            .firstWhere(
-              (c) => c['symbol'] == _selectedCurrency,
-              orElse: () => const {'code': 'INR', 'symbol': '₹'},
-            )['code']!;
-        await prefs.setString('currency_code', currencyCode);
-        await prefs.setString('currency_symbol', _selectedCurrency);
+      if (user == null) {
+        // Never fall through to the confetti + home navigation without a
+        // session: the budget, currency and referral code the user just typed
+        // would be silently thrown away, and home would then load an
+        // unauthenticated account. Say so and keep them on onboarding.
+        setState(() => _isLoading = false);
+        ErrorHandler.showError(
+          'Your session expired. Please sign in again to finish setup.',
+          title: 'Session expired',
+        );
+        return;
       }
+      final email = user.email;
+      if (email == null) {
+        // A Firebase user without an email cannot own a Firestore doc keyed by
+        // email, so the writes below would silently create a doc named "null".
+        setState(() => _isLoading = false);
+        ErrorHandler.showError(
+          'This account has no email address, so setup cannot be saved.',
+          title: 'Setup failed',
+        );
+        return;
+      }
+      // 1. Save to Firestore
+      final budget = double.tryParse(_budgetController.text) ?? 0;
+
+      await FirebaseFirestore.instance.collection('users').doc(email).set({
+        'currency': _selectedCurrency,
+        'monthly_budget': budget,
+        'is_onboarded': true,
+      }, SetOptions(merge: true));
+
+      // 2. Apply referral code if provided
+      final referralCode = _referralController.text.trim();
+      if (referralCode.isNotEmpty) {
+        final applied = await ReferralService.applyReferralCode(referralCode);
+        if (applied) {
+          ErrorHandler.showSuccess("Referral code applied");
+        } else {
+          ErrorHandler.showError(
+            "Invalid referral code. Setup continues — you can enter a "
+            "different code later.",
+            title: "Referral",
+          );
+        }
+      }
+
+      // 3. Save to SharedPreferences for local check. Stamped with the email
+      // so a second account on this device is not waved past setup by the
+      // previous account's flag.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_onboarded', true);
+      await prefs.setString('is_onboarded_email', email);
+      final currencyCode = _currencies.firstWhere(
+        (c) => c['symbol'] == _selectedCurrency,
+        orElse: () => const {'code': 'INR', 'symbol': '₹'},
+      )['code']!;
+      await prefs.setString('currency_code', currencyCode);
+      await prefs.setString('currency_symbol', _selectedCurrency);
 
       // 4. Play Confetti & Navigate Home
       _confettiController.play();

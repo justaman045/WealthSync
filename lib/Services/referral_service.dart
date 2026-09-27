@@ -186,52 +186,83 @@ class ReferralService {
     }
   }
 
+  /// Trial days granted per credited referral, and the hard ceiling.
+  static const int _trialDaysPerReferral = 30;
+  static const int _trialDaysCap = 45;
+
+  /// Pure trial-expiry math for a referral payout, extracted so the reward the
+  /// user is actually granted can be unit tested.
+  ///
+  /// [currentExpiry] is the user's existing `trialEndDate`, if any. A future
+  /// expiry is extended from its current end (rewards stack); a missing or
+  /// elapsed one restarts from [now]. Either way the result is clamped to
+  /// [now] + cap, so an unbounded reward cannot be farmed.
+  @visibleForTesting
+  static DateTime debugComputeTrialEnd({
+    required DateTime now,
+    required int pendingClaims,
+    DateTime? currentExpiry,
+  }) {
+    final cap = now.add(const Duration(days: _trialDaysCap));
+    final reward = Duration(days: _trialDaysPerReferral * pendingClaims);
+    final extended = currentExpiry != null && currentExpiry.isAfter(now)
+        ? currentExpiry.add(reward)
+        : now.add(reward);
+    return extended.isAfter(cap) ? cap : extended;
+  }
+
   /// Applies referral rewards this user has earned but not yet collected.
   ///
   /// A referee can only append its own uid to `claims`, so crediting — which
   /// touches the referrer's own trial and count — happens here, in the
   /// referrer's own document, on their next login.
+  ///
+  /// The user document and the `credited` marker are written in ONE
+  /// transaction. Two separate writes left a window where the reward landed
+  /// but the marker did not, and the next login paid the same referral again
+  /// (double `referralCount`, double trial extension).
   static Future<void> _drainClaims(String code, String email) async {
     try {
       final codeRef = _codes.doc(code);
-      final codeSnap = await codeRef.get();
-      if (!codeSnap.exists) return;
-      final data = codeSnap.data() ?? {};
-      final claims = data['claims'];
-      final credited = data['credited'];
-      if (claims is! Map || claims.isEmpty) return;
-      final creditedMap =
-          credited is Map ? Map<String, dynamic>.from(credited) : <String, dynamic>{};
-
-      final pending = <String, dynamic>{};
-      claims.forEach((uid, at) {
-        if (!creditedMap.containsKey(uid)) pending[uid.toString()] = at;
-      });
-      if (pending.isEmpty) return;
-
       final userRef = _db.collection('users').doc(email);
-      final userSnap = await userRef.get();
-      final userData = userSnap.data() ?? {};
-      final currentExpiry =
-          (userData['trialEndDate'] as Timestamp?)?.toDate();
       final now = DateTime.now();
-      final cap = now.add(const Duration(days: 45));
-      final rewardDays = 30 * pending.length;
-      final base = now.add(Duration(days: rewardDays));
-      final extended = currentExpiry != null && currentExpiry.isAfter(now)
-          ? currentExpiry.add(Duration(days: rewardDays))
-          : base;
-      final newExpiry = extended.isAfter(cap) ? cap : extended;
 
-      await userRef.set({
-        'referralCount':
-            ((userData['referralCount'] as int?) ?? 0) + pending.length,
-        'subscriptionStatus': 'pro',
-        'trialEndDate': Timestamp.fromDate(newExpiry),
-      }, SetOptions(merge: true));
+      await _db.runTransaction<void>((txn) async {
+        // Read both before writing either: Firestore transactions require it.
+        final codeSnap = await txn.get(codeRef);
+        if (!codeSnap.exists) return;
+        final data = codeSnap.data() ?? {};
+        final claims = data['claims'];
+        final credited = data['credited'];
+        if (claims is! Map || claims.isEmpty) return;
 
-      creditedMap.addAll(pending);
-      await codeRef.set({'credited': creditedMap}, SetOptions(merge: true));
+        final creditedMap = credited is Map
+            ? Map<String, dynamic>.from(credited)
+            : <String, dynamic>{};
+
+        final pending = <String, dynamic>{};
+        claims.forEach((uid, at) {
+          if (!creditedMap.containsKey(uid)) pending[uid.toString()] = at;
+        });
+        if (pending.isEmpty) return;
+
+        final userSnap = await txn.get(userRef);
+        final userData = userSnap.data() ?? {};
+        final newExpiry = debugComputeTrialEnd(
+          now: now,
+          pendingClaims: pending.length,
+          currentExpiry: (userData['trialEndDate'] as Timestamp?)?.toDate(),
+        );
+
+        creditedMap.addAll(pending);
+        txn.set(userRef, {
+          'referralCount':
+              ((userData['referralCount'] as int?) ?? 0) + pending.length,
+          'subscriptionStatus': 'pro',
+          'trialEndDate': Timestamp.fromDate(newExpiry),
+        }, SetOptions(merge: true));
+        txn.set(codeRef, {'credited': creditedMap}, SetOptions(merge: true));
+      });
     } catch (e) {
       log("Error draining referral claims: $e");
     }
@@ -247,45 +278,54 @@ class ReferralService {
 
     try {
       final codeRef = _codes.doc(upperCode);
-      final codeSnap = await codeRef.get();
-      if (!codeSnap.exists) return false;
-
-      final codeData = codeSnap.data() ?? {};
-      final ownerEmail = codeData['owner'] as String?;
-
-      // Don't allow self-referral
-      if (ownerEmail == null || ownerEmail == currentUser.email) return false;
-
-      final claims = codeData['claims'];
-      if (claims is Map && claims.containsKey(currentUser.uid)) return false;
-
       final currentUserRef =
           _db.collection('users').doc(currentUser.email);
       final trialEnd = DateTime.now().add(const Duration(days: 30));
 
-      await _db.runTransaction((txn) async {
+      // The code document MUST be read inside the transaction. Reading it
+      // outside would leave it out of the transaction's read set, so two
+      // referees entering the same code at once would not conflict: the
+      // second write would overwrite the first one's claims map and a
+      // referral reward would vanish. The rules enforce add-only-one-claim;
+      // this is what makes the client's write agree with them.
+      final applied = await _db.runTransaction<bool>((txn) async {
+        final codeSnap = await txn.get(codeRef);
+        if (!codeSnap.exists) return false;
+
+        final codeData = codeSnap.data() ?? {};
+        final ownerEmail = codeData['owner'] as String?;
+        if (ownerEmail == null || ownerEmail == currentUser.email) {
+          return false; // no owner, or self-referral
+        }
+
         final currentUserSnap = await txn.get(currentUserRef);
+        if (currentUserSnap.exists &&
+            (currentUserSnap.data()?['referredBy'] != null)) {
+          // Returning false (not an early bare `return`) is what stops the
+          // caller reporting success for a code that was not applied.
+          return false;
+        }
 
-        // Prevent double-application
-        final alreadyReferred =
-            currentUserSnap.exists &&
-            (currentUserSnap.data()?['referredBy'] != null);
-        if (alreadyReferred) return;
-
-        final nextClaims = claims is Map
-            ? Map<String, dynamic>.from(claims)
+        final existingClaims = codeData['claims'];
+        final nextClaims = existingClaims is Map
+            ? Map<String, dynamic>.from(existingClaims)
             : <String, dynamic>{};
         nextClaims[currentUser.uid] = FieldValue.serverTimestamp();
 
+        txn.set(
+          codeRef,
+          {'claims': nextClaims},
+          SetOptions(merge: true),
+        );
         txn.set(currentUserRef, {
           'referredBy': upperCode,
           'trialEndDate': Timestamp.fromDate(trialEnd),
         }, SetOptions(merge: true));
 
-        txn.set(codeRef, {'claims': nextClaims}, SetOptions(merge: true));
+        return true;
       });
 
-      return true;
+      return applied;
     } catch (e) {
       log("Error applying referral code: $e");
       return false;

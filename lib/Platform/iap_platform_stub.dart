@@ -61,7 +61,13 @@ class PurchaseDetails {
     this.purchaseID,
     PurchaseVerificationData? verificationData,
     this.transactionDate,
-    this.status = PurchaseStatus.purchased,
+    // Fail closed. The real plugin's `PurchaseDetails` carries an explicit
+    // status, so a caller that omits it here is constructing a details object
+    // out of thin air — defaulting that to `purchased` (with the empty
+    // verification data below) would hand a caller an unverified "purchased"
+    // result on any platform where this stub is in play, i.e. a latent
+    // instant-Pro. Real purchase flows always pass a status.
+    this.status = PurchaseStatus.error,
     this.pendingCompletePurchase = false,
     this.error,
   }) : verificationData = verificationData ?? PurchaseVerificationData();

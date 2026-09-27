@@ -199,6 +199,10 @@ class _MainShellState extends State<MainShell> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
+                            // This profile entry point sat outside the `profile`
+                            // flag, so `hidden` removed the settings row while
+                            // this button still pushed EditProfileScreen.
+                            if (!ensureFeatureUsable(ctx, 'profile')) return;
                             Navigator.pop(ctx);
                             Get.to(() => const EditProfileScreen());
                           },

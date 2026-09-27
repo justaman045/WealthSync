@@ -232,6 +232,18 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
           'No UPI app found. Please install GPay, PhonePe or Paytm.',
         );
       }
+    } on MissingPluginException {
+      // The channel has no native implementation on this platform (iOS/desktop).
+      // Uncaught, this left `_paying` true forever — a permanently spinning
+      // button. UPI is Android-only, so the entry points gate on
+      // `Platform.isAndroid`, and this is the belt-and-braces path.
+      if (!mounted) return;
+      setState(() => _paying = false);
+      ErrorHandler.showError('UPI payments are only available on Android.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _paying = false);
+      ErrorHandler.showError('Could not start UPI payment. Please try again.');
     }
   }
 
