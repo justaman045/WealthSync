@@ -1294,14 +1294,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     );
   }
 
-  void _showCustomAssetDialog(String key, double value) {
+  Future<void> _showCustomAssetDialog(String key, double value) async {
     final isNew = key.isEmpty;
     final nameCtrl = TextEditingController(text: key);
     final valueCtrl = TextEditingController(
       text: value > 0 ? value.toStringAsFixed(0) : '',
     );
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
+    final dialog = showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(isNew ? "Add Custom Asset" : "Custom Asset"),
@@ -1351,10 +1351,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ),
         ],
       ),
-    ).whenComplete(() {
+    );
+    try {
+      await dialog;
+    } finally {
       nameCtrl.dispose();
       valueCtrl.dispose();
-    });
+    }
   }
 
   Widget _sectionHeader(String label, ColorScheme scheme, {Widget? trailing}) {

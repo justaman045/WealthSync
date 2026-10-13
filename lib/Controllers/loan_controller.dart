@@ -60,7 +60,7 @@ class LoanController extends GetxController {
           map['_id'] = t.id;
           return LocalCacheService.hiveSafe(map);
         }).toList();
-        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+        await LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
       _syncToWealth();
     } catch (e) {

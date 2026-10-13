@@ -47,15 +47,51 @@ void main() {
           find.text(goalName),
         );
 
-        // Back on the goals list; the new goal card shows 0% progress.
+        // Back on the goals list; the new goal card shows 0% progress and the
+        // aggregate "Total Progress" summary card is rendered above the list.
         await waitFor(tester, find.text(goalName));
         expect(find.text('0%'), findsWidgets);
+        expect(find.text(AppStrings.totalProgress), findsWidgets);
 
-        // Long-press the goal card to delete it. The text alone may match a
-        // transient SnackBar, so wait for the actual card (GestureDetector).
-        final goalCard = find
+        // ── Edit the goal via the card's overflow menu ──────────────────────
+        var goalCard = find
             .ancestor(
               of: find.text(goalName),
+              matching: find.byType(GestureDetector),
+            )
+            .first;
+        await waitFor(tester, goalCard);
+        await tapWhenVisible(
+          tester,
+          find.descendant(of: goalCard, matching: find.byIcon(Icons.more_vert)),
+        );
+        await waitFor(tester, find.text(AppStrings.edit));
+        await tapWhenVisible(tester, find.text(AppStrings.edit));
+
+        // The edit screen prefills the existing name and saves in place.
+        await waitFor(tester, find.text(AppStrings.editGoal));
+        final renamedGoal = uniqueName('Renamed');
+        await tester.enterText(
+          find.widgetWithText(TextField, goalName),
+          renamedGoal,
+        );
+        await pumpReal(tester);
+        FocusManager.instance.primaryFocus?.unfocus();
+        await pumpAndSettleSafe(tester);
+        await tapUntilMarker(
+          tester,
+          find.text(AppStrings.saveChanges),
+          find.text(renamedGoal),
+        );
+        await waitFor(tester, find.text(renamedGoal));
+        expect(find.text(goalName), findsNothing);
+        expect(find.text(AppStrings.totalProgress), findsWidgets);
+
+        // Long-press the renamed card to delete it. The text alone may match a
+        // transient SnackBar, so wait for the actual card (GestureDetector).
+        goalCard = find
+            .ancestor(
+              of: find.text(renamedGoal),
               matching: find.byType(GestureDetector),
             )
             .first;
@@ -65,9 +101,9 @@ void main() {
         await gesture.up();
         await pumpAndSettleSafe(tester);
         await waitFor(tester, find.text('Delete Goal?'));
-        await tapWhenVisible(tester, find.text('Delete'));
+        await tapWhenVisible(tester, find.text(AppStrings.delete));
         await pumpReal(tester, const Duration(seconds: 3));
-        expect(find.text(goalName), findsNothing);
+        expect(find.text(renamedGoal), findsNothing);
 
         await backToHome(tester);
       } else {

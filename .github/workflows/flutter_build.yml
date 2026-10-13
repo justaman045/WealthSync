@@ -35,7 +35,7 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.8'
+          flutter-version: '3.47.7'
 
       - name: Install dependencies
         run: flutter pub get
@@ -93,13 +93,22 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.8'
+          flutter-version: '3.47.7'
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Add google-services.json from secret
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
+
+      # Pin the JDK: Gradle 9.3.1 / AGP 9.1 require JDK 17+, and relying on the
+      # runner's default Java is how the local Android Studio JBR (Java 25) broke
+      # the Gradle 8.14 build.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Enable KVM
         run: |
@@ -171,7 +180,15 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.8'
+          flutter-version: '3.47.7'
+
+      # Pin the JDK: Gradle 9.3.1 / AGP 9.1 require JDK 17+; do not rely on the
+      # runner default (see the local Java 25 vs Gradle 8.14 failure).
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
       # ------------------------------------------------------------
       # AUTO VERSION BUMP: pubspec.yaml
@@ -339,7 +356,7 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.8'
+          flutter-version: '3.47.7'
 
       - name: Install dependencies
         run: flutter pub get

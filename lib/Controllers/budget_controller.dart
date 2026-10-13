@@ -107,7 +107,7 @@ class BudgetController extends GetxController {
           'budget': i.budget,
           'spent': i.spent,
         }).toList();
-        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+        await LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
     } catch (e) {
       debugPrint("Error fetching budgets: $e");

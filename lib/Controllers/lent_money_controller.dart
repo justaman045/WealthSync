@@ -50,7 +50,7 @@ class LentMoneyController extends GetxController {
           map['_id'] = t.id;
           return LocalCacheService.hiveSafe(map);
         }).toList();
-        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+        await LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
     } catch (e) {
       log('LentMoneyController._fetchFromFirestore error: $e');

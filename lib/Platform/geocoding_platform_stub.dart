@@ -18,4 +18,10 @@ class Placemark {
   });
 }
 
-Future<List<Placemark>> placemarkFromCoordinates(double latitude, double longitude) async => [];
+class Geocoding {
+  Future<List<Placemark>> placemarkFromCoordinates(
+    double latitude,
+    double longitude,
+  ) async =>
+      [];
+}

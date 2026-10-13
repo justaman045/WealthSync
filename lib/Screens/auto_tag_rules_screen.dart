@@ -92,10 +92,10 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
     return defaults.contains(keyword.toLowerCase());
   }
 
-  void _addKeyword(String category) {
+  Future<void> _addKeyword(String category) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ctrl = TextEditingController();
-    showDialog(
+    final dialog = showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -139,7 +139,12 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
           ),
         ],
       ),
-    ).whenComplete(() => ctrl.dispose());
+    );
+    try {
+      await dialog;
+    } finally {
+      ctrl.dispose();
+    }
   }
 
   void _removeKeyword(String category, String keyword) {
@@ -158,10 +163,10 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
     _save();
   }
 
-  void _addCategory() {
+  Future<void> _addCategory() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ctrl = TextEditingController();
-    showDialog(
+    final dialog = showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -199,7 +204,12 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
           ),
         ],
       ),
-    ).whenComplete(() => ctrl.dispose());
+    );
+    try {
+      await dialog;
+    } finally {
+      ctrl.dispose();
+    }
   }
 
   @override

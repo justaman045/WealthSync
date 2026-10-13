@@ -54,7 +54,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           backgroundColor: AppColors.primary,
           icon: Icon(Icons.add, color: isDark ? Colors.white : AppColors.lightTextPrimary),
           label: Text(
-            "New Goal",
+            AppStrings.newGoal,
             style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold),
           ),
         ),
@@ -74,7 +74,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSummaryRow(ctrl, theme),
+                          _buildHeader(ctrl, theme),
                           SizedBox(height: 16.h),
                           GridView.count(
                             crossAxisCount: Responsive.gridColumns(context),
@@ -91,7 +91,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                   : ListView(
                       padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
                       children: [
-                        _buildSummaryRow(ctrl, theme),
+                        _buildHeader(ctrl, theme),
                         SizedBox(height: 16.h),
                         ...ctrl.goals.map((goal) => _buildGoalCard(context, goal, ctrl, theme)),
                       ],
@@ -226,6 +226,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         color: AppColors.primary,
                       ),
                     ),
+                  _buildGoalMenu(context, goal, ctrl, theme),
                 ],
               ),
               SizedBox(height: 14.h),
@@ -276,78 +277,120 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
+  Widget _buildHeader(GoalsController ctrl, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTotalCard(ctrl, theme),
+        SizedBox(height: 12.h),
+        _buildSummaryRow(ctrl, theme),
+      ],
+    );
+  }
+
+  Widget _buildTotalCard(GoalsController ctrl, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final sym = CurrencyController.to.currencySymbol.value;
+    final summary = ctrl.summary;
+    final pct = (summary.progress * 100).toStringAsFixed(0);
+    final fmt = NumberFormat('#,##0.##');
+
+    return Container(
+      padding: EdgeInsets.all(18.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [AppColors.primary.withValues(alpha: 0.28), AppColors.primary.withValues(alpha: 0.08)]
+              : [AppColors.primary.withValues(alpha: 0.16), AppColors.primary.withValues(alpha: 0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                AppStrings.totalProgress,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textTheme.bodyMedium?.color,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                "$pct%",
+                style: TextStyle(
+                  fontSize: 26.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: LinearProgressIndicator(
+              value: summary.progress,
+              minHeight: 8.h,
+              backgroundColor: Colors.grey.withValues(alpha: 0.2),
+              valueColor: AlwaysStoppedAnimation(AppColors.primary),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "${AppStrings.saved}  $sym${fmt.format(summary.totalSaved)}",
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color),
+              ),
+              Text(
+                "${AppStrings.target}  $sym${fmt.format(summary.totalTarget)}",
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalMenu(BuildContext context, GoalModel goal, GoalsController ctrl, ThemeData theme) {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_vert, size: 20.sp, color: theme.textTheme.bodyMedium?.color),
+      padding: EdgeInsets.zero,
+      onSelected: (value) {
+        if (value == 'edit') {
+          Get.to(() => AddGoalScreen(goal: goal));
+        } else if (value == 'delete') {
+          _showDeleteDialog(context, goal, ctrl);
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: 'edit', child: Text(AppStrings.edit)),
+        PopupMenuItem(value: 'delete', child: Text(AppStrings.delete)),
+      ],
+    );
+  }
+
   void _showAddProgressSheet(BuildContext context, GoalModel goal, GoalsController ctrl) {
     if (goal.isCompleted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final sym = CurrencyController.to.currencySymbol.value;
-    final amtCtrl = TextEditingController();
-
     showModalBottomSheet(
       context: context,
       backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       isScrollControlled: true,
       constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          left: 24.w,
-          right: 24.w,
-          top: 24.h,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 32.h,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Add to ${goal.emoji} ${goal.name}",
-              style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.lightTextPrimary),
-            ),
-            SizedBox(height: 16.h),
-            TextField(
-              controller: amtCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              autofocus: true,
-              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
-              decoration: InputDecoration(
-                prefixText: "$sym ",
-                prefixStyle: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 16.sp),
-                hintText: "Amount to add",
-                hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
-                filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.049),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14.r),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            SizedBox(height: 20.h),
-            SizedBox(
-              width: double.infinity,
-              height: 50.h,
-              child: Obx(() => ElevatedButton(
-                onPressed: ctrl.isSaving.value
-                    ? null
-                    : () async {
-                        final val = double.tryParse(amtCtrl.text);
-                        if (val == null || val <= 0) return;
-                        Navigator.pop(context);
-                        await ctrl.updateProgress(goal.id, val);
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
-                ),
-                child: ctrl.isSaving.value
-                    ? SizedBox(width: 20.w, height: 20.h, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
-                    : Text("Add Progress", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
-              )),
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(() => amtCtrl.dispose());
+      builder: (_) => _AddProgressSheet(goal: goal, ctrl: ctrl),
+    );
   }
 
   void _showDeleteDialog(BuildContext context, GoalModel goal, GoalsController ctrl) {
@@ -415,6 +458,96 @@ class _GoalsScreenState extends State<GoalsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AddProgressSheet extends StatefulWidget {
+  const _AddProgressSheet({required this.goal, required this.ctrl});
+
+  final GoalModel goal;
+  final GoalsController ctrl;
+
+  @override
+  State<_AddProgressSheet> createState() => _AddProgressSheetState();
+}
+
+class _AddProgressSheetState extends State<_AddProgressSheet> {
+  final _amtCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _amtCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final val = double.tryParse(_amtCtrl.text);
+    if (val == null || val <= 0) return;
+    Navigator.pop(context);
+    await widget.ctrl.updateProgress(widget.goal.id, val);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sym = CurrencyController.to.currencySymbol.value;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24.w,
+          right: 24.w,
+          top: 24.h,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32.h,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Add to ${widget.goal.emoji} ${widget.goal.name}",
+                style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+              ),
+              SizedBox(height: 16.h),
+              TextField(
+                controller: _amtCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                autofocus: true,
+                style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                decoration: InputDecoration(
+                  prefixText: "$sym ",
+                  prefixStyle: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 16.sp),
+                  hintText: "Amount to add",
+                  hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
+                  filled: true,
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.049),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14.r),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              SizedBox(height: 20.h),
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: Obx(() => ElevatedButton(
+                  onPressed: widget.ctrl.isSaving.value ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+                  ),
+                  child: widget.ctrl.isSaving.value
+                      ? SizedBox(width: 20.w, height: 20.h, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
+                      : Text("Add Progress", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                )),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

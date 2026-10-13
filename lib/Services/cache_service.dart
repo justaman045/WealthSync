@@ -94,12 +94,31 @@ class LocalCacheService {
     }
   }
 
+  /// Recursively turn a value into something [jsonEncode] can store.
+  ///
+  /// Models can nest values (e.g. a loan's `repayments` list of maps), so the
+  /// conversion has to walk maps and lists too — a top-level-only pass left the
+  /// nested `Timestamp` intact and made `put()` throw. Firestore sentinels with
+  /// no JSON representation (e.g. `FieldValue.serverTimestamp()`) become null.
+  static dynamic _jsonSafe(dynamic value) {
+    if (value is Timestamp) return value.toDate().toIso8601String();
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Map) {
+      return value.map((key, v) => MapEntry(key.toString(), _jsonSafe(v)));
+    }
+    if (value is List) return value.map(_jsonSafe).toList();
+    if (value is FieldValue ||
+        value is GeoPoint ||
+        value is Blob ||
+        value is DocumentReference) {
+      return null;
+    }
+    return value;
+  }
+
   /// Convert Timestamp values to ISO date strings for JSON-safe storage.
   static Map<String, dynamic> hiveSafe(Map<String, dynamic> map) {
-    return map.map((key, value) => MapEntry(
-      key,
-      value is Timestamp ? value.toDate().toIso8601String() : value,
-    ));
+    return _jsonSafe(map) as Map<String, dynamic>;
   }
 
   /// Restore ISO date strings back to Timestamp for fromMap.

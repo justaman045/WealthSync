@@ -77,7 +77,7 @@ dependencies:
   in_app_purchase: ^3.2.0
   home_widget: ^0.7.0
   geolocator: ^13.0.2
-  geocoding: ^3.0.0
+  geocoding: ^5.0.0
   universal_io: ^2.3.1
   connectivity_plus: ^7.3.1
   mobile_scanner: ^7.4.0

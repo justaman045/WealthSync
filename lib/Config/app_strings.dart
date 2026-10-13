@@ -43,6 +43,15 @@ class AppStrings {
 
   // ---- Goals / features ----
   static const String goals = 'Goals';
+  static const String newGoal = 'New Goal';
+  static const String editGoal = 'Edit Goal';
+  static const String createGoal = 'Create Goal';
+  static const String saveChanges = 'Save Changes';
+  static const String edit = 'Edit';
+  static const String delete = 'Delete';
+  static const String totalProgress = 'Total Progress';
+  static const String saved = 'Saved';
+  static const String target = 'Target';
   static const String lentMoneyTracker = 'Lent Money Tracker';
   static const String lentToFriend = 'Lent to Friend';
   static const String subscriptions = 'Subscriptions';

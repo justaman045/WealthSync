@@ -266,11 +266,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  void _showDebugDialog(BuildContext context) {
+  Future<void> _showDebugDialog(BuildContext context) async {
     final TextEditingController emailController = TextEditingController();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
+    final dialog = showDialog(
       context: context,
       barrierDismissible: true,
       builder: (_) => AlertDialog(
@@ -336,6 +336,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
-    ).whenComplete(() => emailController.dispose());
+    );
+    try {
+      await dialog;
+    } finally {
+      emailController.dispose();
+    }
   }
 }

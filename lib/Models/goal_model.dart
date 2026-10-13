@@ -49,6 +49,30 @@ class GoalModel {
     );
   }
 
+  /// Returns a copy with edited detail fields, preserving identity, saved
+  /// progress and creation time. Nullable args are applied directly (not via
+  /// `??`) so a null description/targetDate clears the field. Completion is
+  /// recomputed against the new target.
+  GoalModel edited({
+    required String name,
+    required double targetAmount,
+    String? description,
+    DateTime? targetDate,
+    String emoji = '🎯',
+  }) {
+    return GoalModel(
+      id: id,
+      name: name,
+      targetAmount: targetAmount,
+      currentAmount: currentAmount,
+      description: description,
+      targetDate: targetDate,
+      isCompleted: currentAmount >= targetAmount,
+      emoji: emoji,
+      createdAt: createdAt,
+    );
+  }
+
   factory GoalModel.fromMap(String id, Map<String, dynamic> map) {
     DateTime? parsedTargetDate;
     final rawTarget = map['targetDate'];
@@ -87,4 +111,41 @@ class GoalModel {
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
+}
+
+/// Aggregate view of a user's goals, computed over **active** (not completed)
+/// goals only. Pure and side-effect free so it can be unit-tested without
+/// Firebase.
+class GoalSummary {
+  final double totalTarget;
+  final double totalSaved;
+  final int activeCount;
+  final int completedCount;
+  final double progress;
+
+  const GoalSummary({
+    required this.totalTarget,
+    required this.totalSaved,
+    required this.activeCount,
+    required this.completedCount,
+    required this.progress,
+  });
+}
+
+GoalSummary summarizeGoals(List<GoalModel> goals) {
+  final active = goals.where((g) => !g.isCompleted);
+  var totalTarget = 0.0;
+  var totalSaved = 0.0;
+  for (final g in active) {
+    totalTarget += g.targetAmount;
+    totalSaved += g.currentAmount;
+  }
+  final progress = totalTarget > 0 ? (totalSaved / totalTarget).clamp(0.0, 1.0) : 0.0;
+  return GoalSummary(
+    totalTarget: totalTarget,
+    totalSaved: totalSaved,
+    activeCount: active.length,
+    completedCount: goals.length - active.length,
+    progress: progress,
+  );
 }

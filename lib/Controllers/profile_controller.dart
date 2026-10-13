@@ -77,7 +77,7 @@ class ProfileController extends GetxController {
         userProfile.value = UserModel.fromMap(snapshot.id, snapshot.data());
         final cacheMap = LocalCacheService.hiveSafe(snapshot.data()!);
         cacheMap['_id'] = snapshot.id;
-        LocalCacheService.put(_cacheKey, cacheMap, ttl: LocalCacheService.slow5m);
+        await LocalCacheService.put(_cacheKey, cacheMap, ttl: LocalCacheService.slow5m);
       }
     } catch (e) {
       log('ProfileController._fetchFromFirestore error: $e');

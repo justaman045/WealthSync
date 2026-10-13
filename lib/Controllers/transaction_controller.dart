@@ -138,7 +138,7 @@ class TransactionController extends GetxController {
     _txSub?.cancel();
     _txRetryTimer?.cancel();
     _txSub = _repository.getTransactionsStream().listen(
-      (txList) {
+      (txList) async {
         transactions.value = txList;
         _txRetryCount = 0;
         if (_userEmail != null) {
@@ -147,7 +147,7 @@ class TransactionController extends GetxController {
             map['_id'] = t.id;
             return LocalCacheService.hiveSafe(map);
           }).toList();
-          LocalCacheService.put(
+          await LocalCacheService.put(
             _cacheKey,
             cacheData,
             ttl: LocalCacheService.txs30,

@@ -3,13 +3,18 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/goals_controller.dart';
+import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/responsive_form_row.dart';
 
 class AddGoalScreen extends StatefulWidget {
-  const AddGoalScreen({super.key});
+  const AddGoalScreen({super.key, this.goal});
+
+  /// When non-null the screen edits this goal instead of creating a new one.
+  final GoalModel? goal;
 
   @override
   State<AddGoalScreen> createState() => _AddGoalScreenState();
@@ -53,13 +58,22 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       );
       return;
     }
-    final ok = await _ctrl.addGoal(
-      name: name,
-      targetAmount: amount,
-      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      targetDate: _targetDate,
-      emoji: _emoji,
-    );
+    final ok = widget.goal == null
+        ? await _ctrl.addGoal(
+            name: name,
+            targetAmount: amount,
+            description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+            targetDate: _targetDate,
+            emoji: _emoji,
+          )
+        : await _ctrl.updateGoal(
+            id: widget.goal!.id,
+            name: name,
+            targetAmount: amount,
+            description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+            targetDate: _targetDate,
+            emoji: _emoji,
+          );
     if (ok && mounted) Get.back();
   }
 
@@ -70,6 +84,20 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       Get.put(GoalsController());
     }
     _ctrl = GoalsController.to;
+
+    final goal = widget.goal;
+    if (goal != null) {
+      _emoji = goal.emoji;
+      _targetDate = goal.targetDate;
+      _nameCtrl.text = goal.name;
+      _amountCtrl.text = _formatAmount(goal.targetAmount);
+      _descCtrl.text = goal.description ?? '';
+    }
+  }
+
+  static String _formatAmount(double value) {
+    if (value == value.roundToDouble()) return value.toStringAsFixed(0);
+    return value.toString();
   }
 
   @override
@@ -97,7 +125,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("New Goal"),
+          title: Text(widget.goal == null ? AppStrings.newGoal : AppStrings.editGoal),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -246,7 +274,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : Text(
-                          "Create Goal",
+                          widget.goal == null ? AppStrings.createGoal : AppStrings.saveChanges,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.sp,

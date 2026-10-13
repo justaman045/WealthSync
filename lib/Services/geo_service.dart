@@ -955,8 +955,8 @@ class GeoService {
 
       if (kIsWeb) return _baseline();
 
-      final placemarks =
-          await placemarkFromCoordinates(position.latitude, position.longitude);
+      final placemarks = await Geocoding()
+          .placemarkFromCoordinates(position.latitude, position.longitude);
       if (placemarks.isEmpty) return _baseline();
 
       final p = placemarks.first;

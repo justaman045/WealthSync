@@ -87,7 +87,7 @@ class RecurringPaymentController extends GetxController {
           map['_id'] = t.id;
           return LocalCacheService.hiveSafe(map);
         }).toList();
-        LocalCacheService.put(
+        await LocalCacheService.put(
           _cacheKey,
           cacheData,
           ttl: LocalCacheService.slow5m,

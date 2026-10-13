@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -56,7 +57,7 @@ class WealthService {
       final doc = await _portfolioRef.get();
       final data = doc.data() as Map<String, dynamic>?;
       if (doc.exists && data != null) {
-        LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
+        await LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
         return WealthPortfolio.fromMap(data);
       }
     } catch (e) {
@@ -215,7 +216,7 @@ class WealthService {
         .map((doc) {
       final data = doc.data();
           if (doc.exists && data != null) {
-            LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60);
+            unawaited(LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60));
             return WealthPortfolio.fromMap(data);
           }
           return WealthPortfolio(lastUpdated: DateTime.now());

@@ -21,8 +21,9 @@ class GoalsController extends GetxController {
   RxBool isLoading = true.obs;
   RxBool isSaving = false.obs;
 
-  int get activeGoalCount => goals.where((g) => !g.isCompleted).length;
-  int get completedGoalCount => goals.where((g) => g.isCompleted).length;
+  GoalSummary get summary => summarizeGoals(goals);
+  int get activeGoalCount => summary.activeCount;
+  int get completedGoalCount => summary.completedCount;
 
   @override
   void onInit() {
@@ -54,7 +55,7 @@ class GoalsController extends GetxController {
           map['_id'] = t.id;
           return LocalCacheService.hiveSafe(map);
         }).toList();
-        LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
+        await LocalCacheService.put(_cacheKey, cacheData, ttl: LocalCacheService.slow5m);
       }
     } catch (e) {
       log('GoalsController._fetchFromFirestore error: $e');
@@ -89,6 +90,41 @@ class GoalsController extends GetxController {
     } catch (e) {
       debugPrint('Goal error: $e');
       ErrorHandler.showError("Failed to save goal. Please try again.");
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
+  Future<bool> updateGoal({
+    required String id,
+    required String name,
+    required double targetAmount,
+    String? description,
+    DateTime? targetDate,
+    String emoji = '🎯',
+  }) async {
+    if (name.trim().isEmpty || targetAmount <= 0) return false;
+    if (isSaving.value) return false;
+    isSaving.value = true;
+    try {
+      final idx = goals.indexWhere((g) => g.id == id);
+      if (idx == -1) return false;
+      final updated = goals[idx].edited(
+        name: name.trim(),
+        targetAmount: targetAmount,
+        description: description?.trim().isEmpty == true ? null : description?.trim(),
+        targetDate: targetDate,
+        emoji: emoji,
+      );
+      await _repo.updateGoal(updated);
+      LocalCacheService.invalidate(_cacheKey);
+      goals[idx] = updated;
+      goals.refresh();
+      return true;
+    } catch (e) {
+      debugPrint('Goal error: $e');
+      ErrorHandler.showError("Failed to update goal. Please try again.");
       return false;
     } finally {
       isSaving.value = false;

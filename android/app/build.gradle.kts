@@ -20,10 +20,6 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-
     defaultConfig {
         applicationId = "app.vercel.justaman045.money_control"
         minSdk = flutter.minSdkVersion
@@ -68,6 +64,12 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // Only the Latin script model is used (receipt scanner). Non-Latin ML Kit
     // packs (chinese/devanagari/japanese/korean) were removed to shrink the APK.
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+    }
 }
 
 flutter {
