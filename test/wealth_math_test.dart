@@ -228,4 +228,35 @@ void main() {
       );
     });
   });
+
+  group('formatPercent()', () {
+    test('takes the percent itself (no ×100) and rounds up to 2 dp', () {
+      expect(formatPercent(0.5643), '0.57');
+      expect(formatPercent(1.3361), '1.34');
+    });
+
+    test('trims trailing zeros', () {
+      expect(formatPercent(0.56), '0.56');
+      expect(formatPercent(50.0), '50');
+      expect(formatPercent(55.5), '55.5');
+      expect(formatPercent(0), '0');
+    });
+
+    test('does not overshoot an exact value', () {
+      expect(formatPercent(56), '56');
+      expect(formatPercent(99.99), '99.99');
+    });
+
+    test('caps below 100 only when asked', () {
+      expect(formatPercent(99.995, capBelowHundred: true), '99.99');
+      expect(formatPercent(100, capBelowHundred: true), '99.99');
+      expect(formatPercent(100), '100');
+    });
+
+    test('handles non-finite input as zero', () {
+      expect(formatPercent(double.nan), '0');
+      expect(formatPercent(double.infinity), '0');
+      expect(formatPercent(-5), '0');
+    });
+  });
 }

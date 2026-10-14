@@ -10,6 +10,7 @@ import 'package:money_control/Controllers/goals_controller.dart';
 import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Screens/add_goal_screen.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -142,7 +143,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   Widget _buildGoalCard(BuildContext context, GoalModel goal, GoalsController ctrl, ThemeData theme) {
     final sym = CurrencyController.to.currencySymbol.value;
     final isDark = theme.brightness == Brightness.dark;
-    final pct = (goal.progress * 100).toStringAsFixed(0);
+    final pct = formatPercent(goal.progress * 100, capBelowHundred: true);
 
     return Padding(
       padding: EdgeInsets.only(bottom: 14.h),
@@ -292,7 +293,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final sym = CurrencyController.to.currencySymbol.value;
     final summary = ctrl.summary;
-    final pct = (summary.progress * 100).toStringAsFixed(0);
+    final pct = formatPercent(summary.progress * 100, capBelowHundred: true);
     final fmt = NumberFormat('#,##0.##');
 
     return Container(

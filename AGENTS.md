@@ -71,7 +71,7 @@ MVC-Service-Repository with GetX.
 | `lib/Utils/` | `IconHelper`, `wealth_math.dart`, `num_parse.dart`, `platform_support.dart` |
 | `lib/Platform/` | Platform-abstraction `*_platform.dart` + `*_platform_stub.dart` pairs (9 services) |
 | `lib/l10n/`, `lib/data/` | ARB files; challenge preset seed data |
-| `test/` | unit/widget tests. Contract tests guarding silent failures: `feature_flags_test`, `background_flags_test`, `firestore_indexes_test`, `platform_contract_test`, `referral_reward_math_test`, `balance_overlay_math_test`, `early_return_guard_test` |
+| `test/` | unit/widget tests. Contract tests guarding silent failures: `feature_flags_test`, `feature_gate_test`, `toggle_gate_test`, `background_flags_test`, `firestore_indexes_test`, `platform_contract_test`, `referral_reward_math_test`, `balance_overlay_math_test`, `early_return_guard_test` |
 | `integration_test/` | 25 E2E tests + `test_credentials.dart` + `test_helpers.dart` (read it before writing a test). Need live Firebase + emulator-5554. `mainCommon(isTest: true)` skips only Crashlytics/notifications |
 
 `ThemeController` is inline in `main.dart` (registered before any screen).
@@ -251,10 +251,15 @@ admin-write. Missing doc/key/value ⇒ `enabled` (safe default).
   ComingSoon placeholder at every entry point, admins keep using it; **`hidden`** =
   removed for everyone, re-enabled only from the admin screen.
 - **Registry**: `lib/Config/feature_flags.dart` is the source of truth for the 55 keys
-  + copy/icons. `FeatureFlag.groups` organizes the admin screen by place; **every `all`
-  key must appear in exactly one group and in the known-keys list in
-  `test/feature_flags_test.dart`** (both test-enforced) — add to `all`, a group, and
-  the list together. Gate with these keys as string literals.
+  + copy/icons. `FeatureFlag.groups` organizes the admin screen by place.
+  `test/feature_flags_test.dart` enforces that `all` is unique, that `groups` covers `all`
+  exactly once, and that **every registry key is referenced by a real gate/check in `lib/`**
+  — it scans `lib/` for `ensureFeatureVisible/Usable`, `flagKey:`, `statusOf`/`isEnabled`/
+  `isHidden`, `visibleToMe`, `FeatureFlag.find`, `_flagHidden`, `_requireFeature`,
+  `ComingSoonScreen.forFlag` and `FeatureSection([...])` call-sites, and fails if a key is
+  never gated (and if a gate key is unregistered). So registering a key is not enough — wire
+  its gate in the same change, add it to a group, and keep the test's known-keys list in
+  sync. Gate with these keys as string literals.
 - **Transport** (`lib/Services/feature_flag_service.dart`): native
   `.snapshots(includeMetadataChanges: true)` in `onInit`; **web 60s `.get()` poll** via
   `startPolling()` from `main.dart` after login (JS b815/ca9 constraint). Firestore
@@ -283,6 +288,9 @@ admin-write. Missing doc/key/value ⇒ `enabled` (safe default).
     - Send/Receive on the balance card + the core add/send flow → `transactions`
       (`FeatureVisible` + tap guards in `balance_card.dart`); its two overlay chips →
       `lent_money` / `recurring` (see Wealth).
+    - Home AppBar action row (`homescreen.dart`) is one gated button per feature:
+      `transaction_search` (search), `recurring`, `lent_money`, `forecast`, `goals` —
+      each `FeatureVisible` + `ensureFeatureVisible` tap guard, Pro-check first.
     - Home "Quick Send" UPI row (`lib/Components/quick_send.dart`) **and** the Add-Send
       form's "Scan & Pay with UPI" (`_upiPayButton` in `add_transaction.dart`, only
       `type == send && isAndroidPlatform`) **share `upi_pay`** — hiding removes the UPI

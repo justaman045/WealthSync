@@ -135,7 +135,7 @@ class UpdateChecker {
       final file = File("${dir.path}/WealthSync-v$version.apk");
 
       if (await file.exists()) {
-        return _installApk(file.path);
+        return await _installApk(file.path);
       }
 
       final downloadUrl = Uri.parse(
@@ -169,7 +169,7 @@ class UpdateChecker {
         client.close();
       }
 
-      return _installApk(file.path);
+      return await _installApk(file.path);
     } catch (e) {
       debugPrint("APK download failed: $e");
       return false;

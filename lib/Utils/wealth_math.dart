@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:intl/intl.dart';
 
 /// Linearly interpolates between the two bracketing entries in [milestones].
@@ -175,4 +177,26 @@ String formatMonthlyIncome(
     decimalDigits: 1,
   );
   return formatter.format(monthly);
+}
+
+/// Rounds a percentage [percent] (e.g. 1.3361) **up** to [decimals] places and
+/// trims trailing zeros. Takes the percent itself — it does NOT multiply by 100
+/// (the caller passes `ratio * 100`). 0.5643 -> "0.57", 1.3361 -> "1.34",
+/// 0.56 -> "0.56", 50.0 -> "50", 0 -> "0".
+///
+/// With [capBelowHundred], a value that would round up to 100 is clamped to
+/// 99.99 so an incomplete goal never reads as 100% (the per-goal card shows a
+/// separate "Done!" state on completion).
+String formatPercent(
+  double percent, {
+  int decimals = 2,
+  bool capBelowHundred = false,
+}) {
+  if (!percent.isFinite || percent <= 0) return '0';
+  final scale = math.pow(10, decimals).toDouble();
+  // Epsilon nudge so an exact value (e.g. 50.0) isn't pushed a step up by
+  // floating-point representation error before ceil().
+  var roundedUp = (percent * scale - 1e-9).ceil() / scale;
+  if (capBelowHundred && roundedUp >= 100) roundedUp = 100 - 1 / scale;
+  return NumberFormat('#,##0.##').format(roundedUp);
 }
