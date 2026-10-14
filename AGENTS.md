@@ -13,6 +13,7 @@ tool/check_ui_strings.sh           # UI design-debt audit: report only
 tool/check_ui_strings.sh --strict  # fail if debts exceed tool/revamp_baseline.env caps
 flutter test                       # unit/widget tests ONLY (test/); integration tests never run here
 flutter test test/<file>_test.dart # single file
+tool/run_integration_tests.sh      # canonical E2E runner: one file at a time, fresh emulator per file (needs env creds + booted emulator-5554)
 flutter gen-l10n                   # after editing lib/l10n/*.arb (l10n.yaml + generate: true)
 flutter run
 flutter build apk --release
@@ -173,7 +174,9 @@ post_office_schemes, bonds, chit_funds, stock_holdings, sip_holdings, etf_holdin
 foreign_stocks, startup_investments, pf_accounts, vpf_accounts, nps_accounts,
 gold_holdings, sgb_holdings, jewelry_items, crypto_holdings, reit_holdings, p2p_loans,
 agri_land, properties, vehicles, insurance_policies, business_assets, bnpl_entries,
-credit_cards`.
+credit_cards`. The same rules wildcard also lists `backups`/`insights`/`preferences`/`logs`
+(cleared by the GDPR delete flow) — those are not asset types. Adding an asset type means
+adding its collection to this wildcard or its writes are denied.
 
 **WealthPortfolio** (`lib/Models/wealth_data.dart`): 24 asset fields + `custom` map,
 `targets`, `hiddenKeys`. `totalAssets` sums 23 of them — every asset field **except
@@ -211,6 +214,15 @@ early-return in privacy mode. `pendingSubscriptions` is the one recurring figure
 smart insights, and asset targets read transactions (not the portfolio doc);
 `_initTransactionWorker` in `wealth_builder.dart` recomputes them via an `ever` worker
 (targets debounced), else they go stale until rebuild.
+
+**Expected income / AI daily limit** (`computeExpectedIncome` + `computeDailyLimit`, pure
+in `wealth_math.dart`, pinned by `test/wealth_math_test.dart`). Mode precedence: `manual`
+wins only when `manualMonthly > 0`; manual-with-no-value *falls back to blend*. Blend =
+`max(thisMonthIncome, 3-month average)`. Salary window = income in the union of
+current-month days 1–7 and the previous month's last working day (Mon–Fri); an empty
+window returns `expectedIncome: 0` + `salaryWindowEmpty: true` (rendered as a note, not an
+error). Persisted by `IncomeSettings` (`income_mode`/`income_manual_monthly`);
+`analysis.dart` recomputes it live, so don't cache it.
 
 **Never cap an asset list at 25 docs** — the visible list is a view but the total
 written back comes from a full read, so a cap desyncs them. The 5 asset screens hold
@@ -478,8 +490,9 @@ recovery path). Test seams: `fetchOverride`/`writeOverride` + `resetSchedulingFo
     that rewrites a statement's contents must have its output read back — a verify pass that
     only re-runs the analyzer proves nothing.
 24. **Analyze-green is necessary, not sufficient — for control flow, assert the control
-    flow.** Prefer a pure extracted helper (`computeDisplayTotal`, `debugComputeTrialEnd`)
-    over asserting a wrong sign or lost branch through a widget tree full of streams.
+    flow.** Prefer a pure extracted helper (`computeDisplayTotal`, `debugComputeTrialEnd`,
+    `computeExpectedIncome`) over asserting a wrong sign or lost branch through a widget
+    tree full of streams.
 
 ## Platform-Specific
 
@@ -519,6 +532,24 @@ recovery path). Test seams: `fetchOverride`/`writeOverride` + `resetSchedulingFo
 - **`google-services.json` is gitignored.** CI injects it from
   `secrets.GOOGLE_SERVICES_JSON`; for local builds download it from the Firebase Console to
   `android/app/google-services.json`.
+- **The NDK version is env-overridable** — `android/app/build.gradle.kts` sets
+  `ndkVersion = System.getenv("ANDROID_NDK_VERSION") ?: flutter.ndkVersion`. This app ships
+  no native code; the NDK is resolved at configure time only because `ndkVersion` is set
+  (AGP strips symbols from dependency `.so`s). Flutter 3.47.7 asks for `28.2.13676358`,
+  which is NOT on the `ubuntu-24.04` runner, so AGP auto-downloads ~1 GB and has corrupted
+  mid-build ("Error on ZipFile: unknown archive"). CI pins the runner-preinstalled
+  `27.3.13750724` (job-level `ANDROID_NDK_VERSION` in `flutter_build.yml`, plus an
+  "Ensure Android NDK" install-with-retries step in both the `build` and `integration_test`
+  jobs); locally the var is unset so Flutter's default applies. Any job that compiles
+  Android needs the pin, not just `build`.
+- **Release assets are multi-APK.** `build` runs `flutter build apk --release` (universal
+  `app-release.apk` — the in-app updater's ABI-agnostic download, see `update_checker.dart`)
+  AND `--split-per-abi` (small `app-<abi>-release.apk`, ~40–50 MB vs ~126 MB universal). The
+  README links the stable `releases/latest/download/app-arm64-v8a-release.apk`; the release
+  glob uploads every `flutter-apk/*.apk`. The two Gradle invocations write into the same
+  output dir and coexist — do not assume a split build wipes the universal. Release signing
+  enables v1+v2+v3 (`enableV1Signing`/`V2`/`V3` on the signing config), not AGP's default
+  v2-only, so sideload installs verify on every Android version.
 
 ## Firestore Deployment
 
@@ -543,22 +574,15 @@ compiler wants lowercase `map`, `timestamp`, `list`, `number`, …). Unit tests 
 needs equality fields before the range/orderBy field. Adding a multi-field query means
 adding its index here or the query fails at runtime in production.
 
-**`firestore.indexes.json` is the *required* set, not a mirror of production.** A real
-deploy (2026-09-27) warned that 5 live indexes are undeclared:
-`recurring_payments{isActive,nextDueDate}`, `transactions{participants,createdAt}`,
-`transactions{recipientId,createdAt}`, `transactions{recurringPaymentId,date}`,
-`transactions{senderId,createdAt}`. All 5 are **orphans** — `firebase firestore:indexes`
-(the CLI *does* have a list command; there is no `gcloud` here) plus `git log -S` over
-`lib/` confirmed no shipped version issued those queries. `participants` was never a field;
-`senderId`/`recipientId` were only ever equality-only with sorting in Dart; two are the
-indexes the code deliberately sidesteps (`subscription_details.dart` sorts in Dart "to
-avoid a composite index"). They are console leftovers.
-
-Do **not** paste all 9 into the file — the contract test pins every declared index to a
-source that queries it, so unsourced orphans hollow out the test. Do **not** add `--force`
-casually either — it deletes live indexes absent from the file (harmless for these 5, but
-it is the mechanism that could drop a *real* one). The warning on every deploy is expected;
-leave it.
+**`firestore.indexes.json` is the *required* set, not a mirror of production.** Live
+production has 5 undeclared, orphaned indexes (console leftovers: `recurring_payments`
+`{isActive,nextDueDate}`, `transactions{participants|recipientId|senderId,createdAt}`,
+`transactions{recurringPaymentId,date}`) — `git log -S` over `lib/` plus
+`firebase firestore:indexes` (the CLI *does* have a list command; there is no `gcloud`
+here) confirmed no shipped version issued those queries. The warning on every deploy is
+expected — **leave it**. Do NOT paste them in: the contract test pins every declared
+index to the file that queries it, so unsourced orphans hollow out the test. Never
+`--force` (it deletes live indexes absent from the file).
 
 `test/firestore_indexes_test.dart` is the enforcement mechanism — a **contract test**:
 `requiredIndexes` lists each query shape, `querySources` pins it to the issuing file, and

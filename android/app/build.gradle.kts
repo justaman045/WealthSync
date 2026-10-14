@@ -12,7 +12,15 @@ plugins {
 android {
     namespace = "app.vercel.justaman045.money_control"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // This app ships no native code of its own; the NDK is only resolved at
+    // configure time because this line is set (AGP needs an NDK to strip debug
+    // symbols from the Firebase/ML Kit .so files). Flutter 3.47.7 defaults to
+    // 28.2.13676358, which is NOT preinstalled on the GitHub ubuntu-24.04 runner,
+    // so AGP tries to download ~1 GB and has corrupted mid-build ("Error on
+    // ZipFile: unknown archive"). CI sets ANDROID_NDK_VERSION to an NDK already
+    // on the runner (see .github/workflows/flutter_build.yml) to skip the
+    // download; locally the env var is unset and Flutter's default is used.
+    ndkVersion = System.getenv("ANDROID_NDK_VERSION") ?: flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -43,6 +51,14 @@ android {
                 keyAlias = "debug"
                 keyPassword = "android"
             }
+            // Sign with every scheme: v1 (JAR) keeps the APK installable by
+            // older/OEM package installers and file managers that don't verify
+            // v2/v3, and v3 enables future key rotation. minSdk 24 makes AGP
+            // default to v2-only, which some sideload paths report as a
+            // "corrupted package".
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
         }
     }
 
