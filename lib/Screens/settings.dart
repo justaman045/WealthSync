@@ -279,17 +279,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               : () async {
                                   setState(() => _isCheckingUpdate = true);
                                   try {
-                                    final hasUpdate =
+                                    final result =
                                         await UpdateChecker.checkForUpdateManual();
                                     if (!mounted) return;
+                                    final message = result == null
+                                        ? "Couldn't check for updates. Try again."
+                                        : (result
+                                            ? "Update available!"
+                                            : "You're up to date!");
                                     // ignore: use_build_context_synchronously — guarded by mounted above
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
-                                        content: Text(
-                                          hasUpdate
-                                              ? "Update available!"
-                                              : "You're up to date!",
-                                        ),
+                                        content: Text(message),
                                         duration: const Duration(seconds: 2),
                                       ),
                                     );

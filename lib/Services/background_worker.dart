@@ -20,6 +20,7 @@ import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Platform/permission_platform.dart';
+import 'package:money_control/Utils/version_utils.dart';
 
 /// Background worker to check inactivity and show reminder notifications
 class BackgroundWorker {
@@ -371,7 +372,7 @@ Future<void> _checkUpdate(
       final localVersion = package.version;
 
       // 3. Compare
-      if (_isNewer(remoteVersion, localVersion)) {
+      if (isNewerVersion(remoteVersion, localVersion)) {
         // Try to get email if possible, though prefs might not be passed purely here
         // We need prefs to get email
         final userEmail = prefs.getString('user_email');
@@ -391,24 +392,6 @@ Future<void> _checkUpdate(
   } catch (e) {
     developer.log("Update check error: $e");
   }
-}
-
-bool _isNewer(String remote, String local) {
-  int parseSeg(String s) => int.tryParse(s.split(RegExp(r'[+\-]')).first) ?? 0;
-  List<int> r = remote.split('.').map(parseSeg).toList();
-  List<int> l = local.split('.').map(parseSeg).toList();
-  while (r.length < 3) {
-    r.add(0);
-  }
-  while (l.length < 3) {
-    l.add(0);
-  }
-
-  for (int i = 0; i < 3; i++) {
-    if (r[i] > l[i]) return true;
-    if (r[i] < l[i]) return false;
-  }
-  return false;
 }
 
 Future<void> _checkRecurringPayments(

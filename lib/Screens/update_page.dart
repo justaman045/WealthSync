@@ -115,7 +115,7 @@ class _UpdatePageState extends State<UpdatePage> {
     });
 
     try {
-      final installed = await UpdateChecker.downloadAndInstallApk(
+      final outcome = await UpdateChecker.downloadAndInstallApk(
         version: tag.replaceFirst('v', ''),
         onProgress: (p) {
           if (mounted) setState(() => _downloadProgress = p);
@@ -125,9 +125,24 @@ class _UpdatePageState extends State<UpdatePage> {
       if (!mounted) return;
       setState(() => _isDownloading = false);
 
-      if (!installed && context.mounted) {
+      if (outcome == UpdateInstallResult.installed ||
+          outcome == UpdateInstallResult.unsupported) {
+        return;
+      }
+      if (outcome == UpdateInstallResult.cancelled) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Install cancelled")),
+          );
+        }
+        return;
+      }
+      if (context.mounted) {
+        final message = outcome == UpdateInstallResult.permissionDenied
+            ? "Allow installs from this source, then try again."
+            : "Download failed. Please try again.";
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Install cancelled")),
+          SnackBar(content: Text(message)),
         );
       }
     } catch (e) {

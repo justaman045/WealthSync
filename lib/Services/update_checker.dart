@@ -8,14 +8,34 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/version_utils.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Outcome of an in-app update attempt, so the UI can explain *why* it failed
+/// instead of a single generic message.
+enum UpdateInstallResult {
+  installed,
+  cancelled,
+  permissionDenied,
+  downloadFailed,
+  installFailed,
+  unsupported,
+}
+
 class UpdateChecker {
   static const lastDialogKey = 'last_update_dialog_shown';
   static const _installChannel = MethodChannel('money_control/install');
+
+  static const _releasesLatestUrl =
+      'https://github.com/justaman045/WealthSync/releases/latest';
+  static const _versionJsonUrl =
+      'https://raw.githubusercontent.com/justaman045/WealthSync/master/app_version.json';
+
+  static String _apkUrl(String version) =>
+      'https://github.com/justaman045/WealthSync/releases/download/v$version/app-release.apk';
 
   static Future<void> checkForUpdate() async {
     try {
@@ -25,70 +45,104 @@ class UpdateChecker {
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       if (prefs.getString(lastDialogKey) == todayStr) return;
 
-      final url = Uri.parse(
-        "https://raw.githubusercontent.com/justaman045/WealthSync/master/app_version.json",
-      );
-
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 404) {
-        debugPrint("Error with the Setup");
-        return;
-      } else if (response.statusCode != 200) {
-        return;
-      }
-
-      final data = jsonDecode(response.body);
-      if (data is! Map) return;
-
-      final latestVersion = data["latest_version"] as String? ?? '';
-      final updateMessage = data["update_message"] as String? ?? '';
-      if (latestVersion.isEmpty) return;
-      final isForce = data["force"] as bool? ?? false;
+      final info = await _fetchRemoteInfo();
+      final latestVersion = info.version;
+      if (latestVersion == null || latestVersion.isEmpty) return;
 
       final package = await PackageInfo.fromPlatform();
       final currentVersion = package.version;
 
+      // Only throttle once we actually have a version to compare against, so a
+      // transient network failure doesn't suppress the check for the whole day.
       await prefs.setString(lastDialogKey, todayStr);
 
-      if (_isNewerVersion(latestVersion, currentVersion)) {
-        _maybeShowUpdateDialog(latestVersion, updateMessage, isForce);
+      if (isNewerVersion(latestVersion, currentVersion)) {
+        _maybeShowUpdateDialog(latestVersion, info.message, info.force);
       }
     } catch (e) {
       debugPrint("Update check failed: $e");
     }
   }
 
-  /// Manual check triggered by the user — bypasses the daily throttle and
-  /// returns whether a newer version was found so the caller can show feedback.
-  static Future<bool> checkForUpdateManual() async {
+  /// Manual check triggered by the user — bypasses the daily throttle.
+  ///
+  /// Returns `true` when a newer version was found, `false` when the app is up
+  /// to date, and `null` when the check could not be completed (offline, bad
+  /// response, …). The `null` case lets the caller say "couldn't check"
+  /// instead of falsely claiming the app is up to date.
+  static Future<bool?> checkForUpdateManual() async {
     try {
-      final url = Uri.parse(
-        "https://raw.githubusercontent.com/justaman045/WealthSync/master/app_version.json",
-      );
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) return false;
-
-      final data = jsonDecode(response.body);
-      if (data is! Map) return false;
-
-      final latestVersion = data["latest_version"] as String? ?? '';
-      final updateMessage = data["update_message"] as String? ?? '';
-      if (latestVersion.isEmpty) return false;
-      final isForce = data["force"] as bool? ?? false;
+      final info = await _fetchRemoteInfo();
+      final latestVersion = info.version;
+      if (latestVersion == null || latestVersion.isEmpty) return null;
 
       final package = await PackageInfo.fromPlatform();
       final currentVersion = package.version;
 
-      if (_isNewerVersion(latestVersion, currentVersion)) {
-        _maybeShowUpdateDialog(latestVersion, updateMessage, isForce);
+      if (isNewerVersion(latestVersion, currentVersion)) {
+        _maybeShowUpdateDialog(latestVersion, info.message, info.force);
         return true;
       }
       return false;
     } catch (e) {
       debugPrint("Manual update check failed: $e");
-      return false;
+      return null;
     }
+  }
+
+  /// Resolves the newest release version plus its advisory copy.
+  ///
+  /// The authoritative version comes from the GitHub `releases/latest`
+  /// redirect (immune to an orphaned `app_version.json` commit from a
+  /// force-push); `app_version.json` is only a fallback and supplies the
+  /// human-readable message/force flag.
+  static Future<({String? version, String message, bool force})>
+      _fetchRemoteInfo() async {
+    var message = '';
+    var force = false;
+    String? jsonVersion;
+
+    try {
+      final response = await http
+          .get(Uri.parse(_versionJsonUrl))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map) {
+          jsonVersion = (data["latest_version"] as String?)?.trim();
+          message = data["update_message"] as String? ?? '';
+          force = data["force"] as bool? ?? false;
+        }
+      }
+    } catch (e) {
+      debugPrint("app_version.json fetch failed: $e");
+    }
+
+    String? tagVersion;
+    final client = http.Client();
+    try {
+      final request = http.Request('GET', Uri.parse(_releasesLatestUrl))
+        ..followRedirects = false;
+      final response =
+          await client.send(request).timeout(const Duration(seconds: 10));
+      await response.stream.drain<void>();
+      final location =
+          response.headers['location'] ?? response.headers['Location'];
+      final match = location == null
+          ? null
+          : RegExp(r'/tag/v?([0-9]+\.[0-9]+\.[0-9]+)').firstMatch(location);
+      tagVersion = match?.group(1);
+    } catch (e) {
+      debugPrint("release tag fetch failed: $e");
+    } finally {
+      client.close();
+    }
+
+    return (
+      version: tagVersion ?? jsonVersion,
+      message: message,
+      force: force,
+    );
   }
 
   static void _maybeShowUpdateDialog(
@@ -102,81 +156,118 @@ class UpdateChecker {
     }
   }
 
-  static bool _isNewerVersion(String remote, String local) {
-    String clean(String v) => v.split('-').first;
-    List<int> r = clean(remote).split('.').map((s) => int.tryParse(s) ?? 0).toList();
-    List<int> l = clean(local).split('.').map((s) => int.tryParse(s) ?? 0).toList();
-    while (r.length < 3) { r.add(0); }
-    while (l.length < 3) { l.add(0); }
-
-    for (int i = 0; i < 3; i++) {
-      if (r[i] > l[i]) return true;
-      if (r[i] < l[i]) return false;
-    }
-    return false;
-  }
-
   /// Downloads an APK from the GitHub release and triggers Android install.
   /// [onProgress] is called with a value between 0.0 and 1.0 during download.
-  static Future<bool> downloadAndInstallApk({
+  ///
+  /// The temp file is treated as disposable: any leftover from a previous
+  /// attempt is removed first, and a truncated/empty/invalid download is
+  /// deleted rather than handed to the installer. Install a partial APK and
+  /// Android reports "There was a problem parsing the package".
+  static Future<UpdateInstallResult> downloadAndInstallApk({
     required String version,
     void Function(double progress)? onProgress,
   }) async {
     if (kIsWeb) {
-      final url = Uri.parse(
-        "https://github.com/justaman045/WealthSync/releases/download/v$version/app-release.apk",
-      );
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-      return false;
+      try {
+        await launchUrl(
+          Uri.parse(_apkUrl(version)),
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (e) {
+        debugPrint("APK URL launch failed: $e");
+      }
+      return UpdateInstallResult.unsupported;
     }
 
+    File? file;
     try {
       final dir = await getTemporaryDirectory();
-      final file = File("${dir.path}/WealthSync-v$version.apk");
+      file = File("${dir.path}/WealthSync-v$version.apk");
 
-      if (await file.exists()) {
-        return await _installApk(file.path);
-      }
-
-      final downloadUrl = Uri.parse(
-        "https://github.com/justaman045/WealthSync/releases/download/v$version/app-release.apk",
-      );
+      // Never trust a cached/partial APK: a poisoned file would be reinstalled
+      // instantly on every retry.
+      await _safeDelete(file);
 
       final client = http.Client();
       try {
-        final request = await client.send(
-          http.Request('GET', downloadUrl),
+        final response = await client.send(
+          http.Request('GET', Uri.parse(_apkUrl(version))),
         );
-        final totalBytes = request.contentLength ?? 0;
-        final sink = file.openWrite();
-        int received = 0;
-
-        await for (final chunk in request.stream) {
-          sink.add(chunk);
-          received += chunk.length;
-          if (totalBytes > 0) {
-            onProgress?.call(received / totalBytes);
-          }
+        if (response.statusCode != 200) {
+          return UpdateInstallResult.downloadFailed;
         }
 
-        await sink.flush();
-        await sink.close();
-        if (request.statusCode != 200) {
-          await file.delete();
-          return false;
+        final totalBytes = response.contentLength ?? 0;
+        final sink = file.openWrite();
+        int received = 0;
+        try {
+          await for (final chunk in response.stream) {
+            sink.add(chunk);
+            received += chunk.length;
+            if (totalBytes > 0) {
+              onProgress?.call(received / totalBytes);
+            }
+          }
+          await sink.flush();
+        } finally {
+          await sink.close();
+        }
+
+        if (received == 0 || (totalBytes > 0 && received != totalBytes)) {
+          debugPrint("APK download incomplete: $received/$totalBytes bytes");
+          await _safeDelete(file);
+          return UpdateInstallResult.downloadFailed;
         }
       } finally {
         client.close();
       }
 
+      if (!await _looksLikeApk(file)) {
+        debugPrint("Downloaded file is not a valid APK (bad magic bytes)");
+        await _safeDelete(file);
+        return UpdateInstallResult.downloadFailed;
+      }
+
       return await _installApk(file.path);
     } catch (e) {
       debugPrint("APK download failed: $e");
+      if (file != null) await _safeDelete(file);
+      return UpdateInstallResult.downloadFailed;
+    }
+  }
+
+  static const _apkMagic = [0x50, 0x4b, 0x03, 0x04]; // "PK\x03\x04"
+
+  /// A real APK is a ZIP archive, so it must start with the ZIP local-file
+  /// header. Guards against an HTML error page or other non-APK payload.
+  static Future<bool> _looksLikeApk(File file) async {
+    try {
+      final raf = await file.open();
+      try {
+        if (await raf.length() < 4) return false;
+        raf.setPosition(0);
+        final head = await raf.read(4);
+        for (var i = 0; i < _apkMagic.length; i++) {
+          if (head[i] != _apkMagic[i]) return false;
+        }
+        return true;
+      } finally {
+        await raf.close();
+      }
+    } catch (_) {
       return false;
     }
   }
 
-  static Future<bool> _installApk(String filePath) async {
+  static Future<void> _safeDelete(File file) async {
+    try {
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Best effort — a stale file is harmless once we re-download.
+    }
+  }
+
+  static Future<UpdateInstallResult> _installApk(String filePath) async {
     try {
       var hasPermission = await _installChannel.invokeMethod<bool>(
         'checkInstallPermission',
@@ -186,17 +277,25 @@ class UpdateChecker {
           'requestInstallPermission',
         );
       }
-      if (hasPermission == true) {
-        final result = await _installChannel.invokeMethod<String>(
-          'installApk',
-          filePath,
-        );
-        return result == 'installed';
+      if (hasPermission != true) {
+        return UpdateInstallResult.permissionDenied;
       }
-      return false;
+
+      final result = await _installChannel.invokeMethod<String>(
+        'installApk',
+        filePath,
+      );
+      return result == 'installed'
+          ? UpdateInstallResult.installed
+          : UpdateInstallResult.cancelled;
+    } on PlatformException catch (e) {
+      debugPrint("APK install failed: $e");
+      return e.code == 'PERMISSION_REQUIRED'
+          ? UpdateInstallResult.permissionDenied
+          : UpdateInstallResult.installFailed;
     } catch (e) {
       debugPrint("APK install failed: $e");
-      return false;
+      return UpdateInstallResult.installFailed;
     }
   }
 
@@ -270,7 +369,7 @@ class _UpdateDialogState extends State<_UpdateDialog> {
     });
 
     try {
-      final installed = await UpdateChecker.downloadAndInstallApk(
+      final outcome = await UpdateChecker.downloadAndInstallApk(
         version: widget.version,
         onProgress: (p) {
           if (mounted) setState(() => _progress = p);
@@ -278,10 +377,29 @@ class _UpdateDialogState extends State<_UpdateDialog> {
       );
 
       if (!mounted) return;
-      setState(() => _state = _DownloadState.done);
 
-      if (installed && context.mounted) {
-        Navigator.of(context).pop();
+      switch (outcome) {
+        case UpdateInstallResult.installed:
+          setState(() => _state = _DownloadState.done);
+          if (context.mounted) Navigator.of(context).pop();
+        case UpdateInstallResult.cancelled:
+        case UpdateInstallResult.unsupported:
+          setState(() => _state = _DownloadState.done);
+        case UpdateInstallResult.permissionDenied:
+          setState(() {
+            _state = _DownloadState.error;
+            _errorMsg = "Allow installs from this source, then try again.";
+          });
+        case UpdateInstallResult.downloadFailed:
+          setState(() {
+            _state = _DownloadState.error;
+            _errorMsg = "Download failed. Please try again.";
+          });
+        case UpdateInstallResult.installFailed:
+          setState(() {
+            _state = _DownloadState.error;
+            _errorMsg = "Install failed. Please try again.";
+          });
       }
     } catch (e) {
       if (!mounted) return;
