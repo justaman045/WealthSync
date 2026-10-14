@@ -179,6 +179,277 @@ String formatMonthlyIncome(
   return formatter.format(monthly);
 }
 
+/// Default share of income reserved for savings when advising a daily limit.
+const double kDefaultSavingsRate = 0.20;
+
+/// Income source modes used by [computeExpectedIncome].
+enum IncomeMode { manual, autoBlend, autoSalaryWindow }
+
+/// Returns true if [date] is in the first week of its month (calendar days 1–7 inclusive).
+bool isInFirstWeek(DateTime date) {
+  // Calendar days 1-7, inclusive. Time component ignored.
+  final d = DateTime(date.year, date.month, date.day);
+  return d.day >= 1 && d.day <= 7;
+}
+
+/// Returns the last working day (Mon–Fri) of [month]/[year]. Bank holidays are
+/// skipped for now. If the month ends Sat/Sun, returns the preceding Fri.
+DateTime lastWorkingDayOfMonth(int year, int month) {
+  // Get last calendar day of month.
+  final lastDay = DateTime(year, month + 1, 0);
+  DateTime d = DateTime(lastDay.year, lastDay.month, lastDay.day);
+  while (d.weekday == DateTime.saturday || d.weekday == DateTime.sunday) {
+    d = d.subtract(const Duration(days: 1));
+  }
+  return DateTime(d.year, d.month, d.day);
+}
+/// Returns the last working day (Mon–Fri) of the previous month relative to [reference].
+DateTime lastWorkingDayOfPreviousMonth(DateTime reference) {
+  final prevMonth = reference.month == 1 ? 12 : reference.month - 1;
+  final prevYear = reference.month == 1 ? reference.year - 1 : reference.year;
+  return lastWorkingDayOfMonth(prevYear, prevMonth);
+}
+
+
+/// Returns true if [date] is exactly the last working day of its own month.
+bool isLastWorkingDay(DateTime date) {
+  final lwm = lastWorkingDayOfMonth(date.year, date.month);
+  final d = DateTime(date.year, date.month, date.day);
+  return d.year == lwm.year && d.month == lwm.month && d.day == lwm.day;
+}
+
+/// Sum of income (recipientId == uid) in the union of:
+/// - first week of current month (calendar days 1–7) AND/OR
+/// - last working day of previous month (Mon–Fri).
+/// Union sum; only recorded transactions counted.
+double sumIncomeInSalaryWindowThisMonth(List<dynamic> allTx, String uid) {
+  final now = DateTime.now();
+  final year = now.year;
+  final month = now.month;
+  final lwmPrev = lastWorkingDayOfPreviousMonth(now);
+  double sum = 0;
+
+  for (final tx in allTx) {
+    final recipientId = tx.recipientId;
+    if (recipientId != uid) continue;
+    final tDate = tx.date as DateTime;
+
+    final inFirstWeekCurrent = (tDate.year == year && tDate.month == month && tDate.day >= 1 && tDate.day <= 7);
+    final isLwmPrev = (tDate.year == lwmPrev.year && tDate.month == lwmPrev.month && tDate.day == lwmPrev.day);
+    if (inFirstWeekCurrent || isLwmPrev) {
+      final amt = tx.amount;
+      if (amt < 0) {
+        sum += (-amt);
+      } else {
+        sum += amt.abs();
+      }
+    }
+  }
+  return sum;
+}
+
+/// Result of [computeExpectedIncome].
+class ExpectedIncomeResult {
+  final double expectedIncome; // 0.0 means not available
+  final IncomeMode effectiveMode;
+  final bool usedManual;
+  final bool fellBackToBlend;
+  final bool salaryWindowEmpty;
+
+  const ExpectedIncomeResult({
+    required this.expectedIncome,
+    required this.effectiveMode,
+    this.usedManual = false,
+    this.fellBackToBlend = false,
+    this.salaryWindowEmpty = false,
+  });
+}
+
+/// Computes effective expected monthly income given mode + manual and transactions.
+ExpectedIncomeResult computeExpectedIncome({
+  required List<dynamic> allTx,
+  required String uid,
+  required IncomeMode mode,
+  required double manualMonthly,
+}) {
+  final manualSet = manualMonthly > 0.0 && manualMonthly.isFinite;
+
+  // Manual mode takes precedence if set.
+  if (mode == IncomeMode.manual) {
+    if (manualSet) {
+      return ExpectedIncomeResult(
+        expectedIncome: manualMonthly,
+        effectiveMode: IncomeMode.manual,
+        usedManual: true,
+        fellBackToBlend: false,
+        salaryWindowEmpty: false,
+      );
+    }
+    // Manual requested but not set → fallback to Auto – Blend
+    // Compute blend.
+  }
+
+  if (mode == IncomeMode.manual && !manualSet) {
+    // fallback to blend
+    final now = DateTime.now();
+    final year = now.year;
+    final month = now.month;
+    final incomeCutoff = now.subtract(const Duration(days: 90));
+    double thisMonthIncome = 0;
+    double last3mIncome = 0;
+    for (final tx in allTx) {
+      if (tx.recipientId != uid) continue;
+      final amt = tx.amount.abs();
+      final d = tx.date as DateTime;
+      if (d.year == year && d.month == month) {
+        thisMonthIncome += amt;
+      }
+      if (d.isAfter(incomeCutoff)) {
+        last3mIncome += amt;
+      }
+    }
+    final avg3m = last3mIncome / 3.0;
+    final expected = thisMonthIncome > avg3m ? thisMonthIncome : avg3m;
+    return ExpectedIncomeResult(
+      expectedIncome: expected,
+      effectiveMode: IncomeMode.autoBlend,
+      usedManual: false,
+      fellBackToBlend: true,
+      salaryWindowEmpty: false,
+    );
+  }
+
+  if (mode == IncomeMode.autoSalaryWindow) {
+    final w = sumIncomeInSalaryWindowThisMonth(allTx, uid);
+    if (w > 0) {
+      return ExpectedIncomeResult(
+        expectedIncome: w,
+        effectiveMode: IncomeMode.autoSalaryWindow,
+        usedManual: false,
+        fellBackToBlend: false,
+        salaryWindowEmpty: false,
+      );
+    } else {
+      return ExpectedIncomeResult(
+        expectedIncome: 0.0,
+        effectiveMode: IncomeMode.autoSalaryWindow,
+        usedManual: false,
+        fellBackToBlend: false,
+        salaryWindowEmpty: true,
+      );
+    }
+  }
+
+  // Auto – Blend (default)
+  {
+    final now = DateTime.now();
+    final year = now.year;
+    final month = now.month;
+    final incomeCutoff = now.subtract(const Duration(days: 90));
+    double thisMonthIncome = 0;
+    double last3mIncome = 0;
+    for (final tx in allTx) {
+      if (tx.recipientId != uid) continue;
+      final amt = tx.amount.abs();
+      final d = tx.date as DateTime;
+      if (d.year == year && d.month == month) {
+        thisMonthIncome += amt;
+      }
+      if (d.isAfter(incomeCutoff)) {
+        last3mIncome += amt;
+      }
+    }
+    final avg3m = last3mIncome / 3.0;
+    final expected = thisMonthIncome > avg3m ? thisMonthIncome : avg3m;
+    return ExpectedIncomeResult(
+      expectedIncome: expected,
+      effectiveMode: IncomeMode.autoBlend,
+      usedManual: false,
+      fellBackToBlend: false,
+      salaryWindowEmpty: false,
+    );
+  }
+}
+
+/// Result of an income-based daily spending limit.
+///
+/// The limit answers "how much can I spend per day, on top of fixed bills, so I
+/// stay under my income and still save?". Fixed/committed spend is subtracted
+/// up-front, so [dailyLimit] only governs discretionary spending.
+class DailyLimit {
+  /// Expected income for the month (e.g. 3-month average).
+  final double expectedIncome;
+
+  /// Income set aside for savings before any spending.
+  final double savingsReserved;
+
+  /// Full-month committed spend (rent/EMI/bills) forecast.
+  final double fixedForecast;
+
+  /// Discretionary spend already recorded this month.
+  final double variableSpent;
+
+  /// Income left after savings + fixed — the pot discretionary spend may use.
+  final double disposableBudget;
+
+  /// [disposableBudget] minus what's already been spent (never negative).
+  final double remainingVariable;
+
+  /// Days left in the month, today included.
+  final int remainingDays;
+
+  /// Suggested discretionary spend per remaining day (never negative).
+  final double dailyLimit;
+
+  const DailyLimit({
+    required this.expectedIncome,
+    required this.savingsReserved,
+    required this.fixedForecast,
+    required this.variableSpent,
+    required this.disposableBudget,
+    required this.remainingVariable,
+    required this.remainingDays,
+    required this.dailyLimit,
+  });
+}
+
+/// Computes an income-aware daily spending limit.
+///
+/// [expectedIncome] is the month's projected income; [savingsRate] (0–1) is the
+/// share reserved for savings. [fixedForecast] is the month's committed spend,
+/// [variableSpent] what has already been spent on discretionary items, and
+/// [remainingDays] the days left (today included, minimum 1). Every result is
+/// clamped so an overspent or negative input can never report phantom budget.
+DailyLimit computeDailyLimit({
+  required double expectedIncome,
+  required double fixedForecast,
+  required double variableSpent,
+  required int remainingDays,
+  double savingsRate = kDefaultSavingsRate,
+}) {
+  final income = expectedIncome > 0 ? expectedIncome : 0.0;
+  final rate = savingsRate.clamp(0.0, 1.0);
+  final fixed = fixedForecast > 0 ? fixedForecast : 0.0;
+  final spent = variableSpent > 0 ? variableSpent : 0.0;
+  final days = remainingDays < 1 ? 1 : remainingDays;
+
+  final savingsReserved = income * rate;
+  final disposableBudget = math.max(0.0, income - savingsReserved - fixed);
+  final remainingVariable = math.max(0.0, disposableBudget - spent);
+  final dailyLimit = remainingVariable / days;
+
+  return DailyLimit(
+    expectedIncome: income,
+    savingsReserved: savingsReserved,
+    fixedForecast: fixed,
+    variableSpent: spent,
+    disposableBudget: disposableBudget,
+    remainingVariable: remainingVariable,
+    remainingDays: days,
+    dailyLimit: dailyLimit,
+  );
+}
+
 /// Rounds a percentage [percent] (e.g. 1.3361) **up** to [decimals] places and
 /// trims trailing zeros. Takes the percent itself — it does NOT multiply by 100
 /// (the caller passes `ratio * 100`). 0.5643 -> "0.57", 1.3361 -> "1.34",

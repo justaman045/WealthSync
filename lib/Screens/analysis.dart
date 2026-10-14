@@ -20,6 +20,9 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Repositories/transaction_repository.dart';
 import 'package:money_control/Screens/cateogary_history.dart';
 import 'package:money_control/Services/performance_controller.dart';
+import 'package:money_control/Services/income_settings.dart';
+import 'package:money_control/Services/savings_settings.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class AIInsightsScreen extends StatefulWidget {
   final bool showNavigation;
@@ -78,6 +81,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   double forecastVariable = 0;
   double currentVariableSpent = 0;
 
+  // Income-aware daily limit inputs (see _runInsights). The limit itself is
+  // derived in _buildDailyLimitCard so it tracks live settings.
+  double expectedMonthlyIncome = 0;
+  ExpectedIncomeResult? incomeResult;
+
   // ======================================================
   // 🔥 AI ANALYSIS: FIXED vs VARIABLE + HISTORICAL REMAINING SPEND
   // ======================================================
@@ -95,6 +103,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         todayVariableSpent = 0;
         usualMonthAvg = 0;
         overshootPercent = 0;
+        expectedMonthlyIncome = 0;
+        incomeResult = null;
         dailySpending.clear();
         insights.clear();
       });
@@ -125,6 +135,20 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       final allTx = txController.transactions
           .where((tx) => tx.senderId == user.uid)
           .toList();
+
+      // Income: precedence — manual > 0 wins; else selected auto mode (blend or salary window).
+      // Salary window = union of (days 1–7 OR last working day). If empty and mode is salary window, result.salaryWindowEmpty=true.
+      await IncomeSettings.load();
+      await SavingsSettings.load();
+      if (!mounted) return;
+
+      incomeResult = computeExpectedIncome(
+        allTx: txController.transactions,
+        uid: user.uid,
+        mode: IncomeSettings.mode.value,
+        manualMonthly: IncomeSettings.manualMonthly.value,
+      );
+      expectedMonthlyIncome = incomeResult?.expectedIncome ?? 0;
 
       if (allTx.isEmpty) {
         setState(() {
@@ -804,51 +828,136 @@ child: loading
 
   Widget _buildDailyLimitCard(ColorScheme scheme) {
     final lite = PerformanceController.to.liteMode.value;
+    final sym = CurrencyController.to.currencySymbol.value;
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-    final daysPassed = now.day;
-    final remainingDays = max(1, daysInMonth - daysPassed);
+    final user = FirebaseAuth.instance.currentUser;
 
-    // SMART DAILY LIMIT: Based on DISPOSABLE (Variable) income only
-    // User goal: "do not spend over than forecasted expense"
-    // So target = forecastVariable.
+    // Derived here (not cached) so the card tracks SavingsSettings.percent and
+    // IncomeSettings.mode/manual.
+    final liveIncome = computeExpectedIncome(
+      allTx: Get.isRegistered<TransactionController>()
+          ? Get.find<TransactionController>().transactions
+          : const [],
+      uid: user?.uid ?? '',
+      mode: IncomeSettings.mode.value,
+      manualMonthly: IncomeSettings.manualMonthly.value,
+    );
+    final limit = computeDailyLimit(
+      expectedIncome: liveIncome.expectedIncome,
+      fixedForecast: forecastFixed,
+      variableSpent: currentVariableSpent,
+      remainingDays: max(1, daysInMonth - now.day + 1),
+      savingsRate: SavingsSettings.rate,
+    );
 
-    final targetVariable = forecastVariable;
-    final spentVariable = currentVariableSpent;
+    final List<Widget> children = [
+      Text(
+        "Smart Daily Limit",
+        style: TextStyle(
+          fontSize: 15.sp,
+          fontWeight: FontWeight.w600,
+          color: scheme.onSurface.withValues(alpha: 0.95),
+          letterSpacing: 0.3,
+        ),
+      ),
+      SizedBox(height: 4.h),
+      Obx(() {
+        final m = IncomeSettings.mode.value;
+        final manual = IncomeSettings.manualMonthly.value;
+        String note = "Mode: ${IncomeSettings.modeLabel(m)}";
+        if (m == IncomeMode.manual && manual <= 0) {
+          note += " · Manual not set — using Auto – Blend";
+        }
+        // reflect liveIncome if salary window empty
+        if (m == IncomeMode.autoSalaryWindow) {
+          if (liveIncome.salaryWindowEmpty) {
+            note += " · No salary credits found in window (current month first week or previous month last working day)";
+          }
+        }
+        return Text(
+          note,
+          style: TextStyle(
+            fontSize: 11.sp,
+            color: scheme.onSurface.withValues(alpha: 0.7),
+          ),
+        );
+      }),
+    ];
 
-    // Remaining Disposable Budget
-    final remainingDisposable = max(0, targetVariable - spentVariable);
-
-    // Suggested Daily Limit
-    final dailyLimit = remainingDays > 0
-        ? remainingDisposable / remainingDays
-        : 0.0;
-
-    // For "Today's Status", we compare to the limit
-    final today = todayVariableSpent; // Using Variable spend only
-    // Refinement: Users usually care about variable daily spend.
-    // Ideally we filter "todaySpent" to be variable only too, but usually fine for guidance.
-    // Let's assume dailySpending map captures total. If we pay rent today, it might spike.
-    // Refinement: Users usually care about variable daily spend.
-    // Ideally we should track 'todayVariableSpent'.
-    // But for now, let's stick to the requested logic: "limit ... so I do not spend over forecasted"
-
-    // Status Text
-    String statusText;
-    Color statusColor;
-
-    if (today > dailyLimit * 1.5) {
-      statusText = "Stop! You're well above your disposable limit for today.";
-      statusColor = Colors.redAccent;
-    } else if (today > dailyLimit * 1.1) {
-      statusText = "Careful, you're slightly above your daily limit.";
-      statusColor = Colors.orange.shade700;
-    } else if (today == 0) {
-      statusText = "No spending yet. Great start to saving!";
-      statusColor = Colors.blueGrey;
+    if (liveIncome.expectedIncome <= 0) {
+      // No income logged yet — an income-less "limit" would be meaningless, so
+      // prompt the user instead of showing a number.
+      children.addAll([
+        SizedBox(height: 8.h),
+        Text(
+          "Add your income (a received Salary/Income entry) to see how much you can safely spend per day.",
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: scheme.onSurface.withValues(alpha: 0.8),
+          ),
+        ),
+      ]);
     } else {
-      statusText = "Perfect. You are within your disposable daily limit.";
-      statusColor = Colors.green.shade700;
+      final daily = limit.dailyLimit;
+      final today = todayVariableSpent;
+      final ratePct = SavingsSettings.percent.value;
+
+      String statusText;
+      Color statusColor;
+      if (today > daily * 1.5) {
+        statusText = "Stop! You're well above today's safe limit.";
+        statusColor = Colors.redAccent;
+      } else if (today > daily * 1.1) {
+        statusText = "Careful, you're slightly above today's safe limit.";
+        statusColor = Colors.orange.shade700;
+      } else if (today == 0) {
+        statusText = "No spending yet. Great start to saving!";
+        statusColor = Colors.blueGrey;
+      } else {
+        statusText = "You're within today's safe limit.";
+        statusColor = Colors.green.shade700;
+      }
+
+      children.addAll([
+        SizedBox(height: 6.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _limitTile(
+              "Spend per day",
+              "$sym${daily.toStringAsFixed(0)}",
+              scheme.onSurface,
+            ),
+            _limitTile(
+              "Today",
+              "$sym${today.toStringAsFixed(0)}",
+              today > daily ? Colors.redAccent : Colors.green.shade700,
+            ),
+          ],
+        ),
+        SizedBox(height: 8.h),
+        Text(
+          "From ~$sym${limit.expectedIncome.toStringAsFixed(0)} income: saving "
+          "$sym${limit.savingsReserved.toStringAsFixed(0)} ($ratePct%) and "
+          "$sym${limit.fixedForecast.toStringAsFixed(0)} for bills, leaving "
+          "$sym${limit.remainingVariable.toStringAsFixed(0)} over "
+          "${limit.remainingDays} day${limit.remainingDays == 1 ? '' : 's'}.",
+          style: TextStyle(
+            fontSize: 12.sp,
+            color: scheme.onSurface.withValues(alpha: 0.8),
+          ),
+        ),
+        SizedBox(height: 6.h),
+        Text(
+          statusText,
+          style: TextStyle(
+            fontSize: 12.5.sp,
+            fontWeight: FontWeight.w600,
+            color: statusColor,
+          ),
+        ),
+      ]);
     }
 
     return AnimatedContainer(
@@ -883,50 +992,7 @@ child: loading
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Smart Daily Limit (Disposable)",
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface.withValues(alpha: 0.95),
-              letterSpacing: 0.3,
-            ),
-          ),
-          SizedBox(height: 6.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _limitTile(
-                "Daily limit (Variable)",
-                "${CurrencyController.to.currencySymbol.value}${dailyLimit.toStringAsFixed(0)}",
-                scheme.onSurface,
-              ),
-              _limitTile(
-                "Today’s variable",
-                "${CurrencyController.to.currencySymbol.value}${today.toStringAsFixed(0)}",
-                today > dailyLimit ? Colors.redAccent : Colors.green.shade700,
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            "This limit ignores Rent/Bills. Keep your other spending below ${CurrencyController.to.currencySymbol.value}${dailyLimit.toStringAsFixed(0)}/day to hit your forecast.",
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: scheme.onSurface.withValues(alpha: 0.8),
-            ),
-          ),
-          SizedBox(height: 6.h),
-          Text(
-            statusText,
-            style: TextStyle(
-              fontSize: 12.5.sp,
-              fontWeight: FontWeight.w600,
-              color: statusColor,
-            ),
-          ),
-        ],
+        children: children,
       ),
     );
   }

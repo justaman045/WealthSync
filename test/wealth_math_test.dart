@@ -259,4 +259,135 @@ void main() {
       expect(formatPercent(-5), '0');
     });
   });
+
+  group('computeDailyLimit()', () {
+    test('reserves savings and fixed, then spreads the rest', () {
+      // 45000 income, 20% savings (9000), 10000 bills, 6000 already spent,
+      // 10 days left → (45000 - 9000 - 10000 - 6000) / 10 = 2000/day.
+      final d = computeDailyLimit(
+        expectedIncome: 45000,
+        fixedForecast: 10000,
+        variableSpent: 6000,
+        remainingDays: 10,
+      );
+      expect(d.savingsReserved, closeTo(9000, 0.001));
+      expect(d.disposableBudget, closeTo(26000, 0.001));
+      expect(d.remainingVariable, closeTo(20000, 0.001));
+      expect(d.dailyLimit, closeTo(2000, 0.001));
+    });
+
+    test('honors a custom savings rate and a zero rate', () {
+      final ten = computeDailyLimit(
+        expectedIncome: 10000,
+        fixedForecast: 0,
+        variableSpent: 0,
+        remainingDays: 1,
+        savingsRate: 0.10,
+      );
+      expect(ten.savingsReserved, 1000);
+      expect(ten.dailyLimit, 9000);
+
+      final none = computeDailyLimit(
+        expectedIncome: 10000,
+        fixedForecast: 0,
+        variableSpent: 0,
+        remainingDays: 1,
+        savingsRate: 0,
+      );
+      expect(none.savingsReserved, 0);
+      expect(none.dailyLimit, 10000);
+    });
+
+    test('overspending clamps the daily limit to zero', () {
+      final d = computeDailyLimit(
+        expectedIncome: 20000,
+        fixedForecast: 5000,
+        variableSpent: 50000,
+        remainingDays: 15,
+      );
+      // disposable = 20000 - 4000 - 5000 = 11000; spent 50000 → 0 left.
+      expect(d.remainingVariable, 0);
+      expect(d.dailyLimit, 0);
+    });
+
+    test('a fixed forecast that eats all income yields zero, never negative', () {
+      final d = computeDailyLimit(
+        expectedIncome: 10000,
+        fixedForecast: 99999,
+        variableSpent: 0,
+        remainingDays: 10,
+      );
+      expect(d.disposableBudget, 0);
+      expect(d.remainingVariable, 0);
+      expect(d.dailyLimit, 0);
+    });
+
+    test('clamps savingsRate into [0, 1]', () {
+      final over = computeDailyLimit(
+        expectedIncome: 10000,
+        fixedForecast: 0,
+        variableSpent: 0,
+        remainingDays: 1,
+        savingsRate: 5,
+      );
+      expect(over.savingsReserved, 10000);
+      expect(over.dailyLimit, 0);
+
+      final under = computeDailyLimit(
+        expectedIncome: 10000,
+        fixedForecast: 0,
+        variableSpent: 0,
+        remainingDays: 1,
+        savingsRate: -2,
+      );
+      expect(under.savingsReserved, 0);
+      expect(under.dailyLimit, 10000);
+    });
+
+    test('treats non-positive inputs as zero and remainingDays < 1 as 1', () {
+      final d = computeDailyLimit(
+        expectedIncome: -500,
+        fixedForecast: -100,
+        variableSpent: -50,
+        remainingDays: 0,
+      );
+      expect(d.expectedIncome, 0);
+      expect(d.fixedForecast, 0);
+      expect(d.variableSpent, 0);
+      expect(d.remainingDays, 1);
+      expect(d.dailyLimit, 0);
+    });
+
+    test('no income yields no budget', () {
+      final d = computeDailyLimit(
+        expectedIncome: 0,
+        fixedForecast: 0,
+        variableSpent: 0,
+        remainingDays: 20,
+      );
+      expect(d.disposableBudget, 0);
+      expect(d.dailyLimit, 0);
+    });
+  });
+
+  group('income detection helpers', () {
+    test('isInFirstWeek identifies days 1-7', () {
+      expect(isInFirstWeek(DateTime(2026, 10, 1)), true);
+      expect(isInFirstWeek(DateTime(2026, 10, 7)), true);
+      expect(isInFirstWeek(DateTime(2026, 10, 8)), false);
+      expect(isInFirstWeek(DateTime(2026, 9, 5)), true);
+    });
+
+    test('lastWorkingDayOfMonth skips weekends', () {
+      // Example months
+      final oct = lastWorkingDayOfMonth(2026, 10); // Oct 2026 ends Sat? Oct 31 2026 is Sat
+      expect(oct.weekday != DateTime.saturday && oct.weekday != DateTime.sunday, true);
+    });
+
+    test('isLastWorkingDay matches lastWorkingDayOfMonth', () {
+      final d = lastWorkingDayOfMonth(2026, 9);
+      expect(isLastWorkingDay(d), true);
+      expect(isLastWorkingDay(DateTime(d.year, d.month, d.day - 1)), false);
+    });
+  });
 }

@@ -1,3 +1,4 @@
+import 'package:money_control/Utils/wealth_math.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,8 @@ import 'package:money_control/Screens/home_widget_preview.dart';
 import 'package:money_control/Screens/notification_settings.dart';
 import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Services/performance_controller.dart';
+import 'package:money_control/Services/income_settings.dart';
+import 'package:money_control/Services/savings_settings.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/main.dart'; // For ThemeController
@@ -127,6 +130,7 @@ class GeneralSettingsScreen extends StatefulWidget {
 class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   bool _autoImport = false;
   bool _expenseReminder = true;
+  int _savingsPercent = 20;
 
   @override
   void initState() {
@@ -136,11 +140,14 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
 
   Future<void> _loadPreference() async {
     final prefs = await SharedPreferences.getInstance();
+    await SavingsSettings.load();
+    await IncomeSettings.load();
     if (!mounted) return;
     setState(() {
       _autoImport =
           prefs.getBool(SmsService.autoImportEnabledKey) == true;
       _expenseReminder = prefs.getBool(transactionReminderEnabledKey) ?? true;
+      _savingsPercent = SavingsSettings.percent.value;
     });
   }
 
@@ -226,6 +233,43 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         },
                       ),
                     ),
+                    SettingsTile(
+                      icon: Icons.savings_outlined,
+                      title: "Savings Target",
+                      subtitle:
+                          "Reserve $_savingsPercent% of income before your daily limit",
+                      onTap: () => _showSavingsDialog(context),
+                    ),
+                    const SectionHeader("Income"),
+                    Obx(() => SettingsTile(
+                          icon: Icons.attach_money_outlined,
+                          title: "Income Source",
+                          subtitle: IncomeSettings.modeLabel(),
+                          onTap: () => _showIncomeModeDialog(context),
+                        )),
+                    Obx(() {
+                      final manual = IncomeSettings.mode.value == IncomeMode.manual;
+                      return SettingsTile(
+                        icon: Icons.edit_outlined,
+                        title: "Manual Monthly Income",
+                        subtitle: IncomeSettings.manualMonthly.value <= 0
+                            ? "Not set"
+                            : "${CurrencyController.to.currencySymbol.value}${IncomeSettings.manualMonthly.value.toStringAsFixed(0)}/mo",
+                        onTap: manual ? () => _showIncomeManualDialog(context) : null,
+                      );
+                    }),
+                    Obx(() => Padding(
+                          padding: EdgeInsets.only(left: 88.w, right: 16.w, top: 4.h),
+                          child: Text(
+                            "Currently using: ${IncomeSettings.modeLabel()}",
+                            style: TextStyle(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white54
+                                  : AppColors.lightTextSecondary,
+                              fontSize: 12.sp,
+                            ),
+                          ),
+                        )),
                     FeatureVisible(
                       flagKey: 'notifications',
                       child: SettingsTile(
@@ -441,4 +485,138 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
       ),
     );
   }
+
+  void _showIncomeModeDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Text(
+          "Income Source",
+          style: TextStyle(
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: IncomeMode.values.map((m) {
+            return RadioListTile<IncomeMode>(
+              title: Text(
+                IncomeSettings.modeLabel(m),
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                ),
+              ),
+              value: m,
+              groupValue: IncomeSettings.mode.value,
+              onChanged: (v) async {
+                if (v == null) return;
+                await IncomeSettings.setMode(v);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showIncomeManualDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final controller = TextEditingController(
+      text: IncomeSettings.manualMonthly.value > 0
+          ? IncomeSettings.manualMonthly.value.toStringAsFixed(0)
+          : '',
+    );
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Text(
+          "Manual Monthly Income",
+          style: TextStyle(
+            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: "Amount",
+            prefixText: CurrencyController.to.currencySymbol.value,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              final text = controller.text.trim();
+              if (text.isEmpty) {
+                await IncomeSettings.setManual(0);
+                if (ctx.mounted) Navigator.pop(ctx);
+                return;
+              }
+              final amt = double.tryParse(text);
+              if (amt == null || !amt.isFinite) {
+                if (ctx.mounted) Navigator.pop(ctx);
+                return;
+              }
+              await IncomeSettings.setManual(amt);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }  void _showSavingsDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    int temp = _savingsPercent;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+          title: Text("Savings Target", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Reserve $temp% of your income for savings", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+              SizedBox(height: 8.h),
+              Slider(value: temp.toDouble(), min: SavingsSettings.minPercent.toDouble(), max: SavingsSettings.maxPercent.toDouble(), divisions: (SavingsSettings.maxPercent - SavingsSettings.minPercent) ~/ 5, label: "$temp%", activeColor: AppColors.primary, onChanged: (v) => setLocal(() => temp = v.round())),
+              Text("This share is set aside before your AI Insights daily spending limit is calculated.", style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 12.sp)),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+            TextButton(onPressed: () async {
+              await SavingsSettings.setPercent(temp);
+              if (!mounted) return;
+              setState(() => _savingsPercent = temp);
+              if (ctx.mounted) Navigator.pop(ctx);
+            }, child: const Text("Save")),
+          ],
+        ),
+      ),
+    );
+  }
+
 }
