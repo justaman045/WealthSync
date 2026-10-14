@@ -1,3 +1,16 @@
+# WorkManager's Room database is created reflectively at runtime by Room:
+#   Class.forName("androidx.work.impl.WorkDatabase_Impl")
+#        .getDeclaredConstructor().newInstance()
+# Room ships `-keep class * extends androidx.room.RoomDatabase` (which keeps the
+# class name) but under R8 full mode that does NOT protect the generated no-arg
+# constructor: R8 shrinks `WorkDatabase_Impl.<init>()` away and the app crashes
+# at launch inside androidx.startup's InitializationProvider with
+# `NoSuchMethodException: androidx.work.impl.WorkDatabase_Impl.<init> []`.
+# Keep the class name AND its constructors explicitly.
+-keep class * extends androidx.room.RoomDatabase {
+    <init>(...);
+}
+
 # ML Kit Text Recognition Keep Rules
 -keep class com.google.mlkit.vision.text.** { *; }
 

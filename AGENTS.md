@@ -550,6 +550,18 @@ recovery path). Test seams: `fetchOverride`/`writeOverride` + `resetSchedulingFo
   output dir and coexist — do not assume a split build wipes the universal. Release signing
   enables v1+v2+v3 (`enableV1Signing`/`V2`/`V3` on the signing config), not AGP's default
   v2-only, so sideload installs verify on every Android version.
+- **R8 minify is ON for release — a release-only crash is invisible to every test.**
+  `isMinifyEnabled`/`isShrinkResources` are set in `android/app/build.gradle.kts`, but unit
+  and integration tests run **debug** builds, so R8 damage (a shrunk reflective constructor)
+  only appears when a release APK actually launches. Room ships
+  `-keep class * extends androidx.room.RoomDatabase`, which preserves the generated class
+  **name** but — under R8 full mode — not its no-arg constructor. WorkManager builds its
+  `WorkDatabase_Impl` reflectively (`Class.forName(...).getDeclaredConstructor()`), so every
+  release APK died at launch inside `androidx.startup.InitializationProvider` with
+  `NoSuchMethodException: androidx.work.impl.WorkDatabase_Impl.<init>` until
+  `android/app/proguard-rules.pro` added an explicit
+  `-keep class * extends androidx.room.RoomDatabase { <init>(...); }`. After touching
+  minify/proguard/AGP/dependencies, **build and launch a release APK**, don't just run tests.
 
 ## Firestore Deployment
 
