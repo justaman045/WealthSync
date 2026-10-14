@@ -7,6 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/budget_service.dart';
+import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/receipt_platform.dart';
@@ -37,6 +39,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
       imageQuality: 80,
     );
     if (pickedFile == null) return;
+    if (!mounted) return;
 
     setState(() {
       _imageFile = File(pickedFile.path);
@@ -117,8 +120,20 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
 
       await docRef.set(transaction.toMap());
 
-      // Check Budget Limit
+      // Every transaction write path must refresh the local mirror or the
+      // "backup" goes stale (see AGENTS "Write Paths & Backups"). This path
+      // writes directly to Firestore, bypassing TransactionController, so it
+      // must do the backup + cache invalidation itself.
       final email = user.email;
+      if (email != null) {
+        LocalBackupService.backupUserTransactions(
+          email,
+          reportErrors: false,
+        );
+        LocalCacheService.invalidate('transactions_$email');
+      }
+
+      // Check Budget Limit
       if (category.isNotEmpty && email != null) {
         await BudgetService.checkBudgetExceeded(
           userId: email,
@@ -182,10 +197,16 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
     if (match != null) {
       try {
         final parts = match.group(1)!.split(RegExp(r'[\/\-]'));
-        int day = int.parse(parts[0]);
-        int month = int.parse(parts[1]);
-        int year = int.parse(parts[2].length == 2 ? '20${parts[2]}' : parts[2]);
-        return DateTime(year, month, day);
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2].length == 2 ? '20${parts[2]}' : parts[2]);
+        final parsed = DateTime(year, month, day);
+        // Reject impossible values instead of letting DateTime silently roll
+        // them over (e.g. a US-style 12/25/2024 would become 2025-01-12).
+        if (parsed.year != year || parsed.month != month || parsed.day != day) {
+          return null;
+        }
+        return parsed;
       } catch (e) {
         debugPrint('Receipt date parse error: $e');
         return null;

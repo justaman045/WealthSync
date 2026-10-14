@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_control/Services/referral_service.dart';
 
@@ -87,6 +88,39 @@ void main() {
         ),
         now.add(const Duration(days: 45)),
       );
+    });
+  });
+
+  group('referral reward write payload', () {
+    // The reward is paid into the referrer's OWN user doc. A
+    // `subscriptionStatus: 'pro'` write there is denied by firestore.rules
+    // (isOwnerUpdate needs a purchaseToken; isReferralReward only allows a
+    // different-user doc), which silently broke every free referrer's reward.
+    // The reward is delivered as a trialEndDate grant instead, so the payload
+    // must never contain subscriptionStatus.
+    test('writes referralCount + trialEndDate and nothing else', () {
+      final write = ReferralService.debugReferralRewardWrite(
+        currentCount: 2,
+        pendingClaims: 1,
+        newExpiry: now.add(const Duration(days: 30)),
+      );
+      expect(
+        write.containsKey('subscriptionStatus'),
+        isFalse,
+        reason: 'a same-user subscriptionStatus write is denied by the rules',
+      );
+      expect(write.keys.toSet(), {'referralCount', 'trialEndDate'});
+      expect(write['referralCount'], 3);
+      expect(write['trialEndDate'], isA<Timestamp>());
+    });
+
+    test('accumulates the referral count across payouts', () {
+      final write = ReferralService.debugReferralRewardWrite(
+        currentCount: 7,
+        pendingClaims: 3,
+        newExpiry: now.add(const Duration(days: 45)),
+      );
+      expect(write['referralCount'], 10);
     });
   });
 }

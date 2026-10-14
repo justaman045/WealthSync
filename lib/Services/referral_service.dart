@@ -211,6 +211,29 @@ class ReferralService {
     return extended.isAfter(cap) ? cap : extended;
   }
 
+  /// The exact map written to the referrer's own `users/{email}` doc when a
+  /// referral reward is paid out.
+  ///
+  /// It deliberately does NOT set `subscriptionStatus: 'pro'`. A client write
+  /// that flips `subscriptionStatus` to 'pro' is rejected by `firestore.rules`
+  /// (`isOwnerUpdate` requires a `purchaseToken` via `validProClaim`), and
+  /// `isReferralReward` only permits writes to a *different* user's document —
+  /// neither matches this same-user payout. Paying the reward as a
+  /// `trialEndDate` grant keeps it rules-compliant (owner trial-cap path) and
+  /// is honored by `SubscriptionController.isTrial`/`isPro`. Extracted so the
+  /// exact keys can be unit-tested.
+  @visibleForTesting
+  static Map<String, dynamic> debugReferralRewardWrite({
+    required int currentCount,
+    required int pendingClaims,
+    required DateTime newExpiry,
+  }) {
+    return {
+      'referralCount': currentCount + pendingClaims,
+      'trialEndDate': Timestamp.fromDate(newExpiry),
+    };
+  }
+
   /// Applies referral rewards this user has earned but not yet collected.
   ///
   /// A referee can only append its own uid to `claims`, so crediting — which
@@ -255,12 +278,15 @@ class ReferralService {
         );
 
         creditedMap.addAll(pending);
-        txn.set(userRef, {
-          'referralCount':
-              ((userData['referralCount'] as int?) ?? 0) + pending.length,
-          'subscriptionStatus': 'pro',
-          'trialEndDate': Timestamp.fromDate(newExpiry),
-        }, SetOptions(merge: true));
+        txn.set(
+          userRef,
+          debugReferralRewardWrite(
+            currentCount: (userData['referralCount'] as int?) ?? 0,
+            pendingClaims: pending.length,
+            newExpiry: newExpiry,
+          ),
+          SetOptions(merge: true),
+        );
         txn.set(codeRef, {'credited': creditedMap}, SetOptions(merge: true));
       });
     } catch (e) {

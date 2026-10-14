@@ -176,10 +176,12 @@ class SubscriptionController extends GetxController {
                 }
               }
             } else {
-              // Referral-granted 'pro': written by applyReferralCode with a
-              // trialEndDate grant window and no expiryDate. Honor that window
-              // instead of granting permanent Pro (the grant capped at 45 days
-              // in firestore.rules).
+              // A 'pro' status with no expiryDate is a time-boxed grant: honor
+              // the trialEndDate window instead of granting permanent Pro.
+              // Referral rewards are delivered as a trialEndDate grant on the
+              // referrer's own doc (see ReferralService._drainClaims), which
+              // lands in the `isTrial` path below rather than here; this branch
+              // stays as defensive handling for legacy/admin docs.
               expiryDate.value = null;
               final trialEnd = (data['trialEndDate'] as Timestamp?)?.toDate();
               if (trialEnd == null || DateTime.now().isAfter(trialEnd)) {

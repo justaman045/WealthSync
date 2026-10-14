@@ -503,10 +503,12 @@ class _AddSheetState extends State<_AddSheet> {
   Future<void> _save() async {
     // Validate required fields
     for (final f in widget.config.fields) {
-      if (f.required) {
-        if (f.type == AssetFieldType.number || f.type == AssetFieldType.text) {
-          if (_controllers[f.key]?.text.trim().isEmpty ?? true) return;
-        }
+      if (!f.required) continue;
+      if (f.type == AssetFieldType.date) {
+        if (_dateValues[f.key] == null) return;
+      } else if (f.type == AssetFieldType.number ||
+          f.type == AssetFieldType.text) {
+        if (_controllers[f.key]?.text.trim().isEmpty ?? true) return;
       }
     }
     final amountKey = widget.config.amountField.key;
@@ -627,6 +629,7 @@ class _AddSheetState extends State<_AddSheet> {
           if (picked != null) {
             if (!mounted) return;
             setState(() {
+              _dateValues[f.key] = picked;
               ctrl?.text = DateFormat('dd MMM yyyy').format(picked);
             });
           }

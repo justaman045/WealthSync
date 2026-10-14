@@ -39,19 +39,43 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
   bool _scanned = false;
   Set<String> _importedKeys = {};
   late final SubscriptionController _subController;
+  Worker? _proWorker;
 
   @override
   void initState() {
     super.initState();
     if (!Get.isRegistered<SubscriptionController>()) Get.put(SubscriptionController());
     _subController = Get.find<SubscriptionController>();
-    _loadImported();
-    _scanSms();
+    // The body only renders the scan UI for Pro users, so a free user opening
+    // this screen must not read their SMS, prompt for the permission, or run
+    // the Firestore dedupe queries. Scan lazily once Pro becomes active.
+    _proWorker = everAll(
+      [_subController.subscriptionStatus, _subController.trialEndDate],
+      (_) {
+        if (_subController.isPro && !_scanned && !_loading) _scanSms();
+      },
+    );
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _loadImported();
+    if (!mounted) return;
+    if (_subController.isPro) {
+      await _scanSms();
+    }
+  }
+
+  @override
+  void dispose() {
+    _proWorker?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadImported() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('imported_sms_keys');
+    final key = _importedKeysPrefKey;
+    final raw = prefs.getString(key);
     if (raw != null) {
       // A corrupt preference must not take the whole screen down with a
       // FormatException from initState, so fall back to an empty set and drop
@@ -62,16 +86,23 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
             ? decoded.whereType<String>().toSet()
             : <String>{};
       } catch (e) {
-        debugPrint('Discarding unreadable imported_sms_keys: $e');
+        debugPrint('Discarding unreadable $key: $e');
         _importedKeys = <String>{};
-        await prefs.remove('imported_sms_keys');
+        await prefs.remove(key);
       }
     }
   }
 
   Future<void> _saveImported() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('imported_sms_keys', jsonEncode(_importedKeys.toList()));
+    await prefs.setString(_importedKeysPrefKey, jsonEncode(_importedKeys.toList()));
+  }
+
+  /// Per-user pref key: a shared device must not let account B inherit
+  /// account A's "already imported" set (which would suppress real SMS).
+  String get _importedKeysPrefKey {
+    final email = FirebaseAuth.instance.currentUser?.email;
+    return email == null ? 'imported_sms_keys' : 'imported_sms_keys_$email';
   }
 
   /// Matches background_worker.dart dedup format: sender + epoch-minute + amount.
@@ -79,6 +110,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
       '${tx.sender}_${(tx.date.millisecondsSinceEpoch ~/ 60000)}_${tx.amount}';
 
   Future<void> _scanSms() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
     });
@@ -209,6 +241,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.email == null) return;
+    if (!mounted) return;
 
     setState(() => _loading = true);
 
@@ -240,7 +273,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                   ? smsTx.merchant
                   : (smsTx.sender.isNotEmpty ? smsTx.sender : 'Self')),
           amount: isDebit ? -smsTx.amount : smsTx.amount,
-          currency: 'INR',
+          currency: CurrencyController.to.currencyCode.value,
           tax: 0,
           date: smsTx.date,
           note: "Imported from SMS",
