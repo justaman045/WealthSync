@@ -695,11 +695,18 @@ class SmsService {
         await prefs.setString('category_corrections', jsonEncode(merged));
       }
 
-      _correctionCache = {
-        for (final entry in merged.entries)
-          entry.key.toLowerCase():
-              (entry.value as Map)['category'] as String,
-      };
+      final cache = <String, String>{};
+      for (final entry in merged.entries) {
+        // Guard the shape: a corrupt/non-map value used to throw here and left
+        // the cache permanently unloaded (corrections silently stopped).
+        final value = entry.value;
+        if (value is! Map) continue;
+        final category = value['category']?.toString();
+        if (category != null && category.isNotEmpty) {
+          cache[entry.key.toLowerCase()] = category;
+        }
+      }
+      _correctionCache = cache;
       _correctionCacheLoaded = true;
     } catch (e) {
       log("Error loading correction cache: $e");

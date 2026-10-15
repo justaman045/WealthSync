@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import '../Utils/num_parse.dart';
+
 class ReferralService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -146,7 +148,7 @@ class ReferralService {
         if (code.isEmpty) return;
         await userRef.set({
           'referralCode': code,
-          'referralCount': (doc.data()?['referralCount'] as int?) ?? 0,
+          'referralCount': safeToInt(doc.data()?['referralCount']),
         }, SetOptions(merge: true));
       } else {
         await _ensureCodeDoc(code, email, user.uid);
@@ -281,7 +283,7 @@ class ReferralService {
         txn.set(
           userRef,
           debugReferralRewardWrite(
-            currentCount: (userData['referralCount'] as int?) ?? 0,
+            currentCount: safeToInt(userData['referralCount']),
             pendingClaims: pending.length,
             newExpiry: newExpiry,
           ),

@@ -84,31 +84,19 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
           .collection("users")
           .doc(user.email);
 
-      /// Delete transactions collection
-      final txSnap = await userDoc.collection("transactions").get();
-      for (var doc in txSnap.docs) {
-        await doc.reference.delete();
-      }
-
-      /// Delete categories
-      final catSnap = await userDoc.collection("categories").get();
-      for (var doc in catSnap.docs) {
-        await doc.reference.delete();
-      }
-
-      /// Delete offline backups
-      final backupSnap = await userDoc.collection("backups").get();
-      for (var doc in backupSnap.docs) {
-        await doc.reference.delete();
-      }
-
-      /// Delete insights, preferences, logs etc.
-      final anySubCollections = ["insights", "preferences", "logs"];
-      for (String name in anySubCollections) {
-        final coll = await userDoc.collection(name).get();
-        for (var doc in coll.docs) {
-          await doc.reference.delete();
-        }
+      /// Delete every user subcollection in chunked WriteBatch commits.
+      /// A per-document `await delete()` loop issued one round-trip per doc
+      /// (slow for thousands of transactions) and, since the deletes were
+      /// not atomic, a mid-loop failure left the account partially deleted.
+      for (final name in const [
+        "transactions",
+        "categories",
+        "backups",
+        "insights",
+        "preferences",
+        "logs",
+      ]) {
+        await _deleteCollection(userDoc.collection(name));
       }
 
       /// DO NOT DELETE MAIN USER DOC
@@ -136,6 +124,23 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         });
       }
       ErrorHandler.showError(e.toString());
+    }
+  }
+
+  /// Deletes every document in [collection] using chunked [WriteBatch] commits.
+  /// Firestore caps a batch at 500 writes, so commits are capped well under it.
+  Future<void> _deleteCollection(
+    CollectionReference<Map<String, dynamic>> collection,
+  ) async {
+    final snap = await collection.get();
+    // Firestore batches are capped at 500 writes — chunk large deletes.
+    const chunkSize = 499;
+    for (var i = 0; i < snap.docs.length; i += chunkSize) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snap.docs.skip(i).take(chunkSize)) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
     }
   }
 

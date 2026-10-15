@@ -31,9 +31,9 @@ class ChallengesController extends GetxController {
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
     if (cached is List) {
-      challenges.value = cached.map((e) {
-        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
-        final id = map.remove('_id') as String? ?? '';
+      challenges.value = cached.whereType<Map>().map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e));
+        final id = map.remove('_id')?.toString() ?? '';
         return SavingsChallengeModel.fromMap(id, map);
       }).toList();
       isLoading.value = false;

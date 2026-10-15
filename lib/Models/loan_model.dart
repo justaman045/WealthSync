@@ -92,9 +92,14 @@ class LoanModel {
 
   // Static EMI calculator
   static double calcEmi(double principal, double annualRate, int months) {
+    // A zero/negative tenure would divide by zero (Infinity/NaN) in both the
+    // flat-rate branch and the compounding branch — guard it.
+    if (months <= 0 || principal <= 0) return 0;
     if (annualRate == 0) return principal / months;
     final r = annualRate / 12 / 100;
-    return principal * r * _pow(1 + r, months) / (_pow(1 + r, months) - 1);
+    final emi =
+        principal * r * _pow(1 + r, months) / (_pow(1 + r, months) - 1);
+    return emi.isFinite ? emi : 0;
   }
 
   static double _pow(double base, int exp) {

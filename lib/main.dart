@@ -262,7 +262,7 @@ Future<void> mainCommon({bool isTest = false}) async {
             return prefs.setBool('biometric_enabled', false);
           }
           return Future.value();
-        }),
+        }).catchError((_) {}),
       );
     }
   });
@@ -520,6 +520,12 @@ class _AuthCheckerState extends State<AuthChecker> {
   /// listener on every rebuild.
   Stream<User?>? _authStream;
 
+  /// Cache for the onboarding check's future, keyed by email. Building the
+  /// future inline in build() re-ran the Firestore read on every rebuild; the
+  /// cache is recomputed only when the signed-in email changes.
+  String? _onboardingFutureEmail;
+  Future<bool>? _onboardingFuture;
+
   bool _didInitialBackup = false;
   StreamSubscription<User?>? _authSub;
 
@@ -679,7 +685,7 @@ class _AuthCheckerState extends State<AuthChecker> {
           unawaited(
             SharedPreferences.getInstance().then(
               (prefs) => prefs.setBool('biometric_enabled', false),
-            ),
+            ).catchError((_) => false),
           );
         }
         if (user != null && !user.emailVerified && !isOAuthUser) {
@@ -760,8 +766,12 @@ class _AuthCheckerState extends State<AuthChecker> {
         if (user != null &&
             onboardingEmail != null &&
             (user.emailVerified || isOAuth)) {
+          if (_onboardingFutureEmail != onboardingEmail) {
+            _onboardingFutureEmail = onboardingEmail;
+            _onboardingFuture = _checkOnboardingStatus(onboardingEmail);
+          }
           return FutureBuilder<bool>(
-            future: _checkOnboardingStatus(onboardingEmail),
+            future: _onboardingFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(

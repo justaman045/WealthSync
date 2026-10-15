@@ -3,10 +3,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
+import '../Utils/num_parse.dart';
+
 class CategoryRulesRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static const String _cacheKey = 'sms_category_rules_cache';
+
+  /// Coerce a Firestore field to a map, or null for any other type. A raw
+  /// `as Map<String, dynamic>?` throws when the field is a `Map<dynamic,
+  /// dynamic>`, a String, etc.
+  static Map<String, dynamic>? _asMap(dynamic value) =>
+      value is Map ? Map<String, dynamic>.from(value) : null;
+
+  /// Coerce a Firestore field to a list of strings, tolerating any other type
+  /// (and non-string element types).
+  static List<String> _asStringList(dynamic value) => value is List
+      ? value.map((e) => e.toString()).toList()
+      : <String>[];
 
   // ── User-specific auto rules (learning_data subcollection) ──
 
@@ -22,9 +36,9 @@ class CategoryRulesRepository {
 
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
-        final raw = data['autoRules'] as Map<String, dynamic>?;
+        final raw = _asMap(data['autoRules']);
         if (raw != null) {
-          return raw.map((k, v) => MapEntry(k, List<String>.from(v as List)));
+          return raw.map((k, v) => MapEntry(k, _asStringList(v)));
         }
       }
     } catch (e) {
@@ -45,7 +59,7 @@ class CategoryRulesRepository {
           .get();
       if (doc.exists && doc.data() != null) {
         final data = doc.data()!;
-        final raw = data['corrections'] as Map<String, dynamic>?;
+        final raw = _asMap(data['corrections']);
         if (raw != null) return raw;
       }
     } catch (e) {
@@ -76,10 +90,10 @@ class CategoryRulesRepository {
         final existing = Map<String, dynamic>.from(
           (doc.data()?['corrections'] as Map?) ?? {},
         );
-        final entry = existing[key] as Map<String, dynamic>?;
+        final entry = _asMap(existing[key]);
         int newCount = 1;
         if (entry != null && entry['category'] == category) {
-          newCount = (entry['count'] as int? ?? 0) + 1;
+          newCount = safeToInt(entry['count']) + 1;
           existing[key] = {'category': category, 'count': newCount};
         } else {
           existing[key] = {'category': category, 'count': newCount};
@@ -127,11 +141,9 @@ class CategoryRulesRepository {
           .doc('customRules')
           .get();
       if (doc.exists && doc.data() != null) {
-        final raw = doc.data()!['customRules'] as Map<String, dynamic>?;
+        final raw = _asMap(doc.data()!['customRules']);
         if (raw != null) {
-          return raw.map(
-            (k, v) => MapEntry(k, List<String>.from(v is List ? v : <String>[])),
-          );
+          return raw.map((k, v) => MapEntry(k, _asStringList(v)));
         }
       }
     } catch (e) {
@@ -173,8 +185,10 @@ class CategoryRulesRepository {
 
       await _firestore.runTransaction((tx) async {
         final doc = await tx.get(docRef);
-        final existing = (doc.data()?['autoRules'] as Map<String, dynamic>?)
-                ?.map((k, v) => MapEntry(k, List<String>.from(v as List))) ??
+        final existingRaw = _asMap(doc.data()?['autoRules']);
+        final existing = existingRaw?.map(
+              (k, v) => MapEntry(k, _asStringList(v)),
+            ) ??
             <String, List<String>>{};
         existing[category] = [...(existing[category] ?? []), keyword];
         tx.set(docRef, {'autoRules': existing}, SetOptions(merge: true));

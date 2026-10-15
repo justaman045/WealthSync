@@ -28,9 +28,9 @@ class LentMoneyController extends GetxController {
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
     if (cached is List) {
-      entries.value = cached.map((e) {
-        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
-        final id = map.remove('_id') as String? ?? '';
+      entries.value = cached.whereType<Map>().map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e));
+        final id = map.remove('_id')?.toString() ?? '';
         return LentMoneyModel.fromMap(id, map);
       }).toList();
     }

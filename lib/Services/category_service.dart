@@ -30,6 +30,11 @@ class CategoryService {
     }
   }
 
+  /// Coerces a stored entry to a map, or null when it is any other type
+  /// (a hand-edited/corrupt prefs value used to throw on `as Map<...>`).
+  static Map<String, dynamic>? _asMap(dynamic value) =>
+      value is Map ? Map<String, dynamic>.from(value) : null;
+
   static Future<void> recordCorrection(
     String merchant,
     String category,
@@ -39,10 +44,10 @@ class CategoryService {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(correctionsKey);
     final map = _safeDecodeMap(raw);
-    final existing = map[key] as Map<String, dynamic>?;
+    final existing = _asMap(map[key]);
     int newCount = 1;
     if (existing != null && existing['category'] == category) {
-      newCount = (existing['count'] as int? ?? 0) + 1;
+      newCount = ((existing['count'] as num?)?.toInt() ?? 0) + 1;
       map[key] = {'category': category, 'count': newCount};
     } else {
       map[key] = {'category': category, 'count': 1};
@@ -96,9 +101,9 @@ class CategoryService {
     final raw = prefs.getString(correctionsKey);
     if (raw == null) return null;
     final map = _safeDecodeMap(raw);
-    final entry = map[key] as Map<String, dynamic>?;
+    final entry = _asMap(map[key]);
     if (entry == null) return null;
-    return entry['category'] as String?;
+    return entry['category']?.toString();
   }
 
   // Returns merchants corrected 2+ times (candidates to become rules).
@@ -109,13 +114,14 @@ class CategoryService {
     final map = _safeDecodeMap(raw);
     final result = <Map<String, dynamic>>[];
     map.forEach((merchant, value) {
-      if (value is! Map) return;
-      final entry = value as Map<String, dynamic>;
-      if ((entry['count'] as int? ?? 0) >= 2) {
+      final entry = _asMap(value);
+      if (entry == null) return;
+      final count = (entry['count'] as num?)?.toInt() ?? 0;
+      if (count >= 2) {
         result.add({
           'merchant': merchant,
-          'category': (entry['category'] as String? ?? ''),
-          'count': (entry['count'] as int? ?? 0),
+          'category': (entry['category']?.toString() ?? ''),
+          'count': count,
         });
       }
     });

@@ -1153,6 +1153,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _showMessengerSnackBar(String title, String message, Color color) {
+    // Called after an awaited UPI flow; the screen may already be gone.
+    if (!mounted) return;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     rootScaffoldMessengerKey.currentState?.showSnackBar(SnackBar(
       content: Text('$title\n$message', style: TextStyle(color: isDark ? Colors.white : Colors.black)),

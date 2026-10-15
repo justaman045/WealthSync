@@ -36,6 +36,34 @@ void main() {
     });
   });
 
+  group('safeToInt()', () {
+    test('passes ints through', () {
+      expect(safeToInt(5), 5);
+      expect(safeToInt(0), 0);
+      expect(safeToInt(-3), -3);
+    });
+
+    test('truncates num/double encodings instead of throwing', () {
+      expect(safeToInt(5.0), 5);
+      expect(safeToInt(5.9), 5);
+      expect(safeToInt(-2.4), -2);
+    });
+
+    test('parses integer strings', () {
+      expect(safeToInt('42'), 42);
+      expect(safeToInt('-7'), -7);
+    });
+
+    test('falls back to zero for unusable input', () {
+      expect(safeToInt(null), 0);
+      expect(safeToInt('abc'), 0);
+      expect(safeToInt(''), 0);
+      expect(safeToInt('5.9'), 0);
+      expect(safeToInt(true), 0);
+      expect(safeToInt(<String>[]), 0);
+    });
+  });
+
   group('isValidAmount()', () {
     test('accepts strictly positive finite values', () {
       expect(isValidAmount(1), isTrue);

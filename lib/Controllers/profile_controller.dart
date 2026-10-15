@@ -57,7 +57,7 @@ class ProfileController extends GetxController {
     final cached = LocalCacheService.get(_cacheKey);
     if (cached is Map) {
       final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(cached));
-      userProfile.value = UserModel.fromMap(map['_id'] as String? ?? '', map);
+      userProfile.value = UserModel.fromMap(map['_id']?.toString() ?? '', map);
     }
     LocalCacheService.invalidate(_cacheKey);
   }

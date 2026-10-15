@@ -81,5 +81,26 @@ void main() {
       expect(restored['createdAt'], isA<Timestamp>());
       expect(restored['friendName'], 'Rahul');
     });
+
+    test('does NOT crash on free text that only looks like an ISO date', () {
+      // This shape (>=20 chars, '-' at 4/7, 'T' at 10) passed the old guard,
+      // then DateTime.parse threw and crashed the controller's initState cache
+      // load. It must be left untouched instead.
+      final restored = LocalCacheService.hiveRestore({
+        'note': '2026-01-15T was the party',
+        'note2': '2026-01-15T10:00 was when it started',
+      });
+
+      expect(restored['note'], '2026-01-15T was the party');
+      expect(restored['note2'], '2026-01-15T10:00 was when it started');
+      expect(() => LocalCacheService.hiveRestore({'n': '2026-13-45T99:99'}), returnsNormally);
+    });
+
+    test('restores a genuine ISO string with timezone', () {
+      final restored = LocalCacheService.hiveRestore({
+        'createdAt': '2026-08-03T10:30:00.000Z',
+      });
+      expect(restored['createdAt'], isA<Timestamp>());
+    });
   });
 }

@@ -216,7 +216,13 @@ class WealthService {
         .map((doc) {
       final data = doc.data();
           if (doc.exists && data != null) {
-            unawaited(LocalCacheService.put(_cacheKey, LocalCacheService.hiveSafe(data), ttl: LocalCacheService.wealth60));
+            unawaited(
+              LocalCacheService.put(
+                _cacheKey,
+                LocalCacheService.hiveSafe(data),
+                ttl: LocalCacheService.wealth60,
+              ).catchError((_) {}),
+            );
             return WealthPortfolio.fromMap(data);
           }
           return WealthPortfolio(lastUpdated: DateTime.now());

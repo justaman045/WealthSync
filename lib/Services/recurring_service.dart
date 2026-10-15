@@ -453,30 +453,48 @@ class RecurringService {
         .get();
 
     final pending = <RecurringPayment>[];
+    final autoPayDue = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
 
-    for (var doc in snapshot.docs) {
+    for (final doc in snapshot.docs) {
       final payment = RecurringPayment.fromMap(doc.id, doc.data());
-
       if (!payment.isActive) continue;
       if (!payment.autoPay) {
         pending.add(payment);
-        continue;
+      } else {
+        autoPayDue.add(doc);
       }
+    }
 
-      // Idempotency: skip if a transaction for this payment was already
-      // created today. Equality-only query (no composite index required);
-      // the date filter is applied in memory.
+    // Idempotency: skip a payment if a transaction for it was already created
+    // today. Batch the lookup with whereIn (chunks of 10) instead of one query
+    // per payment; the date filter is applied in memory either way. Single-field
+    // equality, so no composite index is required.
+    final alreadyPaidToday = <String>{};
+    const idChunk = 10;
+    for (var i = 0; i < autoPayDue.length; i += idChunk) {
+      final ids = autoPayDue.skip(i).take(idChunk).map((d) => d.id).toList();
       final existingSnap = await db
           .collection('users')
           .doc(userEmail)
           .collection('transactions')
-          .where('recurringPaymentId', isEqualTo: payment.id)
+          .where('recurringPaymentId', whereIn: ids)
           .get();
-      final hasTodayTx = existingSnap.docs.any((d) {
-        final date = (d.data()['date'] as dynamic)?.toDate();
-        return date != null && !date.isBefore(today);
-      });
-      if (hasTodayTx) continue;
+      for (final d in existingSnap.docs) {
+        final id = d.data()['recurringPaymentId'];
+        if (id is! String) continue;
+        final rawDate = d.data()['date'];
+        final date = rawDate is Timestamp
+            ? rawDate.toDate()
+            : (rawDate is DateTime ? rawDate : null);
+        if (date != null && !date.isBefore(today)) {
+          alreadyPaidToday.add(id);
+        }
+      }
+    }
+
+    for (final doc in autoPayDue) {
+      final payment = RecurringPayment.fromMap(doc.id, doc.data());
+      if (alreadyPaidToday.contains(payment.id)) continue;
 
       final nextDate = _advanceDateStatic(payment, today);
       final cycleKey = '${today.year}-${today.month}';

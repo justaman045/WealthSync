@@ -43,10 +43,12 @@ class BudgetController extends GetxController {
   void _loadFromCache() {
     final cached = LocalCacheService.get(_cacheKey);
     if (cached is List) {
-      categoryBudgets.assignAll(cached.map((e) {
-        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e as Map));
+      // whereType<Map> drops any corrupt (non-map) element instead of throwing
+      // on `e as Map` — a bad cache entry must never crash startup.
+      categoryBudgets.assignAll(cached.whereType<Map>().map((e) {
+        final map = LocalCacheService.hiveRestore(Map<String, dynamic>.from(e));
         return BudgetCategoryItem(
-          categoryName: map['categoryName'] as String? ?? '',
+          categoryName: map['categoryName']?.toString() ?? '',
           budget: (map['budget'] as num?)?.toDouble() ?? 0,
           spent: (map['spent'] as num?)?.toDouble() ?? 0,
         );

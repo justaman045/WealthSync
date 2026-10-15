@@ -120,52 +120,58 @@ class WealthPortfolio {
 
   factory WealthPortfolio.fromMap(Map<String, dynamic> map) {
     return WealthPortfolio(
-      sip: (map['sip'] ?? 0).toDouble(),
-      fd: (map['fd'] ?? 0).toDouble(),
-      stocks: (map['stocks'] ?? 0).toDouble(),
-      pf: (map['pf'] ?? 0).toDouble(),
-      crypto: (map['crypto'] ?? 0).toDouble(),
-      gold: (map['gold'] ?? 0).toDouble(),
-      realEstate: (map['realEstate'] ?? 0).toDouble(),
-      nps: (map['nps'] ?? 0).toDouble(),
-      loans: (map['loans'] ?? 0).toDouble(),
-      etf: (map['etf'] ?? 0).toDouble(),
-      reit: (map['reit'] ?? 0).toDouble(),
-      p2p: (map['p2p'] ?? 0).toDouble(),
-      ppf: (map['ppf'] ?? 0).toDouble(),
-      sgb: (map['sgb'] ?? 0).toDouble(),
-      bonds: (map['bonds'] ?? 0).toDouble(),
-      insurance: (map['insurance'] ?? 0).toDouble(),
-      foreignStocks: (map['foreignStocks'] ?? 0).toDouble(),
-      vpf: (map['vpf'] ?? 0).toDouble(),
-      postOffice: (map['postOffice'] ?? 0).toDouble(),
-      chitFund: (map['chitFund'] ?? 0).toDouble(),
-      startupEquity: (map['startupEquity'] ?? 0).toDouble(),
-      business: (map['business'] ?? 0).toDouble(),
-      vehicle: (map['vehicle'] ?? 0).toDouble(),
-      jewelry: (map['jewelry'] ?? 0).toDouble(),
-      agriLand: (map['agriLand'] ?? 0).toDouble(),
-      creditCard: (map['creditCard'] ?? 0).toDouble(),
-      bnpl: (map['bnpl'] ?? 0).toDouble(),
+      sip: safeToDouble(map['sip']),
+      fd: safeToDouble(map['fd']),
+      stocks: safeToDouble(map['stocks']),
+      pf: safeToDouble(map['pf']),
+      crypto: safeToDouble(map['crypto']),
+      gold: safeToDouble(map['gold']),
+      realEstate: safeToDouble(map['realEstate']),
+      nps: safeToDouble(map['nps']),
+      loans: safeToDouble(map['loans']),
+      etf: safeToDouble(map['etf']),
+      reit: safeToDouble(map['reit']),
+      p2p: safeToDouble(map['p2p']),
+      ppf: safeToDouble(map['ppf']),
+      sgb: safeToDouble(map['sgb']),
+      bonds: safeToDouble(map['bonds']),
+      insurance: safeToDouble(map['insurance']),
+      foreignStocks: safeToDouble(map['foreignStocks']),
+      vpf: safeToDouble(map['vpf']),
+      postOffice: safeToDouble(map['postOffice']),
+      chitFund: safeToDouble(map['chitFund']),
+      startupEquity: safeToDouble(map['startupEquity']),
+      business: safeToDouble(map['business']),
+      vehicle: safeToDouble(map['vehicle']),
+      jewelry: safeToDouble(map['jewelry']),
+      agriLand: safeToDouble(map['agriLand']),
+      creditCard: safeToDouble(map['creditCard']),
+      bnpl: safeToDouble(map['bnpl']),
       custom: _toDoubleMap(map['custom']),
       targets: _toDoubleMap(map['targets']),
-      hiddenKeys: (map['hiddenKeys'] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      lastUpdated:
-          (map['lastUpdated'] as dynamic)?.toDate() ?? DateTime.now(),
-      monthlyExpenseOverride:
-          (map['monthly_expense_override'] as num?)?.toDouble(),
-      balance: (map['balance'] as num?)?.toDouble(),
+      hiddenKeys: map['hiddenKeys'] is List
+          ? (map['hiddenKeys'] as List).map((e) => e.toString()).toList()
+          : [],
+      lastUpdated: _toDateTime(map['lastUpdated']) ?? DateTime.now(),
+      monthlyExpenseOverride: _toDoubleOrNull(map['monthly_expense_override']),
+      balance: _toDoubleOrNull(map['balance']),
     );
   }
 
+  /// Firestore may hold a String/num/null for these; never throw on a cast.
+  static double? _toDoubleOrNull(dynamic value) =>
+      value == null ? null : safeToDouble(value);
+
+  static DateTime? _toDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
   static Map<String, double> _toDoubleMap(dynamic value) {
-    if (value == null) return {};
     if (value is! Map) return {};
-    final raw = value as Map<String, dynamic>;
-    return raw.map(
+    return value.map(
       (k, v) => MapEntry(k.toString(), safeToDouble(v)),
     );
   }

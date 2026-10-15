@@ -29,6 +29,7 @@ import 'package:money_control/Screens/invite_friends.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:money_control/Services/referral_service.dart';
+import 'package:money_control/Utils/num_parse.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -687,7 +688,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
             final data = snap.data() ?? {};
             setState(() {
               _code = data['referralCode'] as String? ?? '';
-              _count = (data['referralCount'] as int?) ?? 0;
+              _count = safeToInt(data['referralCount']);
               _loading = false;
             });
           },

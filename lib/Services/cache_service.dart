@@ -123,15 +123,29 @@ class LocalCacheService {
 
   /// Restore ISO date strings back to Timestamp for fromMap.
   static Map<String, dynamic> hiveRestore(Map<String, dynamic> map) {
-    return map.map((key, value) => MapEntry(
-      key,
-      value is String && _isIsoDate(value)
-          ? Timestamp.fromDate(DateTime.parse(value))
-          : value,
-    ));
+    return map.map((key, value) => MapEntry(key, _restoreDate(value)));
   }
 
-  static bool _isIsoDate(String s) {
-    return s.length >= 20 && s[4] == '-' && s[7] == '-' && s[10] == 'T';
+  static dynamic _restoreDate(dynamic value) {
+    if (value is String && _isoDateRe.hasMatch(value)) {
+      // Belt-and-braces: a free-text field can share an ISO-ish prefix (e.g.
+      // "2026-01-15T was the party"). The regex is strict, but never let a
+      // malformed-match throw out of a cache read (it runs synchronously in
+      // controller init and would crash it).
+      try {
+        return Timestamp.fromDate(DateTime.parse(value));
+      } catch (_) {
+        return value;
+      }
+    }
+    return value;
   }
+
+  /// A full ISO-8601 instant, e.g. `2026-08-03T10:30:00.000` (what
+  /// `DateTime.toIso8601String()` emits), optionally with seconds/fraction/
+  /// timezone. Free text that merely *starts* with a date-like prefix no longer
+  /// matches (the old positional check accepted anything ≥20 chars with `-`s).
+  static final RegExp _isoDateRe = RegExp(
+    r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$',
+  );
 }

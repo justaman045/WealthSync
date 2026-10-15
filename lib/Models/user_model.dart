@@ -35,26 +35,47 @@ class UserModel {
 
   factory UserModel.fromMap(String uid, Map<String, dynamic>? map) {
     if (map == null) return UserModel(uid: uid);
+    final dobTs = _asTimestamp(map['dob']);
     return UserModel(
       uid: uid,
-      firstName: map['firstName'],
-      lastName: map['lastName'],
-      email: map['email'],
-      phone: map['phone'],
-      address: map['address'],
-      gender: map['gender'],
-      role: map['role'],
-      profileImage: map['photoURL'] ?? map['photoUrl'] ?? map['profileImage'],
+      firstName: _str(map['firstName']),
+      lastName: _str(map['lastName']),
+      email: _str(map['email']),
+      phone: _str(map['phone']),
+      address: _str(map['address']),
+      gender: _str(map['gender']),
+      role: _str(map['role']),
+      profileImage: _str(
+        map['photoURL'] ?? map['photoUrl'] ?? map['profileImage'],
+      ),
       currentBalance: map['currentBalance'] is num
           ? (map['currentBalance'] as num).toDouble()
           : null,
-      age: map['dob'] != null
-          ? _calculateAgeFromDob(map['dob'])
+      age: dobTs != null
+          ? _ageFromTimestamp(dobTs)
           : (map['age'] is num ? (map['age'] as num).toInt() : null),
-      dob: map['dob'],
-      createdAt: (map['createdAt'] as dynamic)?.toDate(),
-      updatedAt: map['updatedAt'],
+      dob: dobTs,
+      createdAt: _asTimestamp(map['createdAt'])?.toDate(),
+      updatedAt: _asTimestamp(map['updatedAt']),
     );
+  }
+
+  /// Reads a String field, coercing a non-null non-String (a legacy/foreign
+  /// launch wrote, e.g. a numeric phone) instead of throwing on an implicit
+  /// dynamic→String cast.
+  static String? _str(dynamic value) =>
+      value == null ? null : (value is String ? value : value.toString());
+
+  /// Accepts a Firestore [Timestamp], a [DateTime], or an ISO string and
+  /// returns a [Timestamp], else null.
+  static Timestamp? _asTimestamp(dynamic value) {
+    if (value is Timestamp) return value;
+    if (value is DateTime) return Timestamp.fromDate(value);
+    if (value is String) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return Timestamp.fromDate(parsed);
+    }
+    return null;
   }
 
   Map<String, dynamic> toMap() {
@@ -89,7 +110,7 @@ class UserModel {
     return calcAge;
   }
 
-  static int _calculateAgeFromDob(Timestamp dob) {
+  static int _ageFromTimestamp(Timestamp dob) {
     final now = DateTime.now();
     final dateOfBirth = dob.toDate();
     int calcAge = now.year - dateOfBirth.year;

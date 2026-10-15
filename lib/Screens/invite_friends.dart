@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/referral_service.dart';
+import 'package:money_control/Utils/num_parse.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -59,7 +60,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
             final data = snap.data() ?? {};
             setState(() {
               _code = (data['referralCode'] as String?) ?? '';
-              _count = (data['referralCount'] as int?) ?? 0;
+              _count = safeToInt(data['referralCount']);
               _loading = false;
             });
           },
