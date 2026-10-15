@@ -13,19 +13,49 @@ import 'package:flutter_test/flutter_test.dart';
 /// that catches it, so it is deliberately a source scan rather than a widget
 /// test.
 bool _hasEmptyIfBody(String source) {
-  final lines = source.split('\n');
-  for (var i = 0; i < lines.length; i++) {
-    final line = lines[i].trim();
-    if (!line.startsWith('if (') && !line.startsWith('if(')) continue;
-    if (!line.endsWith('{')) continue;
-    // An `if (...) {` is empty when the next non-blank line closes it. A single
-    // statement on the following line means the body is real.
-    for (var j = i + 1; j < lines.length && j < i + 3; j++) {
-      final next = lines[j].trim();
-      if (next.isEmpty) continue;
-      if (next == '}' || next == '};') return true;
-      break;
+  for (final match in RegExp(r'\bif\s*\(').allMatches(source)) {
+    final open = match.end - 1; // index of '('
+    var depth = 0;
+    var close = -1;
+    for (var i = open; i < source.length; i++) {
+      final c = source[i];
+      if (c == '(') {
+        depth++;
+      } else if (c == ')') {
+        depth--;
+        if (depth == 0) {
+          close = i;
+          break;
+        }
+      }
     }
+    if (close < 0) continue;
+
+    // The empty-body signature is a `{` immediately after the condition, i.e.
+    // with only whitespace in between. `if (mounted) setState(() {});` must NOT
+    // match, because its braces belong to setState, not the if.
+    var j = close + 1;
+    while (j < source.length && (source[j] == ' ' || source[j] == '\t')) {
+      j++;
+    }
+    if (j >= source.length || source[j] != '{') continue;
+
+    var braceDepth = 0;
+    var end = -1;
+    for (var k = j; k < source.length; k++) {
+      final c = source[k];
+      if (c == '{') {
+        braceDepth++;
+      } else if (c == '}') {
+        braceDepth--;
+        if (braceDepth == 0) {
+          end = k;
+          break;
+        }
+      }
+    }
+    if (end < 0) continue;
+    if (source.substring(j + 1, end).trim().isEmpty) return true;
   }
   return false;
 }
@@ -63,7 +93,36 @@ void f() {
     );
   });
 
-  test('the scanner does not flag an if with a real body', () {
+  test('the scanner detects a single-line empty if body', () {
+    expect(
+      _hasEmptyIfBody('''
+void f() {
+  if (!ready) {}
+  doThing();
+}
+'''),
+      isTrue,
+    );
+    expect(
+      _hasEmptyIfBody('''
+void f() {
+  if (!ensureFeatureVisible(context, 'key')) { }
+  doThing();
+}
+'''),
+      isTrue,
+    );
+    expect(
+      _hasEmptyIfBody('''
+void f() {
+  if (!ready) {} else { doThing(); }
+}
+'''),
+      isTrue,
+    );
+  });
+
+  test('the scanner ignores an if with a real body', () {
     expect(
       _hasEmptyIfBody('''
 void f() {
