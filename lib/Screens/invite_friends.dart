@@ -46,6 +46,9 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       return;
     }
     await ReferralService.ensureReferralCode();
+    // Guard against a post-await dispose: otherwise the listener is created
+    // after dispose() and leaks (never cancelled).
+    if (!mounted) return;
     _sub = FirebaseFirestore.instance
         .collection('users')
         .doc(user.email)

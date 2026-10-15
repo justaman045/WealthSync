@@ -65,12 +65,17 @@ class ThemeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Re-bind the theme stream to the currently signed-in user on every auth
-    // change (sign-out + sign-in as a different account must not keep the old
-    // account's theme stream alive).
-    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
-      _listenToThemeChanges();
-    });
+    // On web, bind the theme only via the explicit post-registration
+    // resubscribe() calls (mainCommon + _handleAuthChange). Binding to the auth
+    // stream here would run _fetchThemeOnce()'s transient .get() on every auth
+    // emission — including before TransactionController's .snapshots() exists —
+    // which re-triggers the Firebase JS SDK ca9/b815 corruption the whole web
+    // flow is shaped around avoiding. Native keeps the live auth listener.
+    if (!kIsWeb) {
+      _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+        _listenToThemeChanges();
+      });
+    }
   }
 
   @override
@@ -169,14 +174,20 @@ Future<void> mainCommon({bool isTest = false}) async {
   await LocalCacheService.init();
   // Firebase must be initialized BEFORE any controller touches
   // FirebaseAuth.instance — ThemeController.onInit subscribes to
-  // authStateChanges() immediately (previously the app crashed on cold start
-  // with `[core/no-app] No Firebase App '[DEFAULT]' has been created`).
+  // authStateChanges() immediately on native (previously the app crashed on
+  // cold start with `[core/no-app] No Firebase App '[DEFAULT]' has been
+  // created`).
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Must be registered after ensureInitialized so GetX platform channels work.
   themeController = Get.put(ThemeController());
   TutorialController.isTestMode = isTest;
   Get.testMode = isTest;
-  themeController.resubscribe();
+  // Native binds the theme stream now. Web defers to _handleAuthChange's
+  // post-registration resubscribe() so the first theme .get() never precedes
+  // TransactionController's persistent .snapshots() (JS SDK ca9/b815).
+  if (!kIsWeb) {
+    themeController.resubscribe();
+  }
 
   if (!isTest) {
     // Pass all uncaught "fatal" errors from the framework to Crashlytics

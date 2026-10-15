@@ -1295,6 +1295,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     String Function(T)? format,
   }) {
     final isDark = _cachedIsDark;
+    // DropdownButton asserts `value` is present in `items`. A filter value can
+    // go stale (category deleted, list refreshed), so fall back to null instead
+    // of crashing.
+    final safeValue = items.contains(value) ? value : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1324,7 +1328,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<T>(
-              value: value,
+              value: safeValue,
               isExpanded: true,
               dropdownColor: isDark
                   ? AppColors.darkSurface

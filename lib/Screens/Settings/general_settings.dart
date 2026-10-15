@@ -97,6 +97,7 @@ class _NextSmsAutoImportCountdownState
         }
       }
     }
+    if (!mounted) return;
     if (_text.value != text) _text.value = text;
   }
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:money_control/Platform/iap_platform.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
@@ -12,6 +13,11 @@ class IapService {
   static const String kMonthlyId = 'money_control_monthly';
   static const String kYearlyId = 'money_control_yearly';
   static const Set<String> _productIds = {kMonthlyId, kYearlyId};
+
+  /// Whether [productId] is one this app actually sells. Any other id (a stale
+  /// build, a different app's product, a null) must never grant a plan.
+  static bool isKnownProduct(String? productId) =>
+      productId != null && _productIds.contains(productId);
 
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
@@ -99,6 +105,14 @@ class IapService {
 
           case PurchaseStatus.purchased:
           case PurchaseStatus.restored:
+            if (!IapService.isKnownProduct(purchase.productID)) {
+              // A product we don't sell (stale build / other app / null) must
+              // never be completed or granted a plan.
+              debugPrint(
+                'Ignoring unknown IAP product: ${purchase.productID}',
+              );
+              continue;
+            }
             if (purchase.pendingCompletePurchase) {
               await _iap.completePurchase(purchase);
             }

@@ -32,6 +32,10 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
   /// listener on every rebuild.
   Stream<DocumentSnapshot<Object?>>? _paymentStream;
 
+  /// Same reasoning as [_paymentStream]: [_historyStream] issues live Firestore
+  /// queries, so it must not be rebuilt on every `build()`.
+  Stream<List<QueryDocumentSnapshot>>? _historyStreamCache;
+
   final RecurringService _service = RecurringService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   Timer? _loadTimer;
@@ -649,7 +653,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
 
   Widget _buildHistoryList(bool isDark, Color textColor) {
     return StreamBuilder<List<QueryDocumentSnapshot>>(
-      stream: _historyStream(),
+      stream: _historyStreamCache ??= _historyStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               !_loadTimedOut) {

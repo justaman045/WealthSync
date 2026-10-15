@@ -88,7 +88,12 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
           ),
         ),
             detail: _selectedEntry != null
-                ? AddLentMoneyScreen(existingEntry: _selectedEntry!)
+                // Key by id so selecting a different entry rebuilds a fresh
+                // State instead of reusing the previous entry's field values.
+                ? AddLentMoneyScreen(
+                    key: ValueKey(_selectedEntry!.id),
+                    existingEntry: _selectedEntry!,
+                  )
                 : _buildDetailPlaceholder(),
             showDetail: _selectedEntry != null,
         ),

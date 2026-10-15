@@ -27,14 +27,19 @@ class MainActivity : FlutterFragmentActivity() {
     private var pendingResult: MethodChannel.Result? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Survives config-change recreation: the FlutterEngine is reused across
-    // rotations, so a half-finished UPI flow's Result can be handed to the
-    // recreated activity instead of being dropped (which would hang the Dart
-    // Future until its own timeout).
-    private var pendingResultStatic: MethodChannel.Result? = null
+    companion object {
+        // Survives config-change recreation: the FlutterEngine is reused across
+        // rotations, so a half-finished UPI/install flow's Result can be handed
+        // to the recreated activity instead of being dropped (which would hang
+        // the Dart Future until its own timeout). These MUST be truly static:
+        // as instance fields the fresh post-rotation activity re-initialized
+        // them to null, silently losing the pending result.
+        private var pendingResultStatic: MethodChannel.Result? = null
 
-    // Install-flow state: survives the permission-request round-trip to Settings.
-    private var pendingInstallResult: MethodChannel.Result? = null
+        // Install-flow state: survives the permission-request round-trip to
+        // Settings, and a config change while that sheet is open.
+        private var pendingInstallResult: MethodChannel.Result? = null
+    }
 
     private val upiTimeoutRunnable = Runnable {
         val result = pendingResult ?: return@Runnable

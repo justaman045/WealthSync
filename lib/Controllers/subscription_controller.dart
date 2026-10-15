@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Platform/iap_platform.dart';
+import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/main.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/notification_service.dart';
@@ -478,8 +479,19 @@ class SubscriptionController extends GetxController {
     final email = _userEmail;
     if (email == null) return;
 
+    // Refuse anything that isn't one of our two plans. Previously the only
+    // check was `productID == kMonthlyId`, so ANY other id (including an
+    // unknown/renamed product or null) silently granted a full Year.
+    if (!IapService.isKnownProduct(purchase.productID)) {
+      debugPrint(
+        'activateGooglePlaySubscription: refusing unknown product '
+        '${purchase.productID}',
+      );
+      return;
+    }
+
     try {
-      final isMonthly = purchase.productID == 'money_control_monthly';
+      final isMonthly = purchase.productID == IapService.kMonthlyId;
       final now = DateTime.now();
       final int targetMonth = now.month + (isMonthly ? 1 : 12);
       final int targetYear = now.year + (targetMonth - 1) ~/ 12;

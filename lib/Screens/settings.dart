@@ -673,6 +673,10 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
       return;
     }
     await ReferralService.ensureReferralCode();
+    // The widget may have been disposed across the await; without this guard the
+    // listener below is created after dispose() already ran, so it is never
+    // cancelled and leaks.
+    if (!mounted) return;
     _sub = FirebaseFirestore.instance
         .collection('users')
         .doc(user.email)

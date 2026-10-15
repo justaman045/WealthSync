@@ -1295,69 +1295,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Future<void> _showCustomAssetDialog(String key, double value) async {
-    final isNew = key.isEmpty;
-    final nameCtrl = TextEditingController(text: key);
-    final valueCtrl = TextEditingController(
-      text: value > 0 ? value.toStringAsFixed(0) : '',
-    );
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dialog = showDialog(
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isNew ? "Add Custom Asset" : "Custom Asset"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: "Name"),
-              style: TextStyle(color: isDark ? Colors.white : null),
-            ),
-            SizedBox(height: 8.h),
-            TextField(
-              controller: valueCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Value"),
-              style: TextStyle(color: isDark ? Colors.white : null),
-            ),
-          ],
-        ),
-        actions: [
-          if (!isNew)
-            TextButton(
-              onPressed: () async {
-                await WealthService.deleteCustomAsset(key);
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-              child: const Text("Delete", style: TextStyle(color: Colors.red)),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () async {
-              final newName = nameCtrl.text.trim();
-              final newVal = double.tryParse(valueCtrl.text.trim()) ?? 0;
-              if (newName.isNotEmpty && newVal > 0) {
-                if (newName != key && !isNew) {
-                  await WealthService.deleteCustomAsset(key);
-                }
-                await WealthService.setCustomAsset(newName, newVal);
-              }
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text(AppStrings.save),
-          ),
-        ],
-      ),
+      builder: (_) => _CustomAssetDialog(assetKey: key, value: value),
     );
-    try {
-      await dialog;
-    } finally {
-      nameCtrl.dispose();
-      valueCtrl.dispose();
-    }
   }
 
   Widget _sectionHeader(String label, ColorScheme scheme, {Widget? trailing}) {
@@ -2729,3 +2670,102 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     );
   }
 } // Closing brace for _WealthBuilderScreenState
+
+/// Owns its [TextEditingController]s and disposes them in [State.dispose] —
+/// unlike the old inline `showDialog` + `try/finally` (the pattern AGENTS.md
+/// warns about), this cannot re-attach a live [TextField] to a disposed
+/// controller if the dialog rebuilds during its exit animation.
+class _CustomAssetDialog extends StatefulWidget {
+  final String assetKey;
+  final double value;
+
+  const _CustomAssetDialog({required this.assetKey, required this.value});
+
+  @override
+  State<_CustomAssetDialog> createState() => _CustomAssetDialogState();
+}
+
+class _CustomAssetDialogState extends State<_CustomAssetDialog> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _valueCtrl;
+  bool _busy = false;
+
+  bool get _isNew => widget.assetKey.isEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.assetKey);
+    _valueCtrl = TextEditingController(
+      text: widget.value > 0 ? widget.value.toStringAsFixed(0) : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _valueCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _delete() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    await WealthService.deleteCustomAsset(widget.assetKey);
+    if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _save() async {
+    if (_busy) return;
+    final newName = _nameCtrl.text.trim();
+    final newVal = double.tryParse(_valueCtrl.text.trim()) ?? 0;
+    setState(() => _busy = true);
+    if (newName.isNotEmpty && newVal > 0) {
+      if (newName != widget.assetKey && !_isNew) {
+        await WealthService.deleteCustomAsset(widget.assetKey);
+      }
+      await WealthService.setCustomAsset(newName, newVal);
+    }
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AlertDialog(
+      title: Text(_isNew ? "Add Custom Asset" : "Custom Asset"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(labelText: "Name"),
+            style: TextStyle(color: isDark ? Colors.white : null),
+          ),
+          SizedBox(height: 8.h),
+          TextField(
+            controller: _valueCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: "Value"),
+            style: TextStyle(color: isDark ? Colors.white : null),
+          ),
+        ],
+      ),
+      actions: [
+        if (!_isNew)
+          TextButton(
+            onPressed: _busy ? null : _delete,
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        TextButton(
+          onPressed: _busy ? null : _save,
+          child: const Text(AppStrings.save),
+        ),
+      ],
+    );
+  }
+}

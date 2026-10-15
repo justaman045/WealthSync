@@ -11,6 +11,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Utils/upi_apps.dart';
+import 'package:money_control/Utils/upi_response.dart';
 
 class UpiPaymentScreen extends StatefulWidget {
   final String? initialVpa;
@@ -248,31 +249,20 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
   }
 
   void _handleUpiResponse(String response, String appName) {
-    if (response.isEmpty) return; // user pressed back — cancelled silently
+    final result = parseUpiPaymentResponse(response);
+    if (result.isCancelled) return; // user pressed back — cancelled silently
 
-    // Response is a query-string: "Status=SUCCESS&txnId=XXX&txnRef=YYY&..."
-    final params = Map.fromEntries(
-      response.split('&').where((s) => s.contains('=')).map((kv) {
-        final i = kv.indexOf('=');
-        return MapEntry(kv.substring(0, i).toLowerCase(), kv.substring(i + 1));
-      }),
-    );
-
-    final status = (params['status'] ?? '').toUpperCase();
-    final txnId = params['txnid'] ?? params['txnref'] ?? '';
-    final approvalRef = params['approvalrefno'] ?? '';
-
-    if (status == 'SUCCESS' || status == 'SUBMITTED') {
+    if (result.isSuccess || result.isPending) {
       setState(() {
         _step = 2;
-        _txnId = txnId;
-        _approvalRef = approvalRef;
+        _txnId = result.txnId;
+        _approvalRef = result.approvalRef;
         _appName = appName;
-        _pending = status == 'SUBMITTED';
+        _pending = result.isPending;
       });
     } else {
       ErrorHandler.showError(
-        'Payment ${status.isEmpty ? "failed or cancelled" : status.toLowerCase()}.',
+        'Payment ${result.status.isEmpty ? "failed or cancelled" : result.status.toLowerCase()}.',
       );
     }
   }
@@ -756,7 +746,9 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 6.h),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
-            value: _selectedCategory,
+            value: cats.any((c) => c.name == _selectedCategory)
+                ? _selectedCategory
+                : null,
             isExpanded: true,
             dropdownColor: isDark ? AppColors.darkSurface : Colors.white,
             icon: Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),

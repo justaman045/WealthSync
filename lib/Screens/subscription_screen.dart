@@ -13,6 +13,7 @@ import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/main.dart' show rootScaffoldMessengerKey;
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/upi_response.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -1107,30 +1108,46 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         'note': 'WealthSync Pro - $_selectedPlan',
       });
       _parseUpiResponse(response, setLocal);
-    } catch (e) {
-      if (pkg.isNotEmpty) {
+    } on PlatformException catch (e) {
+      // Only an installed-app miss should fall back to the system chooser.
+      // Retrying on any error (the previous behavior) re-opened the payment
+      // sheet on a timeout, and misreported real failures as "No UPI App Found".
+      if (e.code == 'APP_NOT_FOUND' && pkg.isNotEmpty) {
         _initiateUpiPayment('', amount, upiId, setLocal);
+      } else if (e.code == 'TIMEOUT') {
+        _showMessengerSnackBar('Payment Timed Out', 'UPI app did not respond. Please try again.', Colors.redAccent);
+      } else if (e.code == 'MISSING_VPA' || e.code == 'INVALID_AMOUNT') {
+        _showMessengerSnackBar('Payment Failed', 'Could not start UPI payment. Please try again.', Colors.redAccent);
       } else {
         _showMessengerSnackBar('No UPI App Found', 'Please install a UPI app and try again.', Colors.redAccent);
       }
+    } on MissingPluginException {
+      // UPI is Android-only; no native handler on iOS/desktop/web.
+      _showMessengerSnackBar('UPI Unavailable', 'UPI payments are only available on Android.', Colors.redAccent);
+    } catch (e) {
+      _showMessengerSnackBar('Payment Failed', 'Could not start UPI payment. Please try again.', Colors.redAccent);
     }
   }
 
   void _parseUpiResponse(String? response, StateSetter setLocal) {
-    if (response == null || response.isEmpty) return;
-    final params = Uri.splitQueryString(response);
-    final status = params['Status'] ?? params['status'] ?? '';
-    final txnId = params['txnId'] ?? params['txnRef'] ?? params['approvalRefNo'] ?? '';
+    final result = parseUpiPaymentResponse(response);
+    if (result.isCancelled) return; // user backed out — silent
 
-    if (status.toUpperCase() == 'SUCCESS' && txnId.isNotEmpty) {
+    if (result.isSuccess) {
       setLocal(() {
-        _upiTxnId = txnId;
-        _txnController.text = txnId;
+        _upiTxnId = result.txnId;
+        _txnController.text = result.txnId;
       });
-      _showMessengerSnackBar('Payment Successful', 'Transaction ID auto-filled. Tap Submit to complete.', Colors.green);
-    } else if (status.toUpperCase() == 'SUBMITTED') {
+      _showMessengerSnackBar(
+        'Payment Successful',
+        result.txnId.isEmpty
+            ? 'Payment confirmed. Enter the transaction ID manually if you have one.'
+            : 'Transaction ID auto-filled. Tap Submit to complete.',
+        Colors.green,
+      );
+    } else if (result.isPending) {
       _showMessengerSnackBar('Payment Pending', 'Enter the transaction ID manually once confirmed.', Colors.orangeAccent);
-    } else if (status.toUpperCase() == 'FAILURE') {
+    } else {
       _showMessengerSnackBar('Payment Failed', 'Please try again or enter the transaction ID manually.', Colors.redAccent);
     }
   }

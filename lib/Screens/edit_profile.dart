@@ -31,6 +31,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   DateTime? _dob;
   String? _gender;
 
+  // The dropdown only offers these; a legacy/unknown stored value must not be
+  // passed to DropdownButton.value (it asserts when absent from items).
+  static const Set<String> _validGenders = {
+    'male',
+    'female',
+    'other',
+    'prefer_not_to_say',
+  };
+
   bool _isLoading = false;
 
   // Fetch Firestore data for the current user
@@ -49,7 +58,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _lastNameController.text = data['lastName'] ?? '';
             _phoneController.text = data['phone'] ?? '';
             _addressController.text = data['address'] ?? '';
-            _gender = data['gender'] as String?;
+            final rawGender = data['gender'] as String?;
+            _gender = _validGenders.contains(rawGender) ? rawGender : null;
 
             final dob = data['dob'];
             if (dob is Timestamp) {
