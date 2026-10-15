@@ -25,15 +25,15 @@ void main() {
       source.contains('fixedCategories'),
       isFalse,
       reason: 'analysis.dart must not reintroduce the local fixedCategories set; '
-          'use isFixedExpenseCategory() from wealth_math.dart',
+          'use the shared daily-limit resolver from wealth_math.dart',
     );
 
-    final usages = RegExp(r'isFixedExpenseCategory\(').allMatches(source).length;
+    final usages = RegExp(r'resolveDailyLimitRole\(').allMatches(source).length;
     expect(
       usages,
       greaterThanOrEqualTo(3),
       reason: 'the current-month variable total, today\'s fixed total, and the '
-          'fixed forecast must all classify via isFixedExpenseCategory()',
+          'fixed forecast must all classify via resolveDailyLimitRole()',
     );
   });
 
@@ -57,7 +57,7 @@ void main() {
         reason: 'the breakdown screen must use the shared month-split helper');
 
     final filter = File('lib/Utils/spending_filter.dart').readAsStringSync();
-    expect(filter.contains('isFixedExpenseCategory('), isTrue,
-        reason: 'the filter helper must classify with isFixedExpenseCategory');
+    expect(filter.contains('resolveDailyLimitRole('), isTrue,
+        reason: 'the filter helper must classify with resolveDailyLimitRole');
   });
 }

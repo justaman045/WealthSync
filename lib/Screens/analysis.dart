@@ -17,6 +17,7 @@ import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Repositories/transaction_repository.dart';
 import 'package:money_control/Screens/cateogary_history.dart';
 import 'package:money_control/Screens/other_items_screen.dart';
@@ -117,6 +118,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       }
       if (!mounted) return;
 
+      // Per-category user overrides for the fixed/variable/ignored split.
+      final treatmentOverrides =
+          buildTreatmentOverrides(txController.categories);
+
       final now = DateTime.now();
       final currentKey = now.year * 100 + now.month;
       final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -169,7 +174,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         final d = tx.date;
         final monthKey = d.year * 100 + d.month;
         final cat = tx.category ?? "Others";
-        final isFixed = isFixedExpenseCategory(cat);
+        final role = resolveDailyLimitRole(
+          cat,
+          treatmentOverrides: treatmentOverrides,
+        );
 
         // Category Aggregation
         categoryMonthly.putIfAbsent(cat, () => {});
@@ -180,8 +188,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         monthlyTotal[monthKey] =
             (monthlyTotal[monthKey] ?? 0) + tx.amount.abs();
 
-        // Variable monthly totals
-        if (!isFixed) {
+        // Variable monthly totals (ignored categories excluded)
+        if (role == DailyLimitRole.variable) {
           monthlyVariable[monthKey] =
               (monthlyVariable[monthKey] ?? 0) + tx.amount.abs();
         }
@@ -193,7 +201,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           dailySpending[dayKey] =
               (dailySpending[dayKey] ?? 0) + tx.amount.abs();
 
-          if (!isFixed) {
+          if (role == DailyLimitRole.variable) {
             currentVar += tx.amount.abs();
             variableTxCount++;
           }
@@ -202,17 +210,24 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       final todayKey = DateTime(now.year, now.month, now.day);
       todaySpent = dailySpending[todayKey] ?? 0;
 
-      // Today's variable = today's total minus today's fixed spending
+      // Today's variable = today's total minus today's fixed AND ignored spend
       double todayFixed = 0;
+      double todayIgnored = 0;
       for (final tx in allTx) {
         final d = tx.date;
         if (d.year == now.year && d.month == now.month && d.day == now.day) {
-          if (isFixedExpenseCategory(tx.category)) {
+          final role = resolveDailyLimitRole(
+            tx.category,
+            treatmentOverrides: treatmentOverrides,
+          );
+          if (role == DailyLimitRole.fixed) {
             todayFixed += tx.amount.abs();
+          } else if (role == DailyLimitRole.ignored) {
+            todayIgnored += tx.amount.abs();
           }
         }
       }
-      todayVariableSpent = max(0, todaySpent - todayFixed);
+      todayVariableSpent = max(0, todaySpent - todayFixed - todayIgnored);
 
       currentVariableSpent = currentVar;
       currentVariableTxCount = variableTxCount;
@@ -230,8 +245,14 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       // Use actual category names from the user's data, classified by the same
       // whole-word helper the current-month variable total uses, so a bill is
       // never counted as discretionary while its forecast is still reserved.
-      final fixedCatNames =
-          categoryMonthly.keys.where(isFixedExpenseCategory).toSet();
+      final fixedCatNames = categoryMonthly.keys
+          .where((k) =>
+              resolveDailyLimitRole(
+                k,
+                treatmentOverrides: treatmentOverrides,
+              ) ==
+              DailyLimitRole.fixed)
+          .toSet();
 
       for (var cat in fixedCatNames) {
         final spentThisMonth = categoryMonthly[cat]?[currentKey] ?? 0;
@@ -335,8 +356,15 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       final List<CategoryInsight> localInsights = [];
 
       categoryMonthly.forEach((cat, months) {
+        final role = resolveDailyLimitRole(
+          cat,
+          treatmentOverrides: treatmentOverrides,
+        );
+        // Categories the user excluded from the limit get no limit-framed
+        // insight — they would misleadingly read "on track"/"pending".
+        if (role == DailyLimitRole.ignored) return;
         final currentSpent = months[currentKey] ?? 0;
-        final isFixed = isFixedExpenseCategory(cat);
+        final isFixed = role == DailyLimitRole.fixed;
 
         // Full-history weighted average for this category
         double catHistAvg = 0;

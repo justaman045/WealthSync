@@ -237,6 +237,55 @@ bool isFixedExpenseCategory(String? category) {
   return false;
 }
 
+/// How a category's spending counts toward the Smart Daily Limit.
+///
+/// [fixed] is a committed bill (reserved before the daily allowance is worked
+/// out); [variable] is discretionary "other items" spending that eats into the
+/// allowance; [ignored] is excluded from the limit entirely — the right call for
+/// investments/SIPs/transfers, which are savings, not spending (the savings rate
+/// already reserves them, so counting them again would double-penalise).
+enum DailyLimitRole { fixed, variable, ignored }
+
+/// Resolves [category]'s role toward the daily limit.
+///
+/// [treatmentOverrides] maps a lowercased, trimmed category name to `'fixed'` or
+/// `'ignored'` (a user's per-category choice). An explicit override always wins;
+/// otherwise the keyword classifier decides fixed vs variable, and `'auto'` /
+/// missing entries are never ignored.
+DailyLimitRole resolveDailyLimitRole(
+  String? category, {
+  Map<String, String> treatmentOverrides = const {},
+}) {
+  final key = category?.toLowerCase().trim();
+  if (key != null && key.isNotEmpty) {
+    // Try exact normalized first, then also fall back to a case/space-insensitive
+    // match against the provided override keys (callers may pass raw names).
+    String? overrideValue = treatmentOverrides[key];
+    if (overrideValue == null || overrideValue.isEmpty) {
+      for (final entry in treatmentOverrides.entries) {
+        final overrideKey = entry.key.toLowerCase().trim();
+        if (overrideKey == key) {
+          overrideValue = entry.value;
+          break;
+        }
+      }
+    }
+    if (overrideValue != null && overrideValue.isNotEmpty) {
+      switch (overrideValue.toLowerCase().trim()) {
+        case 'fixed':
+          return DailyLimitRole.fixed;
+        case 'ignored':
+          return DailyLimitRole.ignored;
+        default:
+          break;
+      }
+    }
+  }
+  return isFixedExpenseCategory(category)
+      ? DailyLimitRole.fixed
+      : DailyLimitRole.variable;
+}
+
 /// Income source modes used by [computeExpectedIncome].
 enum IncomeMode { manual, autoBlend, autoSalaryWindow }
 

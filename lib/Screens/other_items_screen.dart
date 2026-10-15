@@ -4,10 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/tx_tile.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Models/transaction.dart';
+import 'package:money_control/Screens/category_management.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/spending_filter.dart';
 
@@ -26,6 +29,7 @@ class OtherItemsScreen extends StatefulWidget {
 class _OtherItemsScreenState extends State<OtherItemsScreen> {
   late final TransactionController _controller;
   bool _showExcluded = false;
+  bool _showIgnored = false;
 
   @override
   void initState() {
@@ -75,10 +79,13 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                     _controller.transactions,
                     uid: user.uid,
                     month: now,
+                    treatmentOverrides:
+                        buildTreatmentOverrides(_controller.categories),
                   );
                   final sym = CurrencyController.to.currencySymbol.value;
                   final discretionary = split.discretionary;
                   final fixed = split.fixed;
+                  final ignored = split.ignored;
 
                   return Center(
                     child: ConstrainedBox(
@@ -95,6 +102,8 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                             total: split.discretionaryTotal,
                             count: split.discretionaryCount,
                           ),
+                          SizedBox(height: 12.h),
+                          _customizeLink(context, isDark: isDark),
                           SizedBox(height: 20.h),
                           _sectionTitle(
                             "Counted as other items",
@@ -134,6 +143,34 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                               )
                             else
                               ...fixed.map(
+                                (tx) =>
+                                    _txCard(tx, isDark: isDark, dimmed: true),
+                              ),
+                          ],
+                          SizedBox(height: 12.h),
+                          _ignoredToggle(
+                            isDark: isDark,
+                            sym: sym,
+                            count: ignored.length,
+                            total: split.ignoredTotal,
+                          ),
+                          if (_showIgnored) ...[
+                            SizedBox(height: 6.h),
+                            _sectionTitle(
+                              "Ignored (not counted in limit)",
+                              isDark: isDark,
+                            ),
+                            SizedBox(height: 10.h),
+                            if (ignored.isEmpty)
+                              _emptyCard(
+                                isDark: isDark,
+                                message:
+                                    "No ignored categories this month. Mark a "
+                                    "category as \"Ignore in limit\" to keep "
+                                    "investments/SIPs out of your daily limit.",
+                              )
+                            else
+                              ...ignored.map(
                                 (tx) =>
                                     _txCard(tx, isDark: isDark, dimmed: true),
                               ),
@@ -220,15 +257,19 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
     );
   }
 
-  Widget _excludedToggle({
+  Widget _bucketToggle({
     required bool isDark,
     required String sym,
     required int count,
     required double total,
+    required String label,
+    required IconData icon,
+    required bool expanded,
+    required VoidCallback onTap,
   }) {
     return InkWell(
       borderRadius: BorderRadius.circular(16.r),
-      onTap: () => setState(() => _showExcluded = !_showExcluded),
+      onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
         decoration: BoxDecoration(
@@ -245,14 +286,14 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
         child: Row(
           children: [
             Icon(
-              Icons.receipt_long_rounded,
+              icon,
               size: 20.sp,
               color: isDark ? Colors.white60 : AppColors.lightTextTertiary,
             ),
             SizedBox(width: 10.w),
             Expanded(
               child: Text(
-                "Excluded: bills & fixed ($count)",
+                "$label ($count)",
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
@@ -270,11 +311,71 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
             ),
             SizedBox(width: 6.w),
             Icon(
-              _showExcluded ? Icons.expand_less : Icons.expand_more,
+              expanded ? Icons.expand_less : Icons.expand_more,
               size: 20.sp,
               color: isDark ? Colors.white60 : AppColors.lightTextTertiary,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _excludedToggle({
+    required bool isDark,
+    required String sym,
+    required int count,
+    required double total,
+  }) {
+    return _bucketToggle(
+      isDark: isDark,
+      sym: sym,
+      count: count,
+      total: total,
+      label: "Excluded: bills & fixed",
+      icon: Icons.receipt_long_rounded,
+      expanded: _showExcluded,
+      onTap: () => setState(() => _showExcluded = !_showExcluded),
+    );
+  }
+
+  Widget _ignoredToggle({
+    required bool isDark,
+    required String sym,
+    required int count,
+    required double total,
+  }) {
+    return _bucketToggle(
+      isDark: isDark,
+      sym: sym,
+      count: count,
+      total: total,
+      label: "Ignored: not counted in limit",
+      icon: Icons.visibility_off_rounded,
+      expanded: _showIgnored,
+      onTap: () => setState(() => _showIgnored = !_showIgnored),
+    );
+  }
+
+  Widget _customizeLink(BuildContext context, {required bool isDark}) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () {
+          if (!ensureFeatureVisible(context, 'category')) return;
+          Get.to(() => const CategoryManagementScreen());
+        },
+        icon: Icon(
+          Icons.tune,
+          size: 18.sp,
+          color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+        ),
+        label: Text(
+          "Customize which categories count",
+          style: TextStyle(
+            fontSize: 13.sp,
+            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+          ),
         ),
       ),
     );

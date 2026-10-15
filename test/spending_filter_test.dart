@@ -51,7 +51,7 @@ void main() {
       expect(split.fixedCount, 2);
     });
 
-    test('the two buckets partition every expense of the month', () {
+    test('the three buckets partition every expense of the month', () {
       final all = [
         _tx(amount: -100, date: DateTime(2026, 10, 1), category: 'Food'),
         _tx(amount: -100, date: DateTime(2026, 10, 2), category: 'Rent'),
@@ -59,9 +59,60 @@ void main() {
       ];
       final split = splitMonthlyExpenses(all, uid: 'me', month: month);
       expect(
-        split.discretionary.length + split.fixed.length,
+        split.discretionary.length + split.fixed.length + split.ignored.length,
         all.length,
       );
+    });
+
+    test('treatmentOverrides route a category out of discretionary', () {
+      final all = [
+        _tx(amount: -500, date: DateTime(2026, 10, 4), category: 'SIP'),
+        _tx(amount: -300, date: DateTime(2026, 10, 5), category: 'Food'),
+      ];
+
+      // Auto: SIP is discretionary (no fixed keyword).
+      final auto = splitMonthlyExpenses(all, uid: 'me', month: month);
+      expect(auto.discretionaryCount, 2);
+      expect(auto.ignoredCount, 0);
+
+      // User marked SIP as ignored → it leaves the discretionary bucket.
+      final ignored = splitMonthlyExpenses(
+        all,
+        uid: 'me',
+        month: month,
+        treatmentOverrides: const {'sip': 'ignored'},
+      );
+      expect(ignored.discretionary.map((t) => t.category), ['Food']);
+      expect(ignored.ignored.map((t) => t.category), ['SIP']);
+      expect(ignored.ignoredTotal, 500);
+      expect(ignored.discretionaryTotal, 300);
+    });
+
+    test('a fixed override wins over the Auto keyword classifier', () {
+      final all = [
+        _tx(amount: -400, date: DateTime(2026, 10, 6), category: 'Food'),
+      ];
+      final split = splitMonthlyExpenses(
+        all,
+        uid: 'me',
+        month: month,
+        treatmentOverrides: const {'food': 'fixed'},
+      );
+      expect(split.fixedCount, 1);
+      expect(split.discretionaryCount, 0);
+    });
+
+    test('override keys are matched case-insensitively and trimmed', () {
+      final all = [
+        _tx(amount: -400, date: DateTime(2026, 10, 7), category: 'SIP'),
+      ];
+      final split = splitMonthlyExpenses(
+        all,
+        uid: 'me',
+        month: month,
+        treatmentOverrides: const {'  sip ': 'ignored'},
+      );
+      expect(split.ignoredCount, 1);
     });
 
     test('excludes income and other users', () {

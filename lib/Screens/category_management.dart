@@ -352,6 +352,9 @@ class _CategoryDialogState extends State<_CategoryDialog> {
   int _selectedColor = AppColors.primary.toARGB32();
   int _selectedIconCode = Icons.category.codePoint;
 
+  /// `'fixed'`, `'ignored'`, or null for Auto (keyword classifier decides).
+  String? _treatmentOverride;
+
   final List<int> _presetColors = [
     0xFFF44336, // Red
     0xFFE91E63, // Pink
@@ -414,7 +417,35 @@ class _CategoryDialogState extends State<_CategoryDialog> {
       _nameController.text = widget.category!.name;
       _selectedColor = widget.category!.color ?? AppColors.primary.toARGB32();
       _selectedIconCode = widget.category!.iconCode ?? Icons.category.codePoint;
+      final treatment = widget.category!.treatmentOverride;
+      _treatmentOverride =
+          (treatment == 'fixed' || treatment == 'ignored') ? treatment : null;
     }
+  }
+
+  Widget _treatmentChip(String label, String? value, bool isDark) {
+    final selected = _treatmentOverride == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => setState(() => _treatmentOverride = value),
+      showCheckmark: false,
+      selectedColor: Color(_selectedColor).withValues(alpha: 0.25),
+      backgroundColor:
+          isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightSurfaceCard,
+      labelStyle: TextStyle(
+        fontSize: 12.sp,
+        color: selected
+            ? Color(_selectedColor)
+            : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(
+        color: selected
+            ? Color(_selectedColor)
+            : (isDark ? Colors.white24 : AppColors.lightBorder),
+      ),
+    );
   }
 
   @override
@@ -459,6 +490,32 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                   borderSide: BorderSide(color: Color(_selectedColor)),
                 ),
               ),
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              "Daily limit treatment",
+              style: TextStyle(
+                color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              "How this category counts toward your Smart Daily Limit. "
+              "Ignored categories (e.g. investments/SIPs) never reduce it.",
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
+              ),
+            ),
+            SizedBox(height: 10.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: [
+                _treatmentChip("Auto", null, isDark),
+                _treatmentChip("Fixed bill", "fixed", isDark),
+                _treatmentChip("Ignore in limit", "ignored", isDark),
+              ],
             ),
             SizedBox(height: 20.h),
             Text("Color", style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
@@ -532,6 +589,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
                   name: _nameController.text.trim(),
                   color: _selectedColor,
                   iconCode: _selectedIconCode,
+                  treatmentOverride: _treatmentOverride,
                 );
 
                 widget.onSave(finalModel);
