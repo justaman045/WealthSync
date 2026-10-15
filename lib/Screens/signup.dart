@@ -11,6 +11,7 @@ import 'package:money_control/Components/glass_container.dart'; // Unified Glass
 import 'package:money_control/Components/colors.dart'; // App Colors
 import 'package:money_control/Screens/onboarding_screen.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/auth_error_messages.dart';
 import 'package:money_control/Services/error_handler.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -109,7 +110,7 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _errorMessage = e.message ?? 'Sign up failed';
+        _errorMessage = friendlyAuthError(e);
       });
     } catch (e) {
       AuthController.signupInProgress = false;

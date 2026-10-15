@@ -10,6 +10,7 @@ import 'package:money_control/Screens/main_shell.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Utils/auth_error_messages.dart';
 import 'package:money_control/Services/referral_service.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/recurring_service.dart';
@@ -52,13 +53,26 @@ class AuthController extends GetxController {
 
   Future<void> loginWithEmail(String email, String password) async {
     if (isLoading.value) return;
+    final trimmedEmail = email.trim();
+    final trimmedPassword = password.trim();
+    // The native Firebase Auth bridge throws a raw `IllegalArgumentException:
+    // Given String is empty or null` for a blank email/password — NOT a
+    // `FirebaseAuthException`. Without this guard that exception falls through
+    // to the generic catch below, which assumes the credentials were accepted,
+    // signs the (never-authenticated) user back out, and reports the misleading
+    // "Could not finish setting up your account". Validate up front instead.
+    if (trimmedEmail.isEmpty || trimmedPassword.isEmpty) {
+      errorMessage.value = 'Please enter your email and password.';
+      ErrorHandler.showError(errorMessage.value);
+      return;
+    }
     isLoading.value = true;
     errorMessage.value = '';
 
     try {
       final credential = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password.trim(),
+        email: trimmedEmail,
+        password: trimmedPassword,
       );
 
       final user = credential.user;
@@ -244,26 +258,6 @@ class AuthController extends GetxController {
 
   void _disposeUserScopedState() => unawaited(disposeUserScopedState());
 
-  String _getFriendlyErrorMessage(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'user-not-found':
-        return 'No user found with this email.';
-      case 'wrong-password':
-        return 'Incorrect password.';
-      case 'invalid-email':
-        return 'The email address is invalid.';
-      case 'user-disabled':
-        return 'This user account has been disabled.';
-      case 'too-many-requests':
-        return 'Too many login attempts. Please try again later.';
-      case 'operation-not-allowed':
-        return 'Operation not allowed. Please contact support.';
-      case 'network-request-failed':
-        return 'Network error. Please check your connection.';
-      case 'credential-already-in-use':
-        return 'This email is already associated with another account.';
-      default:
-        return 'Authentication failed: ${e.message}';
-    }
-  }
+  String _getFriendlyErrorMessage(FirebaseAuthException e) =>
+      friendlyAuthError(e);
 }
