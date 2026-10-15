@@ -9,40 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'WealthSync';
-
-  @override
   String get welcomeBack => 'Welcome back,';
 
   @override
-  String get loginTitle => 'Login to your account';
-
-  @override
-  String get loginSubtitle => 'Welcome back! Please enter your details.';
-
-  @override
-  String get emailHint => 'Email Address';
-
-  @override
-  String get passwordHint => 'Password';
-
-  @override
-  String get loginButton => 'Login';
-
-  @override
-  String get googleLogin => 'Sign in with Google';
-
-  @override
-  String get dontHaveAccount => 'Don\'t have an account?';
-
-  @override
-  String get signUp => 'Sign Up';
-
-  @override
   String get home => 'Home';
-
-  @override
-  String get analytics => 'Analytics';
 
   @override
   String get transactions => 'Transactions';
@@ -52,9 +22,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recentTransactions => 'Recent Transactions';
-
-  @override
-  String get quickSend => 'Quick Send';
 
   @override
   String get noTransactions => 'No Transactions';
@@ -109,9 +76,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get success => 'Success';
-
-  @override
-  String get transactionSaved => 'Transaction saved successfully';
 
   @override
   String get newCategory => 'New Category';

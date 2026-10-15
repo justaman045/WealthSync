@@ -62,7 +62,6 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final gradientColors = isDark

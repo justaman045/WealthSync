@@ -623,12 +623,4 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
       fontSize: 16.sp,
     ),
   );
-
-  Widget blankText(ThemeData theme) => Text(
-    'User',
-    style: theme.textTheme.bodyLarge?.copyWith(
-      fontWeight: FontWeight.bold,
-      fontSize: 16.sp,
-    ),
-  );
 }

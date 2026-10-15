@@ -154,24 +154,6 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     setState(() => downloadingData = true);
 
     try {
-      // final userDoc = FirebaseFirestore.instance
-      //     .collection("users")
-      //     .doc(user.email);
-
-      // final txSnap = await userDoc.collection("transactions").get();
-      // final catSnap = await userDoc.collection("categories").get();
-
-      /// This map isn't strictly needed if using LocalBackupService, but kept for logic structure
-      // final export = {
-      //   "email": user.email,
-      //   "transactions": txSnap.docs
-      //       .map((e) => {"id": e.id, ...e.data()})
-      //       .toList(),
-      //   "categories": catSnap.docs
-      //       .map((e) => {"id": e.id, ...e.data()})
-      //       .toList(),
-      // };
-
       await LocalBackupService.exportBackupFile(user.email!);
 
       if (mounted) setState(() => downloadingData = false);

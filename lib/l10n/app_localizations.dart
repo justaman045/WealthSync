@@ -94,77 +94,17 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[Locale('en')];
 
-  /// No description provided for @appTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'WealthSync'**
-  String get appTitle;
-
   /// No description provided for @welcomeBack.
   ///
   /// In en, this message translates to:
   /// **'Welcome back,'**
   String get welcomeBack;
 
-  /// No description provided for @loginTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Login to your account'**
-  String get loginTitle;
-
-  /// No description provided for @loginSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Welcome back! Please enter your details.'**
-  String get loginSubtitle;
-
-  /// No description provided for @emailHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Email Address'**
-  String get emailHint;
-
-  /// No description provided for @passwordHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Password'**
-  String get passwordHint;
-
-  /// No description provided for @loginButton.
-  ///
-  /// In en, this message translates to:
-  /// **'Login'**
-  String get loginButton;
-
-  /// No description provided for @googleLogin.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in with Google'**
-  String get googleLogin;
-
-  /// No description provided for @dontHaveAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Don\'t have an account?'**
-  String get dontHaveAccount;
-
-  /// No description provided for @signUp.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign Up'**
-  String get signUp;
-
   /// No description provided for @home.
   ///
   /// In en, this message translates to:
   /// **'Home'**
   String get home;
-
-  /// No description provided for @analytics.
-  ///
-  /// In en, this message translates to:
-  /// **'Analytics'**
-  String get analytics;
 
   /// No description provided for @transactions.
   ///
@@ -183,12 +123,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recent Transactions'**
   String get recentTransactions;
-
-  /// No description provided for @quickSend.
-  ///
-  /// In en, this message translates to:
-  /// **'Quick Send'**
-  String get quickSend;
 
   /// No description provided for @noTransactions.
   ///
@@ -291,12 +225,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Success'**
   String get success;
-
-  /// No description provided for @transactionSaved.
-  ///
-  /// In en, this message translates to:
-  /// **'Transaction saved successfully'**
-  String get transactionSaved;
 
   /// No description provided for @newCategory.
   ///

@@ -17,10 +17,7 @@ class AppColors {
   static const Color accent = Color(0xFF8B5CF6); // Violet (charts only)
 
   // Containers / tints for the accent family
-  static const Color primaryContainerLight = Color(0xFFE0E7FF);
-  static const Color onPrimaryContainerLight = Color(0xFF312E81);
   static const Color primaryContainerDark = Color(0xFF312E81);
-  static const Color onPrimaryContainerDark = Color(0xFFE0E7FF);
 
   // ------------------ BACKGROUNDS (flattened) ------------------
   // Kept as two-stop lists for source compatibility; both stops are equal so
@@ -89,10 +86,6 @@ class AppRadius {
   static const double lg = 18;
   static const double xl = 24;
   static const double pill = 100;
-}
-
-class AppSpacing {
-  AppSpacing._();
 }
 
 class AppShadows {

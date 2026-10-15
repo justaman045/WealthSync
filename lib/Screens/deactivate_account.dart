@@ -64,11 +64,8 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ... (keep existing theme setup)
-    // final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // ... (keep gradient colors setup)
     final gradientColors = isDark
         ? [
             AppColors.darkBackground,
