@@ -349,7 +349,7 @@ class _CategoryDialog extends StatefulWidget {
 
 class _CategoryDialogState extends State<_CategoryDialog> {
   final _nameController = TextEditingController();
-  int _selectedColor = 0xFF6C63FF;
+  int _selectedColor = AppColors.primary.toARGB32();
   int _selectedIconCode = Icons.category.codePoint;
 
   final List<int> _presetColors = [
@@ -412,7 +412,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
     super.initState();
     if (widget.category != null) {
       _nameController.text = widget.category!.name;
-      _selectedColor = widget.category!.color ?? 0xFF6C63FF;
+      _selectedColor = widget.category!.color ?? AppColors.primary.toARGB32();
       _selectedIconCode = widget.category!.iconCode ?? Icons.category.codePoint;
     }
   }

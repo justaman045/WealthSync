@@ -457,9 +457,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                           borderRadius: BorderRadius.circular(28.r),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(
-                                0xFF6C63FF,
-                              ).withValues(alpha: 0.4),
+                              color: AppColors.primary.withValues(alpha: 0.4),
                               blurRadius: 10.w,
                               offset: Offset(0, 4.w),
                             ),

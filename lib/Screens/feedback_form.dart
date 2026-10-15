@@ -226,21 +226,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                   AppColors.primaryPress,
                                 ]
                               : [
-                                  const Color(
-                                    0xFF6C63FF,
-                                  ).withValues(alpha: 0.8),
-                                  const Color(
-                                    0xFF4834D4,
-                                  ).withValues(alpha: 0.8),
+                                  AppColors.primary.withValues(alpha: 0.8),
+                                  AppColors.primaryPress.withValues(alpha: 0.8),
                                 ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(
-                              0xFF6C63FF,
-                            ).withValues(alpha: 0.4),
+                            color: AppColors.primary.withValues(alpha: 0.4),
                             blurRadius: 10.w,
                             offset: Offset(0, 5.w),
                           ),

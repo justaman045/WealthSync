@@ -440,12 +440,8 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                     show: true,
                                     gradient: LinearGradient(
                                       colors: [
-                                        const Color(
-                                          0xFF00E5FF,
-                                        ).withValues(alpha: 0.2),
-                                        const Color(
-                                          0xFF00E5FF,
-                                        ).withValues(alpha: 0.0),
+                                        AppColors.primary.withValues(alpha: 0.2),
+                                        AppColors.primary.withValues(alpha: 0.0),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,

@@ -143,9 +143,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                       borderRadius: BorderRadius.circular(20.r),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(
-                            0xFF00E5FF,
-                          ).withValues(alpha: 0.1), // Neon Cyan Glow
+                          color: AppColors.primary.withValues(alpha: 0.1), // Neon Cyan Glow
                           blurRadius: 20.w,
                           spreadRadius: -5.w,
                         ),
@@ -187,9 +185,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20.r),
                           borderSide: BorderSide(
-                            color: const Color(
-                              0xFF00E5FF,
-                            ).withValues(alpha: 0.5),
+                            color: AppColors.primary.withValues(alpha: 0.5),
                           ),
                         ),
                       ),

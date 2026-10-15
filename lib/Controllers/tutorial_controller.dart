@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:money_control/Components/colors.dart';
 
 class TutorialController {
   static bool isTestMode = false;
@@ -209,7 +210,7 @@ class TutorialController {
         color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
+          color: AppColors.primary.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -219,7 +220,7 @@ class TutorialController {
           Text(
             title,
             style: TextStyle(
-              color: const Color(0xFF00E5FF),
+              color: AppColors.primary,
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
             ),

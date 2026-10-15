@@ -735,9 +735,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             Container(
                               padding: EdgeInsets.all(8.w),
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF00E5FF,
-                                ).withValues(alpha: 0.15),
+                                color: AppColors.primary.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
                               child: Icon(
@@ -1199,9 +1197,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         borderRadius: BorderRadius.circular(10.r),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(
-                              0xFF00E5FF,
-                            ).withValues(alpha: 0.4),
+                            color: AppColors.primary.withValues(alpha: 0.4),
                             blurRadius: 6.r,
                             spreadRadius: 1.r,
                           ),
@@ -1257,9 +1253,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         borderRadius: BorderRadius.circular(10.r),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(
-                              0xFFFF2975,
-                            ).withValues(alpha: 0.4),
+                            color: AppColors.error.withValues(alpha: 0.4),
                             blurRadius: 6.r,
                             spreadRadius: 1.r,
                           ),

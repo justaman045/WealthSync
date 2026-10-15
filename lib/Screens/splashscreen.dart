@@ -131,9 +131,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                     boxShadow: [
                                       BoxShadow(
                                         color: isDark
-                                            ? const Color(
-                                                0xFF6C63FF,
-                                              ).withValues(alpha: 0.15)
+                                            ? AppColors.primary.withValues(alpha: 0.15)
                                             : const Color(
                                                 0xFF3F51B5,
                                               ).withValues(alpha: 0.1),
@@ -240,21 +238,15 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                         AppColors.primaryPress,
                                       ]
                                     : [
-                                        const Color(
-                                          0xFF6C63FF,
-                                        ).withValues(alpha: 0.9),
-                                        const Color(
-                                          0xFF4834D4,
-                                        ).withValues(alpha: 0.9),
+                                        AppColors.primary.withValues(alpha: 0.9),
+                                        AppColors.primaryPress.withValues(alpha: 0.9),
                                       ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(
-                                    0xFF6C63FF,
-                                  ).withValues(alpha: 0.3),
+                                  color: AppColors.primary.withValues(alpha: 0.3),
                                   blurRadius: 15.w,
                                   offset: Offset(0, 8.w),
                                 ),

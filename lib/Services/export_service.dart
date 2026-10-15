@@ -22,13 +22,13 @@ class ExportService {
     throw Exception('This feature has been disabled.');
   }
 
-  // Brand Colors (Approximate matches to Neon/Midnight theme for Print)
+  // Brand Colors (match the app's indigo/zinc design tokens for print)
   static const PdfColor primaryColor = PdfColor.fromInt(
     0xFF0F172A,
   ); // Dark Blue
-  static const PdfColor accentColor = PdfColor.fromInt(0xFF6366F1); // Blurple
-  static const PdfColor expenseColor = PdfColor.fromInt(0xFFFF2975); // Pink/Red
-  static const PdfColor incomeColor = PdfColor.fromInt(0xFF00E5FF); // Cyan
+  static const PdfColor accentColor = PdfColor.fromInt(0xFF6366F1); // Indigo 500
+  static const PdfColor expenseColor = PdfColor.fromInt(0xFFEF4444); // Error
+  static const PdfColor incomeColor = PdfColor.fromInt(0xFF10B981); // Success
   static const PdfColor greyLight = PdfColor.fromInt(0xFFF1F5F9);
 
   // Noto Sans supports ₹ and all Indian script characters

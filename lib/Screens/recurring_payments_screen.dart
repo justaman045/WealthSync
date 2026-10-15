@@ -228,9 +228,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                               : AppColors.lightSurfaceCard,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(
-                                                0xFF00E5FF,
-                                              ).withValues(alpha: 0.1),
+                                              color: AppColors.primary.withValues(alpha: 0.1),
                                               blurRadius: 30.w,
                                               spreadRadius: 5.w,
                                             ),
