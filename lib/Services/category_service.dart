@@ -93,19 +93,6 @@ class CategoryService {
     await removeSuggestion(merchant);
   }
 
-  // Returns the user-corrected category for a merchant, if any.
-  static Future<String?> getSuggestion(String merchant) async {
-    final key = merchant.trim().toLowerCase();
-    if (key.isEmpty) return null;
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(correctionsKey);
-    if (raw == null) return null;
-    final map = _safeDecodeMap(raw);
-    final entry = _asMap(map[key]);
-    if (entry == null) return null;
-    return entry['category']?.toString();
-  }
-
   // Returns merchants corrected 2+ times (candidates to become rules).
   static Future<List<Map<String, dynamic>>> getPendingSuggestions() async {
     final prefs = await SharedPreferences.getInstance();

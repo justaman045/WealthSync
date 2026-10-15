@@ -7,38 +7,6 @@ import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class GlassContainer extends StatelessWidget {
-  static BoxDecoration glassDecoration({
-    required bool isDark,
-    double borderRadius = 24,
-    Color? customColor,
-    List<BoxShadow>? customShadow,
-  }) {
-    return BoxDecoration(
-      color:
-          customColor ??
-          (isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : AppColors.lightGlassBg.withValues(alpha: 0.9)),
-      borderRadius: BorderRadius.circular(borderRadius.r),
-      border: Border.all(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.1)
-            : AppColors.lightBorder,
-      ),
-      boxShadow:
-          customShadow ??
-          [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.1)
-                  : Colors.black.withValues(alpha: 0.08),
-              blurRadius: 15.w,
-              offset: Offset(0.w, 8.w),
-            ),
-          ],
-    );
-  }
-
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;

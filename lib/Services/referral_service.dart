@@ -359,23 +359,4 @@ class ReferralService {
       return false;
     }
   }
-
-  /// Fetches the current user's referral code and count.
-  static Future<Map<String, dynamic>> getReferralStats() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) {
-      return {'code': '', 'count': 0};
-    }
-    try {
-      final doc = await _db.collection('users').doc(user.email).get();
-      final data = doc.data() ?? {};
-      return {
-        'code': data['referralCode'] as String? ?? '',
-        'count': (data['referralCount'] as int?) ?? 0,
-      };
-    } catch (e) {
-      debugPrint('Referral code fetch error: $e');
-      return {'code': '', 'count': 0};
-    }
-  }
 }

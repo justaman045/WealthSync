@@ -80,8 +80,4 @@ class ErrorHandler {
   static void showNetworkError() {
     showError("Please check your internet connection.", title: "Network Error");
   }
-
-  static void showSomethingWentWrong() {
-    showError("Something went wrong. Please try again.", title: "Oops!");
-  }
 }

@@ -250,16 +250,6 @@ class WealthAgeRecommendations {
         .toSet();
   }
 
-  /// Get recommendation info for a specific card key
-  static WealthCardRecommendation? getCardRecommendation(String key) {
-    try {
-      return allCards.firstWhere((card) => card.key == key);
-    } catch (e) {
-      debugPrint('Card recommendation lookup error: $e');
-      return null;
-    }
-  }
-
   // ── Smart Mode phases ────────────────────────────────────────────────────
   // Recommended order for a 26-year-old starting out: foundations first,
   // then long-term growth, alternatives only once the base is solid.

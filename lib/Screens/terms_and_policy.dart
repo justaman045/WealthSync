@@ -72,7 +72,8 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
   /// -------------------------------------------------------
   Future<void> _requestDataDeletion() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    final email = user?.email;
+    if (user == null || email == null) return;
 
     setState(() {
       deletingData = true;
@@ -82,7 +83,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     try {
       final userDoc = FirebaseFirestore.instance
           .collection("users")
-          .doc(user.email);
+          .doc(email);
 
       /// Delete every user subcollection in chunked WriteBatch commits.
       /// A per-document `await delete()` loop issued one round-trip per doc
@@ -98,6 +99,12 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       ]) {
         await _deleteCollection(userDoc.collection(name));
       }
+
+      /// Clear the device-local transaction mirror too. The Firestore `backups`
+      /// collection is deleted above, but `LocalBackupService` keeps a full
+      /// device-local copy of every transaction that a later restore would
+      /// resurrect — an explicit data-erasure request must remove it as well.
+      await LocalBackupService.clearUserBackup(email);
 
       /// DO NOT DELETE MAIN USER DOC
       /// Just clear fields except email.

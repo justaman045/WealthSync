@@ -9,14 +9,8 @@ class Responsive {
   static bool isLandscape(BuildContext context) =>
       MediaQuery.of(context).orientation == Orientation.landscape;
 
-  static bool isPortrait(BuildContext context) =>
-      MediaQuery.of(context).orientation == Orientation.portrait;
-
   static double screenWidth(BuildContext context) =>
       MediaQuery.of(context).size.width;
-
-  static double screenHeight(BuildContext context) =>
-      MediaQuery.of(context).size.height;
 
   static int gridColumns(BuildContext context) {
     final width = screenWidth(context);
@@ -36,33 +30,6 @@ class Responsive {
     final width = screenWidth(context);
     if (width > 1100) return 1100;
     return width;
-  }
-
-  static double clampFont(double size, double screenWidth) {
-    final scale = screenWidth / 390;
-    final clampedScale = scale > 1.3 ? 1.3 : scale;
-    return (size * clampedScale).roundToDouble();
-  }
-
-  static double responsiveSpacing(double base, double screenWidth) {
-    final scale = screenWidth / 390;
-    final clampedScale = scale > 1.3 ? 1.3 : scale;
-    return (base * clampedScale).roundToDouble();
-  }
-
-  static double cardHeight(BuildContext context) {
-    if (!isTablet(context)) return 180;
-    return 160;
-  }
-
-  static double bottomNavHeight(BuildContext context) {
-    if (!isTablet(context)) return 128;
-    return 80;
-  }
-
-  static double appBarHeight(BuildContext context) {
-    if (!isTablet(context)) return kToolbarHeight;
-    return kToolbarHeight + 16;
   }
 
   static bool isWideForm(BuildContext context) =>

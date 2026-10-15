@@ -14,6 +14,7 @@ import 'package:money_control/Services/referral_service.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Services/cache_service.dart';
+import 'package:money_control/Services/offline_queue.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/analytics_controller.dart';
@@ -224,6 +225,12 @@ class AuthController extends GetxController {
     }
     SmsService.resetCache();
     RecurringService.resetCache();
+    // The offline queue is device-global (not user-scoped). Left intact, the
+    // next account's `syncPendingTransactions()` would replay the previous
+    // account's queued writes into the new account (wrong `senderId`/owner).
+    // Clear it on every teardown; a write that never reached the server
+    // (device offline) is implicitly abandoned when the user signs out.
+    await OfflineQueueService.clearPending();
     // Awaited: an unawaited clear could land AFTER a fast re-login had already
     // written the new account's cache, silently wiping it.
     await LocalCacheService.clearAll();

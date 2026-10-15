@@ -11,7 +11,6 @@ class LocalCacheService {
 
   static const txs30 = Duration(seconds: 30);
   static const wealth60 = Duration(seconds: 60);
-  static const asset60 = Duration(seconds: 60);
   static const slow5m = Duration(minutes: 5);
 
   static Future<void> init() async {
@@ -68,15 +67,6 @@ class LocalCacheService {
 
   static Future<void> invalidate(String key) async {
     await _prefs.remove(_k(key));
-  }
-
-  static Future<void> invalidateByPrefix(String prefix) async {
-    final keys = _prefs.getKeys()
-        .where((k) => k.startsWith(_k(prefix)))
-        .toList();
-    for (final k in keys) {
-      await _prefs.remove(k);
-    }
   }
 
   static Future<void> clearAll() async {
