@@ -51,19 +51,6 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   List<CategoryInsight> insights = [];
   Map<DateTime, double> dailySpending = {};
 
-  final Set<String> fixedCategories = {
-    "rent",
-    "emi",
-    "insurance",
-    "subscription",
-    "electricity",
-    "internet",
-    "broadband",
-    "bill",
-    "loan",
-    "fee",
-  };
-
   @override
   void initState() {
     super.initState();
@@ -178,7 +165,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         final d = tx.date;
         final monthKey = d.year * 100 + d.month;
         final cat = tx.category ?? "Others";
-        final isFixed = fixedCategories.contains(cat.toLowerCase());
+        final isFixed = isFixedExpenseCategory(cat);
 
         // Category Aggregation
         categoryMonthly.putIfAbsent(cat, () => {});
@@ -215,8 +202,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       for (final tx in allTx) {
         final d = tx.date;
         if (d.year == now.year && d.month == now.month && d.day == now.day) {
-          final cat = (tx.category ?? "Others").toLowerCase();
-          if (fixedCategories.contains(cat)) {
+          if (isFixedExpenseCategory(tx.category)) {
             todayFixed += tx.amount.abs();
           }
         }
@@ -235,12 +221,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       // ------------------------------------------------------
       double calcForecastFixed = 0;
 
-      // Use actual category names from the user's data (case-insensitive match
-      // against fixedCategories keywords). This fixes the bug where lowercase
-      // keywords like "rent" failed to match actual category names like "Rent".
-      final fixedCatNames = categoryMonthly.keys
-          .where((c) => fixedCategories.contains(c.toLowerCase()))
-          .toSet();
+      // Use actual category names from the user's data, classified by the same
+      // whole-word helper the current-month variable total uses, so a bill is
+      // never counted as discretionary while its forecast is still reserved.
+      final fixedCatNames =
+          categoryMonthly.keys.where(isFixedExpenseCategory).toSet();
 
       for (var cat in fixedCatNames) {
         final spentThisMonth = categoryMonthly[cat]?[currentKey] ?? 0;
@@ -345,7 +330,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       categoryMonthly.forEach((cat, months) {
         final currentSpent = months[currentKey] ?? 0;
-        final isFixed = fixedCategories.contains(cat.toLowerCase());
+        final isFixed = isFixedExpenseCategory(cat);
 
         // Full-history weighted average for this category
         double catHistAvg = 0;
@@ -940,8 +925,9 @@ child: loading
         Text(
           "From ~$sym${limit.expectedIncome.toStringAsFixed(0)} income: saving "
           "$sym${limit.savingsReserved.toStringAsFixed(0)} ($ratePct%) and "
-          "$sym${limit.fixedForecast.toStringAsFixed(0)} for bills, leaving "
-          "$sym${limit.remainingVariable.toStringAsFixed(0)} over "
+          "$sym${limit.fixedForecast.toStringAsFixed(0)} for bills. Already "
+          "spent $sym${limit.variableSpent.toStringAsFixed(0)} on other items, "
+          "leaving $sym${limit.remainingVariable.toStringAsFixed(0)} over "
           "${limit.remainingDays} day${limit.remainingDays == 1 ? '' : 's'}.",
           style: TextStyle(
             fontSize: 12.sp,

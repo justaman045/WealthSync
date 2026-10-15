@@ -368,6 +368,78 @@ void main() {
       expect(d.disposableBudget, 0);
       expect(d.dailyLimit, 0);
     });
+
+    test('reported case: income 50013, bills 32867 → 7143 left if no variable spend',
+        () {
+      // The "₹0 over 17 days" report: with 20% savings and 32867 bills the user
+      // should still see 7143 to spread, and the caption must surface the
+      // variableSpent term so an opaque 0 is impossible.
+      final d = computeDailyLimit(
+        expectedIncome: 50013,
+        fixedForecast: 32867,
+        variableSpent: 0,
+        remainingDays: 17,
+      );
+      expect(d.savingsReserved, closeTo(10002.6, 0.01));
+      expect(d.disposableBudget, closeTo(7143.4, 0.01));
+      expect(d.remainingVariable, closeTo(7143.4, 0.01));
+      expect(d.dailyLimit, closeTo(420.2, 0.01));
+
+      // A single flexible spend larger than the pot legitimately zeroes it —
+      // and is now visible in the caption, not hidden.
+      final zeroed = computeDailyLimit(
+        expectedIncome: 50013,
+        fixedForecast: 32867,
+        variableSpent: 8000,
+        remainingDays: 17,
+      );
+      expect(zeroed.remainingVariable, 0);
+      expect(zeroed.dailyLimit, 0);
+      expect(zeroed.variableSpent, 8000);
+    });
+  });
+
+  group('isFixedExpenseCategory()', () {
+    test('matches real-world fixed category names, not just the bare keyword', () {
+      for (final name in const [
+        'Rent',
+        'EMI',
+        'Loan EMI',
+        'Bills',
+        'Credit Card Bill',
+        'Electricity Bill',
+        'Water Bill',
+        'Insurance',
+        'Subscription',
+        'School Fees',
+        'Maintenance',
+      ]) {
+        expect(isFixedExpenseCategory(name), true, reason: '"$name" should be fixed');
+      }
+    });
+
+    test('does not misfile discretionary names containing a keyword substring', () {
+      for (final name in const [
+        'Coffee', // contains "fee"
+        'Freelance', // contains "fee"/"rent" fragments
+        'Food',
+        'Shopping',
+        'Travel',
+        'Salary',
+        'Cashback',
+        'Others',
+      ]) {
+        expect(isFixedExpenseCategory(name), false, reason: '"$name" must be variable');
+      }
+    });
+
+    test('is case-insensitive and tolerant of null/blank', () {
+      expect(isFixedExpenseCategory('  RENT  '), true);
+      expect(isFixedExpenseCategory('emi'), true);
+      expect(isFixedExpenseCategory(null), false);
+      expect(isFixedExpenseCategory(''), false);
+      expect(isFixedExpenseCategory('   '), false);
+    });
   });
 
   group('income detection helpers', () {

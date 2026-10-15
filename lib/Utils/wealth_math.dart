@@ -182,6 +182,61 @@ String formatMonthlyIncome(
 /// Default share of income reserved for savings when advising a daily limit.
 const double kDefaultSavingsRate = 0.20;
 
+/// Category keywords that name a fixed/committed monthly expense (rent, EMIs,
+/// bills, subscriptions, …). Drives the fixed-vs-discretionary split behind
+/// [computeDailyLimit]; see [isFixedExpenseCategory].
+const List<String> kFixedExpenseKeywords = [
+  'rent',
+  'emi',
+  'mortgage',
+  'loan',
+  'insurance',
+  'premium',
+  'subscription',
+  'bill',
+  'utility',
+  'electricity',
+  'water',
+  'gas',
+  'internet',
+  'broadband',
+  'wifi',
+  'telephone',
+  'mobile',
+  'recharge',
+  'credit card',
+  'tax',
+  'fee',
+  'tuition',
+  'school',
+  'maintenance',
+];
+
+final Map<String, RegExp> _fixedKeywordReCache = {};
+
+RegExp _fixedKeywordRe(String keyword) => _fixedKeywordReCache.putIfAbsent(
+      keyword,
+      () => RegExp('(^|[^a-z])${RegExp.escape(keyword)}(s)?([^a-z]|\$)'),
+    );
+
+/// True when [category] names a fixed/committed expense.
+///
+/// Matches whole words (plural-tolerant) anywhere in the name, so "Bills",
+/// "Loan EMI" and "Credit Card Bill" are fixed while "Coffee", "Freelance" and
+/// "Food" are not — a naive `contains('fee')` would misfile "Coffee" as fixed
+/// because it contains "fee". Used identically for the current-month variable
+/// total and the fixed forecast so a bill can never be counted as
+/// discretionary while its forecast is still reserved.
+bool isFixedExpenseCategory(String? category) {
+  if (category == null) return false;
+  final c = category.toLowerCase().trim();
+  if (c.isEmpty) return false;
+  for (final keyword in kFixedExpenseKeywords) {
+    if (_fixedKeywordRe(keyword).hasMatch(c)) return true;
+  }
+  return false;
+}
+
 /// Income source modes used by [computeExpectedIncome].
 enum IncomeMode { manual, autoBlend, autoSalaryWindow }
 
