@@ -30,6 +30,16 @@ class SavingsSettings {
     percent.value = (stored ?? defaultPercent).clamp(minPercent, maxPercent);
   }
 
+  /// Clears the persisted + in-memory savings target (call on signOut).
+  ///
+  /// [rateKey] and the static [percent] observable are device-global, so without
+  /// this the next account inherits the previous account's savings rate.
+  static Future<void> reset() async {
+    percent.value = defaultPercent;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(rateKey);
+  }
+
   static Future<void> setPercent(int value) async {
     final clamped = value.clamp(minPercent, maxPercent);
     percent.value = clamped;

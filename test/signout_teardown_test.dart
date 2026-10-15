@@ -1,6 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:money_control/Services/income_settings.dart';
+import 'package:money_control/Services/savings_settings.dart';
+import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Utils/wealth_math.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// `AuthController.disposeUserScopedState()` is the single teardown list shared
 /// by the explicit sign-out path and `main.dart`'s `_handleAuthChange`. That
@@ -52,6 +57,8 @@ void main() {
       'OfflineQueueService.clearPending()',
       'SmsService.resetCache()',
       'RecurringService.resetCache()',
+      'IncomeSettings.reset()',
+      'SavingsSettings.reset()',
     ]) {
       expect(
         body.contains(call),
@@ -59,6 +66,49 @@ void main() {
         reason: 'disposeUserScopedState must call $call',
       );
     }
+  });
+
+  test('SmsService.resetCache clears the persistent learning prefs', () async {
+    SharedPreferences.setMockInitialValues({
+      'user_custom_sms_rules': '{"Food":["myshop"]}',
+      'category_corrections': '{"myshop":{"category":"Food","count":3}}',
+      'unrelated_key': 'keep',
+    });
+    await SmsService.resetCache();
+    final prefs = await SharedPreferences.getInstance();
+    // Device-global learning caches must go, or the next account inherits them.
+    expect(prefs.getString('user_custom_sms_rules'), isNull);
+    expect(prefs.getString('category_corrections'), isNull);
+    // Unrelated prefs are untouched.
+    expect(prefs.getString('unrelated_key'), 'keep');
+  });
+
+  test('IncomeSettings.reset clears prefs and restores defaults', () async {
+    SharedPreferences.setMockInitialValues({
+      IncomeSettings.modeKey: 'manual',
+      IncomeSettings.manualKey: 90000.0,
+    });
+    await IncomeSettings.load();
+    expect(IncomeSettings.mode.value, IncomeMode.manual);
+    expect(IncomeSettings.manualMonthly.value, 90000.0);
+
+    await IncomeSettings.reset();
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString(IncomeSettings.modeKey), isNull);
+    expect(prefs.getDouble(IncomeSettings.manualKey), isNull);
+    expect(IncomeSettings.mode.value, IncomeMode.autoBlend);
+    expect(IncomeSettings.manualMonthly.value, 0.0);
+  });
+
+  test('SavingsSettings.reset clears prefs and restores the default', () async {
+    SharedPreferences.setMockInitialValues({SavingsSettings.rateKey: 42});
+    await SavingsSettings.load();
+    expect(SavingsSettings.percent.value, 42);
+
+    await SavingsSettings.reset();
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getInt(SavingsSettings.rateKey), isNull);
+    expect(SavingsSettings.percent.value, SavingsSettings.defaultPercent);
   });
 
   test('the extractor returns a non-empty body for a real method', () {

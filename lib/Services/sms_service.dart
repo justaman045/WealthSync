@@ -193,13 +193,28 @@ class SmsService {
   SmsService();
 
   /// Reset all static caches (call on signOut to prevent cross-user data leak).
-  static void resetCache() {
+  ///
+  /// Also clears the two *persistent* learning caches — `user_custom_sms_rules`
+  /// and `category_corrections` — which are device-global prefs keys, not
+  /// user-scoped. Left on disk, the next account's `initRules()` /
+  /// `loadCorrectionCache()` merge the previous account's local rules/corrections
+  /// with its own Firestore copy and classify its SMS with them (and re-persist
+  /// the merged map). Both are re-fetched from Firestore per user on login, so
+  /// clearing them costs nothing.
+  static Future<void> resetCache() async {
     _currentRules = Map.from(defaultRules);
     _correctionCache.clear();
     _correctionCacheLoaded = false;
     _historyCache.clear();
     _historyLoaded = false;
     _rulesLoaded = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_userRulesKey);
+      await prefs.remove('category_corrections');
+    } catch (e) {
+      debugPrint('SmsService.resetCache prefs clear error: $e');
+    }
   }
 
   /// Per-user scan watermark: only SMS received AFTER this timestamp are

@@ -15,6 +15,8 @@ import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/offline_queue.dart';
+import 'package:money_control/Services/income_settings.dart';
+import 'package:money_control/Services/savings_settings.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/analytics_controller.dart';
@@ -223,8 +225,12 @@ class AuthController extends GetxController {
     if (Get.isRegistered<AuditController>()) {
       Get.delete<AuditController>(force: true);
     }
-    SmsService.resetCache();
+    await SmsService.resetCache();
     RecurringService.resetCache();
+    // Device-global financial preferences (static Rx + prefs) that a shared
+    // device must not carry into the next account.
+    await IncomeSettings.reset();
+    await SavingsSettings.reset();
     // The offline queue is device-global (not user-scoped). Left intact, the
     // next account's `syncPendingTransactions()` would replay the previous
     // account's queued writes into the new account (wrong `senderId`/owner).

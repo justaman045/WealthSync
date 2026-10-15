@@ -67,6 +67,19 @@ class IncomeSettings {
     }
   }
 
+  /// Clears the persisted + in-memory income configuration (call on signOut).
+  ///
+  /// The prefs keys and the static [mode]/[manualMonthly] observables are
+  /// device-global, so without this a shared device would leave the previous
+  /// account's manual monthly income applied to the next account's AI limit.
+  static Future<void> reset() async {
+    mode.value = IncomeMode.autoBlend;
+    manualMonthly.value = 0.0;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(modeKey);
+    await prefs.remove(manualKey);
+  }
+
   static Future<void> setMode(IncomeMode m) async {
     mode.value = m;
     final prefs = await SharedPreferences.getInstance();
