@@ -19,6 +19,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Repositories/transaction_repository.dart';
 import 'package:money_control/Screens/cateogary_history.dart';
+import 'package:money_control/Screens/other_items_screen.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Services/income_settings.dart';
 import 'package:money_control/Services/savings_settings.dart';
@@ -67,6 +68,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   double forecastFixed = 0;
   double forecastVariable = 0;
   double currentVariableSpent = 0;
+  int currentVariableTxCount = 0;
 
   // Income-aware daily limit inputs (see _runInsights). The limit itself is
   // derived in _buildDailyLimitCard so it tracks live settings.
@@ -86,6 +88,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         forecastVariable = 0;
         currentMonthSpent = 0;
         currentVariableSpent = 0;
+        currentVariableTxCount = 0;
         todaySpent = 0;
         todayVariableSpent = 0;
         usualMonthAvg = 0;
@@ -156,6 +159,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       // Current Month Variable Spending
       double currentVar = 0;
+      int variableTxCount = 0;
       // Monthly variable totals per month
       Map<int, double> monthlyVariable = {};
 
@@ -191,6 +195,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
           if (!isFixed) {
             currentVar += tx.amount.abs();
+            variableTxCount++;
           }
         }
       }
@@ -210,6 +215,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       todayVariableSpent = max(0, todaySpent - todayFixed);
 
       currentVariableSpent = currentVar;
+      currentVariableTxCount = variableTxCount;
 
       // Historical Months (Excluding current)
       final pastMonthKeys =
@@ -553,6 +559,16 @@ child: loading
                         ),
                       ),
                     ],
+                    FeatureVisible(
+                      flagKey: 'ai_daily_limit',
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 20.h),
+                        child: StaggeredSlideFade(
+                          delay: 150,
+                          child: _buildOtherItemsCard(scheme),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -979,6 +995,99 @@ child: loading
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children,
+      ),
+    );
+  }
+
+  // --------------- Other Items Card ------------------
+  //
+  // Entry point to the discretionary-spend breakdown: the same expenses the
+  // daily-limit card subtracts as "other items". Tapping opens a screen listing
+  // each transaction so the number is auditable (and shows the excluded fixed
+  // bills alongside it).
+  Widget _buildOtherItemsCard(ColorScheme scheme) {
+    final lite = PerformanceController.to.liteMode.value;
+    final sym = CurrencyController.to.currencySymbol.value;
+    final count = currentVariableTxCount;
+    final total = currentVariableSpent;
+
+    return GestureDetector(
+      onTap: () => Get.to(() => const OtherItemsScreen()),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: EdgeInsets.all(20.w),
+        decoration: BoxDecoration(
+          color: scheme.surface.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(22.r),
+          border: Border.all(
+            color: scheme.brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppColors.lightBorder,
+          ),
+          gradient: lite
+              ? null
+              : LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    scheme.surface.withValues(alpha: 0.9),
+                    scheme.surface.withValues(alpha: 0.6),
+                  ],
+                ),
+          boxShadow: lite
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 15.w,
+                    offset: Offset(0, 8.w),
+                  ),
+                ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Items spent this month",
+                    style: TextStyle(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface.withValues(alpha: 0.95),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    count == 0
+                        ? "No other items yet — every expense is a bill"
+                        : "$sym${total.toStringAsFixed(0)} · "
+                            "$count transaction${count == 1 ? '' : 's'}",
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: scheme.onSurface.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    "See which transactions count as other items",
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: scheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ],
+        ),
       ),
     );
   }

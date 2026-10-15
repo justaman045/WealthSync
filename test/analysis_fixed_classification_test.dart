@@ -42,4 +42,22 @@ void main() {
     expect(isFixedExpenseCategory('Bills'), isTrue);
     expect(isFixedExpenseCategory('Coffee'), isFalse);
   });
+
+  test('the "other items" breakdown reuses the same classifier end-to-end', () {
+    // The card links to a screen that must classify via the shared helper, so
+    // the list it shows always reconciles with the card's "other items" figure.
+    final card = File('lib/Screens/analysis.dart').readAsStringSync();
+    expect(card.contains('OtherItemsScreen('), isTrue,
+        reason: 'the daily-limit card must open the breakdown screen');
+    expect(card.contains('_buildOtherItemsCard'), isTrue);
+
+    final screen =
+        File('lib/Screens/other_items_screen.dart').readAsStringSync();
+    expect(screen.contains('splitMonthlyExpenses('), isTrue,
+        reason: 'the breakdown screen must use the shared month-split helper');
+
+    final filter = File('lib/Utils/spending_filter.dart').readAsStringSync();
+    expect(filter.contains('isFixedExpenseCategory('), isTrue,
+        reason: 'the filter helper must classify with isFixedExpenseCategory');
+  });
 }
