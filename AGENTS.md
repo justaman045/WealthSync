@@ -72,7 +72,7 @@ MVC-Service-Repository with GetX.
 | `lib/Utils/` | `IconHelper`, `wealth_math.dart`, `num_parse.dart`, `platform_support.dart` |
 | `lib/Platform/` | Platform-abstraction `*_platform.dart` + `*_platform_stub.dart` pairs (9 services) |
 | `lib/l10n/`, `lib/data/` | ARB files; challenge preset seed data |
-| `test/` | unit/widget tests. Contract tests guarding silent failures: `feature_flags_test`, `feature_gate_test`, `toggle_gate_test`, `background_flags_test`, `firestore_indexes_test`, `platform_contract_test`, `referral_reward_math_test`, `balance_overlay_math_test`, `early_return_guard_test` |
+| `test/` | unit/widget tests. Contract tests guarding silent failures: `feature_flags_test`, `feature_gate_test`, `toggle_gate_test`, `background_flags_test`, `firestore_indexes_test`, `platform_contract_test`, `referral_reward_math_test`, `balance_overlay_math_test`, `early_return_guard_test`, `analysis_fixed_classification_test`, `spending_filter_test`, `category_treatment_test` |
 | `integration_test/` | 25 E2E tests + `test_credentials.dart` + `test_helpers.dart` (read it before writing a test). Need live Firebase + emulator-5554. `mainCommon(isTest: true)` skips only Crashlytics/notifications |
 
 `ThemeController` is inline in `main.dart` (registered before any screen).
@@ -223,6 +223,33 @@ current-month days 1–7 and the previous month's last working day (Mon–Fri); 
 window returns `expectedIncome: 0` + `salaryWindowEmpty: true` (rendered as a note, not an
 error). Persisted by `IncomeSettings` (`income_mode`/`income_manual_monthly`);
 `analysis.dart` recomputes it live, so don't cache it.
+
+**Daily-limit category treatment (Auto / Fixed bill / Ignored)** — a per-category
+override layered on the keyword classifier. One resolver, `resolveDailyLimitRole(
+category, treatmentOverrides: …)` in `wealth_math.dart` (enum `DailyLimitRole {fixed,
+variable, ignored}`), is the *only* way to decide a category's role; the override wins,
+otherwise `isFixedExpenseCategory` decides, and a category is never silently ignored.
+- **Persisted on the category doc**: `CategoryModel.treatmentOverride` (`'fixed'` |
+  `'ignored'` | null = Auto), written by the "Daily limit treatment" chip row in
+  `_CategoryDialog` (`category_management.dart`). `toMap()` always emits the key, so a
+  reset back to Auto *clears* it (Firestore `.update()` with a null field). No
+  rules/index/deploy change: `users/{email}/categories` is already owner-writable.
+- **The override map** comes from `buildTreatmentOverrides(categories)` (name →
+  lowercased+trimmed, Auto/blank skipped) — build it once per load and pass it down;
+  `resolveDailyLimitRole` ALSO falls back to a case/space-insensitive scan of the keys,
+  so a raw `"  sip "` key still matches. Normalise on **both** sides.
+- **Every classification site must switch together**: `analysis.dart` (4 sites —
+  current-month variable, today's fixed/ignored, fixed forecast, category insights) and
+  `splitMonthlyExpenses()` (`spending_filter.dart`, 3-bucket `MonthlyExpenseSplit`).
+  They are kept in sync by `test/analysis_fixed_classification_test.dart`, which now pins
+  `resolveDailyLimitRole(` ≥3× in `analysis.dart` and in the filter — extending the split
+  means adding a call site there too, else one bucket desyncs from the card's figure.
+- `todayVariableSpent` subtracts **both** today's fixed *and* today's ignored;
+  Category Insights renders an `ignored` category as **nothing** (an "on track"/"pending"
+  frame would be a lie) — the heatmap `dailySpending` keeps showing ignored spend on
+  purpose (it is real spend). The Other Items screen's collapsible sections are the
+  drill-down: `discretionary` / `fixed` (bills) / `ignored` (not counted in limit), with
+  a `feature_flags: category`-gated link into Category Management.
 
 **Never cap an asset list at 25 docs** — the visible list is a view but the total
 written back comes from a full read, so a cap desyncs them. The 5 asset screens hold
@@ -493,6 +520,27 @@ recovery path). Test seams: `fetchOverride`/`writeOverride` + `resetSchedulingFo
     flow.** Prefer a pure extracted helper (`computeDisplayTotal`, `debugComputeTrialEnd`,
     `computeExpectedIncome`) over asserting a wrong sign or lost branch through a widget
     tree full of streams.
+25. **Verify with a freshly built APK, not the one already on the device.** The installed
+    `app-release.apk` is whatever was built last; a code change requires
+    `flutter build apk --release` → `build/app/outputs/flutter-apk/app-release.apk`
+    (~126 MB) first. Installing over a higher `versionCode` fails
+    `INSTALL_FAILED_VERSION_DOWNGRADE`, so `adb uninstall app.vercel.justaman045.money_control`
+    then `adb install -r` — that wipes the login session, so live checks need credentials
+    or a fresh sign-in. Also: `android/app/google-services.json` is gitignored (drop the
+    Firebase Console file in locally) and Android tools are **not on PATH** —
+    `export PATH="$HOME/Android/Sdk/platform-tools:$HOME/.sdks/flutter/bin:$PATH"` first.
+26. **Let the emulator boot from a human session; agent-initiated `-avd` boots segfault.**
+    `nohup`/`setsid emulator -avd … -gpu swiftshader_indirect|off|guest` died right after
+    GPU init ("dumped core"), and `multiinstance.lock` / `hardware-qemu.ini.lock` /
+    `/run/user/1000/avd/running/*` go stale after those crashes. Check
+    `adb devices` + `adb shell getprop sys.boot_completed` == 1 before installing, and
+    clear the stale locks if `emulator-5554` refuses to appear.
+27. **A `push` rejected with "fetch first" means someone (CI's version bumps) moved
+    `master`** — `git pull --rebase` fails while the tree is dirty, so `git stash` →
+    rebase → `stash pop`, and expect `android/build/**` churn to leave a
+    `problems-report.html` unstaged. Never build or analyze mid-rebase: Gradle surfaces a
+    bare `1 error` with no diagnostic above the tail of a truncated build log, so a failed
+    build's cause only shows up on a clean tree.
 
 ## Platform-Specific
 
