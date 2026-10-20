@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Config/feature_flags.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Utils/auth_gated_listener.dart';
 
 /// Reads the global `app_config/feature_flags` doc and surfaces each feature's
 /// status reactively. Defaults to [FeatureStatus.enabled] whenever the doc,
@@ -20,7 +21,8 @@ class FeatureFlagService extends GetxController {
 
   final RxMap<String, String> _status = <String, String>{}.obs;
 
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _sub;
+  final AuthGatedListener<DocumentSnapshot<Map<String, dynamic>>> _gated =
+      AuthGatedListener(label: 'FeatureFlagService');
   Timer? _webPollTimer;
 
   /// Test/adapter hook; when non-null it wins over the real admin check, so
@@ -53,17 +55,22 @@ class FeatureFlagService extends GetxController {
     // Call startPolling() after login instead.
   }
 
-  /// Opens the Firestore snapshot stream (native). Split out so tests can
-  /// subclass the service without ever touching Firebase.
+  /// Opens the Firestore snapshot stream (native), gated on an authenticated
+  /// session. Split out so tests can subclass the service without ever
+  /// touching Firebase.
+  ///
+  /// The gate matters: this runs in Phase 1, before login, and
+  /// `app_config` is auth-only readable. Subscribing directly fired an
+  /// unauthenticated read that Firestore denied on every cold start.
   @protected
   void startRealtime() {
-    _sub = FirebaseFirestore.instance
-        .collection('app_config')
-        .doc(_docId)
-        .snapshots(includeMetadataChanges: true)
-        .listen(_applySnapshot, onError: (e) {
-      debugPrint('FeatureFlagService: using defaults ($e)');
-    });
+    _gated.start(
+      factory: () => FirebaseFirestore.instance
+          .collection('app_config')
+          .doc(_docId)
+          .snapshots(includeMetadataChanges: true),
+      onData: _applySnapshot,
+    );
   }
 
   /// Start periodic polling for feature flags. Called after login on web.
@@ -128,7 +135,7 @@ class FeatureFlagService extends GetxController {
 
   @override
   void onClose() {
-    _sub?.cancel();
+    _gated.stop();
     _webPollTimer?.cancel();
     super.onClose();
   }

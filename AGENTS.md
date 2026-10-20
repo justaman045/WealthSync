@@ -307,6 +307,17 @@ admin-write. Missing doc/key/value ⇒ `enabled` (safe default).
   wiring lives in protected `startRealtime()` so test fakes can `super.onInit()` +
   no-op it. `statusOf` must read `_status[key]`, not `_status.value[key]` (GetX 4.7.2
   marks `.value` `@protected`; `operator []` registers the Obx dependency the same).
+  - **The native listener is auth-gated** (`lib/Utils/auth_gated_listener.dart`), and
+    **both** `FeatureFlagService` and `PaymentConfigService` (same pattern, same file
+    family) use it. Both are registered in **Phase 1**, before login, and `app_config`
+    is `allow read: if request.auth != null` — so subscribing directly fired an
+    unauthenticated read that Firestore denied as
+    `Listen for Query(app_config/feature_flags) failed: PERMISSION_DENIED`, logged as
+    `FeatureFlagService: using defaults (…)` on **every cold start**. It was harmless
+    (caught, defaults to `enabled`, re-emits after login) but read like a failure in
+    every log. Do **not** "simplify" it back to a bare `.snapshots()` subscribe, and do
+    not move it to Phase 2 — the gate is what keeps the denied read from happening
+    without touching the fragile web listener ordering (see the web-SDK note above).
 - **Admin identity**: `users/{email}.isAdmin` → `SubscriptionController.isAdmin`;
   `FeatureFlagService.userIsAdmin` uses a `Get.isRegistered` guard + `adminOverride`
   test hook.
@@ -568,8 +579,8 @@ recovery path). Test seams: `fetchOverride`/`writeOverride` + `resetSchedulingFo
   — keep the result discarded at call sites.
 - **Built-in Kotlin**: Flutter ≥3.35 plugins that apply KGP directly (`file_picker`,
   `firebase_storage`, `home_widget`, `share_plus`, `shared_preferences_android`,
-  `workmanager_android`, `package_info_plus`) log a migration warning. Track upstream; no
-  action until Flutter drops KGP support.
+  `workmanager_android`, `package_info_plus`, `mobile_scanner`) log a migration warning.
+  Track upstream; no action until Flutter drops KGP support.
 - **Android toolchain (Flutter 3.47.7)**: Gradle **9.3.1** / AGP **9.1.0** / KGP **2.4.0**
   (`android/`), JDK 17+ (CI pins temurin 17; the local Android Studio JBR is JDK 25, which
   Gradle 8.14 could not run on). Keep `android.builtInKotlin=false` + `android.newDsl=false`
@@ -764,6 +775,16 @@ Gotchas:
    when that fails. Editing that script? It runs under `set -e` — capture `run_file` exit
    codes with `cmd || RC=$?`, NEVER a bare `cmd` + `RC=$?` (a failing bare call kills the
    recovery path).
+10. **A freshly booted emulator can report `sys.boot_completed=1` while DNS is still dead.**
+   Every Firebase call then fails with
+   `UnknownHostException: Unable to resolve host "firestore.googleapis.com"`, surfacing as
+   `AuthErrorCodes.NETWORK_REQUEST_FAILED` on the login call — which looks exactly like an
+   auth bug but is pure infrastructure. `ensure_connectivity()` in
+   `tool/run_integration_tests.sh` now gates each file on
+   `adb shell ping -c <hostname>` (a hostname, not an IP: plain IP reachability succeeds
+   while DNS is still broken), re-enables data and warns rather than skipping. When login
+   fails on a local `flutter run`, check `adb shell ping firestore.googleapis.com` **first**
+   — this is the most common false alarm.
 
 ## UI Copy / Revamp Audit
 

@@ -123,6 +123,50 @@ restart_emulator() {
   return 1
 }
 
+# Waits for the emulator to actually reach the internet before a test file runs.
+#
+# A cold-booted AVD (and `restart_emulator`, which boots a new qemu per file)
+# can report `sys.boot_completed=1` while DNS is still unpopulated. The app then
+# fails EVERY Firebase call with `UnknownHostException: Unable to resolve host
+# "firestore.googleapis.com"`, surfacing as `AuthErrorCodes.NETWORK_REQUEST_FAILED`
+# on the login call — which looks like an auth bug but is pure infrastructure.
+# Resolving the name (not just pinging an IP) is the check that matters, since
+# plain IP reachability succeeds while DNS is still broken.
+#
+# Returns 0 once resolvable; non-zero after [tries] attempts. Callers warn
+# rather than hard-fail, because a genuinely offline device should still run
+# the offline-capable files instead of skipping the whole suite.
+wait_for_connectivity() { # [tries]
+  local tries="${1:-15}"
+  for _ in $(seq 1 "$tries"); do
+    # `ping -c1 <hostname>` performs both a DNS lookup and a reachability test.
+    if adb shell ping -c 1 -W 2 firestore.googleapis.com >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+# Nudges the device's connectivity back on. A fresh AVD sometimes comes up with
+# the radio/wifi datapath down; toggling data forces Android to re-evaluate.
+ensure_connectivity() {
+  if wait_for_connectivity 3; then
+    return 0
+  fi
+  echo "Connectivity not ready — re-enabling data and retrying..."
+  adb shell svc wifi enable >/dev/null 2>&1 || true
+  adb shell svc data enable >/dev/null 2>&1 || true
+  adb shell cmd connectivity airplane-mode disable >/dev/null 2>&1 || true
+  if wait_for_connectivity 15; then
+    echo "Connectivity restored."
+    return 0
+  fi
+  echo "WARNING: emulator cannot resolve firestore.googleapis.com — Firebase-backed"
+  echo "WARNING: tests in this file will likely fail with NETWORK_REQUEST_FAILED."
+  return 1
+}
+
 # Test files that exercise Pro feature flows must run against the PRO account
 # (PRO_TEST_EMAIL/PRO_TEST_PASSWORD); everything else runs against the FREE
 # account (TEST_EMAIL/TEST_PASSWORD). The two accounts are never shared — the
@@ -212,6 +256,10 @@ for f in integration_test/*_test.dart; do
     fi
   fi
   FIRST_FILE=0
+  # Gate every file on real connectivity: a freshly booted qemu can report
+  # boot_completed while DNS is still dead, and the resulting Firebase failures
+  # look like auth bugs. Warn (don't skip) — offline-capable files still run.
+  ensure_connectivity || true
   echo "=== Running $name ==="
   RC=0
   run_file "$f" "$name" || RC=$?
