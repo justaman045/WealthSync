@@ -159,8 +159,23 @@ class WealthPortfolio {
   }
 
   /// Firestore may hold a String/num/null for these; never throw on a cast.
-  static double? _toDoubleOrNull(dynamic value) =>
-      value == null ? null : safeToDouble(value);
+  ///
+  /// A genuinely non-numeric value (e.g. a corrupt String) returns null
+  /// ("unset"), NOT 0.0 — for `monthlyExpenseOverride` those are semantically
+  /// different: null means "derive from transactions", 0.0 means "user pinned
+  /// zero", so collapsing junk to 0.0 would silently pin the limit to zero.
+  static double? _toDoubleOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is num) {
+      final d = value.toDouble();
+      return d.isFinite ? d : null;
+    }
+    if (value is String) {
+      final d = double.tryParse(value.trim());
+      return (d != null && d.isFinite) ? d : null;
+    }
+    return null;
+  }
 
   static DateTime? _toDateTime(dynamic value) {
     if (value is Timestamp) return value.toDate();

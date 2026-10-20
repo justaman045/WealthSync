@@ -8,6 +8,7 @@ import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -397,7 +398,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                               alignment: Alignment.center,
                               child: Text(
-                                "SAVE CHANGES",
+                                AppStrings.saveChanges,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,

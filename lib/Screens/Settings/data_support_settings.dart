@@ -14,6 +14,7 @@ import 'package:money_control/Screens/feedback_form.dart';
 import 'package:money_control/Screens/terms_and_policy.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/user_service.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/settings_widgets.dart';
@@ -137,30 +138,9 @@ class DataSupportSettingsScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     if (user?.email == null) return;
 
-    // Mirrors UserService._subcollections (the canonical account-deletion
-    // list) so "export all" and "delete all" stay in sync.
-    const collections = [
-      // Core
-      'transactions', 'recurring_payments', 'categories', 'budgets',
-      'notifications', 'goals', 'loans', 'challenges', 'lent_money',
-      'sms_rules', 'category_rules', 'learning_data',
-      // Liquid & Fixed Income
-      'fd_accounts', 'ppf_accounts', 'post_office_schemes', 'bonds', 'chit_funds',
-      // Equity & Growth
-      'stock_holdings', 'sip_holdings', 'etf_holdings', 'foreign_stocks',
-      'startup_investments',
-      // Retirement
-      'pf_accounts', 'vpf_accounts', 'nps_accounts',
-      // Alternative Assets
-      'gold_holdings', 'sgb_holdings', 'jewelry_items', 'crypto_holdings',
-      'reit_holdings', 'p2p_loans',
-      // Physical Assets
-      'agri_land', 'properties', 'vehicles',
-      // Protection & Business
-      'insurance_policies', 'business_assets',
-      // Liabilities
-      'bnpl_entries', 'credit_cards',
-    ];
+    // The canonical account-deletion list, shared with UserService so "export
+    // all" and "delete all" can never drift apart.
+    const collections = UserService.subcollections;
 
     final nav = Navigator.of(context, rootNavigator: true);
     showDialog<void>(

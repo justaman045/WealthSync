@@ -31,8 +31,20 @@ void main() {
 
     final loginButtonFinder = find.text(AppStrings.signIn);
     if (loginButtonFinder.evaluate().isEmpty) {
-      print('Login screen not found even after sign out and splash nav.');
-      return;
+      // A `return` here would register the test as PASSED while never asserting
+      // the negative-credentials prompt — a silent skip hiding a real failure
+      // (sign-out or splash-nav broke). Fail loudly with the visible screen.
+      final visibleTexts = find
+          .byType(Text)
+          .evaluate()
+          .map((e) => (e.widget as Text).data)
+          .whereType<String>()
+          .take(30)
+          .toList();
+      fail(
+        'Login screen not found after sign out and splash nav. '
+        'Expected "${AppStrings.signIn}". Visible texts: $visibleTexts',
+      );
     }
 
     // Enter Wrong Credentials

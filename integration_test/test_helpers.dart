@@ -392,6 +392,35 @@ Future<void> tapWhenVisible(
   fail('Timed out waiting for ${finder.toString()}');
 }
 
+/// Long-presses [finder] and holds long enough for the LongPressGestureRecognizer
+/// to fire, pumping REAL frames during the hold.
+///
+/// A hand-rolled `startGesture` + `Future.delayed(900ms)` + `up()` never pumps
+/// between the down and the up, so the gesture arena may not process the held
+/// pointer on a slow emulator and the long-press menu ('Delete Category',
+/// 'Delete Goal?') never appears. This splits the hold into a few real-time
+/// slices, each followed by a real frame.
+Future<void> longPressItem(
+  WidgetTester tester,
+  Finder finder, {
+  int holdMs = 1200,
+}) async {
+  await pumpReal(tester);
+  await scrollUntilVisible(tester, finder, maxDrags: 3);
+  await pumpReal(tester);
+  final gesture = await tester.startGesture(
+    tester.getCenter(finder.first),
+  );
+  // Hold in ~150ms slices, pumping a frame after each so the recognizer's timer
+  // and the gesture arena advance on real elapsed time.
+  final slices = (holdMs / 150).ceil();
+  for (var i = 0; i < slices; i++) {
+    await pumpReal(tester, const Duration(milliseconds: 150));
+  }
+  await gesture.up();
+  await pumpAndSettleSafe(tester);
+}
+
 /// Returns true once the home screen ('Total Balance') is visible, polling up
 /// to [seconds] seconds of real time.
 Future<bool> waitForHome(WidgetTester tester, {int seconds = 120}) async {
@@ -598,6 +627,61 @@ Future<void> clearAccountData(String email) async {
   }
 }
 
+/// Fields a profile-editing test mutates on the `users/{email}` document, and
+/// the values `clearAccountData` does NOT touch (it clears subcollections only).
+const _mutableProfileFields = [
+  'firstName',
+  'lastName',
+  'phone',
+  'address',
+  'gender',
+  'dob',
+  'age',
+];
+
+/// Snapshots the mutable profile fields of the signed-in user so a test can
+/// restore them in a `finally`. The profile doc is shared state: without this a
+/// test that renames the user to "UpdatedName" leaks that name into every later
+/// file/run (and into the account) because `clearAccountData` never resets it.
+Future<Map<String, dynamic>> snapshotUserProfile() async {
+  final email = FirebaseAuth.instance.currentUser?.email;
+  if (email == null) return {};
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(email)
+        .get();
+    final data = doc.data() ?? const {};
+    return {
+      for (final k in _mutableProfileFields)
+        if (data.containsKey(k)) k: data[k],
+    };
+  } catch (e) {
+    debugPrint('snapshotUserProfile error: $e');
+    return {};
+  }
+}
+
+/// Restores fields captured by [snapshotUserProfile] (best-effort, never
+/// throws — a cleanup failure must not mask the test's real result).
+Future<void> restoreUserProfile(Map<String, dynamic> snapshot) async {
+  final email = FirebaseAuth.instance.currentUser?.email;
+  if (email == null) return;
+  try {
+    final doc = FirebaseFirestore.instance.collection('users').doc(email);
+    if (snapshot.isEmpty) {
+      // Nothing was set before the test ran: remove the fields it created.
+      await doc.update({
+        for (final k in _mutableProfileFields) k: FieldValue.delete(),
+      });
+    } else {
+      await doc.set(snapshot, SetOptions(merge: true));
+    }
+  } catch (e) {
+    debugPrint('restoreUserProfile error: $e');
+  }
+}
+
 /// Ensures the current user has at least one category. `clearAccountData()`
 /// wipes the `categories` collection, and screens that build their UI off it
 /// (e.g. Category Budgets renders one card per category) would show nothing.
@@ -652,15 +736,25 @@ Future<void> resetTestData() async {
 
 /// Waits until [GetX] controller is registered, so tests can safely
 /// `Get.find<T>()` after login regardless of Phase-2 registration timing.
+///
+/// Fails (rather than silently continuing) if the controller never registers:
+/// a silent return would let the very next `Get.find<T>()` throw deep inside a
+/// widget build, with no indication that the real problem was a missing
+/// registration.
 Future<void> waitForController(
   WidgetTester tester,
   bool Function() isRegistered, {
   int seconds = 30,
+  String? reason,
 }) async {
   for (var i = 0; i < seconds; i++) {
     await pumpReal(tester);
     if (isRegistered()) return;
   }
+  fail(
+    'Timed out after ${seconds}s waiting for a GetX controller to register'
+    '${reason == null ? '' : ' ($reason)'}.',
+  );
 }
 
 /// On the Payment screen, ensures a category chip exists, adding it through the

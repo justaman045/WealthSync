@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
@@ -183,7 +181,11 @@ class AuthController extends GetxController {
     } catch (e) {
       debugPrint('Google signOut error: $e');
     }
-    _disposeUserScopedState();
+    // Awaited: disposeUserScopedState() ends in `LocalCacheService.clearAll()`,
+    // and an unawaited clear can land AFTER a fast re-login had already written
+    // the new account's cache, silently wiping it. main.dart's auth-stream
+    // teardown awaits it for the same reason — both paths must agree.
+    await disposeUserScopedState();
     // Reset to the dark-first default so the next user does not inherit the
     // previous user's preference; resubscribe() also cancels their listener.
     if (Get.isRegistered<ThemeController>()) {
@@ -255,8 +257,6 @@ class AuthController extends GetxController {
     // written the new account's cache, silently wiping it.
     await LocalCacheService.clearAll();
   }
-
-  void _disposeUserScopedState() => unawaited(disposeUserScopedState());
 
   String _getFriendlyErrorMessage(FirebaseAuthException e) =>
       friendlyAuthError(e);

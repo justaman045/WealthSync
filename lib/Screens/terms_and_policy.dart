@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/user_service.dart';
 import 'package:money_control/Components/colors.dart';
 
 class LegalTrustPage extends StatefulWidget {
@@ -85,18 +86,25 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
           .collection("users")
           .doc(email);
 
-      /// Delete every user subcollection in chunked WriteBatch commits.
+      /// Delete every user-scoped collection in chunked WriteBatch commits.
       /// A per-document `await delete()` loop issued one round-trip per doc
       /// (slow for thousands of transactions) and, since the deletes were
       /// not atomic, a mid-loop failure left the account partially deleted.
-      for (final name in const [
-        "transactions",
-        "categories",
+      ///
+      /// The set is `UserService.subcollections` (the canonical 38-collection
+      /// account-deletion list) plus the non-asset GDPR collections. A
+      /// hand-copied list of only six collections used to run here, so a
+      /// "delete all my data" request left goals, loans, budgets, challenges,
+      /// lent money and every asset subcollection intact while the UI claimed
+      /// everything had been erased.
+      final names = <String>{
+        ...UserService.subcollections,
         "backups",
         "insights",
         "preferences",
         "logs",
-      ]) {
+      };
+      for (final name in names) {
         await _deleteCollection(userDoc.collection(name));
       }
 
@@ -261,7 +269,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
                 child: TextButton.icon(
                   onPressed: () => launchUrl(
                     Uri.parse(
-                      'https://justaman045.github.io/Money_Control/privacy_policy.html',
+                      'https://justaman045.github.io/WealthSync/privacy_policy.html',
                     ),
                     mode: LaunchMode.externalApplication,
                   ),

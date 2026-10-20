@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Utils/num_parse.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BudgetService {
@@ -30,7 +31,7 @@ class BudgetService {
 
       if (!budgetDoc.exists) return; // No budget set for this category
 
-      final double budgetLimit = (budgetDoc.data()?['amount'] ?? 0).toDouble();
+      final double budgetLimit = safeToDouble(budgetDoc.data()?['amount']);
       if (budgetLimit <= 0) return; // Budget is 0, ignore
 
       // 2. Fetch Total Spend for this category for current month
@@ -56,7 +57,7 @@ class BudgetService {
 
       double totalSpent = 0.0;
       for (var doc in txSnap.docs) {
-        final amount = (doc.data()['amount'] ?? 0).toDouble();
+        final amount = safeToDouble(doc.data()['amount']);
         // Only negative amounts are expenses (sign convention: expense = negative, income = positive)
         if (amount < 0) totalSpent += amount.abs();
       }

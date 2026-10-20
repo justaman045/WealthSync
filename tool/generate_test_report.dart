@@ -99,16 +99,41 @@ Future<List<_TestResult>> _parseResults(String path, {String? suiteLabel}) async
   return list;
 }
 
+/// Total base64 budget for embedded screenshots. Screenshots are inlined into
+/// the HTML so the artifact is self-contained, but base64 inflates by ~33% and
+/// a full suite produces one `result_*.png` per test — embedding all of them
+/// unbounded produced multi-tens-of-MB reports. Past this budget the remaining
+/// screenshots are listed but not inlined.
+const int _maxEmbeddedBytes = 40 * 1024 * 1024;
+
 List<Map<String, String>> _loadScreenshots(String dirPath) {
   final dir = Directory(dirPath);
   if (!dir.existsSync()) return [];
   final out = <Map<String, String>>[];
+  var embeddedBytes = 0;
+  var skipped = 0;
   for (final entry in dir.listSync(followLinks: false)) {
     if (entry is! File || !entry.path.endsWith('.png')) continue;
     try {
-      final base64 = base64Encode(entry.readAsBytesSync());
+      final bytes = entry.readAsBytesSync();
+      if (bytes.isEmpty) continue;
+      // base64 grows bytes by ~4/3; budget on the encoded size.
+      final projected = embeddedBytes + ((bytes.length * 4) ~/ 3);
+      if (projected > _maxEmbeddedBytes) {
+        skipped++;
+        continue;
+      }
+      final base64 = base64Encode(bytes);
+      embeddedBytes += base64.length;
       out.add({'name': entry.uri.pathSegments.last, 'data': base64});
     } catch (_) {}
+  }
+  if (skipped > 0) {
+    stderr.writeln(
+      'Note: $skipped screenshot(s) omitted from the HTML — the '
+      '${_maxEmbeddedBytes ~/ (1024 * 1024)}MB embed budget was reached. '
+      'They are still present on disk.',
+    );
   }
   out.sort((a, b) => a['name']!.compareTo(b['name']!));
   return out;

@@ -362,6 +362,13 @@ Future<void> _checkUpdate(
     );
     final response = await http.get(url).timeout(const Duration(seconds: 10));
 
+    // Mark checked once the request actually reached the server, regardless of
+    // status. Stamping only on HTTP 200 meant a rate-limit/5xx re-ran this check
+    // on every ~15-min worker tick — the opposite of "once per day to avoid
+    // spam". A network THROW still skips the stamp (the catch below), so a
+    // transient offline tick retries next time.
+    await prefs.setString('last_update_check_run', todayStr);
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data is! Map) return;
@@ -385,9 +392,6 @@ Future<void> _checkUpdate(
           userEmail: userEmail,
         );
       }
-
-      // Mark checked
-      await prefs.setString('last_update_check_run', todayStr);
     }
   } catch (e) {
     developer.log("Update check error: $e");

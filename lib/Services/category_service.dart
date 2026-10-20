@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,6 +15,13 @@ class CategoryService {
   /// After this many corrections for the same merchant→category, it
   /// becomes a permanent keyword rule (no manual approval needed).
   static const int autoPromoteThreshold = 3;
+
+  /// Serializes the read-modify-write of the corrections map. Two corrections
+  /// recorded concurrently (e.g. two SMS parsed in parallel) used to read the
+  /// same base map and one write clobbered the other, silently losing a count
+  /// and delaying auto-promotion. SharedPreferences has no atomic increment, so
+  /// the whole load→mutate→store sequence must run under one lock.
+  static Future<void> _writeLock = Future<void>.value();
 
   // Records a merchant→category correction. After [autoPromoteThreshold]+
   // corrections for the same merchant the rule is promoted automatically.
@@ -41,18 +49,24 @@ class CategoryService {
   ) async {
     final key = merchant.trim().toLowerCase();
     if (key.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(correctionsKey);
-    final map = _safeDecodeMap(raw);
-    final existing = _asMap(map[key]);
-    int newCount = 1;
-    if (existing != null && existing['category'] == category) {
-      newCount = ((existing['count'] as num?)?.toInt() ?? 0) + 1;
-      map[key] = {'category': category, 'count': newCount};
-    } else {
-      map[key] = {'category': category, 'count': 1};
-    }
-    await prefs.setString(correctionsKey, jsonEncode(map));
+
+    // Run the load→mutate→store under a lock so concurrent corrections cannot
+    // clobber each other's count.
+    final newCount = await _withWriteLock(() async {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(correctionsKey);
+      final map = _safeDecodeMap(raw);
+      final existing = _asMap(map[key]);
+      int count = 1;
+      if (existing != null && existing['category'] == category) {
+        count = ((existing['count'] as num?)?.toInt() ?? 0) + 1;
+        map[key] = {'category': category, 'count': count};
+      } else {
+        map[key] = {'category': category, 'count': 1};
+      }
+      await prefs.setString(correctionsKey, jsonEncode(map));
+      return count;
+    });
     // Live-update the SMS parser's in-memory cache so corrections take effect immediately.
     SmsService.addCorrection(merchant, category);
 
@@ -73,6 +87,20 @@ class CategoryService {
     if (effectiveCount >= autoPromoteThreshold) {
       await _autoPromoteToRule(merchant, category);
     }
+  }
+
+  /// Chains [action] onto [_writeLock] and returns its result, so the critical
+  /// section runs to completion before the next caller starts.
+  static Future<T> _withWriteLock<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    _writeLock = _writeLock.then((_) async {
+      try {
+        completer.complete(await action());
+      } catch (e, st) {
+        completer.completeError(e, st);
+      }
+    });
+    return completer.future;
   }
 
   /// Promotes a merchant→category correction to a permanent keyword rule

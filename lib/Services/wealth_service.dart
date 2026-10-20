@@ -39,9 +39,13 @@ class WealthService {
   static DocumentReference get _portfolioRef {
     final user = _auth.currentUser;
     if (user == null) throw Exception("User not logged in");
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw Exception("User has no email");
+    }
     return _db
         .collection('users')
-        .doc(user.email)
+        .doc(email)
         .collection('wealth')
         .doc('portfolio');
   }

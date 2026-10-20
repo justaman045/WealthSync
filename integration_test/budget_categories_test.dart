@@ -73,10 +73,7 @@ void main() {
     expect(find.text(catName), findsWidgets);
 
     // Long-press the tile to delete it (fresh category → usage count 0).
-    final gesture = await tester.startGesture(tester.getCenter(find.text(catName)));
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    await gesture.up();
-    await pumpAndSettleSafe(tester);
+    await longPressItem(tester, find.text(catName));
     await waitFor(tester, find.text('Delete Category'));
     await tapWhenVisible(tester, find.widgetWithText(TextButton, 'Delete'));
     await pumpReal(tester, const Duration(seconds: 3));

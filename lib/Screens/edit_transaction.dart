@@ -470,7 +470,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                                   color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                 )
                               : Text(
-                                  'Save Changes',
+                                  AppStrings.saveChanges,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18.sp,

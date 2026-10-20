@@ -502,25 +502,27 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             fontSize: 18.sp,
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: IncomeMode.values.map((m) {
-            return RadioListTile<IncomeMode>(
-              title: Text(
-                IncomeSettings.modeLabel(m),
-                style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
+        content: RadioGroup<IncomeMode>(
+          groupValue: IncomeSettings.mode.value,
+          onChanged: (v) async {
+            if (v == null) return;
+            await IncomeSettings.setMode(v);
+            if (ctx.mounted) Navigator.pop(ctx);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: IncomeMode.values.map((m) {
+              return RadioListTile<IncomeMode>(
+                title: Text(
+                  IncomeSettings.modeLabel(m),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                  ),
                 ),
-              ),
-              value: m,
-              groupValue: IncomeSettings.mode.value,
-              onChanged: (v) async {
-                if (v == null) return;
-                await IncomeSettings.setMode(v);
-                if (ctx.mounted) Navigator.pop(ctx);
-              },
-            );
-          }).toList(),
+                value: m,
+              );
+            }).toList(),
+          ),
         ),
         actions: [
           TextButton(
@@ -533,60 +535,13 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   }
 
   void _showIncomeManualDialog(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final controller = TextEditingController(
-      text: IncomeSettings.manualMonthly.value > 0
-          ? IncomeSettings.manualMonthly.value.toStringAsFixed(0)
-          : '',
-    );
     showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text(
-          "Manual Monthly Income",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: "Amount",
-            prefixText: CurrencyController.to.currencySymbol.value,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () async {
-              final text = controller.text.trim();
-              if (text.isEmpty) {
-                await IncomeSettings.setManual(0);
-                if (ctx.mounted) Navigator.pop(ctx);
-                return;
-              }
-              final amt = double.tryParse(text);
-              if (amt == null || !amt.isFinite) {
-                if (ctx.mounted) Navigator.pop(ctx);
-                return;
-              }
-              await IncomeSettings.setManual(amt);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text("Save"),
-          ),
-        ],
-      ),
+      builder: (_) => const _ManualIncomeDialog(),
     );
-  }  void _showSavingsDialog(BuildContext context) {
+  }
+
+  void _showSavingsDialog(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     int temp = _savingsPercent;
     showDialog<void>(
@@ -619,5 +574,86 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
       ),
     );
   }
+}
 
+/// Owns the manual-income `TextEditingController` so it is disposed with the
+/// dialog. Creating the controller inline in `_showIncomeManualDialog` leaked
+/// one per open: the modal's builder is torn down by the exit animation, which
+/// no `whenComplete`/`try-finally` can safely hook for disposal.
+class _ManualIncomeDialog extends StatefulWidget {
+  const _ManualIncomeDialog();
+
+  @override
+  State<_ManualIncomeDialog> createState() => _ManualIncomeDialogState();
+}
+
+class _ManualIncomeDialogState extends State<_ManualIncomeDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: IncomeSettings.manualMonthly.value > 0
+          ? IncomeSettings.manualMonthly.value.toStringAsFixed(0)
+          : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      await IncomeSettings.setManual(0);
+      if (mounted) Navigator.pop(context);
+      return;
+    }
+    final amt = double.tryParse(text);
+    if (amt == null || !amt.isFinite) {
+      if (mounted) Navigator.pop(context);
+      return;
+    }
+    await IncomeSettings.setManual(amt);
+    if (mounted) Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AlertDialog(
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      title: Text(
+        "Manual Monthly Income",
+        style: TextStyle(
+          color: isDark ? Colors.white : AppColors.lightTextPrimary,
+          fontWeight: FontWeight.bold,
+          fontSize: 18.sp,
+        ),
+      ),
+      content: TextField(
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: "Amount",
+          prefixText: CurrencyController.to.currencySymbol.value,
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        TextButton(
+          onPressed: _save,
+          child: const Text("Save"),
+        ),
+      ],
+    );
+  }
 }

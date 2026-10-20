@@ -118,13 +118,10 @@ flutter build apk --release
 
 ## Download
 
-**Latest APK (recommended — modern 64-bit phones, ~1/3 the size):**
-https://github.com/justaman045/WealthSync/releases/latest/download/app-arm64-v8a-release.apk
-
-**Universal APK (works on any device):**
+**Universal APK (works on every device):**
 https://github.com/justaman045/WealthSync/releases/latest/download/app-release.apk
 
-*Installation:* Download the `.apk` on your Android device, open it, and allow installation from unknown sources. These `latest` links always point at the newest release, so they never go stale.
+*Installation:* Download the `.apk` on your Android device, open it, and allow installation from unknown sources. This `latest` link always points at the newest release, so it never goes stale.
 
 ---
 

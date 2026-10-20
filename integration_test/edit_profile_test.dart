@@ -11,91 +11,100 @@ void main() {
     // 1-3. App Launch + Splash/Onboarding + Login
     await launchAndSignIn(tester);
 
-    // 4. Verify Home Screen
-    expect(find.textContaining('Welcome'), findsWidgets);
-    expect(find.text(AppStrings.totalBalance), findsOneWidget);
+    // The profile doc is shared state that clearAccountData() does not reset.
+    // Snapshot it now and restore it in the finally so this file's rename does
+    // not leak into later files/runs (or into the account permanently).
+    final profileSnapshot = await snapshotUserProfile();
 
-    // 5. Navigate to Edit Profile (tap the profile picture Hero in the AppBar)
-    final profilePic = find.byWidgetPredicate(
-      (w) => w is Hero && w.tag == 'profile_pic',
-    );
-    await tester.tap(profilePic.first);
-    await pumpAndSettleSafe(tester);
+    try {
+      // 4. Verify Home Screen
+      expect(find.textContaining('Welcome'), findsWidgets);
+      expect(find.text(AppStrings.totalBalance), findsOneWidget);
 
-    // 6. Verify Edit Profile Screen
-    expect(find.text('Edit Profile'), findsOneWidget);
-    expect(find.text('First Name'), findsOneWidget);
-    expect(find.text('Last Name'), findsOneWidget);
-    expect(find.text('Phone Number'), findsOneWidget);
+      // 5. Navigate to Edit Profile (tap the profile picture Hero in the AppBar)
+      final profilePic = find.byWidgetPredicate(
+        (w) => w is Hero && w.tag == 'profile_pic',
+      );
+      await tester.tap(profilePic.first);
+      await pumpAndSettleSafe(tester);
 
-    // 7. Interact with Fields (order: First, Last, Email, Phone, Address)
-    final textFields = find.byType(TextFormField);
+      // 6. Verify Edit Profile Screen
+      expect(find.text('Edit Profile'), findsOneWidget);
+      expect(find.text('First Name'), findsOneWidget);
+      expect(find.text('Last Name'), findsOneWidget);
+      expect(find.text('Phone Number'), findsOneWidget);
 
-    await tester.enterText(textFields.at(0), 'UpdatedName');
-    await pumpAndSettleSafe(tester);
+      // 7. Interact with Fields (order: First, Last, Email, Phone, Address)
+      final textFields = find.byType(TextFormField);
 
-    await tester.enterText(textFields.at(1), 'UpdatedLast');
-    await pumpAndSettleSafe(tester);
+      await tester.enterText(textFields.at(0), 'UpdatedName');
+      await pumpAndSettleSafe(tester);
 
-    await tester.enterText(textFields.at(3), '1234567890'); // Phone
-    await pumpAndSettleSafe(tester);
+      await tester.enterText(textFields.at(1), 'UpdatedLast');
+      await pumpAndSettleSafe(tester);
 
-    // 8. Select Date of Birth
-    final calendarIcon = find.byIcon(Icons.calendar_today_rounded);
-    await tester.ensureVisible(calendarIcon);
-    await pumpAndSettleSafe(tester);
-    await tester.tap(calendarIcon);
-    await pumpAndSettleSafe(tester);
+      await tester.enterText(textFields.at(3), '1234567890'); // Phone
+      await pumpAndSettleSafe(tester);
 
-    await tester.tap(find.text('OK'));
-    await pumpAndSettleSafe(tester);
+      // 8. Select Date of Birth
+      final calendarIcon = find.byIcon(Icons.calendar_today_rounded);
+      await tester.ensureVisible(calendarIcon);
+      await pumpAndSettleSafe(tester);
+      await tester.tap(calendarIcon);
+      await pumpAndSettleSafe(tester);
 
-    // 9. Save Changes
-    FocusManager.instance.primaryFocus?.unfocus();
-    await pumpAndSettleSafe(tester);
-    final saveButton = find.text('SAVE CHANGES');
-    await tester.ensureVisible(saveButton);
-    await pumpAndSettleSafe(tester);
-    await tester.tap(saveButton);
-    await pumpAndSettleSafe(tester);
+      await tester.tap(find.text('OK'));
+      await pumpAndSettleSafe(tester);
 
-    // 10. Wait for the async save + profile refresh
-    await pumpReal(tester, const Duration(seconds: 2));
+      // 9. Save Changes
+      FocusManager.instance.primaryFocus?.unfocus();
+      await pumpAndSettleSafe(tester);
+      final saveButton = find.text(AppStrings.saveChanges);
+      await tester.ensureVisible(saveButton);
+      await pumpAndSettleSafe(tester);
+      await tester.tap(saveButton);
+      await pumpAndSettleSafe(tester);
 
-    // 11. Verify Changes Persisted (Locally in fields)
-    expect(find.text('UpdatedName'), findsWidgets);
-    expect(find.text('UpdatedLast'), findsWidgets);
+      // 10. Wait for the async save + profile refresh
+      await pumpReal(tester, const Duration(seconds: 2));
 
-    // 12. Navigate Back
-    final backButton = find.byIcon(Icons.arrow_back_ios);
-    await tester.tap(backButton);
-    await pumpAndSettleSafe(tester);
+      // 11. Verify Changes Persisted (Locally in fields)
+      expect(find.text('UpdatedName'), findsWidgets);
+      expect(find.text('UpdatedLast'), findsWidgets);
 
-    // Verify Home
-    expect(find.textContaining('Welcome'), findsWidgets);
+      // 12. Navigate Back
+      final backButton = find.byIcon(Icons.arrow_back_ios);
+      await tester.tap(backButton);
+      await pumpAndSettleSafe(tester);
 
-    // Verify Name updated on Home (ProfileController refreshes after save).
-    // The appbar greeting is a shimmer until the Firestore profile fetch
-    // completes, so poll generously on the slow emulator.
-    var nameShown = false;
-    for (int i = 0; i < 60; i++) {
-      await pumpReal(tester);
-      if (find.text('UpdatedName').evaluate().isNotEmpty) {
-        nameShown = true;
-        break;
+      // Verify Home
+      expect(find.textContaining('Welcome'), findsWidgets);
+
+      // Verify Name updated on Home (ProfileController refreshes after save).
+      // The appbar greeting is a shimmer until the Firestore profile fetch
+      // completes, so poll generously on the slow emulator.
+      var nameShown = false;
+      for (int i = 0; i < 60; i++) {
+        await pumpReal(tester);
+        if (find.text('UpdatedName').evaluate().isNotEmpty) {
+          nameShown = true;
+          break;
+        }
       }
+      if (!nameShown) {
+        final texts = find
+            .descendant(
+              of: find.byType(AppBar),
+              matching: find.byType(Text),
+            )
+            .evaluate()
+            .map((e) => (e.widget as Text).data)
+            .toList();
+        debugPrint('Home AppBar texts: $texts');
+      }
+      expect(nameShown, isTrue, reason: 'Home should show the updated first name');
+    } finally {
+      await restoreUserProfile(profileSnapshot);
     }
-    if (!nameShown) {
-      final texts = find
-          .descendant(
-            of: find.byType(AppBar),
-            matching: find.byType(Text),
-          )
-          .evaluate()
-          .map((e) => (e.widget as Text).data)
-          .toList();
-      debugPrint('Home AppBar texts: $texts');
-    }
-    expect(nameShown, isTrue, reason: 'Home should show the updated first name');
   });
 }

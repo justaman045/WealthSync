@@ -9,11 +9,11 @@ gotchas below each encode a bug that already shipped once.
 ```bash
 flutter pub get
 flutter analyze --no-fatal-infos   # CI gate: warnings are fatal, infos are not
-tool/check_ui_strings.sh           # UI design-debt audit: report only
-tool/check_ui_strings.sh --strict  # fail if debts exceed tool/revamp_baseline.env caps
+tool/check_ui_strings.sh               # UI design-debt audit: report only (executable bit set)
+bash tool/check_ui_strings.sh --strict # fail if debts exceed tool/revamp_baseline.env caps
 flutter test                       # unit/widget tests ONLY (test/); integration tests never run here
 flutter test test/<file>_test.dart # single file
-tool/run_integration_tests.sh      # canonical E2E runner: one file at a time, fresh emulator per file (needs env creds + booted emulator-5554)
+bash tool/run_integration_tests.sh # canonical E2E runner: whole suite, internally one file at a time, fresh emulator per file — no args (needs env creds + booted emulator-5554; single-file runs use the flutter test block below)
 flutter gen-l10n                   # after editing lib/l10n/*.arb (l10n.yaml + generate: true)
 flutter run
 flutter build apk --release
@@ -22,7 +22,9 @@ flutter build web --release --base-href /WealthSync/   # GitHub Pages deploy
 ```
 
 **Pre-commit gate (CI's `test` job, in order):** `flutter analyze --no-fatal-infos` →
-`tool/check_ui_strings.sh --strict` → `flutter test`. All three must pass.
+`bash tool/check_ui_strings.sh --strict` → `flutter test`. All three must pass.
+(`run_integration_tests.sh` is mode 644 and always invoked as `bash …`.) CI runs Flutter
+**3.47.7**; `pubspec.yaml` declares `sdk: ^3.9.2`.
 
 **Generated l10n Dart is committed**: `lib/l10n/app_localizations.dart` +
 `app_localizations_en.dart` are tracked, so an ARB edit ships with its
@@ -294,11 +296,11 @@ admin-write. Missing doc/key/value ⇒ `enabled` (safe default).
   `test/feature_flags_test.dart` enforces that `all` is unique, that `groups` covers `all`
   exactly once, and that **every registry key is referenced by a real gate/check in `lib/`**
   — it scans `lib/` for `ensureFeatureVisible/Usable`, `flagKey:`, `statusOf`/`isEnabled`/
-  `isHidden`, `visibleToMe`, `FeatureFlag.find`, `_flagHidden`, `_requireFeature`,
-  `ComingSoonScreen.forFlag` and `FeatureSection([...])` call-sites, and fails if a key is
-  never gated (and if a gate key is unregistered). So registering a key is not enough — wire
-  its gate in the same change, add it to a group, and keep the test's known-keys list in
-  sync. Gate with these keys as string literals.
+  `isComingSoon`/`isHidden`/`visibleToMe`/`setStatus`, `FeatureFlag.find`, `_flagHidden`,
+  `_requireFeature`, `ComingSoonScreen.forFlag`, `featureKey:` and `FeatureSection([...])`
+  call-sites, and fails if a key is never gated (and if a gate key is unregistered). So
+  registering a key is not enough — wire its gate in the same change, add it to a group,
+  and keep the test's 55-key list in sync. Gate with these keys as string literals.
 - **Transport** (`lib/Services/feature_flag_service.dart`): native
   `.snapshots(includeMetadataChanges: true)` in `onInit`; **web 60s `.get()` poll** via
   `startPolling()` from `main.dart` after login (JS b815/ca9 constraint). Firestore
@@ -590,14 +592,25 @@ recovery path). Test seams: `fetchOverride`/`writeOverride` + `resetSchedulingFo
   "Ensure Android NDK" install-with-retries step in both the `build` and `integration_test`
   jobs); locally the var is unset so Flutter's default applies. Any job that compiles
   Android needs the pin, not just `build`.
-- **Release assets are multi-APK.** `build` runs `flutter build apk --release` (universal
-  `app-release.apk` — the in-app updater's ABI-agnostic download, see `update_checker.dart`)
-  AND `--split-per-abi` (small `app-<abi>-release.apk`, ~40–50 MB vs ~126 MB universal). The
-  README links the stable `releases/latest/download/app-arm64-v8a-release.apk`; the release
-  glob uploads every `flutter-apk/*.apk`. The two Gradle invocations write into the same
-  output dir and coexist — do not assume a split build wipes the universal. Release signing
-  enables v1+v2+v3 (`enableV1Signing`/`V2`/`V3` on the signing config), not AGP's default
-  v2-only, so sideload installs verify on every Android version.
+- **Release ships exactly ONE universal APK.** `build` runs `flutter build apk --release`
+  (universal `app-release.apk`), an `apksigner verify` assertion step, then uploads that
+  single file (artifact `apk`, release asset `app-release.apk`); the README links
+  `releases/latest/download/app-release.apk`. **Split-per-ABI builds were removed on
+  purpose — do not re-add `--split-per-abi`.** Two reproduced failures came from them:
+  (1) an ABI split installs only on a device carrying that ABI, so the arm64 split failed on
+  32-bit/x86 phones ("app not meant for this device") and the x86_64 split can never install
+  on any phone; (2) Flutter overrides a split's versionCode to `abiVersion * 1000 +
+  versionCode` (`FlutterPlugin.kt`; arm64 split = 2169 vs universal 169), so anyone who
+  side-loaded the arm64 split could never take the in-app update — the updater downloads the
+  *universal* APK and Android rejects the lower versionCode with
+  `INSTALL_FAILED_VERSION_DOWNGRADE` (reproduced on the emulator). One universal APK installs
+  everywhere and carries the versionCode the updater downloads.
+  **`enableV1Signing` is a silent no-op on AGP 9.1.0** — both CI and local release APKs report
+  `Verified using v1 scheme (JAR signing): false` even though `META-INF/CERT.SF`/`CERT.RSA`
+  exist (23 ML Kit/cupertino asset entries are omitted from the JAR manifest, invalidating
+  v1). This does **not** block installs at `minSdk 24`+ (Android validates v2/v3 and ignores
+  v1 — a locally built APK installs fine on SDK 37), but the `apksigner verify` CI step stays
+  as the guard against a genuinely broken signature.
 - **R8 minify is ON for release — a release-only crash is invisible to every test.**
   `isMinifyEnabled`/`isShrinkResources` are set in `android/app/build.gradle.kts`, but unit
   and integration tests run **debug** builds, so R8 damage (a shrunk reflective constructor)

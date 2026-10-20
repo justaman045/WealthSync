@@ -27,7 +27,7 @@ void main() {
         final goalName = uniqueName('Goal');
         await tapUntilMarker(
           tester,
-          find.text('New Goal'),
+          find.text(AppStrings.newGoal),
           find.widgetWithText(TextField, 'e.g. Emergency Fund, New iPhone'),
         );
 
@@ -43,7 +43,7 @@ void main() {
         await pumpAndSettleSafe(tester);
         await tapUntilMarker(
           tester,
-          find.text('Create Goal'),
+          find.text(AppStrings.createGoal),
           find.text(goalName),
         );
 
@@ -96,10 +96,7 @@ void main() {
             )
             .first;
         await waitFor(tester, goalCard);
-        final gesture = await tester.startGesture(tester.getCenter(goalCard));
-        await Future<void>.delayed(const Duration(milliseconds: 900));
-        await gesture.up();
-        await pumpAndSettleSafe(tester);
+        await longPressItem(tester, goalCard);
         await waitFor(tester, find.text('Delete Goal?'));
         await tapWhenVisible(tester, find.text(AppStrings.delete));
         await pumpReal(tester, const Duration(seconds: 3));

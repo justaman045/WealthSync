@@ -6,7 +6,11 @@ class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // All subcollections that must be deleted before the user document.
-  static const _subcollections = [
+  //
+  // Public so the GDPR "export all data" screen can iterate the exact same set:
+  // a hand-copied duplicate had no enforcement and would silently desync
+  // export from deletion whenever an asset type was added.
+  static const subcollections = [
     // Core
     'transactions',
     'recurring_payments',
@@ -90,7 +94,7 @@ class UserService {
     await _db.doc('users/$email/wealth/portfolio').delete();
 
     // 2. Delete all subcollections. If any fail, throw before touching auth.
-    for (final sub in _subcollections) {
+    for (final sub in subcollections) {
       await _deleteCollection('users/$email/$sub');
     }
 

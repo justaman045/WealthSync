@@ -35,6 +35,12 @@
 set -e
 
 mkdir -p build/report/parts build/report/screenshots
+# Purge stale per-file reporter JSON. A file skipped because the emulator died
+# writes no new JSON, so last run's file would otherwise be parsed by
+# generate_test_report.dart and rendered as a green PASS for a run that never
+# happened. Screenshots are kept (existing images are a useful fallback and are
+# guarded against re-pull), but the parts dir must be empty at the start.
+rm -f build/report/parts/*.json
 
 # True when the emulator is reachable AND not offline ("adb: device offline"
 # shows up in `adb devices` as the state "offline").
@@ -87,7 +93,23 @@ restart_emulator() {
     sleep 2
   done
   sleep 2
-  nohup /usr/local/lib/android/sdk/emulator/emulator -port 5554 -avd test \
+  # Clear stale AVD/qemu locks left behind by a crashed boot. Without this the
+  # new qemu fails to bind port 5554 and every remaining file is skipped — the
+  # exact cascade this function exists to prevent.
+  rm -f "$HOME/.android/avd/test.avd/multiinstance.lock" \
+        "$HOME/.android/avd/test.avd/hardware-qemu.ini.lock" 2>/dev/null || true
+  rm -rf "/run/user/$(id -u)/avd/running" 2>/dev/null || true
+  # The emulator binary location varies by runner image; honour the SDK root
+  # env vars the Android tooling already exports before falling back.
+  local emulator_bin="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}/emulator/emulator"
+  if [ ! -x "$emulator_bin" ]; then
+    emulator_bin="$(command -v emulator || true)"
+  fi
+  if [ -z "$emulator_bin" ]; then
+    echo "Emulator binary not found (looked under \$ANDROID_SDK_ROOT/\$ANDROID_HOME)."
+    return 1
+  fi
+  nohup "$emulator_bin" -port 5554 -avd test \
     -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
     -camera-back none -no-metrics -cores 4 >/tmp/emulator-restart.log 2>&1 &
   for _ in $(seq 1 45); do
@@ -106,14 +128,25 @@ restart_emulator() {
 # account (TEST_EMAIL/TEST_PASSWORD). The two accounts are never shared — the
 # free account is force-reset by the harness, the pro account is configured
 # out-of-band in the Firebase console. Add new *pro* files to this list.
+#
+# Matched as whole words ("$name" surrounded by spaces), NOT substring: a
+# substring match made any future file whose name is contained in a Pro entry
+# (e.g. features_test inside pro_features_test) silently run as PRO.
 PRO_FILES="subscription_flow_test budget_categories_test goals_challenges_test lent_money_split_bill_test subscription_screen_test pro_features_test"
+
+is_pro_file() { # name
+  case " $PRO_FILES " in
+    *" $1 "*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 run_file() {
   local f="$1"
   local name="$2"
   local email="$TEST_EMAIL"
   local password="$TEST_PASSWORD"
-  if [ "${PRO_FILES#*"$name"}" != "$PRO_FILES" ]; then
+  if is_pro_file "$name"; then
     email="$PRO_TEST_EMAIL"
     password="$PRO_TEST_PASSWORD"
     echo "=== $name: PRO account ($PRO_TEST_EMAIL)"
@@ -129,8 +162,22 @@ run_file() {
 }
 
 pull_screenshots() {
-  adb shell run-as app.vercel.justaman045.money_control ls -1 cache/screenshots 2>/dev/null | while read g; do
-    [ -f "build/report/screenshots/$g" ] || adb exec-out run-as app.vercel.justaman045.money_control cat "cache/screenshots/$g" > "build/report/screenshots/$g" 2>/dev/null || true
+  local pkg="app.vercel.justaman045.money_control"
+  adb shell run-as "$pkg" ls -1 cache/screenshots 2>/dev/null | while read -r g; do
+    # Skip only files that already exist AND are non-empty. A failed pull used
+    # to leave a 0-byte file that this guard then treated as "already pulled",
+    # so the image was never retried and the report embedded a broken PNG.
+    if [ -s "build/report/screenshots/$g" ]; then
+      continue
+    fi
+    # Pull to a temp file first: the redirection creates the destination before
+    # adb runs, so a wedged device would leave an empty file in place.
+    local tmp="build/report/screenshots/.$g.tmp"
+    if adb exec-out run-as "$pkg" cat "cache/screenshots/$g" > "$tmp" 2>/dev/null && [ -s "$tmp" ]; then
+      mv "$tmp" "build/report/screenshots/$g"
+    else
+      rm -f "$tmp"
+    fi
   done
   echo "--- screenshots pulled so far: $(ls build/report/screenshots 2>/dev/null | wc -l)"
 }
@@ -159,6 +206,7 @@ for f in integration_test/*_test.dart; do
       EMULATOR_DEAD=1
       DEAD_SINCE="$name"
       FLUTTER_EXIT=1
+      SKIP_COUNT=$((SKIP_COUNT + 1))
       echo "FAIL: $name (emulator restart failed — treating emulator as dead; remaining files will be skipped fast)."
       continue
     fi

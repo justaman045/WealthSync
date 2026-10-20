@@ -74,7 +74,7 @@ void main() {
 
     FocusManager.instance.primaryFocus?.unfocus();
     await pumpAndSettleSafe(tester);
-    await tapUntilMarker(tester, find.text('Save Changes'), find.text('Transaction History'));
+    await tapUntilMarker(tester, find.text(AppStrings.saveChanges), find.text('Transaction History'));
     await pumpReal(tester, const Duration(seconds: 3));
 
     // Verify the updated amount appears in the history list.

@@ -7,12 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_io/io.dart';
+import 'package:money_control/Utils/op_queue.dart';
 
 class OfflineQueueService {
   // Serialize concurrent saves so reads/writes don't interleave.
-  static bool _writing = false;
-  static final List<Future<void> Function()> _pending = [];
-
   static const String _prefsKey = 'offline_queue';
 
   static Future<File> _getFile() async {
@@ -47,23 +45,11 @@ class OfflineQueueService {
     await tmp.rename(file.path);
   }
 
-  // Serialize all saves through a simple async queue.
-  static Future<void> _enqueue(Future<void> Function() op) async {
-    if (_writing) {
-      _pending.add(op);
-      return;
-    }
-    _writing = true;
-    try {
-      await op();
-    } finally {
-      _writing = false;
-      if (_pending.isNotEmpty) {
-        final next = _pending.removeAt(0);
-        await _enqueue(next);
-      }
-    }
-  }
+  // Serialize all saves through a small FIFO. The returned future completes
+  // only once THIS op has actually run — see OpQueue for why that matters.
+  static final OpQueue _queue = OpQueue();
+
+  static Future<void> _enqueue(Future<void> Function() op) => _queue.add(op);
 
   // Recursively convert Timestamp / DateTime to ISO-8601 strings.
   // Strips FieldValue sentinels (serverTimestamp, delete, etc.) that break jsonEncode.

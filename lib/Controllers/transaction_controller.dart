@@ -475,48 +475,67 @@ class TransactionController extends GetxController {
   Future<void> _updateStreak(String email) async {
     try {
       final db = FirebaseFirestore.instance;
-      final doc = await db.collection('users').doc(email).get();
-      final data = doc.data() ?? {};
+      final userRef = db.collection('users').doc(email);
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
-      final lastTs = data['lastStreakDate'] as Timestamp?;
-      final lastDate = lastTs != null
-          ? DateTime(
-              lastTs.toDate().year,
-              lastTs.toDate().month,
-              lastTs.toDate().day,
-            )
-          : null;
-      final count = (data['streakCount'] as int?) ?? 0;
+      // Run inside a transaction: the streak is a read-modify-write, and two
+      // adds firing close together (_updateStreak is fire-and-forget) both used
+      // to read the same `streakCount` and write the same increment, losing a
+      // day (and double-firing or skipping the [7,30,100] milestone).
+      final result = await db.runTransaction<({int count, bool milestone})>((
+        txn,
+      ) async {
+        final doc = await txn.get(userRef);
+        final data = doc.data() ?? {};
+        final rawTs = data['lastStreakDate'];
+        final lastTs = rawTs is Timestamp ? rawTs : null;
+        final lastDate = lastTs != null
+            ? DateTime(
+                lastTs.toDate().year,
+                lastTs.toDate().month,
+                lastTs.toDate().day,
+              )
+            : null;
+        // Firestore can hand back a numeric field as a double; a raw
+        // `as int?` would throw and be swallowed by the catch below, killing
+        // the streak silently.
+        final count = safeToInt(data['streakCount']);
 
-      if (lastDate == null ||
-          lastDate.isBefore(today.subtract(const Duration(days: 1)))) {
-        // Streak broken or new — reset to 1
-        await db.collection('users').doc(email).set({
-          'streakCount': 1,
-          'lastStreakDate': Timestamp.fromDate(today),
-        }, SetOptions(merge: true));
-        streakCount.value = 1;
-      } else if (_isSameDay(
-        lastDate,
-        today.subtract(const Duration(days: 1)),
-      )) {
-        // Consecutive — increment
-        final newCount = count + 1;
-        await db.collection('users').doc(email).set({
-          'streakCount': newCount,
-          'lastStreakDate': Timestamp.fromDate(today),
-        }, SetOptions(merge: true));
-        streakCount.value = newCount;
-        if ([7, 30, 100].contains(newCount)) {
-          ErrorHandler.showSuccess(
-            '$newCount day streak! Keep it up!',
-            title: 'Streak Milestone',
+        if (lastDate == null ||
+            lastDate.isBefore(today.subtract(const Duration(days: 1)))) {
+          // Streak broken or new — reset to 1.
+          txn.set(userRef, {
+            'streakCount': 1,
+            'lastStreakDate': Timestamp.fromDate(today),
+          }, SetOptions(merge: true));
+          return (count: 1, milestone: false);
+        } else if (_isSameDay(
+          lastDate,
+          today.subtract(const Duration(days: 1)),
+        )) {
+          // Consecutive — increment.
+          final newCount = count + 1;
+          txn.set(userRef, {
+            'streakCount': newCount,
+            'lastStreakDate': Timestamp.fromDate(today),
+          }, SetOptions(merge: true));
+          return (
+            count: newCount,
+            milestone: const [7, 30, 100].contains(newCount),
           );
         }
+        // lastDate == today: already tracked, no write.
+        return (count: count, milestone: false);
+      });
+
+      streakCount.value = result.count;
+      if (result.milestone) {
+        ErrorHandler.showSuccess(
+          '${result.count} day streak! Keep it up!',
+          title: 'Streak Milestone',
+        );
       }
-      // If lastDate == today, no-op (already tracked today)
     } catch (e) {
       debugPrint('Streak update error: $e');
     }

@@ -68,13 +68,25 @@ class TransactionModel {
       date: parsedDate,
       attachmentUrl: map['attachmentUrl'],
       status: map['status'],
-      createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+      createdAt: _parseTimestamp(map['createdAt']) ?? DateTime.now(),
       recurringPaymentId: map['recurringPaymentId'],
       smsDedupeKey: map['smsDedupeKey'],
     );
   }
 
   static double _parseNum(dynamic value) => safeToDouble(value);
+
+  /// Coerces a stored timestamp to [DateTime], tolerating a [Timestamp], a
+  /// [DateTime], or an ISO string. The old `(x as dynamic)?.toDate()` threw
+  /// `NoSuchMethodError` on anything that wasn't a [Timestamp] (e.g. a
+  /// `DateTime`, or a string from a hand-written import/corrupt doc).
+  static DateTime? _parseTimestamp(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
 
   Map<String, dynamic> toMap() {
     return {

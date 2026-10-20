@@ -142,6 +142,30 @@ void main() {
       expect(p.totalAssets, closeTo(122250, 1));
       expect(p.totalLiabilities, 10600);
     });
+
+    test('a corrupt monthly_expense_override is null (unset), not 0.0', () {
+      // null => "derive from transactions"; 0.0 => "user pinned zero".
+      // A corrupt non-numeric value must not silently become an explicit zero.
+      final p = WealthPortfolio.fromMap({
+        'monthly_expense_override': 'not-a-number',
+      });
+      expect(p.monthlyExpenseOverride, isNull);
+    });
+
+    test('an explicit 0 monthly_expense_override stays 0.0', () {
+      final p = WealthPortfolio.fromMap({'monthly_expense_override': 0});
+      expect(p.monthlyExpenseOverride, 0.0);
+    });
+
+    test('a numeric-string override is parsed', () {
+      final p = WealthPortfolio.fromMap({'monthly_expense_override': '1500.5'});
+      expect(p.monthlyExpenseOverride, 1500.5);
+    });
+
+    test('a non-finite override is null, not Infinity/NaN', () {
+      final p = WealthPortfolio.fromMap({'monthly_expense_override': double.nan});
+      expect(p.monthlyExpenseOverride, isNull);
+    });
   });
 }
 
