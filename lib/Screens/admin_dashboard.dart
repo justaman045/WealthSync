@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -34,7 +35,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             children: [
               Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
               SizedBox(height: 16.h),
-              Text("Access Denied", style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.accessDenied, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -54,7 +55,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            "Admin Dashboard",
+            AppLocalizations.of(context)!.adminDashboard,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontWeight: FontWeight.bold,
@@ -96,7 +97,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                     SizedBox(height: 16.h),
                     Text(
-                      "No Pending Requests",
+                      AppLocalizations.of(context)!.pendingRequests,
                       style: TextStyle(
                         fontSize: 18.sp,
                         color: isDark
@@ -209,7 +210,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                    color: Colors.redAccent,
                                  ),
                                 label: Text(
-                                  "Reject",
+                                  AppLocalizations.of(context)!.reject,
                                   style: TextStyle(color: Colors.redAccent),
                                 ),
                                 style: OutlinedButton.styleFrom(
@@ -233,7 +234,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                    color: Colors.black,
                                  ),
                                 label: Text(
-                                  "Approve",
+                                  AppLocalizations.of(context)!.approve,
                                   style: TextStyle(
                                     color: Colors.black,
                                     fontWeight: FontWeight.bold,
@@ -276,14 +277,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         title: Text(
-          "Debug: Force Expiry",
+          AppLocalizations.of(context)!.debugForceExpiry,
           style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Enter email to force expiry date to yesterday.",
+              AppLocalizations.of(context)!.enterEmailForceExpiryDate,
               style: TextStyle(
                 color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
               ),
@@ -312,7 +313,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onPressed: () {
               Navigator.pop(context);
             },
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -332,7 +333,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text("Expire Now"),
+            child: Text(AppLocalizations.of(context)!.expireNow),
           ),
         ],
       ),

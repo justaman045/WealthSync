@@ -1,4 +1,5 @@
 // --- imports ---
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -533,7 +534,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
         appBar: AppBar(
           title: Text(
-            "Analytics & Reports",
+            AppLocalizations.of(context)!.analyticsReports,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontWeight: FontWeight.bold,
@@ -585,7 +586,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         children: [
                           Icon(Icons.share_outlined, color: c, size: 18.sp),
                           SizedBox(width: 10.w),
-                          Text("Share Report", style: TextStyle(color: c)),
+                          Text(AppLocalizations.of(context)!.shareReport, style: TextStyle(color: c)),
                         ],
                       ),
                     ),
@@ -601,7 +602,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             size: 18.sp,
                           ),
                           SizedBox(width: 10.w),
-                          Text("Export CSV", style: TextStyle(color: c)),
+                          Text(AppLocalizations.of(context)!.exportCSV, style: TextStyle(color: c)),
                         ],
                       ),
                     ),
@@ -616,7 +617,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             size: 18.sp,
                           ),
                           SizedBox(width: 10.w),
-                          Text("Export PDF", style: TextStyle(color: c)),
+                          Text(AppLocalizations.of(context)!.exportPDF, style: TextStyle(color: c)),
                         ],
                       ),
                     ),
@@ -631,7 +632,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             size: 18.sp,
                           ),
                           SizedBox(width: 10.w),
-                          Text("Tax Summary PDF", style: TextStyle(color: c)),
+                          Text(AppLocalizations.of(context)!.taxSummaryPDF, style: TextStyle(color: c)),
                         ],
                       ),
                     ),
@@ -725,7 +726,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              "Data Filters",
+                              AppLocalizations.of(context)!.dataFilters,
                               style: TextStyle(
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.bold,
@@ -829,7 +830,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     StaggeredSlideFade(
                       delay: 100,
                       child: Text(
-                        "Financial Summary",
+                        AppLocalizations.of(context)!.financialSummary,
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
@@ -938,7 +939,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               ),
                               SizedBox(width: 8.w),
                               Text(
-                                "View Advanced Category Trends",
+                                AppLocalizations.of(context)!.viewAdvancedCategoryTrends,
                                 style: TextStyle(
                                   color: isDark
                                       ? Colors.white
@@ -1111,7 +1112,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               Icon(Icons.flash_on_rounded, size: 20.sp, color: Colors.amber),
               SizedBox(width: 8.w),
               Text(
-                "Quick Overview",
+                AppLocalizations.of(context)!.quickOverview,
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.bold,
@@ -1229,7 +1230,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             SizedBox(
               width: 40.w,
               child: Text(
-                "Out",
+                AppLocalizations.of(context)!.out2,
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: AppColors.error,
@@ -1515,7 +1516,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   SizedBox(width: 8.w),
                   _legendDot(AppColors.error),
                   Text(
-                    " Out",
+                    AppLocalizations.of(context)!.out,
                     style: TextStyle(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.bold,
@@ -2057,7 +2058,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           Row(
             children: [
               Text(
-                'Spending Heatmap',
+                AppLocalizations.of(context)!.spendingHeatmap,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -2295,7 +2296,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Top Merchants',
+            AppLocalizations.of(context)!.topMerchants,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
             ),
@@ -2423,7 +2424,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Salary Detected',
+                  AppLocalizations.of(context)!.salaryDetected,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.success,
@@ -2614,7 +2615,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Your Spending Personality',
+                      AppLocalizations.of(context)!.spendingPersonality,
                       style: TextStyle(
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w600,
@@ -2649,7 +2650,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Saving rate',
+                  AppLocalizations.of(context)!.savingRate,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: theme.textTheme.bodyMedium?.color,

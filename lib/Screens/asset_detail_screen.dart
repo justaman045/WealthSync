@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -145,13 +146,13 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        title: Text("Remove entry?",
+        title: Text(AppLocalizations.of(context)!.removeEntry,
           style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
-        content: Text("This will delete this item permanently.",
+        content: Text(AppLocalizations.of(context)!.deleteItemPermanently,
           style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false),
-            child: Text("Cancel",
+            child: Text(AppLocalizations.of(context)!.cancel,
               style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -241,7 +242,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                 _buildSummary(total, symbol, docs.length),
                 SizedBox(height: 20.h),
                 Text(
-                  "Entries",
+                  AppLocalizations.of(context)!.entries,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -432,7 +433,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                   fontSize: 16.sp),
               textAlign: TextAlign.center),
           SizedBox(height: 8.h),
-          Text("Tap + to add your first entry",
+          Text(AppLocalizations.of(context)!.tapAddFirstEntry,
               style: TextStyle(
                   color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
                   fontSize: 13.sp)),

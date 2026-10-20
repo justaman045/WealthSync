@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Components/profile_avatar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -148,7 +149,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             color: isDark ? Colors.white : AppColors.lightTextPrimary,
           ),
           title: Text(
-            "Edit Profile",
+            AppLocalizations.of(context)!.editProfile,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
@@ -440,7 +441,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 }
                               },
                               child: Text(
-                                "Change Password",
+                                AppLocalizations.of(context)!.changePassword,
                                 style: TextStyle(
                                   color: isDark
                                       ? Colors.white
@@ -534,7 +535,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Gender",
+          AppLocalizations.of(context)!.gender,
           style: TextStyle(
             color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
             fontSize: 14.sp,
@@ -570,20 +571,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               fontSize: 16.sp,
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
             ),
-            items: const [
-              DropdownMenuItem(value: 'male', child: Text("Male")),
-              DropdownMenuItem(value: 'female', child: Text("Female")),
-              DropdownMenuItem(value: 'other', child: Text("Other")),
+            items: [
+              DropdownMenuItem(value: 'male', child: Text(AppLocalizations.of(context)!.male)),
+              DropdownMenuItem(value: 'female', child: Text(AppLocalizations.of(context)!.female)),
+              DropdownMenuItem(value: 'other', child: Text(AppLocalizations.of(context)!.other)),
               DropdownMenuItem(
                 value: 'prefer_not_to_say',
-                child: Text("Prefer not to say"),
+                child: Text(AppLocalizations.of(context)!.preferSay),
               ),
             ],
             onChanged: (val) {
               setState(() => _gender = val);
             },
             hint: Text(
-              "Select Gender",
+              AppLocalizations.of(context)!.selectGender,
               style: TextStyle(
                 fontSize: 16.sp,
                 color: isDark ? Colors.white38 : AppColors.lightTextSecondary,

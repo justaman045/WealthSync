@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -46,7 +47,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            "Manage Users",
+            AppLocalizations.of(context)!.manageUsers,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontWeight: FontWeight.bold,
@@ -116,7 +117,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(
                       child: Text(
-                        "No users found.",
+                        AppLocalizations.of(context)!.usersFound,
                         style: TextStyle(
                           color: isDark
                               ? Colors.white54
@@ -247,7 +248,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
           return AlertDialog(
             backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
             title: Text(
-              "Manage Subscription",
+              AppLocalizations.of(context)!.manageSubscription,
               style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 18.sp),
             ),
             content: Column(
@@ -264,7 +265,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                 Row(
                   children: [
                     Text(
-                      "Pro Status:",
+                      AppLocalizations.of(context)!.proStatus,
                       style: TextStyle(
                         color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       ),
@@ -282,7 +283,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                 SizedBox(height: 16.h),
                 if (isPro) ...[
                   Text(
-                    "Expiry Date:",
+                    AppLocalizations.of(context)!.expiryDate,
                     style: TextStyle(
                       color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                       fontSize: 14.sp,
@@ -352,7 +353,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               ElevatedButton(
                 onPressed: () async {

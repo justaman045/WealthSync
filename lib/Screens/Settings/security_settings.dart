@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -49,7 +50,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Security & Privacy"),
+        title: Text(AppLocalizations.of(context)!.securityPrivacy),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,

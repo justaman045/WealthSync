@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -38,7 +39,7 @@ class _RecentPaymentListState extends State<RecentPaymentList> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return Center(
-        child: Text("Not logged in",
+        child: Text(AppLocalizations.of(context)!.logged,
             style: TextStyle(color: Theme.of(context).colorScheme.error)),
       );
     }

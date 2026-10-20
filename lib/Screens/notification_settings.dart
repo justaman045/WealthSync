@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -120,7 +121,7 @@ class _NotificationSettingsScreenState
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Notifications"),
+        title: Text(AppLocalizations.of(context)!.notifications),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -189,8 +190,7 @@ class _NotificationSettingsScreenState
                             SizedBox(width: 12.w),
                             Expanded(
                               child: Text(
-                                "Master toggle is off — nothing will be "
-                                "posted until you turn it back on.",
+                                AppLocalizations.of(context)!.masterToggleOffNothingPosted,
                                 style: TextStyle(
                                   color: isDark
                                       ? Colors.white70

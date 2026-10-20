@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Components/profile_avatar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       appBar: AppBar(
-        title: const Text("Settings"),
+        title: Text(AppLocalizations.of(context)!.settings),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -354,7 +355,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text("Could not open browser"),
+                                    content: Text(AppLocalizations.of(context)!.couldOpenBrowser),
                                   ),
                                 );
                               }
@@ -383,7 +384,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "WealthSync Web",
+                                      AppLocalizations.of(context)!.wealthsyncWeb,
                                       style: TextStyle(
                                         fontSize: 16.sp,
                                         fontWeight: FontWeight.bold,
@@ -394,7 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ),
                                     SizedBox(height: 4.h),
                                     Text(
-                                      "Access from any device",
+                                      AppLocalizations.of(context)!.accessDevice,
                                       style: TextStyle(
                                         fontSize: 12.sp,
                                         color: Theme.of(context)
@@ -704,8 +705,8 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
     await Clipboard.setData(ClipboardData(text: _code));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Code copied"),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.codeCopied),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -752,7 +753,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
             Expanded(
               child: _loading
                   ? Text(
-                      "Loading...",
+                      AppLocalizations.of(context)!.loading,
                       style: TextStyle(
                         color: isDark
                             ? Colors.white54
@@ -764,7 +765,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Invite Friends",
+                          AppLocalizations.of(context)!.inviteFriends,
                           style: TextStyle(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w700,
@@ -775,7 +776,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
                         Row(
                           children: [
                             Text(
-                              "Your code: ",
+                              AppLocalizations.of(context)!.code,
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: isDark

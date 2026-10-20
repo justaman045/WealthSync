@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Utils/wealth_math.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -172,7 +173,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("General"),
+        title: Text(AppLocalizations.of(context)!.general),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -458,7 +459,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                "Select Currency",
+                AppLocalizations.of(context)!.selectCurrency,
                 style: TextStyle(
                   color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontSize: 18.sp,
@@ -495,7 +496,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(
-          "Income Source",
+          AppLocalizations.of(context)!.incomeSource,
           style: TextStyle(
             color: isDark ? Colors.white : AppColors.lightTextPrimary,
             fontWeight: FontWeight.bold,
@@ -527,7 +528,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
         ],
       ),
@@ -550,7 +551,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
         builder: (ctx, setLocal) => AlertDialog(
           backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-          title: Text("Savings Target", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+          title: Text(AppLocalizations.of(context)!.savingsTarget, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,11 +559,11 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
               Text("Reserve $temp% of your income for savings", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
               SizedBox(height: 8.h),
               Slider(value: temp.toDouble(), min: SavingsSettings.minPercent.toDouble(), max: SavingsSettings.maxPercent.toDouble(), divisions: (SavingsSettings.maxPercent - SavingsSettings.minPercent) ~/ 5, label: "$temp%", activeColor: AppColors.primary, onChanged: (v) => setLocal(() => temp = v.round())),
-              Text("This share is set aside before your AI Insights daily spending limit is calculated.", style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 12.sp)),
+              Text(AppLocalizations.of(context)!.shareSetAsideBeforeAI, style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 12.sp)),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.cancel)),
             TextButton(onPressed: () async {
               await SavingsSettings.setPercent(temp);
               if (!mounted) return;
@@ -629,7 +630,7 @@ class _ManualIncomeDialogState extends State<_ManualIncomeDialog> {
       backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       title: Text(
-        "Manual Monthly Income",
+        AppLocalizations.of(context)!.manualMonthlyIncome,
         style: TextStyle(
           color: isDark ? Colors.white : AppColors.lightTextPrimary,
           fontWeight: FontWeight.bold,
@@ -647,7 +648,7 @@ class _ManualIncomeDialogState extends State<_ManualIncomeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
+          child: Text(AppLocalizations.of(context)!.cancel),
         ),
         TextButton(
           onPressed: _save,

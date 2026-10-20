@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -130,7 +131,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Insurance Policies"),
+          title: Text(AppLocalizations.of(context)!.insurancePolicies),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -141,8 +142,8 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
                 onPressed: _add,
                 backgroundColor: Colors.pink,
                 icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  "Add Policy",
+                label: Text(
+                  AppLocalizations.of(context)!.addPolicy,
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -185,7 +186,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
                 _buildSummary(totalCorpus, totalPremium, symbol),
                 SizedBox(height: 20.h),
                 Text(
-                  "Policies",
+                  AppLocalizations.of(context)!.policies,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -353,12 +354,12 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
               size: 72.sp,
               color: isDark ? Colors.white24 : AppColors.lightBorder),
           SizedBox(height: 16.h),
-          Text("No policies added",
+          Text(AppLocalizations.of(context)!.policiesAdded,
               style: TextStyle(
                   color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                   fontSize: 16.sp)),
           SizedBox(height: 8.h),
-          Text("Tap + to track life insurance and ULIPs",
+          Text(AppLocalizations.of(context)!.tapTrackLifeInsuranceULIPs,
               style: TextStyle(
                   color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
                   fontSize: 13.sp)),
@@ -374,10 +375,10 @@ Future<bool> _confirm(BuildContext context) async {
   final r = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text("Delete?"),
-      content: const Text("Remove this policy?"),
+      title: Text(AppLocalizations.of(context)!.delete2),
+      content: Text(AppLocalizations.of(context)!.removePolicy),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
         TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text("Delete", style: TextStyle(color: Colors.red))),

@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -128,7 +129,7 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Real Estate"),
+          title: Text(AppLocalizations.of(context)!.realEstate),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -139,8 +140,8 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
                 onPressed: _add,
                 backgroundColor: Colors.brown,
                 icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  "Add Property",
+                label: Text(
+                  AppLocalizations.of(context)!.addProperty,
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -172,14 +173,14 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
                         size: 72.sp,
                         color: isDark ? Colors.white24 : AppColors.lightBorder),
                     SizedBox(height: 16.h),
-                    Text("No properties added",
+                    Text(AppLocalizations.of(context)!.propertiesAdded,
                         style: TextStyle(
                             color: isDark
                                 ? Colors.white54
                                 : AppColors.lightTextSecondary,
                             fontSize: 16.sp)),
                     SizedBox(height: 8.h),
-                    Text("Tap + to track your real estate",
+                    Text(AppLocalizations.of(context)!.tapTrackRealEstate,
                         style: TextStyle(
                             color: isDark
                                 ? Colors.white38
@@ -206,7 +207,7 @@ class _RealEstateDetailScreenState extends State<RealEstateDetailScreen> {
                 _buildSummary(totalValue, totalEmi, symbol, docs.length),
                 SizedBox(height: 20.h),
                 Text(
-                  "Properties",
+                  AppLocalizations.of(context)!.properties,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -355,10 +356,10 @@ Future<bool> _confirm(BuildContext context) async {
   final r = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text("Delete?"),
-      content: const Text("Remove this property?"),
+      title: Text(AppLocalizations.of(context)!.delete2),
+      content: Text(AppLocalizations.of(context)!.removeProperty),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
         TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text("Delete", style: TextStyle(color: Colors.red))),

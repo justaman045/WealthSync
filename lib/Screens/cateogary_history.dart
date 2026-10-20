@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -57,7 +58,7 @@ class _CategoryTransactionsScreenState
       return Scaffold(
         body: Center(
           child: Text(
-            "User not logged in",
+            AppLocalizations.of(context)!.userLogged,
             style: TextStyle(color: Colors.red),
           ),
         ),
@@ -151,7 +152,7 @@ class _CategoryTransactionsScreenState
                     ),
                     SizedBox(height: 16.h),
                     Text(
-                      "No transactions found.",
+                      AppLocalizations.of(context)!.transactionsFound,
                       style: TextStyle(
                           color:
                               isDark ? Colors.white38 : AppColors.lightTextTertiary,

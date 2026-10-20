@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -128,8 +129,8 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             onPressed: () => _showAddDialog(context, isDark),
             backgroundColor: Colors.transparent,
             elevation: 0,
-            label: const Text(
-              "Add Subscription",
+            label: Text(
+              AppLocalizations.of(context)!.addSubscription,
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
@@ -198,7 +199,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    "Couldn't load subscriptions. Check your connection.",
+                                    AppLocalizations.of(context)!.couldnTLoadSubscriptionsCheck,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: textColor.withValues(alpha: 0.6),
@@ -252,7 +253,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                       ),
                                   SizedBox(height: 24.h),
                                   Text(
-                                        "No subscriptions yet",
+                                        AppLocalizations.of(context)!.subscriptionsYet,
                                         style: TextStyle(
                                           color: textColor.withValues(
                                             alpha: 0.6,
@@ -266,7 +267,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                       .slideY(begin: 0.2, end: 0),
                                   SizedBox(height: 8.h),
                                   Text(
-                                    "Track Netflix, Rent, Spotify, etc.",
+                                    AppLocalizations.of(context)!.trackNetflixRentSpotifyEtc,
                                     style: TextStyle(
                                       color: textColor.withValues(alpha: 0.4),
                                       fontSize: 12.sp,
@@ -484,7 +485,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                             ),
                           ),
                           child: Text(
-                            "AUTO",
+                            AppLocalizations.of(context)!.auto,
                             style: TextStyle(
                               fontSize: 9.sp,
                               fontWeight: FontWeight.w800,
@@ -568,7 +569,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                         ),
                       ),
                       child: Text(
-                        "AUTO-PAY MISSED",
+                        AppLocalizations.of(context)!.autoPAYMISSED,
                         style: TextStyle(
                           fontSize: 10.sp,
                           fontWeight: FontWeight.w800,
@@ -632,7 +633,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
           ),
           SizedBox(height: 16.h),
           Text(
-            "Select a subscription to view details",
+            AppLocalizations.of(context)!.selectSubscriptionViewDetails,
             style: TextStyle(
               color: textColor.withValues(alpha: 0.4),
               fontSize: 16.sp,
@@ -897,7 +898,7 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                     value: _autoPay,
                     onChanged: (v) => setState(() => _autoPay = v ?? false),
                     title: Text(
-                      "Auto-pay",
+                      AppLocalizations.of(context)!.autoPay,
                       style: TextStyle(
                         fontSize: 15.sp,
                         fontWeight: FontWeight.w600,
@@ -1001,7 +1002,7 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
           child: Column(
             children: [
               Text(
-                "Monthly Commitment",
+                AppLocalizations.of(context)!.monthlyCommitment,
                 style: TextStyle(
                   fontSize: 14.sp,
                   color: widget.textColor.withValues(alpha: 0.6),

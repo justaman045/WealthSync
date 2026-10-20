@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -48,7 +49,7 @@ class _TransactionAuditScreenState extends State<TransactionAuditScreen>
       backgroundColor: isDark ? const Color(0xFF0A0E21) : Colors.grey[50],
       appBar: AppBar(
         title: Text(
-          'Transaction Audit',
+          AppLocalizations.of(context)!.transactionAudit,
           style: TextStyle(
             color: isDark ? Colors.white : AppColors.lightTextPrimary,
             fontWeight: FontWeight.w600,
@@ -124,7 +125,7 @@ class _IssuesTab extends StatelessWidget {
                   color: Colors.greenAccent, size: 48.sp),
               SizedBox(height: 12.h),
               Text(
-                'No issues found',
+                AppLocalizations.of(context)!.issuesFound,
                 style: TextStyle(
                     color: isDark ? Colors.white70 : Colors.grey[600],
                     fontSize: 14.sp),
@@ -216,7 +217,7 @@ class _IssuesTab extends StatelessWidget {
                   Icon(Icons.touch_app, size: 12.sp, color: Colors.orangeAccent.withValues(alpha: 0.6)),
                   SizedBox(width: 4.w),
                   Text(
-                    'Tap to resolve',
+                    AppLocalizations.of(context)!.tapResolve,
                     style: TextStyle(
                       color: Colors.orangeAccent.withValues(alpha: 0.6),
                       fontSize: 10.sp,
@@ -290,7 +291,7 @@ class _IssuesTab extends StatelessWidget {
                   Icon(Icons.touch_app, size: 12.sp, color: Colors.redAccent.withValues(alpha: 0.6)),
                   SizedBox(width: 4.w),
                   Text(
-                    'Tap to resolve',
+                    AppLocalizations.of(context)!.tapResolve,
                     style: TextStyle(
                       color: Colors.redAccent.withValues(alpha: 0.6),
                       fontSize: 10.sp,
@@ -361,7 +362,7 @@ class _IssuesTab extends StatelessWidget {
                   Icon(Icons.touch_app, size: 12.sp, color: Colors.purpleAccent.withValues(alpha: 0.6)),
                   SizedBox(width: 4.w),
                   Text(
-                    'Tap to resolve',
+                    AppLocalizations.of(context)!.tapResolve,
                     style: TextStyle(
                       color: Colors.purpleAccent.withValues(alpha: 0.6),
                       fontSize: 10.sp,
@@ -417,7 +418,7 @@ class _IssuesTab extends StatelessWidget {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
-                      'Duplicate Transaction',
+                      AppLocalizations.of(context)!.duplicateTransaction,
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.w700,
@@ -583,7 +584,7 @@ class _IssuesTab extends StatelessWidget {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
-                      'Sign Convention Error',
+                      AppLocalizations.of(context)!.signConventionError,
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.w700,
@@ -616,7 +617,7 @@ class _IssuesTab extends StatelessWidget {
                   if (context.mounted && ok) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Sign corrected'),
+                        content: Text(AppLocalizations.of(context)!.signCorrected),
                         backgroundColor: AppColors.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
@@ -696,7 +697,7 @@ class _IssuesTab extends StatelessWidget {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
-                      'Missing Recurring Payment',
+                      AppLocalizations.of(context)!.missingRecurringPayment,
                       style: TextStyle(
                         color: textColor,
                         fontWeight: FontWeight.w700,
@@ -832,7 +833,7 @@ Future<bool> _confirmDestructive(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
-          child: Text('Cancel', style: TextStyle(color: Colors.grey[500])),
+          child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: Colors.grey[500])),
         ),
         TextButton(
           onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
@@ -865,7 +866,7 @@ class _BankCompareTab extends StatelessWidget {
                   size: 48.sp),
               SizedBox(height: 12.h),
               Text(
-                'No bank data imported',
+                AppLocalizations.of(context)!.bankDataImported,
                 style: TextStyle(
                     color: isDark ? Colors.white54 : Colors.grey[500],
                     fontSize: 13.sp),
@@ -874,7 +875,7 @@ class _BankCompareTab extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: () => controller.importBankCsv(),
                 icon: Icon(Icons.upload_file, size: 16.sp),
-                label: Text('Import Bank CSV',
+                label: Text(AppLocalizations.of(context)!.importBankCSV,
                     style: TextStyle(fontSize: 13.sp)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -903,7 +904,7 @@ class _BankCompareTab extends StatelessWidget {
                   icon: Icon(Icons.upload_file,
                       size: 14.sp,
                       color: isDark ? Colors.white70 : Colors.grey[600]),
-                  label: Text('Re-import',
+                  label: Text(AppLocalizations.of(context)!.reImport,
                       style: TextStyle(
                           fontSize: 11.sp,
                           color: isDark ? Colors.white70 : Colors.grey[600])),
@@ -979,7 +980,7 @@ class _LedgerTab extends StatelessWidget {
       if (entries.isEmpty) {
         return Center(
           child: Text(
-            'No ledger entries',
+            AppLocalizations.of(context)!.ledgerEntries,
             style: TextStyle(
                 color: isDark ? Colors.white54 : Colors.grey[500],
                 fontSize: 13.sp),
@@ -993,7 +994,7 @@ class _LedgerTab extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'Opening: ',
+                  AppLocalizations.of(context)!.opening,
                   style: TextStyle(
                       color: isDark ? Colors.white54 : Colors.grey[600],
                       fontSize: 12.sp),
@@ -1036,13 +1037,13 @@ class _LedgerTab extends StatelessWidget {
                     final csv = AuditService.exportLedgerCsv(entries);
                     Clipboard.setData(ClipboardData(text: csv));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ledger copied to clipboard')),
+                      SnackBar(content: Text(AppLocalizations.of(context)!.ledgerCopiedClipboard)),
                     );
                   },
                   icon: Icon(Icons.copy,
                       size: 14.sp,
                       color: isDark ? Colors.white70 : Colors.grey[600]),
-                  label: Text('Export CSV',
+                  label: Text(AppLocalizations.of(context)!.exportCSV,
                       style: TextStyle(
                           fontSize: 11.sp,
                           color: isDark ? Colors.white70 : Colors.grey[600])),

@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -81,7 +82,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
     if (_recognizedText == null || _recognizedText!.trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("No scanned text to save.")));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.scannedTextSave)));
       return;
     }
 
@@ -231,7 +232,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            "Receipt Scanner",
+            AppLocalizations.of(context)!.receiptScanner,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontWeight: FontWeight.bold,
@@ -284,7 +285,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                                 ),
                                 SizedBox(height: 16.h),
                                 Text(
-                                  "No image selected",
+                                  AppLocalizations.of(context)!.imageSelected,
                                   style: TextStyle(
                                     color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
                                     fontSize: 14.sp,
@@ -379,7 +380,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    "SAVE TRANSACTION",
+                    AppLocalizations.of(context)!.saveTRANSACTION,
                     style: TextStyle(
                       color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       fontWeight: FontWeight.bold,

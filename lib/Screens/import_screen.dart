@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -174,8 +175,8 @@ class _ImportScreenState extends State<ImportScreen> {
                 final isDark = _cachedTheme.brightness == Brightness.dark;
                 return AlertDialog(
                   backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-                  title: const Text(
-                  "Success",
+                  title: Text(
+                  AppLocalizations.of(context)!.success,
                   style: TextStyle(color: AppColors.primary),
                 ),
                 content: Text(
@@ -218,7 +219,7 @@ class _ImportScreenState extends State<ImportScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Import Data"),
+          title: Text(AppLocalizations.of(context)!.importData),
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
@@ -260,7 +261,7 @@ class _ImportScreenState extends State<ImportScreen> {
                       _buildStepHeader("2. Map Columns", Icons.low_priority),
                       Center(
                         child: Text(
-                          "Match CSV headers to app fields",
+                          AppLocalizations.of(context)!.matchCSVHeadersAppFields,
                           style: TextStyle(
                             color: isDark ? Colors.white38 : AppColors.lightTextSecondary,
                             fontSize: 12.sp,
@@ -301,7 +302,7 @@ class _ImportScreenState extends State<ImportScreen> {
                       SizedBox(height: 20.h),
                       Center(
                         child: Text(
-                          "Previewing first 5 rows:",
+                          AppLocalizations.of(context)!.previewingFirst5Rows,
                           style: TextStyle(
                             color: isDark ? Colors.white54 : AppColors.lightTextPrimary,
                             fontSize: 14.sp,
@@ -412,7 +413,7 @@ class _ImportScreenState extends State<ImportScreen> {
               icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
               underline: const SizedBox(),
               hint: Text(
-                "Select Column",
+                AppLocalizations.of(context)!.selectColumn,
                 style: TextStyle(color: isDark ? Colors.white24 : AppColors.lightTextSecondary, fontSize: 12.sp),
               ),
               style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 14.sp),

@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -141,7 +142,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "New Category",
+                  AppLocalizations.of(context)!.newCategory,
                   style: TextStyle(
                     color: isDark ? Colors.white : AppColors.lightTextPrimary,
                     fontSize: 20.sp,
@@ -179,7 +180,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: Text(
-                        "Cancel",
+                        AppLocalizations.of(context)!.cancel,
                         style: TextStyle(
                           color: isDark ? Colors.white.withValues(alpha: 0.6) : AppColors.lightTextSecondary,
                           fontSize: 16.sp,
@@ -256,7 +257,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     if (_selectedCategory == null || _selectedCategory!.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Select category")));
+      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.selectCategory2)));
       return;
     }
 
@@ -274,7 +275,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       _saving = false;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please enter a valid amount")),
+          SnackBar(content: Text(AppLocalizations.of(context)!.pleaseEnterValidAmount)),
         );
       }
       return;
@@ -341,7 +342,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         final isDark = _cachedTheme.brightness == Brightness.dark;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("Saved locally"),
+            content: Text(AppLocalizations.of(context)!.savedLocally),
             backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
             behavior: SnackBarBehavior.floating,
           ),
@@ -361,7 +362,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Edit Transaction'),
+        title: Text(AppLocalizations.of(context)!.editTransaction),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -714,7 +715,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                   ),
                   SizedBox(width: 8.w),
                   Text(
-                    "Add Link",
+                    AppLocalizations.of(context)!.addLink,
                     style: TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,

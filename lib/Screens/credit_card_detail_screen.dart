@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -128,7 +129,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Credit Cards"),
+          title: Text(AppLocalizations.of(context)!.creditCards),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -139,8 +140,8 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 onPressed: _add,
                 backgroundColor: Colors.red.shade700,
                 icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  "Add Card",
+                label: Text(
+                  AppLocalizations.of(context)!.addCard,
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -181,7 +182,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 _buildSummary(totalOutstanding, symbol, isDark),
                 SizedBox(height: 20.h),
                 Text(
-                  "Your Cards",
+                  AppLocalizations.of(context)!.cards,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -224,7 +225,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Total Outstanding",
+          Text(AppLocalizations.of(context)!.totalOutstanding,
               style: TextStyle(color: Colors.white70, fontSize: 13.sp)),
           SizedBox(height: 8.h),
           Text(
@@ -297,7 +298,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Outstanding",
+                  Text(AppLocalizations.of(context)!.outstanding,
                       style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
                   Text(
                     "$symbol${outstanding.toStringAsFixed(0)}",
@@ -312,7 +313,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text("Limit",
+                    Text(AppLocalizations.of(context)!.limit,
                         style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
                     Text(
                       "$symbol${limit.toStringAsFixed(0)}",
@@ -324,7 +325,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text("Due", style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+                    Text(AppLocalizations.of(context)!.due, style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
                     Text(
                       formatter.format(dueDate),
                       style: TextStyle(
@@ -370,14 +371,14 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
               color: isDark ? Colors.white24 : AppColors.lightBorder),
           SizedBox(height: 16.h),
           Text(
-            "No credit cards added",
+            AppLocalizations.of(context)!.creditCardsAdded,
             style: TextStyle(
                 color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                 fontSize: 16.sp),
           ),
           SizedBox(height: 8.h),
           Text(
-            "Tap + to track your card outstanding",
+            AppLocalizations.of(context)!.tapTrackCardOutstanding,
             style: TextStyle(
                 color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
                 fontSize: 13.sp),
@@ -392,10 +393,10 @@ Future<bool> _confirmDelete(BuildContext context) async {
   final result = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text("Delete?"),
-      content: const Text("Remove this entry?"),
+      title: Text(AppLocalizations.of(context)!.delete2),
+      content: Text(AppLocalizations.of(context)!.removeEntry2),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
           child: const Text("Delete", style: TextStyle(color: Colors.red)),

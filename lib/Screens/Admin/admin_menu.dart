@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -90,7 +91,7 @@ class _AdminMenuState extends State<AdminMenu> {
             children: [
               Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
               SizedBox(height: 16.h),
-              Text("Access Denied", style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.accessDenied, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -104,7 +105,7 @@ class _AdminMenuState extends State<AdminMenu> {
             children: [
               Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
               SizedBox(height: 16.h),
-              Text("Access Denied", style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
+              Text(AppLocalizations.of(context)!.accessDenied, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
           ),
         ),
@@ -124,7 +125,7 @@ class _AdminMenuState extends State<AdminMenu> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            "Admin Utils",
+            AppLocalizations.of(context)!.adminUtils,
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontWeight: FontWeight.bold,

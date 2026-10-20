@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -160,7 +161,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
       padding: EdgeInsets.all(8.w),
       borderRadius: BorderRadius.circular(20.r),
       child: SegmentedButton<String>(
-        segments: const [
+        segments: [
           ButtonSegment(
             value: 'lent',
             icon: Icon(Icons.arrow_downward),
@@ -169,7 +170,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
           ButtonSegment(
             value: 'borrowed',
             icon: Icon(Icons.arrow_upward),
-            label: Text('Borrowed from Friend'),
+            label: Text(AppLocalizations.of(context)!.borrowedFriend),
           ),
         ],
         selected: {_selectedType},
@@ -211,7 +212,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
       child: Column(
         children: [
           Text(
-            "Amount",
+            AppLocalizations.of(context)!.amount,
             style: TextStyle(
               fontSize: 14.sp,
               color: Theme.of(
@@ -340,7 +341,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "Repayment History",
+                  AppLocalizations.of(context)!.repaymentHistory,
                   style: TextStyle(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
@@ -359,7 +360,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
             SizedBox(height: 12.h),
             if (repayments.isEmpty)
               Text(
-                "No repayments recorded yet.",
+                AppLocalizations.of(context)!.repaymentsRecordedYet,
                 style: TextStyle(
                   fontSize: 13.sp,
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.5),

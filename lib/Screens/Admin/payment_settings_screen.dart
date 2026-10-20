@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/glass_container.dart';
@@ -68,7 +69,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text('Payment Settings',
+          title: Text(AppLocalizations.of(context)!.paymentSettings,
               style: TextStyle(
                   color: isDark ? Colors.white : AppColors.lightTextPrimary,
                   fontWeight: FontWeight.bold)),
@@ -90,7 +91,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Text('Payment Mode',
+              Text(AppLocalizations.of(context)!.paymentMode,
                   style: TextStyle(
                       color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                       fontSize: 13.sp)),
@@ -112,7 +113,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
               ),
               SizedBox(height: 32.h),
               if (_mode == 'upi') ...[
-                Text('Your UPI ID',
+                Text(AppLocalizations.of(context)!.upiID,
                     style: TextStyle(
                         color: isDark
                             ? Colors.white70
@@ -141,7 +142,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'Users will be asked to pay this UPI ID and enter the resulting transaction ID.',
+                  AppLocalizations.of(context)!.usersAskedPayUPIID,
                   style: TextStyle(
                       color: isDark
                           ? Colors.white38
@@ -164,7 +165,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                       ? SizedBox(
                           width: 22.w, height: 22.h,
                           child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
-                      : Text('Save Settings', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                      : Text(AppLocalizations.of(context)!.saveSettings, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

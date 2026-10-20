@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -185,7 +186,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  "Outstanding",
+                  AppLocalizations.of(context)!.outstanding,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
@@ -222,16 +223,16 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
       padding: EdgeInsets.all(8.w),
       borderRadius: BorderRadius.circular(20.r),
       child: SegmentedButton<String>(
-        segments: const [
+        segments: [
           ButtonSegment(
             value: 'received',
             icon: Icon(Icons.arrow_downward),
-            label: Text('Received'),
+            label: Text(AppLocalizations.of(context)!.received),
           ),
           ButtonSegment(
             value: 'paid',
             icon: Icon(Icons.arrow_upward),
-            label: Text('Paid'),
+            label: Text(AppLocalizations.of(context)!.paid),
           ),
         ],
         selected: {_selectedDirection},
@@ -275,7 +276,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
       child: Column(
         children: [
           Text(
-            "Amount",
+            AppLocalizations.of(context)!.amount,
             style: TextStyle(
               fontSize: 14.sp,
               color: Theme.of(
@@ -358,7 +359,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
           child: _controller.isSaving.value
               ? const CircularProgressIndicator(color: Colors.white)
               : Text(
-                  "Record Payment",
+                  AppLocalizations.of(context)!.recordPayment,
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,

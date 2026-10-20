@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -79,12 +80,14 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text("Delete Category"),
-          content: Text("Are you sure you want to delete '${category.name}'?"),
+          title: Text(AppLocalizations.of(context)!.deleteCategoryTitle),
+          content: Text(
+            AppLocalizations.of(context)!.deleteCategoryContent(category.name),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("Cancel"),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             TextButton(
               onPressed: () async {
@@ -118,7 +121,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               borderRadius: BorderRadius.circular(20.r),
             ),
             title: Text(
-              "Category in Use",
+              AppLocalizations.of(context)!.categoryUse,
               style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 18.sp),
             ),
             content: Column(
@@ -131,7 +134,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 ),
                 SizedBox(height: 16.h),
                 Text(
-                  "Migrate to:",
+                  AppLocalizations.of(context)!.migrate,
                   style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 14.sp),
                 ),
                 SizedBox(height: 8.h),
@@ -145,7 +148,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: currentSelected.isEmpty ? null : currentSelected,
-                      hint: Text("Select category",
+                      hint: Text(AppLocalizations.of(context)!.selectCategory2,
                           style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary)),
                       dropdownColor: Theme.of(ctx).brightness == Brightness.dark ? const Color(0xFF2A2A3E) : AppColors.lightSurface,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
@@ -169,14 +172,14 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text("Cancel"),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               TextButton(
                 onPressed: () async {
                   await _categoryService.deleteCategory(category.id);
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
-                child: const Text("Delete Anyway",
+                child: Text(AppLocalizations.of(context)!.deleteAnyway,
                     style: TextStyle(color: Colors.red)),
               ),
               ElevatedButton(
@@ -191,7 +194,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                 ),
-                child: const Text("Migrate & Delete",
+                child: Text(AppLocalizations.of(context)!.migrateDelete,
                     style: TextStyle(color: Colors.white)),
               ),
             ],
@@ -240,7 +243,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    "Error loading categories",
+                    AppLocalizations.of(context)!.errorLoadingCategories,
                     style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                 );
@@ -254,7 +257,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               if (categories.isEmpty) {
                 return Center(
                   child: Text(
-                    "No categories found",
+                    AppLocalizations.of(context)!.categoriesFound,
                     style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
                   ),
                 );
@@ -493,15 +496,14 @@ class _CategoryDialogState extends State<_CategoryDialog> {
             ),
             SizedBox(height: 20.h),
             Text(
-              "Daily limit treatment",
+              AppLocalizations.of(context)!.dailyLimitTreatment,
               style: TextStyle(
                 color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
               ),
             ),
             SizedBox(height: 4.h),
             Text(
-              "How this category counts toward your Smart Daily Limit. "
-              "Ignored categories (e.g. investments/SIPs) never reduce it.",
+              AppLocalizations.of(context)!.howCategoryCountsTowardSmart,
               style: TextStyle(
                 fontSize: 11.sp,
                 color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
@@ -518,7 +520,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               ],
             ),
             SizedBox(height: 20.h),
-            Text("Color", style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
+            Text(AppLocalizations.of(context)!.color, style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
             SizedBox(height: 10.h),
             Wrap(
               spacing: 8.w,
@@ -541,7 +543,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               }).toList(),
             ),
             SizedBox(height: 20.h),
-            Text("Icon", style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
+            Text(AppLocalizations.of(context)!.icon, style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary)),
             SizedBox(height: 10.h),
             SizedBox(
               height: 200.h,

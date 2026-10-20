@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -76,8 +77,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     await Clipboard.setData(ClipboardData(text: _code));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Code copied"),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.codeCopied),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -106,8 +107,8 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Could not open WhatsApp"),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.couldOpenWhatsApp),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -125,7 +126,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Invite Friends"),
+        title: Text(AppLocalizations.of(context)!.inviteFriends),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -213,7 +214,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
-                  "Invite friends, get Pro free",
+                  AppLocalizations.of(context)!.inviteFriendsGetProFree,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18.sp,
@@ -225,8 +226,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
           ),
           SizedBox(height: 10.h),
           Text(
-            "When a friend signs up with your code, you both get "
-            "+30 days of Pro — and every additional friend adds 30 more.",
+            AppLocalizations.of(context)!.whenFriendSignsUpCode,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
               fontSize: 13.sp,
@@ -280,7 +280,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "YOUR REFERRAL CODE",
+                      AppLocalizations.of(context)!.referralCODE,
                       style: TextStyle(
                         color: isDark
                             ? Colors.white54

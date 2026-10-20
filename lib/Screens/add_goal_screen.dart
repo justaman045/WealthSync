@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -48,13 +49,13 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     final amount = double.tryParse(_amountCtrl.text) ?? 0;
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Goal name is required")),
+        SnackBar(content: Text(AppLocalizations.of(context)!.goalNameRequired)),
       );
       return;
     }
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter a valid target amount")),
+        SnackBar(content: Text(AppLocalizations.of(context)!.enterValidTargetAmount)),
       );
       return;
     }

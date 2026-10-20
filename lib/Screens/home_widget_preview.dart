@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -36,7 +37,7 @@ class _HomeWidgetPreviewScreenState extends State<HomeWidgetPreviewScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Home Widget"),
+        title: Text(AppLocalizations.of(context)!.homeWidget),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -119,7 +120,7 @@ class _HomeWidgetPreviewScreenState extends State<HomeWidgetPreviewScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "💰 WealthSync",
+            AppLocalizations.of(context)!.wealthsync,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 11.sp,
@@ -147,7 +148,7 @@ class _HomeWidgetPreviewScreenState extends State<HomeWidgetPreviewScreen> {
               ),
               const Spacer(),
               Text(
-                "+ Add",
+                AppLocalizations.of(context)!.add2,
                 style: TextStyle(
                   color: AppColors.primary,
                   fontSize: 10.sp,

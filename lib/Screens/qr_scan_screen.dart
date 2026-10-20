@@ -1,5 +1,6 @@
 // lib/Screens/qr_scan_screen.dart
 
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -164,7 +165,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                           ),
                           const Spacer(),
                           Text(
-                            "Scan QR",
+                            AppLocalizations.of(context)!.scanQR,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 17.sp,
@@ -196,7 +197,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                           borderRadius: BorderRadius.circular(20.r),
                         ),
                         child: Text(
-                          "Not a UPI QR code — try again",
+                          AppLocalizations.of(context)!.upiQRCodeTryAgain,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13.sp,
@@ -214,7 +215,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                       child: Column(
                         children: [
                           Text(
-                            "Align the UPI QR code within the frame",
+                            AppLocalizations.of(context)!.alignUPIQRCodeWithin,
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 13.sp,
@@ -244,7 +245,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                                   ),
                                   SizedBox(width: 8.w),
                                   Text(
-                                    "Type UPI ID instead",
+                                    AppLocalizations.of(context)!.typeUPIIDInstead,
                                     style: TextStyle(
                                       color: isDark
                                           ? Colors.white
@@ -299,7 +300,7 @@ class _QrScanScreenState extends State<QrScanScreen>
             ElevatedButton.icon(
               onPressed: _grantAndRetry,
               icon: const Icon(Icons.camera_alt_outlined, size: 18),
-              label: const Text("Grant Permission"),
+              label: Text(AppLocalizations.of(context)!.grantPermission),
             ),
             SizedBox(height: 8.h),
           ],

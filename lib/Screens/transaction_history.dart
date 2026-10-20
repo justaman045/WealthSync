@@ -149,7 +149,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final List<String> tabs = [l10n.tabAll, l10n.tabIncome, l10n.tabOutcome];
 
     if (user == null) {
-      return const Scaffold(body: Center(child: Text("Not logged in")));
+      return Scaffold(body: Center(child: Text(AppLocalizations.of(context)!.logged)));
     }
 
     return Container(
@@ -571,7 +571,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ),
           SizedBox(height: 16.h),
           Text(
-            "Select a transaction to view details",
+            AppLocalizations.of(context)!.selectTransactionViewDetails,
             style: TextStyle(color: theme.disabledColor, fontSize: 16.sp),
           ),
         ],
@@ -595,7 +595,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ),
         ),
         content: Text(
-          "Are you sure you want to delete this transaction?",
+          AppLocalizations.of(context)!.sureWantDeleteTransaction,
           style: TextStyle(
             color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
           ),
@@ -604,7 +604,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
-              "Cancel",
+              AppLocalizations.of(context)!.cancel,
               style: TextStyle(
                 color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
               ),

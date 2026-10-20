@@ -60,9 +60,13 @@ INTEG_LITERALS=$(grep -rhoE "find\.text\('[^']+'\)" integration_test 2>/dev/null
 #   * Text(AppStrings.x) / Text(AppLocalizations...) — already localizable
 #   * literals interpolated from variables ($) — usually data, not copy
 #   * anything shorter than 3 chars (units, glyphs like '₹', '•')
+#
+# The literal is normalized (quote char and `Text(` stripped) before dedup so
+# the same word is not counted twice just because one site uses ' and another ".
 HARDCODED_SCREENS=$(grep -rhoE "Text\(\s*'[^'\\$]{3,}'|Text\(\s*\"[^\"\\$]{3,}\"" \
   lib/Screens lib/Components --include='*.dart' 2>/dev/null \
   | grep -viE "AppStrings\.|AppLocalizations" \
+  | sed -E "s/^Text\(\s*['\"]//; s/['\"]$//" \
   | sort -u | wc -l || true)
 
 echo "── UI Revamp Audit ──────────────────────────────"

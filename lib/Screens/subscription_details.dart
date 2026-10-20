@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -82,7 +83,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           : AppColors.lightBackground,
       appBar: AppBar(
         title: Text(
-          "Subscription Details",
+          AppLocalizations.of(context)!.subscriptionDetails,
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.sp),
         ),
         backgroundColor: Colors.transparent,
@@ -205,7 +206,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                           ),
                           SizedBox(width: 12.w),
                           Text(
-                            'Skip this Payment',
+                            AppLocalizations.of(context)!.skipPayment,
                             style: TextStyle(
                               color: isDark ? Colors.white : Colors.black87,
                               fontWeight: FontWeight.w500,
@@ -269,22 +270,22 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 child: Padding(
                   padding: EdgeInsets.all(32.w),
                   child: Text(
-                    "Couldn't load subscription. Check your connection.",
+                    AppLocalizations.of(context)!.couldnTLoadSubscriptionCheck,
                     style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 14),
                   ),
                 ),
               );
             }
             if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text("Subscription not found"));
+            return Center(child: Text(AppLocalizations.of(context)!.subscriptionFound));
           }
 
           final data = snapshot.data!.data();
           if (data == null) {
-            return const Center(child: Text("Subscription data not found"));
+            return Center(child: Text(AppLocalizations.of(context)!.subscriptionDataFound));
           }
           if (data is! Map<String, dynamic>) {
-            return const Center(child: Text("Invalid subscription data format"));
+            return Center(child: Text(AppLocalizations.of(context)!.invalidSubscriptionDataFormat));
           }
           final paymentData = RecurringPayment.fromMap(
             snapshot.data!.id,
@@ -308,7 +309,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                   SizedBox(height: 32.h),
                 ],
                 Text(
-                  "Payment History",
+                  AppLocalizations.of(context)!.paymentHistory,
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
@@ -513,7 +514,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               );
             },
             title: Text(
-              "Auto-pay",
+              AppLocalizations.of(context)!.autoPay,
               style: TextStyle(
                 fontSize: 15.sp,
                 fontWeight: FontWeight.w600,
@@ -556,7 +557,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         ElevatedButton.icon(
           onPressed: () => _showMarkPaidDialog(context, isDark, payment),
           icon: Icon(Icons.check_circle_outline_rounded, size: 18.sp),
-          label: const Text("Mark Paid"),
+          label: Text(AppLocalizations.of(context)!.markPaid),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
@@ -571,7 +572,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           OutlinedButton.icon(
             onPressed: () => _showLinkTransactionSheet(context, isDark, payment),
             icon: Icon(Icons.link_rounded, size: 18.sp),
-            label: const Text("Link Transaction"),
+            label: Text(AppLocalizations.of(context)!.linkTransaction),
             style: OutlinedButton.styleFrom(
               foregroundColor: textColor,
               side: BorderSide(
@@ -673,7 +674,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     ),
                     SizedBox(height: 12.h),
                     Text(
-                      "Couldn't load payment history.",
+                      AppLocalizations.of(context)!.couldnTLoadPaymentHistory,
                       style: TextStyle(
                         color: textColor.withValues(alpha: 0.6),
                         fontSize: 14.sp,
@@ -700,7 +701,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             child: Padding(
               padding: EdgeInsets.all(32.w),
               child: Text(
-                "No payment history linked yet.",
+                AppLocalizations.of(context)!.paymentHistoryLinkedYet,
                 style: TextStyle(color: textColor.withValues(alpha: 0.4)),
               ),
             ),
@@ -825,14 +826,14 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-        title: const Text("Mark as Paid?"),
-        content: const Text(
-          "This will update the due date and creating a transaction record.",
+        title: Text(AppLocalizations.of(context)!.markPaid2),
+        content: Text(
+          AppLocalizations.of(context)!.updateDueDateCreatingTransaction,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -843,7 +844,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
               if (!mounted) return;
               ErrorHandler.showSuccess("Payment recorded");
             },
-            child: const Text("Confirm"),
+            child: Text(AppLocalizations.of(context)!.confirm),
           ),
         ],
       ),
@@ -886,15 +887,15 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-          title: const Text("Skip this payment?"),
+          title: Text(AppLocalizations.of(context)!.skipPayment2),
           content: Text(
-            "This will advance the due date to the next cycle without recording a payment.",
+            AppLocalizations.of(context)!.advanceDueDateNextCycle,
             style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel"),
+              child: Text(AppLocalizations.of(context)!.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
@@ -902,7 +903,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
               ),
-              child: const Text("Skip"),
+              child: Text(AppLocalizations.of(context)!.skip),
             ),
           ],
         );
@@ -919,14 +920,14 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Subscription?"),
-        content: const Text(
-          "Are you sure you want to delete this subscription? Past transactions will remain, but future reminders will stop.",
+        title: Text(AppLocalizations.of(context)!.deleteSubscription),
+        content: Text(
+          AppLocalizations.of(context)!.sureWantDeleteSubscriptionPast,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -998,7 +999,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: widget.isDark ? AppColors.darkSurface : Colors.white,
-        title: const Text("Link Transaction?"),
+        title: Text(AppLocalizations.of(context)!.linkTransaction2),
         content: Text(
           'Link this transaction to "${widget.payment.title}"? '
           'The next due date will advance by one cycle from the transaction date.',
@@ -1006,11 +1007,11 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Link"),
+            child: Text(AppLocalizations.of(context)!.link),
           ),
         ],
       ),
@@ -1054,7 +1055,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
             children: [
               Expanded(
                 child: Text(
-                  "Link Transaction",
+                  AppLocalizations.of(context)!.linkTransaction,
                   style: TextStyle(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
@@ -1102,7 +1103,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
                     child: Padding(
                       padding: EdgeInsets.all(32.w),
                       child: Text(
-                        "No transactions found.",
+                        AppLocalizations.of(context)!.transactionsFound,
                         style: TextStyle(
                           color: textColor.withValues(alpha: 0.4),
                         ),
@@ -1187,7 +1188,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
                                     borderRadius: BorderRadius.circular(6.r),
                                   ),
                                   child: Text(
-                                    "LINKED",
+                                    AppLocalizations.of(context)!.linked,
                                     style: TextStyle(
                                       fontSize: 9.sp,
                                       fontWeight: FontWeight.w800,

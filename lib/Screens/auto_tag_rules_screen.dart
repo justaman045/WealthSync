@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -122,7 +123,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -150,7 +151,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
   void _removeKeyword(String category, String keyword) {
     if (_isDefault(category, keyword)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Default rules can't be deleted")),
+        SnackBar(content: Text(AppLocalizations.of(context)!.defaultRulesCanTDeleted)),
       );
       return;
     }
@@ -171,7 +172,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text("New category", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 16.sp)),
+        title: Text(AppLocalizations.of(context)!.newCategory2, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 16.sp)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -188,7 +189,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalizations.of(context)!.cancel)),
           TextButton(
             onPressed: () {
               final name = ctrl.text.trim();
@@ -200,7 +201,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
               });
               _save();
             },
-            child: Text("Create", style: TextStyle(color: AppColors.secondary)),
+            child: Text(AppLocalizations.of(context)!.create, style: TextStyle(color: AppColors.secondary)),
           ),
         ],
       ),
@@ -228,7 +229,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Auto-Tag Rules"),
+          title: Text(AppLocalizations.of(context)!.autoTagRules),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -251,7 +252,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Suggested Rules",
+                            AppLocalizations.of(context)!.suggestedRules,
                             style: TextStyle(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w700,
@@ -294,7 +295,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                                   ),
                                   TextButton(
                                     onPressed: () => _acceptSuggestion(s),
-                                    child: Text("Add Rule", style: TextStyle(fontSize: 12.sp, color: AppColors.secondary)),
+                                    child: Text(AppLocalizations.of(context)!.addRule, style: TextStyle(fontSize: 12.sp, color: AppColors.secondary)),
                                   ),
                                   GestureDetector(
                                     onTap: () => _dismissSuggestion(merchant),
@@ -322,7 +323,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                           SizedBox(width: 8.w),
                           Expanded(
                             child: Text(
-                              "SMS transactions matching any keyword are auto-tagged to that category. Grey chips are defaults (read-only).",
+                              AppLocalizations.of(context)!.smsTransactionsMatchingKeywordAuto,
                               style: TextStyle(fontSize: 12.sp, color: theme.textTheme.bodyMedium?.color),
                             ),
                           ),
@@ -420,7 +421,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
           ] else ...[
             SizedBox(height: 8.h),
             Text(
-              "No keywords yet — tap Add",
+              AppLocalizations.of(context)!.keywordsYetTapAdd,
               style: TextStyle(fontSize: 12.sp, color: theme.textTheme.bodyMedium?.color),
             ),
           ],

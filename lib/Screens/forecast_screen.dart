@@ -113,13 +113,13 @@ class _ForecastScreenState extends State<ForecastScreen> {
                     Icon(Icons.error_outline, size: 48.sp, color: AppColors.error),
                     SizedBox(height: 12.h),
                     Text(
-                      'Could not load forecast',
+                      AppLocalizations.of(context)!.couldLoadForecast,
                       style: theme.textTheme.bodyLarge,
                     ),
                     SizedBox(height: 8.h),
                     TextButton(
                       onPressed: controller.loadMonthTransactions,
-                      child: const Text('Retry'),
+                      child: Text(AppLocalizations.of(context)!.retry),
                     ),
                   ],
                 ),

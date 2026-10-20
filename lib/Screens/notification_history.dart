@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,7 +20,7 @@ class NotificationHistoryScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Notifications"),
+        title: Text(AppLocalizations.of(context)!.notifications),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -50,7 +51,7 @@ class NotificationHistoryScreen extends StatelessWidget {
         ),
         child: SafeArea(
           child: user?.email == null
-              ? const Center(child: Text("Not logged in"))
+              ? Center(child: Text(AppLocalizations.of(context)!.logged))
               : _NotificationStream(
                   email: user!.email!,
                   builder: (context, snapshot) {
@@ -76,7 +77,7 @@ class NotificationHistoryScreen extends StatelessWidget {
                             ),
                             SizedBox(height: 16.h),
                             Text(
-                              "No notifications yet",
+                              AppLocalizations.of(context)!.notificationsYet,
                               style: TextStyle(
                                 color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                                 fontSize: 16.sp,
@@ -130,22 +131,22 @@ class NotificationHistoryScreen extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         title: Text(
-          "Clear History?",
+          AppLocalizations.of(context)!.clearHistory,
           style: TextStyle(color: isDark ? Colors.white : Colors.black),
         ),
         content: Text(
-          "This will delete all your notification history.",
+          AppLocalizations.of(context)!.deleteNotificationHistory,
           style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text("Cancel", style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              "Clear",
+            child: Text(
+              AppLocalizations.of(context)!.clear,
               style: TextStyle(color: Colors.redAccent),
             ),
           ),

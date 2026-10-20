@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -119,7 +120,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     SizedBox(height: 24.h),
                     Text(
-                      "Free Trial Active",
+                      AppLocalizations.of(context)!.freeTrialActive,
                       style: TextStyle(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
@@ -145,7 +146,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     SizedBox(height: 12.h),
                     Text(
-                      "You have full Pro access during your trial. Subscribe before it ends to keep everything.",
+                      AppLocalizations.of(context)!.fullProAccessDuringTrial,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 15.sp, color: isDark ? Colors.white70 : AppColors.lightTextSecondary, height: 1.5),
                     ),
@@ -172,7 +173,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           ),
                         ),
                         child: Text(
-                          "Upgrade to Pro Now",
+                          AppLocalizations.of(context)!.upgradeProNow,
                           style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -196,12 +197,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     Icon(Icons.warning_amber_rounded, size: 40.sp, color: Colors.redAccent),
                                     SizedBox(height: 16.h),
                                     Text(
-                                      "End Free Trial?",
+                                      AppLocalizations.of(context)!.endFreeTrial,
                                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 20.sp, fontWeight: FontWeight.bold),
                                     ),
                                     SizedBox(height: 12.h),
                                     Text(
-                                      "You will lose Pro access immediately. This cannot be undone.",
+                                      AppLocalizations.of(context)!.loseProAccessImmediatelyCannot,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 15.sp, height: 1.5),
                                     ),
@@ -212,17 +213,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                           child: TextButton(
                                             onPressed: () async {
                                               final messenger = ScaffoldMessenger.of(ctx);
+                                              // Resolve copy BEFORE the await: `context`
+                                              // is the route's, and it is used across an
+                                              // async gap (a defunct-context hazard).
+                                              final message = AppLocalizations.of(context)!.freeTrialBeenEnded;
                                               Navigator.of(ctx).pop();
                                               await SubscriptionController.to.cancelSubscription();
                                               messenger.showSnackBar(
                                                 SnackBar(
-                                                  content: const Text("Your free trial has been ended."),
+                                                  content: Text(message),
                                                   backgroundColor: Colors.redAccent,
                                                   behavior: SnackBarBehavior.floating,
                                                 ),
                                               );
                                             },
-                                            child: Text("End Trial", style: TextStyle(color: Colors.redAccent, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                                            child: Text(AppLocalizations.of(context)!.endTrial, style: TextStyle(color: Colors.redAccent, fontSize: 16.sp, fontWeight: FontWeight.w600)),
                                           ),
                                         ),
                                         SizedBox(width: 16.w),
@@ -235,7 +240,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                               padding: EdgeInsets.symmetric(vertical: 14.h),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                                             ),
-                                            child: Text("Keep Trial", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                                            child: Text(AppLocalizations.of(context)!.keepTrial, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                                           ),
                                         ),
                                       ],
@@ -248,7 +253,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         );
                       },
                       child: Text(
-                        "End Trial",
+                        AppLocalizations.of(context)!.endTrial,
                         style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 14.sp),
                       ),
                     ),
@@ -300,7 +305,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     SizedBox(height: 12.h),
                     Text(
-                      "Enjoy unlimited access to all premium features.",
+                      AppLocalizations.of(context)!.enjoyUnlimitedAccessPremiumFeatures,
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16.sp, color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
                     ),
@@ -318,7 +323,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       child: Column(
                         children: [
                           Text(
-                            "Current Plan",
+                            AppLocalizations.of(context)!.currentPlan,
                             style: TextStyle(
                               color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
                               fontSize: 14.sp,
@@ -387,7 +392,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     ),
                                     SizedBox(height: 24.h),
                                     Text(
-                                      "Cancel Subscription?",
+                                      AppLocalizations.of(context)!.cancelSubscription2,
                                       style: TextStyle(
                                         color: isDark ? Colors.white : AppColors.lightTextPrimary,
                                         fontSize: 20.sp,
@@ -396,7 +401,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     ),
                                     SizedBox(height: 12.h),
                                     Text(
-                                      "Are you sure you want to cancel? You will lose access to Pro features at the end of the billing period.",
+                                      AppLocalizations.of(context)!.sureWantCancelLoseAccess,
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
@@ -411,12 +416,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                           child: TextButton(
                                             onPressed: () async {
                                               final messenger = ScaffoldMessenger.of(context);
+                                              // Resolve copy BEFORE the await (see the
+                                              // End-Trial button above for why).
+                                              final message = AppLocalizations.of(context)!.proSubscriptionBeenCancelled;
                                               Navigator.of(context).pop();
                                               await SubscriptionController.to
                                                   .cancelSubscription();
                                               messenger.showSnackBar(
                                                 SnackBar(
-                                                  content: const Text("Your Pro subscription has been cancelled."),
+                                                  content: Text(message),
                                                   backgroundColor: Colors.redAccent,
                                                   behavior: SnackBarBehavior.floating,
                                                 ),
@@ -428,7 +436,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                               ),
                                             ),
                                             child: Text(
-                                              "Cancel Plan",
+                                              AppLocalizations.of(context)!.cancelPlan,
                                               style: TextStyle(
                                                 color: Colors.redAccent,
                                                 fontSize: 16.sp,
@@ -455,7 +463,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                               ),
                                             ),
                                             child: Text(
-                                              "Keep Plan",
+                                              AppLocalizations.of(context)!.keepPlan,
                                               style: TextStyle(
                                                 fontSize: 16.sp,
                                                 fontWeight: FontWeight.bold,
@@ -489,7 +497,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           ),
                         ),
                       ),
-                      child: const Text("Cancel Subscription"),
+                      child: Text(AppLocalizations.of(context)!.cancelSubscription),
                     ),
                   ],
                     ),
@@ -527,7 +535,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     SizedBox(height: 32.h),
                     Text(
-                      "Verification In Progress",
+                      AppLocalizations.of(context)!.verificationProgress,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 24.sp,
@@ -537,7 +545,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     SizedBox(height: 16.h),
                     Text(
-                      "Your upgrade request is currently under review by the administration. You will be notified once your account is upgraded to Pro.",
+                      AppLocalizations.of(context)!.upgradeRequestCurrentlyUnderReview,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16.sp,
@@ -558,7 +566,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           ),
                         ),
                         child: Text(
-                          "Go Back",
+                          AppLocalizations.of(context)!.goBack,
                           style: TextStyle(
                             color: isDark ? Colors.white : AppColors.lightTextPrimary,
                             fontSize: 16.sp,
@@ -604,7 +612,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   SizedBox(height: 24.h),
 
                   Text(
-                    "Unlock Pro Access",
+                    AppLocalizations.of(context)!.unlockProAccess,
                     style: TextStyle(
                       fontSize: 28.sp,
                       fontWeight: FontWeight.bold,
@@ -614,7 +622,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ),
                   SizedBox(height: 12.h),
                   Text(
-                    "Supercharge your financial control with premium features designed for growth.",
+                    AppLocalizations.of(context)!.superchargeFinancialControlPremiumFeat,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16.sp,
@@ -663,7 +671,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             Icon(Icons.timer_off_outlined, color: Colors.redAccent, size: 20.sp),
                             SizedBox(width: 8.w),
                             Text(
-                              'Your free trial has ended',
+                              AppLocalizations.of(context)!.freeTrialEnded,
                               style: TextStyle(
                                 color: Colors.redAccent,
                                 fontWeight: FontWeight.w600,
@@ -850,7 +858,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: Text(
-                  "BEST VALUE",
+                  AppLocalizations.of(context)!.bestVALUE,
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
@@ -867,7 +875,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   border: Border.all(color: AppColors.success, width: 1),
                 ),
                 child: Text(
-                  "SAVE 33%",
+                  AppLocalizations.of(context)!.save33,
                   style: TextStyle(
                     color: AppColors.success,
                     fontWeight: FontWeight.bold,
@@ -950,10 +958,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         SizedBox(height: 12.h),
         TextButton(
           onPressed: () { if (Get.isRegistered<IapService>()) Get.find<IapService>().restorePurchases(); },
-          child: Text("Restore Purchases", style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 13.sp)),
+          child: Text(AppLocalizations.of(context)!.restorePurchases, style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 13.sp)),
         ),
         SizedBox(height: 8.h),
-        Text("Cancel anytime. No questions asked.", style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 12.sp)),
+        Text(AppLocalizations.of(context)!.cancelAnytimeQuestionsAsked, style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 12.sp)),
       ],
     );
   }
@@ -978,7 +986,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Pay via UPI', style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                Text(AppLocalizations.of(context)!.payViaUPI, style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15.sp)),
                 SizedBox(height: 8.h),
                 Text('Send ${CurrencyController.to.currencySymbol.value}$amount to:', style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 14.sp)),
                 SizedBox(height: 4.h),
@@ -1009,7 +1017,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: ElevatedButton.icon(
                 onPressed: () => _openUpiApp(amountRaw, upiId, setLocal),
                 icon: const Icon(Icons.account_balance_wallet_rounded),
-                label: Text('Open UPI App', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                label: Text(AppLocalizations.of(context)!.openUPIApp, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyanAccent,
                   foregroundColor: Colors.black,
@@ -1019,7 +1027,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
 
           SizedBox(height: 16.h),
-          Text('Enter Transaction ID', style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 13.sp)),
+          Text(AppLocalizations.of(context)!.enterTransactionID, style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 13.sp)),
           SizedBox(height: 8.h),
           GlassContainer(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
@@ -1037,7 +1045,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
           ),
           SizedBox(height: 8.h),
-          Text('The transaction ID is shown in your UPI app after payment.', style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 11.sp)),
+          Text(AppLocalizations.of(context)!.transactionIDShownUPIApp, style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 11.sp)),
           SizedBox(height: 20.h),
 
           SizedBox(
@@ -1055,11 +1063,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: _upiSubmitting
                   ? SizedBox(height: 24.h, width: 24.w,
                       child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
-                  : Text('Submit for Verification', style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold)),
+                  : Text(AppLocalizations.of(context)!.submitVerification, style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold)),
             ),
           ),
           SizedBox(height: 12.h),
-          Text('Your request will be reviewed by the admin. You will be notified once approved.',
+          Text(AppLocalizations.of(context)!.requestReviewedAdminNotifiedOnce,
               textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 12.sp)),
         ],
       );
@@ -1091,7 +1099,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Choose UPI App', style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+            Text(AppLocalizations.of(context)!.chooseUPIApp, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
             SizedBox(height: 20.h),
             ...apps.map((app) => ListTile(
               title: Text(app.name, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),

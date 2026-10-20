@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -251,8 +252,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         setState(() => loading = false);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           rootScaffoldMessengerKey.currentState?.showSnackBar(
-            const SnackBar(
-              content: Text('Failed to load wealth data. Pull down to retry.'),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.failedLoadWealthDataPull),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -305,7 +306,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       ),
       appBar: AppBar(
         title: Text(
-          "Wealth Builder",
+          AppLocalizations.of(context)!.wealthBuilder,
           style: TextStyle(
             color: scheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -394,7 +395,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                   flagKey: 'allocation',
                                   sliver: SliverToBoxAdapter(
                                     child: Text(
-                                      "Allocation",
+                                      AppLocalizations.of(context)!.allocation,
                                       style: TextStyle(
                                         fontSize: 18.sp,
                                         fontWeight: FontWeight.bold,
@@ -422,7 +423,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                   flagKey: 'ideal_income',
                                   sliver: SliverToBoxAdapter(
                                     child: Text(
-                                      "Ideal Income",
+                                      AppLocalizations.of(context)!.idealIncome,
                                       style: TextStyle(
                                         fontSize: 18.sp,
                                         fontWeight: FontWeight.bold,
@@ -450,7 +451,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                   flagKey: 'smart_suggestions',
                                   sliver: SliverToBoxAdapter(
                                     child: Text(
-                                      "Smart Suggestions",
+                                      AppLocalizations.of(context)!.smartSuggestions,
                                       style: TextStyle(
                                         fontSize: 18.sp,
                                         fontWeight: FontWeight.bold,
@@ -512,7 +513,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             ),
             SizedBox(height: 24.h),
             Text(
-              "Set Your Age First",
+              AppLocalizations.of(context)!.setAgeFirst,
               style: TextStyle(
                 fontSize: 22.sp,
                 fontWeight: FontWeight.bold,
@@ -522,7 +523,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             ),
             SizedBox(height: 12.h),
             Text(
-              "Wealth Builder personalises every target — emergency fund, equity allocation, retirement corpus — based on your age.\n\nAdd your date of birth in your profile to get started.",
+              AppLocalizations.of(context)!.wealthBuilderPersonalisesEveryTarget,
               style: TextStyle(
                 fontSize: 14.sp,
                 color: scheme.onSurface.withValues(alpha: 0.6),
@@ -543,7 +544,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   _loadData();
                 },
                 icon: const Icon(Icons.edit_outlined),
-                label: const Text("Go to Profile"),
+                label: Text(AppLocalizations.of(context)!.goProfile),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.black,
@@ -719,7 +720,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
-                  "Smart Mode",
+                  AppLocalizations.of(context)!.smartMode,
                   style: TextStyle(
                     fontSize: 10.sp,
                     fontWeight: FontWeight.bold,
@@ -1496,7 +1497,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   ),
                   if (wealthTarget?.isEstimated == true)
                     Text(
-                      "est.",
+                      AppLocalizations.of(context)!.est,
                       style: TextStyle(
                         fontSize: 9.sp,
                         color: color.withValues(alpha: 0.6),
@@ -1522,7 +1523,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               ),
             ] else if (wealthTarget != null) ...[
               Text(
-                "Tracking only",
+                AppLocalizations.of(context)!.trackingOnly,
                 style: TextStyle(
                   fontSize: 10.sp,
                   color: scheme.onSurface.withValues(alpha: 0.35),
@@ -1767,7 +1768,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
                               child: Text(
-                                "Cancel",
+                                AppLocalizations.of(context)!.cancel,
                                 style: TextStyle(
                                     color: isDark
                                         ? Colors.white54
@@ -1973,7 +1974,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "Manage Visibility",
+                        AppLocalizations.of(context)!.manageVisibility,
                         style: TextStyle(
                           fontSize: 18.sp,
                           color: isDark ? Colors.white : AppColors.lightTextPrimary,
@@ -2000,7 +2001,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                 SizedBox(width: 8.w),
                                 Expanded(
                                   child: Text(
-                                    "Smart Mode is on — visibility follows your age recommendations. Turn it off to customize manually.",
+                                    AppLocalizations.of(context)!.smartModeVisibilityFollowsAge,
                                     style: TextStyle(
                                       fontSize: 11.sp,
                                       color: isDark
@@ -2108,7 +2109,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
                               child: Text(
-                                "Cancel",
+                                AppLocalizations.of(context)!.cancel,
                                 style: TextStyle(
                                     color: isDark
                                         ? Colors.white54
@@ -2235,7 +2236,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     if (sections.isEmpty) {
       return Center(
         child: Text(
-          "No visible assets",
+          AppLocalizations.of(context)!.visibleAssets,
           style: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
         ),
       );
@@ -2326,7 +2327,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               ),
               SizedBox(width: 8.w),
               Text(
-                "What you should earn to stay on track",
+                AppLocalizations.of(context)!.whatShouldEarnStayTrack,
                 style: TextStyle(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w700,
@@ -2365,7 +2366,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               symbol: symbol,
             ),
             sub: Text(
-              "annually",
+              AppLocalizations.of(context)!.annually,
               style: TextStyle(
                 fontSize: 10.sp,
                 color: scheme.onSurface.withValues(alpha: 0.5),
@@ -2572,7 +2573,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       child: Column(
         children: [
           Text(
-            "Total Net Worth",
+            AppLocalizations.of(context)!.totalNetWorth,
             style: TextStyle(color: Colors.white70, fontSize: 14.sp),
           ),
           SizedBox(height: 8.h),
@@ -2586,7 +2587,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            "Assets − All Liabilities",
+            AppLocalizations.of(context)!.assetsLiabilities,
             style: TextStyle(color: Colors.white54, fontSize: 12.sp),
           ),
         ],
@@ -2608,7 +2609,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
-                "No suggestions yet. Add data to get insights!",
+                AppLocalizations.of(context)!.suggestionsYetAddDataGet,
                 style: TextStyle(color: scheme.onSurface),
               ),
             ),
@@ -2759,7 +2760,7 @@ class _CustomAssetDialogState extends State<_CustomAssetDialog> {
           ),
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: const Text("Cancel"),
+          child: Text(AppLocalizations.of(context)!.cancel),
         ),
         TextButton(
           onPressed: _busy ? null : _save,

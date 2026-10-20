@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -42,7 +43,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Loan Tracker"),
+          title: Text(AppLocalizations.of(context)!.loanTracker),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -51,8 +52,8 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
           onPressed: () => _showAddLoanSheet(context),
           backgroundColor: AppColors.primary,
           icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text(
-            "Add Loan",
+          label: Text(
+            AppLocalizations.of(context)!.addLoan,
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -72,7 +73,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                   _buildSummaryCard(ctrl, isDark),
                   SizedBox(height: 20.h),
                   Text(
-                    "Active Loans",
+                    AppLocalizations.of(context)!.activeLoans,
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
@@ -116,7 +117,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Total Outstanding",
+                  AppLocalizations.of(context)!.totalOutstanding,
                   style: TextStyle(color: Colors.white70, fontSize: 12.sp),
                 ),
                 SizedBox(height: 4.h),
@@ -138,7 +139,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Monthly EMI",
+                  AppLocalizations.of(context)!.monthlyEMI,
                   style: TextStyle(color: Colors.white70, fontSize: 12.sp),
                 ),
                 SizedBox(height: 4.h),
@@ -286,7 +287,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                     if (confirm == true) ctrl.deleteLoan(loan.id);
                   },
                   child: Text(
-                    "Remove",
+                    AppLocalizations.of(context)!.remove,
                     style: TextStyle(
                       color: AppColors.error,
                       fontSize: 11.sp,
@@ -314,7 +315,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
           ),
           SizedBox(height: 16.h),
           Text(
-            "No loans tracked yet",
+            AppLocalizations.of(context)!.loansTrackedYet,
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.w600,
@@ -323,7 +324,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            "Add a loan to track EMIs and\nsee your repayment schedule",
+            AppLocalizations.of(context)!.addLoanTrackEMIsSee,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13.sp,
@@ -503,19 +504,19 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
     return showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Remove Loan"),
-        content: const Text(
-          "This will remove the loan and its linked recurring payment (if any).",
+        title: Text(AppLocalizations.of(context)!.removeLoan),
+        content: Text(
+          AppLocalizations.of(context)!.removeLoanItsLinkedRecurring,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text("Remove"),
+            child: Text(AppLocalizations.of(context)!.remove),
           ),
         ],
       ),
@@ -649,7 +650,7 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                 ),
                 SizedBox(height: 20.h),
                 Text(
-                  "Add Loan",
+                  AppLocalizations.of(context)!.addLoan,
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
@@ -814,7 +815,7 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
-                        "Create recurring payment for EMI",
+                        AppLocalizations.of(context)!.createRecurringPaymentEMI,
                         style: TextStyle(
                           fontSize: 13.sp,
                           color: isDark
@@ -843,7 +844,7 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                         ? const CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2)
                         : Text(
-                            "Add Loan",
+                            AppLocalizations.of(context)!.addLoan,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16.sp,

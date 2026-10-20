@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -210,7 +211,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Text(
-                        "Done!",
+                        AppLocalizations.of(context)!.done,
                         style: TextStyle(
                           color: AppColors.success,
                           fontSize: 12.sp,
@@ -401,7 +402,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text("Delete Goal?", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 17.sp)),
+        title: Text(AppLocalizations.of(context)!.deleteGoal, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 17.sp)),
         content: Text(
           "Delete \"${goal.name}\"? This cannot be undone.",
           style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
@@ -409,7 +410,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -433,7 +434,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           Text("🎯", style: TextStyle(fontSize: 60.sp)),
           SizedBox(height: 16.h),
           Text(
-            "No goals yet",
+            AppLocalizations.of(context)!.goalsYet,
             style: TextStyle(
               fontSize: 20.sp,
               fontWeight: FontWeight.w700,
@@ -442,7 +443,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            "Set a savings or purchase goal\nand track your progress.",
+            AppLocalizations.of(context)!.setSavingsPurchaseGoalTrack,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14.sp, color: theme.textTheme.bodyMedium?.color),
           ),
@@ -450,7 +451,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ElevatedButton.icon(
             onPressed: () => Get.to(() => const AddGoalScreen()),
             icon: const Icon(Icons.add),
-            label: const Text("Add your first goal"),
+            label: Text(AppLocalizations.of(context)!.addFirstGoal),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: isDark ? Colors.white : AppColors.lightTextPrimary,
@@ -543,7 +544,7 @@ class _AddProgressSheetState extends State<_AddProgressSheet> {
                   ),
                   child: widget.ctrl.isSaving.value
                       ? SizedBox(width: 20.w, height: 20.h, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
-                      : Text("Add Progress", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                      : Text(AppLocalizations.of(context)!.addProgress, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
                 )),
               ),
             ],

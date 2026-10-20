@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -47,7 +48,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("Data backed up securely"),
+          content: Text(AppLocalizations.of(context)!.dataBackedUpSecurely),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -74,17 +75,17 @@ class DataSupportSettingsScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Restore Data"),
-        content: const Text(
-            "This handles restoring from local cache. Merge restored transactions with current data?"),
+        title: Text(AppLocalizations.of(context)!.restoreData),
+        content: Text(
+            AppLocalizations.of(context)!.handlesRestoringLocalCacheMerge),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text("Restore"),
+            child: Text(AppLocalizations.of(context)!.restore),
           ),
         ],
       ),
@@ -97,7 +98,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("No local backup found. Tap 'Backup Data' first."),
+            content: Text(AppLocalizations.of(context)!.localBackupFoundTapBackup),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
           ),
@@ -331,7 +332,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Data & Support"),
+        title: Text(AppLocalizations.of(context)!.dataSupport),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,

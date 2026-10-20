@@ -1,5 +1,6 @@
 // lib/Screens/transaction_details.dart
 
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -57,12 +58,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
-          title: Text("Delete Transaction", style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
-          content: Text("Are you sure you want to delete this transaction?", style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+          title: Text(AppLocalizations.of(context)!.deleteTransaction, style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
+          content: Text(AppLocalizations.of(context)!.sureWantDeleteTransaction, style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text("Cancel", style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+              child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -197,7 +198,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            "Transaction Details",
+            AppLocalizations.of(context)!.transactionDetails,
             style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.transparent,
@@ -312,7 +313,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                     ),
                   ),
                   child: Text(
-                    "Back",
+                    AppLocalizations.of(context)!.back,
                     style: TextStyle(
                       color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       fontWeight: FontWeight.w600,
@@ -517,7 +518,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Transaction Details",
+            AppLocalizations.of(context)!.transactionDetails,
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,

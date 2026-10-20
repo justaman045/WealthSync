@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -68,7 +69,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Savings Challenges"),
+          title: Text(AppLocalizations.of(context)!.savingsChallenges),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -90,8 +91,8 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                   onPressed: _showCustomChallengeSheet,
                   backgroundColor: AppColors.primary,
                   icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text(
-                    "Custom",
+                  label: Text(
+                    AppLocalizations.of(context)!.custom,
                     style: TextStyle(color: Colors.white),
                   ),
                 )
@@ -146,14 +147,14 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
               ),
               SizedBox(height: 16.h),
               Text(
-                "Start your first challenge 🎯",
+                AppLocalizations.of(context)!.startFirstChallenge,
                 style: TextStyle(
                     fontSize: 16.sp,
                     color: isDark ? Colors.white60 : AppColors.lightTextSecondary),
               ),
               SizedBox(height: 8.h),
               Text(
-                "Browse the Library tab or tap + Custom",
+                AppLocalizations.of(context)!.browseLibraryTabTapCustom,
                 style: TextStyle(
                     fontSize: 13.sp,
                     color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
@@ -259,7 +260,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
-                    "Expired",
+                    AppLocalizations.of(context)!.expired,
                     style: TextStyle(fontSize: 11.sp, color: Colors.red),
                   ),
                 )
@@ -413,7 +414,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Text(
-                      "In Progress",
+                      AppLocalizations.of(context)!.progress,
                       style: TextStyle(
                         fontSize: 13.sp,
                         fontWeight: FontWeight.w700,
@@ -437,7 +438,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                         borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Text(
-                        "Start",
+                        AppLocalizations.of(context)!.start,
                         style: TextStyle(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w700,
@@ -639,7 +640,7 @@ class _ChallengeSheetContent extends StatelessWidget {
                   ],
                   if (showDays) ...[
                     Text(
-                      "Duration (days)",
+                      AppLocalizations.of(context)!.durationDays,
                       style: TextStyle(
                         fontSize: 13.sp,
                         color: isDark ? Colors.white60 : Colors.black54,
@@ -766,7 +767,7 @@ class _ChallengeSheetContent extends StatelessWidget {
                       ),
                       onPressed: onSubmit,
                       child: Text(
-                        "Start Challenge",
+                        AppLocalizations.of(context)!.startChallenge,
                         style: TextStyle(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.bold,

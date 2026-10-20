@@ -564,19 +564,18 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final open = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Camera permission required"),
-        content: const Text(
-          "WealthSync needs camera access to scan UPI QR codes. "
-          "Open Settings to grant it.",
+        title: Text(AppLocalizations.of(context)!.cameraPermissionRequired),
+        content: Text(
+          AppLocalizations.of(context)!.wealthsyncNeedsCameraAccessScan,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
-            child: const Text("Cancel"),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
-            child: const Text("Open Settings"),
+            child: Text(AppLocalizations.of(context)!.openSettings),
           ),
         ],
       ),

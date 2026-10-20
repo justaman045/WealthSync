@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -189,7 +190,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text("Split a Bill"),
+          title: Text(AppLocalizations.of(context)!.splitBill),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -230,7 +231,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                   Row(
                     children: [
                       Text(
-                        "Even split",
+                        AppLocalizations.of(context)!.evenSplit,
                         style: TextStyle(fontSize: 13.sp, color: theme.textTheme.bodyMedium?.color),
                       ),
                       SizedBox(width: 8.w),
@@ -310,7 +311,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                 onPressed: _addParticipant,
                 icon: Icon(Icons.person_add_outlined, size: 18.sp, color: AppColors.secondary),
                 label: Text(
-                  "Add person",
+                  AppLocalizations.of(context)!.addPerson,
                   style: TextStyle(color: AppColors.secondary, fontSize: 14.sp),
                 ),
               ),
@@ -373,7 +374,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : Text(
-                          "Create Split Entries",
+                          AppLocalizations.of(context)!.createSplitEntries,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.sp,

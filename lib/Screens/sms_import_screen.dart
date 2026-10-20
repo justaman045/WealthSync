@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -125,17 +126,16 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
             final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
             return AlertDialog(
               backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
-              title: Text('SMS Permission Required',
+              title: Text(AppLocalizations.of(context)!.smsPermissionRequired,
                 style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
               content: Text(
-                'SMS permission was previously denied. '
-                'Please enable "SMS" permission in app settings to import transactions.',
+                AppLocalizations.of(context)!.smsPermissionPreviouslyDeniedPlease,
                 style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: Text('Cancel',
+                  child: Text(AppLocalizations.of(context)!.cancel,
                     style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
                 ),
                 FilledButton(
@@ -143,7 +143,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                     Navigator.pop(ctx);
                     await openAppSettings();
                   },
-                  child: const Text('Open Settings'),
+                  child: Text(AppLocalizations.of(context)!.openSettings),
                 ),
               ],
             );
@@ -214,7 +214,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
           final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
           return AlertDialog(
             backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
-            title: Text('Re-import Transactions',
+            title: Text(AppLocalizations.of(context)!.reImportTransactions,
               style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
             content: Text(
               '${reimporting.length} transaction${reimporting.length == 1 ? '' : 's'} '
@@ -224,13 +224,13 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Cancel',
+                child: Text(AppLocalizations.of(context)!.cancel,
                   style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
-                child: const Text('Import Anyway'),
+                child: Text(AppLocalizations.of(context)!.importAnyway),
               ),
             ],
           );
@@ -331,7 +331,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
         backgroundColor:
             isDark ? AppColors.darkBackground : AppColors.lightBackground,
         appBar: AppBar(
-          title: const Text("Import from SMS"),
+          title: Text(AppLocalizations.of(context)!.importSmsTooltip),
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: BackButton(
@@ -359,7 +359,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
         title: Text(
-          "Import from SMS",
+          AppLocalizations.of(context)!.importSmsTooltip,
           style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         backgroundColor: Colors.transparent,
@@ -427,11 +427,11 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                     ),
                     SizedBox(height: 16.h),
                     Text(
-                      "No bank transactions found.",
+                      AppLocalizations.of(context)!.bankTransactionsFound,
                       style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
                     ),
                     SizedBox(height: 16.h),
-                    TextButton(onPressed: _scanSms, child: Text("Scan Again")),
+                    TextButton(onPressed: _scanSms, child: Text(AppLocalizations.of(context)!.scanAgain)),
                   ],
                 ),
               )
@@ -513,7 +513,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                               borderRadius: BorderRadius.circular(4.r),
                                             ),
                                             child: Text(
-                                              "Imported",
+                                              AppLocalizations.of(context)!.imported,
                                               style: TextStyle(
                                                 color: Colors.cyan,
                                                 fontSize: 9.sp,
@@ -568,16 +568,16 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                       final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
                                       return AlertDialog(
                                         backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
-                                        title: Text('Already Imported',
+                                        title: Text(AppLocalizations.of(context)!.alreadyImported,
                                           style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
                                         content: Text(
-                                          'This transaction was already imported. Create a duplicate?',
+                                          AppLocalizations.of(context)!.transactionAlreadyImportedCreateDuplic,
                                           style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary),
                                         ),
                                         actions: [
                                           TextButton(
                                             onPressed: () => Navigator.pop(ctx),
-                                            child: Text('Cancel',
+                                            child: Text(AppLocalizations.of(context)!.cancel,
                                               style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
                                           ),
                                           FilledButton(
@@ -588,7 +588,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                               });
                                             },
                                             style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
-                                            child: const Text('Import Anyway'),
+                                            child: Text(AppLocalizations.of(context)!.importAnyway),
                                           ),
                                         ],
                                       );

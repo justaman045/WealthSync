@@ -1,3 +1,4 @@
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -73,7 +74,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
       ),
       body: SafeArea(
           child: user == null
-              ? const Center(child: Text("User not logged in"))
+              ? Center(child: Text(AppLocalizations.of(context)!.userLogged))
               : Obx(() {
                   final split = splitMonthlyExpenses(
                     _controller.transactions,
@@ -207,7 +208,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Spent on other items",
+            AppLocalizations.of(context)!.spentOtherItems,
             style: TextStyle(
               fontSize: 13.sp,
               color: isDark ? Colors.white70 : AppColors.lightTextTertiary,
@@ -232,9 +233,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
           ),
           SizedBox(height: 12.h),
           Text(
-            "These are your non-bill expenses. Rent, EMIs, bills, "
-            "subscriptions and other fixed payments are excluded — open the "
-            "excluded list below to see them.",
+            AppLocalizations.of(context)!.theseNonBillExpensesRent,
             style: TextStyle(
               fontSize: 12.sp,
               height: 1.35,
@@ -371,7 +370,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
           color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
         ),
         label: Text(
-          "Customize which categories count",
+          AppLocalizations.of(context)!.customizeWhichCategoriesCount,
           style: TextStyle(
             fontSize: 13.sp,
             color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
