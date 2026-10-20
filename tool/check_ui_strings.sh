@@ -43,6 +43,7 @@ fi
 : "${CAP_GRADIENT_FILES:=999999}"
 : "${CAP_BACKDROP_SITES:=999999}"
 : "${CAP_INTEG_LITERALS:=999999}"
+: "${CAP_HARDCODED_SCREENS:=999999}"
 
 RAW_COLORS=$(grep -rEc 'Color\(0x' lib/Screens lib/Components lib/Config --include='*.dart' 2>/dev/null | awk -F: '{s+=$NF} END {print s+0}' || true)
 GLASS_FILES=$(grep -rl 'GlassContainer' lib --include='*.dart' 2>/dev/null | wc -l || true)
@@ -50,12 +51,27 @@ GRADIENT_FILES=$(grep -rl 'LinearGradient\|RadialGradient' lib/Screens lib/Compo
 BACKDROP=$(grep -rc 'BackdropFilter' lib --include='*.dart' 2>/dev/null | grep -v ':0$' | awk -F: '{s+=$NF} END {print s+0}' || true)
 INTEG_LITERALS=$(grep -rhoE "find\.text\('[^']+'\)" integration_test 2>/dev/null | sort -u | wc -l || true)
 
+# Unlocalized copy: literal string arguments to Text() in Screens/Components that
+# are NOT sourced from AppStrings and are not obviously data (single characters,
+# currency/amount formatting, pure punctuation). This is the localization debt
+# counter — it must only ever go DOWN.
+#
+# Deliberately excludes:
+#   * Text(AppStrings.x) / Text(AppLocalizations...) — already localizable
+#   * literals interpolated from variables ($) — usually data, not copy
+#   * anything shorter than 3 chars (units, glyphs like '₹', '•')
+HARDCODED_SCREENS=$(grep -rhoE "Text\(\s*'[^'\\$]{3,}'|Text\(\s*\"[^\"\\$]{3,}\"" \
+  lib/Screens lib/Components --include='*.dart' 2>/dev/null \
+  | grep -viE "AppStrings\.|AppLocalizations" \
+  | sort -u | wc -l || true)
+
 echo "── UI Revamp Audit ──────────────────────────────"
 printf 'Raw Color(0x…) literals : %5d   (cap %s)\n' "${RAW_COLORS:-0}"   "$CAP_RAW_COLORS"
 printf 'GlassContainer files    : %5d   (cap %s)\n' "${GLASS_FILES:-0}"  "$CAP_GLASS_FILES"
 printf 'Gradient files          : %5d   (cap %s)\n' "${GRADIENT_FILES:-0}" "$CAP_GRADIENT_FILES"
 printf 'BackdropFilter sites    : %5d   (cap %s)\n' "${BACKDROP:-0}"     "$CAP_BACKDROP_SITES"
 printf 'Integration text literals (unique, should trend down): %d   (cap %s)\n' "${INTEG_LITERALS:-0}" "$CAP_INTEG_LITERALS"
+printf 'Unlocalized UI literals (unique, should trend down)  : %d   (cap %s)\n' "${HARDCODED_SCREENS:-0}" "$CAP_HARDCODED_SCREENS"
 
 rc=0
 check() { # name value cap
@@ -69,6 +85,7 @@ check "GlassContainer usage" "$GLASS_FILES"  "$CAP_GLASS_FILES"
 check "gradient files" "$GRADIENT_FILES"     "$CAP_GRADIENT_FILES"
 check "BackdropFilter sites" "$BACKDROP"     "$CAP_BACKDROP_SITES"
 check "integration text literals" "$INTEG_LITERALS" "$CAP_INTEG_LITERALS"
+check "unlocalized UI literals" "$HARDCODED_SCREENS" "$CAP_HARDCODED_SCREENS"
 
 if [[ $rc -eq 0 ]]; then
   echo "OK: all caps respected."
