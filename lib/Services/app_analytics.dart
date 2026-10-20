@@ -104,20 +104,26 @@ class AppAnalytics {
     StackTrace? stack, {
     String? reason,
     bool fatal = false,
-    Map<String, Object>? context,
+    Map<String, Object?>? context,
   }) {
     if (kDebugMode) {
       debugPrint('AppAnalytics.recordError[$reason]: $error');
     }
     try {
+      // Nullable values are dropped rather than stringified — `purchase.productID`
+      // and friends are `String?`, and requiring non-null here forces a `!` at
+      // the call site. Values are stringified because Crashlytics' `information`
+      // wants strings.
+      final info = context?.entries
+          .where((e) => e.value != null)
+          .map((e) => '${e.key}=${e.value}')
+          .toList();
       FirebaseCrashlytics.instance.recordError(
         error,
         stack,
         reason: reason,
         fatal: fatal,
-        information:
-            context?.entries.map((e) => '${e.key}=${e.value}').toList() ??
-            const <String>[],
+        information: (info == null || info.isEmpty) ? const <String>[] : info,
       );
     } catch (e) {
       debugPrint('AppAnalytics: recordError failed ($e)');

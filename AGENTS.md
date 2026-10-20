@@ -26,6 +26,13 @@ flutter build web --release --base-href /WealthSync/   # GitHub Pages deploy
 (`run_integration_tests.sh` is mode 644 and always invoked as `bash …`.) CI runs Flutter
 **3.47.7**; `pubspec.yaml` declares `sdk: ^3.9.2`.
 
+**These three do NOT cover the web build** — `flutter analyze` and `flutter test` both run
+against the VM, and dart2js is stricter than the analyzer in a few places. A type error
+that passes all three locally can still fail CI's `build_web` job (see the
+`recordError`/`Map<String, Object?>` note below for a shipped example). Run
+`flutter build web --release` before pushing any change to a shared signature or a service
+that web compiles.
+
 **Generated l10n Dart is committed**: `lib/l10n/app_localizations.dart` +
 `app_localizations_en.dart` are tracked, so an ARB edit ships with its
 regenerated pair in the same commit.
@@ -471,6 +478,15 @@ errors do (`FlutterError.onError`, `PlatformDispatcher.onError`). When adding a
 alongside the `debugPrint` — otherwise it is invisible in release. Currently wired for
 transaction writes (`transaction_repository`, incl. the offline-queue fallback) and IAP
 failures.
+
+**`recordError`'s `context` is `Map<String, Object?>` on purpose — keep it nullable.**
+Most values you'd want to attach are nullable (`purchase.productID`, every Firestore
+field), so a `Map<String, Object>` parameter forces a `!` at each call site. Nulls are
+dropped by the method. This is not a style preference: narrowing it back to
+`Map<String, Object>` **passes `flutter analyze` and then fails `flutter build web`** with
+`A value of type 'String?' can't be assigned to a variable of type 'Object'` — dart2js
+rejects what the analyzer accepts, and only the `build_web` CI job catches it. Pinned by
+`test/app_analytics_test.dart`.
 
 ## Write Paths & Backups
 

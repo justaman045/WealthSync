@@ -99,6 +99,24 @@ void main() {
       expect(() => AppAnalytics.setUserId(null), returnsNormally);
     });
 
+    /// `context` must accept NULLABLE values. `purchase.productID` and most
+    /// Firestore fields are `String?`, so a `Map<String, Object>` parameter
+    /// forces a `!` at every call site — and `flutter analyze` still passes
+    /// while dart2js rejects it, which broke the web build in CI. Nulls are
+    /// dropped, not stringified.
+    test('recordError accepts nullable context values', () {
+      const String? nullableId = null;
+      expect(
+        () => AppAnalytics.recordError(
+          StateError('boom'),
+          StackTrace.current,
+          reason: 'nullable',
+          context: {'product_id': nullableId, 'present': 'x'},
+        ),
+        returnsNormally,
+      );
+    });
+
     test('event names are unique — a duplicate collapses two funnels', () {
       const names = [
         AnalyticsEvent.onboardingStarted,
