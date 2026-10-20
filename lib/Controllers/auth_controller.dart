@@ -27,6 +27,7 @@ import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:money_control/Controllers/recurring_payment_controller.dart';
 import 'package:money_control/Controllers/audit_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 class AuthController extends GetxController {
   static AuthController get to => Get.find();
@@ -86,6 +87,7 @@ class AuthController extends GetxController {
       }
 
       await _updateUserData(user, 'email');
+      AppAnalytics.log(AnalyticsEvent.loginCompleted, {'method': 'email'});
 
       Get.offAll(() => const MainShell());
     } on FirebaseAuthException catch (e) {
@@ -138,6 +140,7 @@ class AuthController extends GetxController {
 
       if (user != null) {
         await _updateUserData(user, 'google');
+        AppAnalytics.log(AnalyticsEvent.loginCompleted, {'method': 'google'});
         Get.offAll(() => const MainShell());
       }
     } on FirebaseAuthException catch (e) {
@@ -256,6 +259,10 @@ class AuthController extends GetxController {
     // Awaited: an unawaited clear could land AFTER a fast re-login had already
     // written the new account's cache, silently wiping it.
     await LocalCacheService.clearAll();
+    // Crashlytics user id is device-persistent: left set, the next account's
+    // crashes are attributed to the previous user. Cleared here (the single
+    // teardown list) rather than in a second hand-maintained path.
+    AppAnalytics.setUserId(null);
   }
 
   String _getFriendlyErrorMessage(FirebaseAuthException e) =>

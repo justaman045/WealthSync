@@ -24,6 +24,7 @@ import 'package:money_control/Screens/splashscreen.dart';
 import 'package:money_control/Screens/onboarding_screen.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/background_worker.dart';
+import 'package:money_control/Services/app_analytics.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/update_checker.dart';
 import 'package:money_control/Services/biometric_service.dart';
@@ -190,6 +191,12 @@ Future<void> mainCommon({bool isTest = false}) async {
   }
 
   if (!isTest) {
+    // Debug builds are excluded from Crashlytics so a developer's hot-reload
+    // crash never lands in the production dashboard. Analytics events are
+    // still logged in debug (they only appear in the DebugView stream).
+    AppAnalytics.configureCollection();
+    AppAnalytics.init(enabled: true);
+
     // Pass all uncaught "fatal" errors from the framework to Crashlytics
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
 
@@ -567,6 +574,10 @@ class _AuthCheckerState extends State<AuthChecker> {
     final uid = user?.uid;
     if (uid == _handledUid) return;
     _handledUid = uid;
+    // Attribute crashes/events to this account. Set here (once per uid, on every
+    // sign-in path incl. a restored cold-start session) and cleared in
+    // AuthController.disposeUserScopedState — the single teardown list.
+    if (uid != null) AppAnalytics.setUserId(uid);
     // Anchor to the user this invocation was triggered for. The web branch
     // awaits several 500 ms delays; if the user signs out or switches accounts
     // mid-flight, a stale invocation must not register controllers afterwards.

@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/coming_soon_widget.dart';
+import 'package:money_control/Services/app_analytics.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
+
+/// Records that a real user reached a feature an admin has switched off.
+///
+/// This is the demand signal for what to build next, and the only way to know
+/// which of the feature flags are dead weight. Deliberately logged from the
+/// *tap* guards rather than from `visibleToMe`, which also runs during
+/// `build()` and would log a hit on every frame a gated surface renders.
+void _trackGateHit(FeatureFlagService service, String flagKey) {
+  AppAnalytics.log(AnalyticsEvent.featureGateHit, {
+    'feature': flagKey,
+    'status': service.statusOf(flagKey),
+    'is_admin': service.userIsAdmin,
+  });
+}
 
 /// Entry-point guard: call instead of `gotoPage(...)`.
 ///
@@ -11,6 +26,7 @@ import 'package:money_control/Services/feature_flag_service.dart';
 bool ensureFeatureVisible(BuildContext context, String flagKey) {
   final service = FeatureFlagService.to;
   if (service.visibleToMe(flagKey)) return true;
+  _trackGateHit(service, flagKey);
   Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
     builder: (_) => ComingSoonScreen.forFlag(flagKey),
   ));
@@ -21,7 +37,10 @@ bool ensureFeatureVisible(BuildContext context, String flagKey) {
 /// ComingSoon placeholder) — for always-visible surfaces whose tap is gated
 /// (e.g. the home greeting, which stays on screen when profile is hidden).
 bool ensureFeatureUsable(BuildContext context, String flagKey) {
-  if (FeatureFlagService.to.isHidden(flagKey)) return false;
+  if (FeatureFlagService.to.isHidden(flagKey)) {
+    _trackGateHit(FeatureFlagService.to, flagKey);
+    return false;
+  }
   return ensureFeatureVisible(context, flagKey);
 }
 

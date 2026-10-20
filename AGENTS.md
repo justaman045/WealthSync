@@ -435,6 +435,43 @@ Priority: refund/cashback→credit, debited/deducted/withdrawn/spent/sent→debi
 credited/deposit→credit, "received by"→debit, "received in/to/into/from"→credit,
 default→debit.
 
+## Observability (Analytics + Crashlytics)
+
+`lib/Services/app_analytics.dart` is the **only** entry point for event logging and
+non-fatal reporting. Do not call `FirebaseAnalytics`/`FirebaseCrashlytics` directly, and
+never pass a bare event-name string — add it to `AnalyticsEvent` first. A typo'd name at a
+call site (`paywall_view` vs `paywallView`) splits one funnel into two with no error
+anywhere.
+
+- **Two invariants it exists to enforce**: `log`/`recordError`/`setUserId` **never throw**
+  (a failed diagnostic must not take down the flow that called it) and **never block**
+  (fire-and-forget — no call site awaits them). Both are pinned by
+  `test/app_analytics_test.dart`, including the `[core/no-app]` path where Firebase isn't
+  initialised. `_sanitize` drops `null`/List/Map/Object params because the SDK throws on
+  non-primitive values, and `log` is called from inside tap handlers.
+- **`init` is gated on `!isTest`** in `main.dart` alongside the Crashlytics wiring, so
+  integration tests never pollute the production funnel. `configureCollection()` sets
+  `setCrashlyticsCollectionEnabled(!kDebugMode)` — a developer's hot-reload crash must not
+  land in the release dashboard.
+- **The user id is set per-uid in `_handleAuthChange`** (one place, covers every sign-in
+  path including a restored cold-start session) and **cleared in
+  `AuthController.disposeUserScopedState()`**. Do not add a second clear path — that list
+  is the canonical teardown owner, and a duplicate list is exactly the drift bug that
+  leaked `AuditController` state.
+- **`feature_gate_hit` is the highest-value event**: it fires from the *tap* guards
+  (`ensureFeatureVisible`/`ensureFeatureUsable` in `feature_gate.dart`), never from
+  `visibleToMe` — which also runs during `build()` and would log a hit every frame a
+  gated surface renders. It is the only signal for which of the 55 flags are dead weight.
+- **Paywall telemetry lives in `SubscriptionScreen.initState`**, not at the ~8 call sites
+  that navigate to it — new entry points can't forget it.
+
+Caught errors do **not** reach Crashlytics by default: only uncaught framework/async
+errors do (`FlutterError.onError`, `PlatformDispatcher.onError`). When adding a
+`try/catch` around a write or a purchase, call `AppAnalytics.recordError(e, s, reason: …)`
+alongside the `debugPrint` — otherwise it is invisible in release. Currently wired for
+transaction writes (`transaction_repository`, incl. the offline-queue fallback) and IAP
+failures.
+
 ## Write Paths & Backups
 
 `LocalBackupService.backupUserTransactions(email, reportErrors: false)` must run after

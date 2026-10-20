@@ -4,6 +4,7 @@ import 'package:money_control/Platform/iap_platform.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 class IapService {
   static final IapService _instance = IapService._internal();
@@ -116,18 +117,32 @@ class IapService {
             if (purchase.pendingCompletePurchase) {
               await _iap.completePurchase(purchase);
             }
+            AppAnalytics.log(AnalyticsEvent.purchaseCompleted, {
+              'product_id': purchase.productID,
+              'restored': purchase.status == PurchaseStatus.restored,
+            });
             await SubscriptionController.to.activateGooglePlaySubscription(
               purchase,
             );
             break;
 
           case PurchaseStatus.error:
+            AppAnalytics.recordError(
+              purchase.error ?? StateError('IAP error'),
+              StackTrace.current,
+              reason: 'iap.purchaseError',
+              context: {'product_id': purchase.productID},
+            );
             ErrorHandler.showError(
               purchase.error?.message ?? 'Purchase failed. Please try again.',
             );
             break;
 
           case PurchaseStatus.canceled:
+            AppAnalytics.log(AnalyticsEvent.paywallDismissed, {
+              'product_id': purchase.productID,
+              'reason': 'canceled',
+            });
             break;
         }
       }

@@ -21,6 +21,7 @@ import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Utils/num_parse.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 class TransactionController extends GetxController {
   final TransactionRepository _repository = TransactionRepository();
@@ -409,8 +410,17 @@ class TransactionController extends GetxController {
     try {
       // 1. Attempt Firestore write with timeout
       await _repository.addTransaction(tx).timeout(const Duration(seconds: 5));
+      AppAnalytics.log(AnalyticsEvent.transactionAdded, {
+        'type': type,
+        'has_category': category.isNotEmpty,
+        'has_note': note.isNotEmpty,
+        'has_attachment': (tx.attachmentUrl ?? '').isNotEmpty,
+      });
     } on TimeoutException catch (e) {
       debugPrint("Firebase timeout: $e");
+      // A write that timed out is the classic silently-lost transaction; record
+      // it as non-fatal so release builds surface the rate.
+      AppAnalytics.recordError(e, StackTrace.current, reason: 'addTransaction.timeout');
       // 2. Offline Queue Fallback — wrap separately so isSaving is always reset
       try {
         await OfflineQueueService.savePending(tx.toMap());
@@ -422,6 +432,8 @@ class TransactionController extends GetxController {
         return true;
       } catch (queueError) {
         debugPrint("Offline queue error: $queueError");
+        AppAnalytics.recordError(queueError, StackTrace.current,
+            reason: 'addTransaction.offlineQueue');
         ErrorHandler.showError("Failed to save transaction. Please retry.");
         isSaving.value = false;
         return false;

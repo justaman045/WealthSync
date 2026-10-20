@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:confetti/confetti.dart';
 import 'dart:math';
+import 'package:money_control/Services/app_analytics.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -107,6 +108,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final referralCode = _referralController.text.trim();
       if (referralCode.isNotEmpty) {
         final applied = await ReferralService.applyReferralCode(referralCode);
+        AppAnalytics.log(AnalyticsEvent.referralApplied, {'applied': applied});
         if (applied) {
           ErrorHandler.showSuccess("Referral code applied");
         } else {

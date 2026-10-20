@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Models/cateogary.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 class TransactionRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -34,8 +35,9 @@ class TransactionRepository {
   Future<DocumentReference> addTransaction(TransactionModel transaction) async {
     try {
       return await _userTransactionsRef.add(transaction.toMap());
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('TransactionRepository.addTransaction error: $e');
+      AppAnalytics.recordError(e, s, reason: 'TransactionRepository.addTransaction');
       rethrow;
     }
   }
@@ -44,8 +46,9 @@ class TransactionRepository {
     try {
       if (transaction.id.isEmpty) throw Exception("Transaction ID is empty");
       await _userTransactionsRef.doc(transaction.id).update(transaction.toMap());
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('TransactionRepository.updateTransaction error: $e');
+      AppAnalytics.recordError(e, s, reason: 'TransactionRepository.updateTransaction');
       rethrow;
     }
   }
@@ -53,8 +56,9 @@ class TransactionRepository {
   Future<void> deleteTransaction(String id) async {
     try {
       await _userTransactionsRef.doc(id).delete();
-    } catch (e) {
+    } catch (e, s) {
       debugPrint('TransactionRepository.deleteTransaction error: $e');
+      AppAnalytics.recordError(e, s, reason: 'TransactionRepository.deleteTransaction');
       rethrow;
     }
   }

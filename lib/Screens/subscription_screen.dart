@@ -14,6 +14,7 @@ import 'package:money_control/main.dart' show rootScaffoldMessengerKey;
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/upi_response.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -35,6 +36,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   void initState() {
     super.initState();
     final args = Get.arguments;
+    // Single choke point for the paywall funnel — there are ~8 entry points
+    // (home, settings, pro-lock widget, transaction limit), so logging here
+    // beats editing every call site and cannot be missed by a new one.
+    AppAnalytics.log(AnalyticsEvent.paywallViewed, {
+      'source': args is Map ? (args['source']?.toString() ?? 'unknown') : 'unknown',
+      'scroll_to_payment':
+          args is Map && args['scrollToPayment'] == true,
+    });
     if (args is Map && args['scrollToPayment'] == true) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToPayment());
     }

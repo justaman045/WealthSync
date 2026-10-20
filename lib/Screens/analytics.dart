@@ -30,6 +30,7 @@ import 'package:intl/intl.dart';
 
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 import 'package:flutter/rendering.dart' as rendering;
 
@@ -423,6 +424,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       return;
     }
     await ExportService.exportTransactionsCSV(_filtered);
+    AppAnalytics.log(AnalyticsEvent.exportUsed, {'format': 'csv'});
   }
 
   Future<void> _exportPdf() async {
@@ -441,6 +443,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       netBalance: netBalance,
       periodLabel: _periodLabel,
     );
+    AppAnalytics.log(AnalyticsEvent.exportUsed, {'format': 'pdf'});
   }
 
   Future<void> _shareReport() async {

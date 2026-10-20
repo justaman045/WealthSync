@@ -13,6 +13,7 @@ import 'package:money_control/Screens/onboarding_screen.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/auth_error_messages.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -97,6 +98,8 @@ class _AuthScreenState extends State<AuthScreen> {
       // rather than racing it from the auth stream.
       AuthController.signupInProgress = false;
       await _auth.signOut();
+
+      AppAnalytics.log(AnalyticsEvent.signupCompleted, {'method': 'email'});
 
       if (!mounted) return;
       setState(() => _isLoading = false);
