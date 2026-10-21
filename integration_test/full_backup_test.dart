@@ -157,6 +157,57 @@ void main() {
         isTrue,
         reason: 'the seeded transaction did not come back',
       );
+
+      // ---- AUTOMATIC DEVICE SNAPSHOT --------------------------------------
+      // The background worker takes one of these once a day, so the account
+      // is recoverable even for a user who never opens the backup screen.
+      final written = await FullBackupService.writeLocalSnapshot(reparsed);
+      expect(written, isTrue);
+
+      expect(
+        await FullBackupService.hasLocalSnapshot(userEmail),
+        isTrue,
+        reason: 'the automatic snapshot was not stored on the device',
+      );
+
+      final snapshot = await FullBackupService.readLocalSnapshot(userEmail);
+      expect(snapshot, isNotNull);
+      expect(snapshot!.email, userEmail);
+      expect(snapshot.documentCount, reparsed.documentCount);
+
+      // A snapshot that would hold fewer documents than the stored one must
+      // not replace it — that is the wipe-protection property, and getting it
+      // wrong is what destroyed the only local copy on 2026-10-21.
+      final shrunk = BackupArchive(
+        formatVersion: BackupArchive.currentFormatVersion,
+        createdAt: DateTime.utc(2026),
+        email: userEmail,
+        profile: null,
+        wealthPortfolio: null,
+        collections: const {'transactions': []},
+      );
+      expect(await FullBackupService.writeLocalSnapshot(shrunk), isFalse);
+      expect(
+        (await FullBackupService.readLocalSnapshot(userEmail))!.documentCount,
+        reparsed.documentCount,
+        reason: 'a smaller snapshot overwrote the stored one',
+      );
+
+      // And it must be restorable: wipe the collection again and restore
+      // from the device snapshot.
+      for (final doc in (await txCol.get()).docs) {
+        await doc.reference.delete();
+      }
+      expect((await txCol.get()).docs, isEmpty);
+
+      final snapshotRestore = await FullBackupService.restore(snapshot);
+      expect(
+        snapshotRestore.failed,
+        isEmpty,
+        reason: 'restoring the device snapshot reported failures: '
+            '${snapshotRestore.failed}',
+      );
+      expect((await txCol.get()).docs.length, before.docs.length);
     },
   );
 }

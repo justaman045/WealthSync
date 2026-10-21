@@ -265,6 +265,9 @@
   "backupSectionTitle": "Backup",
   "backupWorking": "Working\u2026",
   "backupNotSignedIn": "You are not signed in.",
+  "backupNoDeviceSnapshot": "No snapshot is stored on this device yet. One is taken automatically once a day.",
+  "backupRestoreFromDeviceSnapshot": "Restore From Device Snapshot",
+  "backupRestoreFromDeviceSnapshotExplain": "Your app keeps an automatic copy of the whole account on this device, refreshed once a day. Use it if something was deleted by accident.",
   "backupHadNoTransactions": "Backup had no transactions to restore",
   "restoreFailed": "Restore failed: {error}",
   "@restoreFailed": {

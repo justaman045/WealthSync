@@ -17,6 +17,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:money_control/Services/recurring_service.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Services/full_backup_service.dart';
 import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:money_control/Platform/permission_platform.dart';
@@ -232,6 +233,9 @@ void callbackDispatcher() {
       // --- LOGIC 3: DAILY INSIGHTS (10 PM) ---
       await _checkDailyInsights(prefs);
 
+      // --- LOGIC 3b: DAILY FULL-ACCOUNT SNAPSHOT ---
+      await _checkDailySnapshot(prefs, flags);
+
       // --- LOGIC 4: UPDATE CHECK ---
       await _checkUpdate(prefs, flags);
 
@@ -340,6 +344,92 @@ Future<void> _checkDailyInsights(SharedPreferences prefs) async {
     await prefs.setString(insightKey, todayStr);
   } catch (e) {
     developer.log("Error fetching daily insight: $e");
+  }
+}
+
+/// Whether the daily full-account snapshot should run right now.
+///
+/// [lastSuccessDay] is the `yyyy-MM-dd` day the last *successful* snapshot ran
+/// on, [lastAttemptMs] the epoch millis of the last attempt (successful or
+/// not), and [minHoursBetweenAttempts] how long a retry has to wait.
+///
+/// Pure on purpose: the schedule is the part that is easy to get subtly
+/// wrong (too eager burns data, too lazy loses the day) and it can be pinned
+/// by a test instead of by waiting for 22:00 on a device.
+bool shouldRunDailySnapshot({
+  required DateTime now,
+  required String? lastSuccessDay,
+  required int? lastAttemptMs,
+  int minHoursBetweenAttempts = 1,
+}) {
+  // Only after 22:00, when the device is usually charging and idle.
+  if (now.hour < 22) return false;
+
+  final today = DateFormat('yyyy-MM-dd').format(now);
+  if (lastSuccessDay == today) return false;
+
+  final elapsed = now.millisecondsSinceEpoch - (lastAttemptMs ?? 0);
+  if (elapsed < Duration(hours: minHoursBetweenAttempts).inMilliseconds) {
+    return false;
+  }
+  return true;
+}
+
+/// Takes an automatic snapshot of the *whole* account once a day.
+///
+/// The user-downloaded archive is the real safety net, but it only exists if
+/// the user remembers to take one. This is the automatic counterpart: a full
+/// copy of every collection, kept on the device, so an accidental deletion is
+/// recoverable even for a user who never opens the backup screen.
+///
+/// Throttled to once per calendar day per user (the same per-day key pattern
+/// the daily insights use, because a shared device must not let one account's
+/// run swallow another's) and only after 22:00, when the device is usually
+/// charging and idle.
+///
+/// A failed run is retried, but at most hourly: the worker wakes every 15
+/// minutes, so an unguarded retry would re-read every collection 96 times a
+/// day — while a single attempt per day would throw away a whole day on a
+/// transient network blip.
+///
+/// Honours the `full_backup` kill-switch like every other background job:
+/// a hidden flag stops the work, and `comingSoon` is UI-only.
+Future<void> _checkDailySnapshot(
+  SharedPreferences prefs,
+  Map<String, String> flags,
+) async {
+  if (_flagHidden(flags, 'full_backup')) return;
+
+  final now = DateTime.now();
+  final todayStr = DateFormat('yyyy-MM-dd').format(now);
+  final userEmail = prefs.getString('user_email');
+  if (userEmail == null || userEmail.isEmpty) return;
+
+  // Per-user keys: a shared device must not swallow another user's snapshot.
+  final dayKey = 'last_full_snapshot_day_$userEmail';
+  final attemptKey = 'last_full_snapshot_attempt_$userEmail';
+
+  if (!shouldRunDailySnapshot(
+    now: now,
+    lastSuccessDay: prefs.getString(dayKey),
+    lastAttemptMs: prefs.getInt(attemptKey),
+  )) {
+    return;
+  }
+
+  await prefs.setInt(attemptKey, now.millisecondsSinceEpoch);
+
+  try {
+    final archive = await FullBackupService.capture(userEmail);
+    await FullBackupService.writeLocalSnapshot(archive);
+    developer.log(
+      'Daily snapshot: ${archive.documentCount} items for $userEmail',
+    );
+    // Only a successful run closes the day; a failure leaves the day open
+    // so the next hourly attempt can still save it.
+    await prefs.setString(dayKey, todayStr);
+  } catch (e) {
+    developer.log("Error taking daily snapshot: $e");
   }
 }
 

@@ -1234,6 +1234,24 @@ abstract class AppLocalizations {
   /// **'You are not signed in.'**
   String get backupNotSignedIn;
 
+  /// No description provided for @backupNoDeviceSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'No snapshot is stored on this device yet. One is taken automatically once a day.'**
+  String get backupNoDeviceSnapshot;
+
+  /// No description provided for @backupRestoreFromDeviceSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore From Device Snapshot'**
+  String get backupRestoreFromDeviceSnapshot;
+
+  /// No description provided for @backupRestoreFromDeviceSnapshotExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Your app keeps an automatic copy of the whole account on this device, refreshed once a day. Use it if something was deleted by accident.'**
+  String get backupRestoreFromDeviceSnapshotExplain;
+
   /// No description provided for @backupHadNoTransactions.
   ///
   /// In en, this message translates to:

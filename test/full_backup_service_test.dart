@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -390,6 +391,141 @@ void main() {
 
       expect(result.failed, isEmpty);
       expect(result.written.containsKey('some_future_collection'), isFalse);
+    });
+  });
+
+  group('automatic device snapshot', () {
+    late Directory tempDir;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('wealthsync_backup_test');
+      FullBackupService.snapshotDirOverride = () async => tempDir;
+    });
+
+    tearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    /// An archive holding [count] documents in the transactions collection.
+    BackupArchive archiveWith(int count) => BackupArchive(
+          formatVersion: BackupArchive.currentFormatVersion,
+          createdAt: DateTime.utc(2026),
+          email: 'a@b.com',
+          profile: null,
+          wealthPortfolio: null,
+          collections: {
+            'transactions': [
+              for (var i = 0; i < count; i++) {BackupArchive.idField: 't$i'},
+            ],
+          },
+        );
+
+    test('a written snapshot reads back with its documents intact', () async {
+      final written = await FullBackupService.writeLocalSnapshot(
+        archiveWith(12),
+      );
+      expect(written, isTrue);
+
+      final read = await FullBackupService.readLocalSnapshot('a@b.com');
+      expect(read, isNotNull);
+      expect(read!.documentCount, 12);
+      expect(read.collections['transactions'], hasLength(12));
+    });
+
+    test('a smaller snapshot does not overwrite a larger stored one',
+        () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(791));
+
+      // The account was wiped and the next snapshot sees an empty collection.
+      // Overwriting here would destroy the only complete copy — the exact
+      // trap the local transaction mirror fell into on 2026-10-21.
+      final written = await FullBackupService.writeLocalSnapshot(archiveWith(0));
+      expect(written, isFalse);
+
+      final read = await FullBackupService.readLocalSnapshot('a@b.com');
+      expect(read!.documentCount, 791);
+    });
+
+    test('a larger snapshot replaces a smaller stored one', () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(3));
+
+      final written = await FullBackupService.writeLocalSnapshot(archiveWith(20));
+      expect(written, isTrue);
+
+      final read = await FullBackupService.readLocalSnapshot('a@b.com');
+      expect(read!.documentCount, 20);
+    });
+
+    test('an equal-size snapshot refreshes the stored one', () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(5));
+
+      // Equal counts are not a shrink. The account may have lost one
+      // transaction and gained another, and the fresher snapshot is the
+      // accurate one — so it replaces the stored copy rather than being
+      // rejected.
+      final written = await FullBackupService.writeLocalSnapshot(archiveWith(5));
+      expect(written, isTrue);
+
+      final read = await FullBackupService.readLocalSnapshot('a@b.com');
+      expect(read!.documentCount, 5);
+    });
+
+    test('no snapshot means no snapshot', () async {
+      expect(await FullBackupService.hasLocalSnapshot('a@b.com'), isFalse);
+      expect(await FullBackupService.readLocalSnapshot('a@b.com'), isNull);
+    });
+
+    test('an empty snapshot does not count as a snapshot', () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(0));
+
+      // Nothing to restore from, so the UI must not offer it.
+      expect(await FullBackupService.hasLocalSnapshot('a@b.com'), isFalse);
+    });
+
+    test('a corrupt snapshot file is reported as absent, not thrown', () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(4));
+
+      // Simulate a truncated write (a kill mid-write before the rename).
+      final files = await tempDir.list().toList();
+      for (final f in files) {
+        if (f is File) {
+          await f.writeAsString('{"fileType": "wealthsync_backup", "trunc');
+        }
+      }
+
+      expect(await FullBackupService.readLocalSnapshot('a@b.com'), isNull);
+      expect(await FullBackupService.hasLocalSnapshot('a@b.com'), isFalse);
+    });
+
+    test('snapshots of different accounts do not overwrite each other',
+        () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(7));
+
+      final other = BackupArchive(
+        formatVersion: BackupArchive.currentFormatVersion,
+        createdAt: DateTime.utc(2026),
+        email: 'other@b.com',
+        profile: null,
+        wealthPortfolio: null,
+        collections: {
+          'transactions': [
+            {BackupArchive.idField: 'o1'},
+          ],
+        },
+      );
+      await FullBackupService.writeLocalSnapshot(other);
+
+      expect(
+        (await FullBackupService.readLocalSnapshot('a@b.com'))!.documentCount,
+        7,
+      );
+      expect(
+        (await FullBackupService.readLocalSnapshot('other@b.com'))!
+            .documentCount,
+        1,
+      );
     });
   });
 }

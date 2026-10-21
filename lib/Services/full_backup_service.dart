@@ -10,6 +10,8 @@ import 'package:money_control/Models/backup_archive.dart';
 import 'package:money_control/Services/app_analytics.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/user_service.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:universal_io/io.dart';
 
 /// Complete account backup: capture every collection, hand the user a file, and
 /// rebuild the account from that file.
@@ -70,6 +72,12 @@ class FullBackupService {
   @visibleForTesting
   static Future<void> Function(String key)? cacheInvalidateOverride;
 
+  /// Replaces the directory the automatic snapshot is stored in. The real
+  /// path needs `path_provider`, which a pure unit test has no reason to
+  /// stand up; a test points this at a temp directory instead.
+  @visibleForTesting
+  static Future<Directory> Function()? snapshotDirOverride;
+
   @visibleForTesting
   static void resetForTest() {
     fetchCollectionOverride = null;
@@ -78,6 +86,7 @@ class FullBackupService {
     writeOverride = null;
     collectionsOverride = null;
     cacheInvalidateOverride = null;
+    snapshotDirOverride = null;
   }
 
   static List<String> get _collections =>
@@ -337,6 +346,108 @@ class FullBackupService {
     'profile_$email',
     'challenges_$email',
   ];
+
+  // ============================
+  // LOCAL SNAPSHOT
+  //
+  // A user-downloaded archive is the real safety net, but it only exists if
+  // the user remembers to take one. The local snapshot is the automatic
+  // counterpart: a full copy of the whole account, refreshed on a daily
+  // cadence and kept on the device. It is what makes "this cannot happen
+  // again" true even for a user who never opens the backup screen.
+  // ============================
+
+  /// Where the automatic snapshot is kept on the device.
+  static Future<File> _snapshotFile(String email) async {
+    final dir = await _snapshotDir();
+    return File('${dir.path}/full_${_safeName(email)}.json');
+  }
+
+  static String _safeName(String email) =>
+      email.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
+
+  static Future<Directory> _snapshotDir() async {
+    final override = snapshotDirOverride;
+    if (override != null) return override();
+    final dir = await getApplicationDocumentsDirectory();
+    final backupDir = Directory('${dir.path}/backups');
+    if (!await backupDir.exists()) {
+      await backupDir.create(recursive: true);
+    }
+    return backupDir;
+  }
+
+  /// Writes the automatic snapshot for [email], keeping the *larger* of the
+  /// new and the stored snapshot.
+  ///
+  /// A snapshot that holds fewer documents than the one already on disk means
+  /// something was deleted. Overwriting then would destroy the only complete
+  /// copy — the same trap the local transaction mirror fell into — so the
+  /// larger snapshot wins.
+  static Future<bool> writeLocalSnapshot(BackupArchive archive) async {
+    final email = archive.email;
+    if (email.isEmpty) return false;
+
+    final payload = archive.toJson();
+    try {
+      final file = await _snapshotFile(email);
+      final existing = await file.exists() ? await file.readAsString() : null;
+
+      if (existing != null) {
+        final existingCount = _documentCountOf(existing);
+        if (existingCount > archive.documentCount) {
+          // The stored snapshot is more complete — keep it.
+          return false;
+        }
+      }
+
+      // Write-then-rename, so a kill mid-write cannot leave a truncated
+      // snapshot that parses as a valid-but-empty backup.
+      final tmp = File('${file.path}.tmp');
+      await tmp.writeAsString(payload);
+      await tmp.rename(file.path);
+      return true;
+    } catch (e, s) {
+      debugPrint('[FullBackupService] local snapshot write failed: $e');
+      AppAnalytics.recordError(e, s, reason: 'full_backup_snapshot_write');
+      return false;
+    }
+  }
+
+  /// Reads the automatic snapshot for [email], or null when there is none.
+  static Future<BackupArchive?> readLocalSnapshot(String email) async {
+    try {
+      final file = await _snapshotFile(email);
+      if (!await file.exists()) return null;
+      return BackupArchive.fromJson(await file.readAsString());
+    } catch (e) {
+      debugPrint('[FullBackupService] local snapshot read failed: $e');
+      return null;
+    }
+  }
+
+  /// Whether an automatic snapshot exists for [email].
+  static Future<bool> hasLocalSnapshot(String email) async {
+    final snapshot = await readLocalSnapshot(email);
+    return snapshot != null && snapshot.documentCount > 0;
+  }
+
+  /// Number of documents in a serialized archive, without a full parse.
+  static int _documentCountOf(String payload) {
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) return 0;
+      final collections = decoded['collections'];
+      if (collections is! Map) return 0;
+      var total = 0;
+      for (final value in collections.values) {
+        if (value is List) total += value.length;
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
 
   // ============================
   // READ HELPERS

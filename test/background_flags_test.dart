@@ -71,4 +71,101 @@ void main() {
       expect(resolved['sms_auto_import'], 'hidden');
     });
   });
+
+  group('shouldRunDailySnapshot', () {
+    // Late evening, the window the snapshot is meant to run in.
+    final lateEvening = DateTime(2026, 10, 21, 22, 30);
+
+    test('runs in the late-evening window when nothing ran today', () {
+      expect(
+        shouldRunDailySnapshot(
+          now: lateEvening,
+          lastSuccessDay: null,
+          lastAttemptMs: null,
+        ),
+        isTrue,
+      );
+    });
+
+    test('does not run before 22:00', () {
+      expect(
+        shouldRunDailySnapshot(
+          now: DateTime(2026, 10, 21, 21, 59),
+          lastSuccessDay: null,
+          lastAttemptMs: null,
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not run twice on the same day', () {
+      expect(
+        shouldRunDailySnapshot(
+          now: lateEvening,
+          lastSuccessDay: '2026-10-21',
+          lastAttemptMs: null,
+        ),
+        isFalse,
+      );
+    });
+
+    test("a previous day's success does not block today", () {
+      expect(
+        shouldRunDailySnapshot(
+          now: lateEvening,
+          lastSuccessDay: '2026-10-20',
+          lastAttemptMs: null,
+        ),
+        isTrue,
+      );
+    });
+
+    test('a failed attempt is retried, but not before an hour', () {
+      final recentAttempt = lateEvening.millisecondsSinceEpoch -
+          const Duration(minutes: 30).inMilliseconds;
+      expect(
+        shouldRunDailySnapshot(
+          now: lateEvening,
+          lastSuccessDay: null,
+          lastAttemptMs: recentAttempt,
+        ),
+        isFalse,
+      );
+
+      // An hour later the day is still open (the run failed), so it retries.
+      final hourLater = DateTime(2026, 10, 21, 23, 30);
+      expect(
+        shouldRunDailySnapshot(
+          now: hourLater,
+          lastSuccessDay: null,
+          lastAttemptMs: lateEvening.millisecondsSinceEpoch,
+        ),
+        isTrue,
+      );
+    });
+
+    test('the retry gap is configurable', () {
+      final now = DateTime(2026, 10, 21, 22, 5);
+      final attempt = now.millisecondsSinceEpoch -
+          const Duration(minutes: 5).inMilliseconds;
+      expect(
+        shouldRunDailySnapshot(
+          now: now,
+          lastSuccessDay: null,
+          lastAttemptMs: attempt,
+          minHoursBetweenAttempts: 1,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldRunDailySnapshot(
+          now: now,
+          lastSuccessDay: null,
+          lastAttemptMs: attempt,
+          minHoursBetweenAttempts: 0,
+        ),
+        isTrue,
+      );
+    });
+  });
 }

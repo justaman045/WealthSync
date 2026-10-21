@@ -29,8 +29,31 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
   /// archive on disk is incomplete and the user must be told, not reassured.
   List<String> _captureErrors = const [];
 
+  /// Whether the app holds an automatic snapshot of this account on the
+  /// device. The restore-from-snapshot tile only appears when one exists —
+  /// an always-visible button that always fails is worse than no button.
+  bool _hasSnapshot = false;
+
   String get _email => FirebaseAuth.instance.currentUser?.email ?? '';
   AppLocalizations get _l10n => AppLocalizations.of(context)!;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSnapshotState();
+  }
+
+  /// Checks for the device snapshot once the screen opens.
+  ///
+  /// Fire-and-forget with a mounted guard: the result only flips a tile's
+  /// visibility, so a late answer must not touch a disposed State.
+  Future<void> _refreshSnapshotState() async {
+    final email = _email;
+    if (email.isEmpty) return;
+    final exists = await FullBackupService.hasLocalSnapshot(email);
+    if (!mounted) return;
+    setState(() => _hasSnapshot = exists);
+  }
 
   Future<String> _appVersion() async {
     try {
@@ -118,6 +141,38 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
 
     if (!mounted) return;
 
+    await _confirmAndRestore(archive);
+  }
+
+  /// Restores the account from the automatic snapshot the app keeps on the
+  /// device (taken once a day by the background worker).
+  ///
+  /// This is the safety net for a user who never opened the backup screen:
+  /// the snapshot exists whether or not they knew it did, and it covers every
+  /// collection — not just transactions.
+  Future<void> _restoreFromDeviceSnapshot() async {
+    if (_busy) return;
+    if (_email.isEmpty) {
+      _snack(_l10n.backupNotSignedIn, AppColors.error);
+      return;
+    }
+
+    final archive = await FullBackupService.readLocalSnapshot(_email);
+    if (!mounted) return;
+    if (archive == null || archive.documentCount == 0) {
+      _snack(_l10n.backupNoDeviceSnapshot, AppColors.warning);
+      return;
+    }
+
+    await _confirmAndRestore(archive);
+  }
+
+  /// Asks for confirmation, then restores [archive].
+  ///
+  /// Shared by the file restore and the device-snapshot restore so both paths
+  /// show the same per-collection breakdown, the same account-mismatch
+  /// warning and the same "nothing is deleted" promise.
+  Future<void> _confirmAndRestore(BackupArchive archive) async {
     final accountMismatch =
         archive.email.isNotEmpty && archive.email != _email;
 
@@ -378,6 +433,35 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
                         ),
                       ),
                     ),
+
+                    // The automatic snapshot: taken once a day by the
+                    // background worker, kept on the device. Shown only when
+                    // one actually exists.
+                    if (_hasSnapshot) ...[
+                      SizedBox(height: 16.h),
+                      SettingsTile(
+                        icon: Icons.history_rounded,
+                        title: _l10n.backupRestoreFromDeviceSnapshot,
+                        onTap: _busy ? null : _restoreFromDeviceSnapshot,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: 16.w,
+                          right: 16.w,
+                          top: 4.h,
+                        ),
+                        child: Text(
+                          _l10n.backupRestoreFromDeviceSnapshotExplain,
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            height: 1.4,
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

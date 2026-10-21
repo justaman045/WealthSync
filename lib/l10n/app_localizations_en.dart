@@ -619,6 +619,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupNotSignedIn => 'You are not signed in.';
 
   @override
+  String get backupNoDeviceSnapshot =>
+      'No snapshot is stored on this device yet. One is taken automatically once a day.';
+
+  @override
+  String get backupRestoreFromDeviceSnapshot => 'Restore From Device Snapshot';
+
+  @override
+  String get backupRestoreFromDeviceSnapshotExplain =>
+      'Your app keeps an automatic copy of the whole account on this device, refreshed once a day. Use it if something was deleted by accident.';
+
+  @override
   String get backupHadNoTransactions => 'Backup had no transactions to restore';
 
   @override
