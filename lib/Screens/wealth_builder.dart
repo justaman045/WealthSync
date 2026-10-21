@@ -737,7 +737,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                   Icons.tune_rounded,
                   color: scheme.onSurface.withValues(alpha: 0.6),
                 ),
-                tooltip: "Manage Visibility",
+                tooltip: AppLocalizations.of(context)!.manageVisibility,
               ),
             ),
           ],
@@ -1230,7 +1230,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               flagKey: 'custom_mode',
               child: IconButton(
                 visualDensity: VisualDensity.compact,
-                tooltip: "Add Custom Asset",
+                tooltip: AppLocalizations.of(context)!.addCustomAsset,
                 onPressed: () => _showCustomAssetDialog('', 0),
                 icon: Icon(
                   Icons.add_circle_outline,
@@ -1372,7 +1372,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       onTap:
           onTapOverride ??
           () => _showUpdateDialog(title, key, amount, readOnly: readOnly),
-      child: Container(
+      // The card shows a name and an amount, so it reads as text without
+      // this — nothing tells a screen reader that tapping it opens the editor.
+      child: Semantics(
+        button: true,
+        child: Container(
         padding: EdgeInsets.all(14.w),
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
@@ -1511,7 +1515,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       iconSize: 14.sp,
-                      tooltip: "Update Value / Target",
+                      tooltip: AppLocalizations.of(context)!.updateValueOrTarget,
                       onPressed: () => _showUpdateDialog(title, key, amount),
                       icon: Icon(
                         Icons.tune_rounded,
@@ -1555,6 +1559,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               ],
             ),
           ],
+        ),
         ),
       ),
     );

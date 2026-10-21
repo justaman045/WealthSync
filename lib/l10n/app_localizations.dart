@@ -1228,6 +1228,108 @@ abstract class AppLocalizations {
   /// **'Working…'**
   String get backupWorking;
 
+  /// No description provided for @a11yProfilePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile'**
+  String get a11yProfilePhoto;
+
+  /// No description provided for @a11yPreviousMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous month'**
+  String get a11yPreviousMonth;
+
+  /// No description provided for @a11yNextMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Next month'**
+  String get a11yNextMonth;
+
+  /// No description provided for @addCustomAsset.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Custom Asset'**
+  String get addCustomAsset;
+
+  /// No description provided for @updateValueOrTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Value / Target'**
+  String get updateValueOrTarget;
+
+  /// No description provided for @a11yProStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Pro status and subscription'**
+  String get a11yProStatus;
+
+  /// No description provided for @a11ySearchTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Search transactions'**
+  String get a11ySearchTransactions;
+
+  /// No description provided for @a11yRecurringPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring payments'**
+  String get a11yRecurringPayments;
+
+  /// No description provided for @a11yLentMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Lent money'**
+  String get a11yLentMoney;
+
+  /// No description provided for @a11ySpendingForecast.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending forecast'**
+  String get a11ySpendingForecast;
+
+  /// No description provided for @a11ySavingsGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings goals'**
+  String get a11ySavingsGoals;
+
+  /// No description provided for @a11ySavingsChallenges.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings challenges'**
+  String get a11ySavingsChallenges;
+
+  /// No description provided for @a11yScanQrToPay.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a QR code to pay'**
+  String get a11yScanQrToPay;
+
+  /// No description provided for @a11yQuickSendUpi.
+  ///
+  /// In en, this message translates to:
+  /// **'Send money with UPI'**
+  String get a11yQuickSendUpi;
+
+  /// No description provided for @a11yQuickSendTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Send money with UPI to {name}'**
+  String a11yQuickSendTo(String name);
+
+  /// No description provided for @a11ySendMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Send money'**
+  String get a11ySendMoney;
+
+  /// No description provided for @a11yReceiveMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive money'**
+  String get a11yReceiveMoney;
+
   /// No description provided for @backupNotSignedIn.
   ///
   /// In en, this message translates to:

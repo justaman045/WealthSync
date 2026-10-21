@@ -616,6 +616,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupWorking => 'Working…';
 
   @override
+  String get a11yProfilePhoto => 'Your profile';
+
+  @override
+  String get a11yPreviousMonth => 'Previous month';
+
+  @override
+  String get a11yNextMonth => 'Next month';
+
+  @override
+  String get addCustomAsset => 'Add Custom Asset';
+
+  @override
+  String get updateValueOrTarget => 'Update Value / Target';
+
+  @override
+  String get a11yProStatus => 'Pro status and subscription';
+
+  @override
+  String get a11ySearchTransactions => 'Search transactions';
+
+  @override
+  String get a11yRecurringPayments => 'Recurring payments';
+
+  @override
+  String get a11yLentMoney => 'Lent money';
+
+  @override
+  String get a11ySpendingForecast => 'Spending forecast';
+
+  @override
+  String get a11ySavingsGoals => 'Savings goals';
+
+  @override
+  String get a11ySavingsChallenges => 'Savings challenges';
+
+  @override
+  String get a11yScanQrToPay => 'Scan a QR code to pay';
+
+  @override
+  String get a11yQuickSendUpi => 'Send money with UPI';
+
+  @override
+  String a11yQuickSendTo(String name) {
+    return 'Send money with UPI to $name';
+  }
+
+  @override
+  String get a11ySendMoney => 'Send money';
+
+  @override
+  String get a11yReceiveMoney => 'Receive money';
+
+  @override
   String get backupNotSignedIn => 'You are not signed in.';
 
   @override

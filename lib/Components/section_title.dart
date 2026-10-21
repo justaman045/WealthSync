@@ -31,14 +31,19 @@ class SectionTitle extends StatelessWidget {
         ),
         const Spacer(),
         if (onTap != null)
-          GestureDetector(
-            onTap: onTap,
-            child: Text(
-              AppStrings.viewAll,
-              style: TextStyle(
-                color: accentColor ?? scheme.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: 12.sp,
+          // The "View All" text is the label; only the button role is
+          // missing, so a screen reader knows the link is actionable.
+          Semantics(
+            button: true,
+            child: GestureDetector(
+              onTap: onTap,
+              child: Text(
+                AppStrings.viewAll,
+                style: TextStyle(
+                  color: accentColor ?? scheme.primary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.sp,
+                ),
               ),
             ),
           ),

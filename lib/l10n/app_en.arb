@@ -264,6 +264,30 @@
   },
   "backupSectionTitle": "Backup",
   "backupWorking": "Working\u2026",
+  "a11yProfilePhoto": "Your profile",
+  "a11yPreviousMonth": "Previous month",
+  "a11yNextMonth": "Next month",
+  "addCustomAsset": "Add Custom Asset",
+  "updateValueOrTarget": "Update Value / Target",
+  "a11yProStatus": "Pro status and subscription",
+  "a11ySearchTransactions": "Search transactions",
+  "a11yRecurringPayments": "Recurring payments",
+  "a11yLentMoney": "Lent money",
+  "a11ySpendingForecast": "Spending forecast",
+  "a11ySavingsGoals": "Savings goals",
+  "a11ySavingsChallenges": "Savings challenges",
+  "a11yScanQrToPay": "Scan a QR code to pay",
+  "a11yQuickSendUpi": "Send money with UPI",
+  "a11yQuickSendTo": "Send money with UPI to {name}",
+  "@a11yQuickSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "a11ySendMoney": "Send money",
+  "a11yReceiveMoney": "Receive money",
   "backupNotSignedIn": "You are not signed in.",
   "backupNoDeviceSnapshot": "No snapshot is stored on this device yet. One is taken automatically once a day.",
   "backupRestoreFromDeviceSnapshot": "Restore From Device Snapshot",

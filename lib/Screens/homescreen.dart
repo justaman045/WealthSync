@@ -139,35 +139,42 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         elevation: 0,
         leading: Padding(
           padding: EdgeInsets.only(left: 16.w, top: 2.h, bottom: 2.h),
+          child: Semantics(
+            button: true,
+            label: AppLocalizations.of(context)!.a11yProfilePhoto,
+            child: GestureDetector(
+              onTap: () {
+                if (!ensureFeatureUsable(context, 'profile')) return;
+                gotoPage(const EditProfileScreen());
+              },
+              child: Obx(() {
+                final url = _profileController.photoURL.value;
+                return Hero(
+                  tag: 'profile_pic',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: scheme.onSurface.withValues(alpha: 0.1),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: AppAvatar(url: url, size: 34.w),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+        title: Semantics(
+          button: true,
+          label: AppLocalizations.of(context)!.a11yProfilePhoto,
           child: GestureDetector(
             onTap: () {
               if (!ensureFeatureUsable(context, 'profile')) return;
               gotoPage(const EditProfileScreen());
             },
-            child: Obx(() {
-              final url = _profileController.photoURL.value;
-              return Hero(
-                tag: 'profile_pic',
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: scheme.onSurface.withValues(alpha: 0.1),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: AppAvatar(url: url, size: 34.w),
-                ),
-              );
-            }),
-          ),
-        ),
-        title: GestureDetector(
-          onTap: () {
-            if (!ensureFeatureUsable(context, 'profile')) return;
-            gotoPage(const EditProfileScreen());
-          },
-          child: Column(
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -217,6 +224,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                 );
               }),
             ],
+            ),
           ),
         ),
         actions: [
@@ -234,6 +242,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               onTap: () => gotoPage(const SubscriptionScreen()),
               theme: theme,
               color: ctrl.isPro ? Colors.cyanAccent : null,
+              semanticLabel: AppLocalizations.of(context)!.a11yProStatus,
             );
           }),
           SizedBox(width: 4.w),
@@ -251,6 +260,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
               heroTag: 'search_bar',
+              semanticLabel: AppLocalizations.of(context)!
+                  .a11ySearchTransactions,
             ),
           ),
           SizedBox(width: 4.w),
@@ -270,6 +281,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                 gotoPage(const RecurringPaymentsScreen());
               },
               theme: theme,
+              semanticLabel: AppLocalizations.of(context)!
+                  .a11yRecurringPayments,
             ),
           ),
           SizedBox(width: 4.w),
@@ -290,6 +303,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
               color: Colors.greenAccent,
+              semanticLabel: AppLocalizations.of(context)!.a11yLentMoney,
             ),
           ),
           SizedBox(width: 4.w),
@@ -309,6 +323,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                 gotoPage(const ForecastScreen());
               },
               theme: theme,
+              semanticLabel: AppLocalizations.of(context)!.a11ySpendingForecast,
             ),
           ),
           SizedBox(width: 4.w),
@@ -329,6 +344,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
               color: Colors.amberAccent,
+              semanticLabel: AppLocalizations.of(context)!.a11ySavingsGoals,
             ),
           ),
           SizedBox(width: 4.w),
@@ -343,6 +359,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
               color: Colors.greenAccent,
+              semanticLabel: AppLocalizations.of(context)!
+                  .a11ySavingsChallenges,
             ),
           ),
           SizedBox(width: 6.w),
@@ -498,7 +516,9 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         flagKey: 'qr_scan',
         child: FloatingActionButton(
           backgroundColor: AppColors.primary,
-          tooltip: 'Scan QR to Pay',
+          // The tooltip is also the button's semantic label, so it has to be
+          // localized like any other visible copy.
+          tooltip: AppLocalizations.of(context)!.a11yScanQrToPay,
           onPressed: () {
             HapticFeedback.lightImpact();
             if (!Get.isRegistered<SubscriptionController>() ||
@@ -589,6 +609,7 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     required IconData icon,
     required VoidCallback onTap,
     required ThemeData theme,
+    required String semanticLabel,
     String? heroTag,
     Color? color,
   }) {
@@ -602,16 +623,22 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
       content = Hero(tag: heroTag, child: content);
     }
 
-    return GlassContainer(
-      padding: EdgeInsets.zero,
-      borderRadius: BorderRadius.circular(22.r),
-      width: 38.w,
-      height: 36.h,
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: content,
+    // Every one of these is an icon-only button, so without a label a screen
+    // reader announces seven identical "button"s in a row.
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: GlassContainer(
+        padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.circular(22.r),
+        width: 38.w,
+        height: 36.h,
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: content,
+      ),
     );
   }
 

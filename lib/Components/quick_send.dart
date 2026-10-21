@@ -9,6 +9,7 @@ import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Screens/add_transaction.dart';
 
@@ -173,46 +174,55 @@ class _QuickSendRowState extends State<QuickSendRow> {
     required bool isDark,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(4.w),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.2),
-                  blurRadius: 10.w,
-                  spreadRadius: 2.w,
-                ),
-              ],
+    // The row is a tap target whose only content is an avatar and a name, so
+    // without this a screen reader announces a bare category name and gives
+    // no hint that tapping it sends money. `excludeSemantics` replaces the
+    // visible label with the action, instead of announcing both.
+    return Semantics(
+      button: true,
+      excludeSemantics: true,
+      label: AppLocalizations.of(context)!.a11yQuickSendTo(name),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(4.w),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.2),
+                    blurRadius: 10.w,
+                    spreadRadius: 2.w,
+                  ),
+                ],
+              ),
+              child: asset,
             ),
-            child: asset,
-          ),
-          SizedBox(height: 8.h),
-          SizedBox(
-            width: 70.w,
-            child: Text(
-              name,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.9)
-                    : Colors.black87,
-                letterSpacing: 0.3,
+            SizedBox(height: 8.h),
+            SizedBox(
+              width: 70.w,
+              child: Text(
+                name,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.9)
+                      : Colors.black87,
+                  letterSpacing: 0.3,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

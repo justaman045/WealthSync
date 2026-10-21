@@ -915,7 +915,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         }
                         Get.to(() => const AnalyticsTrendsScreen());
                       },
-                      child: Container(
+                      child: Semantics(
+                        button: true,
+                        child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 24.w,
                           vertical: 12.h,
@@ -958,6 +960,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               ),
                             ],
                           ),
+                        ),
                         ),
                       ),
                     ),
@@ -1374,7 +1377,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final isDark = _cachedIsDark;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      // The card reads as text; only the button role is missing. `button` is
+      // false when there is nothing to tap, so a plain summary card never
+      // announces itself as actionable.
+      child: Semantics(
+        button: onTap != null,
+        child: Container(
         width: isWide ? double.infinity : null,
         padding: EdgeInsets.all(18.w),
         decoration: BoxDecoration(
@@ -1440,7 +1448,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
           ],
         ),
-      ), // Container
+        ), // Container
+      ),
     ); // GestureDetector
   }
 
@@ -2064,15 +2073,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  setState(() => _calendarMonthOffset--);
-                  _loadCalendarEvents();
-                },
-                child: Icon(
-                  Icons.chevron_left,
-                  size: 22.sp,
-                  color: theme.textTheme.bodySmall?.color,
+              // Bare chevrons: without a label a screen reader can only say
+              // "button", which says nothing about which way it goes.
+              Semantics(
+                button: true,
+                label: AppLocalizations.of(context)!.a11yPreviousMonth,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _calendarMonthOffset--);
+                    _loadCalendarEvents();
+                  },
+                  child: Icon(
+                    Icons.chevron_left,
+                    size: 22.sp,
+                    color: theme.textTheme.bodySmall?.color,
+                  ),
                 ),
               ),
               SizedBox(width: 4.w),
@@ -2085,19 +2100,25 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ),
               SizedBox(width: 4.w),
-              GestureDetector(
-                onTap: _calendarMonthOffset < 0
-                    ? () {
-                        setState(() => _calendarMonthOffset++);
-                        _loadCalendarEvents();
-                      }
-                    : null,
-                child: Icon(
-                  Icons.chevron_right,
-                  size: 22.sp,
-                  color: _calendarMonthOffset < 0
-                      ? theme.textTheme.bodySmall?.color
-                      : (isDark ? Colors.white24 : AppColors.lightTextTertiary),
+              Semantics(
+                button: true,
+                label: AppLocalizations.of(context)!.a11yNextMonth,
+                child: GestureDetector(
+                  onTap: _calendarMonthOffset < 0
+                      ? () {
+                          setState(() => _calendarMonthOffset++);
+                          _loadCalendarEvents();
+                        }
+                      : null,
+                  child: Icon(
+                    Icons.chevron_right,
+                    size: 22.sp,
+                    color: _calendarMonthOffset < 0
+                        ? theme.textTheme.bodySmall?.color
+                        : (isDark
+                              ? Colors.white24
+                              : AppColors.lightTextTertiary),
+                  ),
                 ),
               ),
             ],
@@ -2156,9 +2177,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   );
                   Get.to(() => TransactionHistoryScreen(filterDate: date));
                 },
-                child: Tooltip(
-                  message: '$sym${spend.toStringAsFixed(0)}',
-                  child: Container(
+                // The tooltip carries the spend amount; the button role is
+                // what is still missing, so a screen reader knows the cell
+                // opens that day's transactions.
+                child: Semantics(
+                  button: true,
+                  child: Tooltip(
+                    message: '$sym${spend.toStringAsFixed(0)}',
+                    child: Container(
                     decoration: BoxDecoration(
                       color: bgColor,
                       borderRadius: BorderRadius.circular(4.r),
@@ -2207,6 +2233,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ),
                       ],
                     ),
+                  ),
                   ),
                 ),
               );
