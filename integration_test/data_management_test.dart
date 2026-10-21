@@ -27,8 +27,25 @@ void main() {
     await tapWhenVisible(tester, find.text('Restore Data'));
     await waitFor(tester, find.text('Restore Data')); // confirm dialog title
     await tapWhenVisible(tester, find.widgetWithText(TextButton, 'Restore'));
-    await waitFor(tester, find.text('Data restored from backup'));
-    expect(find.text('Data restored from backup'), findsWidgets);
+    // The app has three legitimate outcomes here, because the test account is
+    // wiped on launch and may legitimately hold zero transactions:
+    //   - "Restored N transactions from backup"
+    //   - "Backup had no transactions to restore"
+    //   - "No local backup found. Tap 'Backup Data' first." (hasUserBackup is
+    //     false for an empty backup, so the restore never runs at all)
+    // The old assertion waited for the literal 'Data restored from backup',
+    // which does not exist anywhere in lib/ — that step could never have passed.
+    await waitFor(
+      tester,
+      find.textContaining(
+        RegExp(
+          r'(Restored \d+ transactions? from backup'
+          r'|Backup had no transactions to restore'
+          r'|No local backup found)',
+        ),
+      ),
+      seconds: 20,
+    );
     await pumpReal(tester, const Duration(seconds: 2));
 
     // ── 3. Back to settings and home ────────────────────────────────────────

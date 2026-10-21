@@ -14,19 +14,36 @@ void main() {
     await launchAndSignIn(tester);
 
     // ── 1. Home AppBar Pro-gated shortcuts all route to the paywall ─────────
+    // Each of these is behind its own admin kill-switch (recurring,
+    // lent_money, forecast, goals). When an admin sets one to `hidden` the
+    // button is removed for everyone, so requiring it unconditionally hung the
+    // test on the full timeout. Assert the paywall for whichever are present
+    // and skip the hidden ones — the gate can only be tested where it exists.
+    var gatedChecked = 0;
     for (final icon in <IconData>[
       Icons.event_repeat, // Subscriptions (recurring payments)
       Icons.handshake_outlined, // Lent Money
       Icons.trending_up, // Forecast
       Icons.flag_outlined, // Goals
     ]) {
+      if (!await isVisible(tester, find.byIcon(icon))) continue;
       await tapWhenVisible(tester, find.byIcon(icon));
       await assertUpgradeScreen(tester); // asserts paywall, closes back home
+      gatedChecked++;
     }
+    // A totally flag-stripped home screen would make this test vacuous.
+    expect(
+      gatedChecked,
+      greaterThan(0),
+      reason: 'no Pro-gated AppBar shortcut was present to verify',
+    );
 
     // ── 2. QR FAB is Pro-gated too ──────────────────────────────────────────
-    await tapWhenVisible(tester, find.byIcon(Icons.qr_code_scanner));
-    await assertUpgradeScreen(tester);
+    // Gated by `qr_scan`; skip when an admin has hidden it.
+    if (await isVisible(tester, find.byIcon(Icons.qr_code_scanner))) {
+      await tapWhenVisible(tester, find.byIcon(Icons.qr_code_scanner));
+      await assertUpgradeScreen(tester);
+    }
 
     // ── 3. Budgets: Settings → General → Set Budget shows the lock ─────────
     await tapNavTab(tester, Icons.tune_rounded, 'Settings');

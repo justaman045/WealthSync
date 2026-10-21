@@ -96,23 +96,43 @@ restart_emulator() {
   # Clear stale AVD/qemu locks left behind by a crashed boot. Without this the
   # new qemu fails to bind port 5554 and every remaining file is skipped — the
   # exact cascade this function exists to prevent.
-  rm -f "$HOME/.android/avd/test.avd/multiinstance.lock" \
-        "$HOME/.android/avd/test.avd/hardware-qemu.ini.lock" 2>/dev/null || true
+  #
+  # The AVD name is env-overridable because CI's runner image ships an AVD named
+  # `test` while a developer's machine almost never does (e.g. Medium_Phone).
+  # Hard-coding it meant a local run killed the emulator, failed to find `test`,
+  # and then SKIPPED every remaining file as "emulator dead".
+  local avd_name="${E2E_AVD_NAME:-test}"
+  rm -f "$HOME/.android/avd/$avd_name.avd/multiinstance.lock" \
+        "$HOME/.android/avd/$avd_name.avd/hardware-qemu.ini.lock" 2>/dev/null || true
   rm -rf "/run/user/$(id -u)/avd/running" 2>/dev/null || true
-  # The emulator binary location varies by runner image; honour the SDK root
-  # env vars the Android tooling already exports before falling back.
+  # The emulator binary location varies by machine; honour the SDK root env vars
+  # the Android tooling exports, the common per-user SDK install, and PATH before
+  # giving up. A bare `command -v emulator` alone was why a local restart bailed.
   local emulator_bin="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}/emulator/emulator"
+  if [ ! -x "$emulator_bin" ]; then
+    emulator_bin="$HOME/Android/Sdk/emulator/emulator"
+  fi
   if [ ! -x "$emulator_bin" ]; then
     emulator_bin="$(command -v emulator || true)"
   fi
-  if [ -z "$emulator_bin" ]; then
-    echo "Emulator binary not found (looked under \$ANDROID_SDK_ROOT/\$ANDROID_HOME)."
+  if [ -z "$emulator_bin" ] || [ ! -x "$emulator_bin" ]; then
+    echo "Emulator binary not found (looked under \$ANDROID_SDK_ROOT/\$ANDROID_HOME, \$HOME/Android/Sdk, and \$PATH)."
     return 1
   fi
-  nohup "$emulator_bin" -port 5554 -avd test \
+  if ! "$emulator_bin" -list-avds 2>/dev/null | grep -qx "$avd_name"; then
+    echo "AVD '$avd_name' not found (set E2E_AVD_NAME to override). Available:"
+    "$emulator_bin" -list-avds 2>/dev/null | sed 's/^/  /'
+    return 1
+  fi
+  nohup "$emulator_bin" -port 5554 -avd "$avd_name" \
     -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim \
     -camera-back none -no-metrics -cores 4 >/tmp/emulator-restart.log 2>&1 &
-  for _ in $(seq 1 45); do
+  # 45*2s (90s) was tuned for CI's headless software-rendered AVD. A real
+  # hardware-accelerated AVD (a developer's own) takes noticeably longer to
+  # reach boot_completed, so it was declared dead while still booting and every
+  # remaining file got skipped. Allow an env-overridable window instead.
+  local boot_tries="${E2E_BOOT_TRIES:-45}"
+  for _ in $(seq 1 "$boot_tries"); do
     if device_ok && [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
       echo "Emulator restarted and booted."
       return 0
@@ -245,7 +265,12 @@ for f in integration_test/*_test.dart; do
   # the second file in three consecutive runs — give every file after the first
   # a fresh qemu process so each runs as a first app instance. The action's
   # emulator (booted fresh before the script runs) covers the first file.
-  if [ "$FIRST_FILE" = "0" ]; then
+  #
+  # E2E_NO_RESTART=1 skips the per-file restart. That is the right choice on a
+  # hardware-accelerated local emulator, where the host-GL accumulation this
+  # guards against does not occur — and where restarting would destroy the
+  # developer's own booted AVD and its login session.
+  if [ "$FIRST_FILE" = "0" ] && [ "${E2E_NO_RESTART:-0}" != "1" ]; then
     if ! restart_emulator; then
       EMULATOR_DEAD=1
       DEAD_SINCE="$name"

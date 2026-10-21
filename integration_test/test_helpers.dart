@@ -392,6 +392,26 @@ Future<void> tapWhenVisible(
   fail('Timed out waiting for ${finder.toString()}');
 }
 
+/// True when [finder] is present within [seconds] (real time), without failing.
+///
+/// Admin feature flags can set a surface to `hidden`, which removes its entry
+/// point for everyone (a missing AppBar action, tab, or FAB). A test that
+/// hard-requires such an entry point then hangs for its full timeout waiting for
+/// UI the kill-switch deliberately deleted — which reads as a product failure
+/// when the app is behaving exactly as documented. Use this to skip
+/// flag-gated surfaces instead of asserting they must exist.
+Future<bool> isVisible(
+  WidgetTester tester,
+  Finder finder, {
+  int seconds = 8,
+}) async {
+  for (var i = 0; i < seconds; i++) {
+    await pumpReal(tester);
+    if (finder.evaluate().isNotEmpty) return true;
+  }
+  return false;
+}
+
 /// Long-presses [finder] and holds long enough for the LongPressGestureRecognizer
 /// to fire, pumping REAL frames during the hold.
 ///
