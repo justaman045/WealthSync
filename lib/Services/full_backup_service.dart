@@ -34,6 +34,31 @@ class FullBackupService {
   /// Firestore batches cap at 500 writes.
   static const int _batchSize = 400;
 
+  /// Error codes that mean "the server refused this document", as opposed to
+  /// "the request never got through".
+  ///
+  /// Only the first kind is worth retrying document by document. A batch that
+  /// failed because the network dropped would fail the same way 400 times
+  /// over, so the retry is reserved for a batch the rules actually rejected.
+  static const Set<String> _documentRejectionCodes = {
+    'permission-denied',
+    'invalid-argument',
+    'failed-precondition',
+    'out-of-range',
+  };
+
+  /// Whether [error] means a document was refused, so the batch can be
+  /// retried one document at a time.
+  static bool _isDocumentRejection(Object error) {
+    if (error is FirebaseException) {
+      return _documentRejectionCodes.contains(error.code);
+    }
+    // Anything else (a test seam, an unexpected SDK error) is treated as a
+    // rejection so the per-document path is still exercised rather than
+    // silently dropping the chunk.
+    return true;
+  }
+
   /// `file_picker` refuses very large buffers on some platforms and the
   /// share/intent path is worse; warn rather than fail so the user still gets
   /// their data.
@@ -61,6 +86,36 @@ class FullBackupService {
   @visibleForTesting
   static Future<void> Function(String, Map<String, dynamic>)? writeOverride;
 
+  /// Replaces the *batch* write used for subcollection restores. Signature:
+  /// (email, collection, docs), where each doc is
+  /// `{'_docId': String, '_data': Map<String, dynamic>}`.
+  ///
+  /// The real path commits a Firestore batch, which is atomic. A test uses
+  /// this seam to capture the calls, and to make the batch fail so the
+  /// per-document fallback can be exercised.
+  @visibleForTesting
+  static Future<void> Function(
+    String email,
+    String collection,
+    List<Map<String, dynamic>> docs,
+  )? batchWriteOverride;
+
+  /// Replaces the single-document write used by the per-document fallback
+  /// that runs when a batch is rejected. Signature: (email, collection,
+  /// docId, data).
+  @visibleForTesting
+  static Future<void> Function(
+    String email,
+    String collection,
+    String docId,
+    Map<String, dynamic> data,
+  )? docWriteOverride;
+
+  /// Replaces the signed-in account lookup, so a restore can be tested
+  /// without a Firebase app. Null means "read it from FirebaseAuth".
+  @visibleForTesting
+  static String? signedInEmailOverride;
+
   /// Replaces the "list collections" source. Defaults to
   /// `UserService.subcollections`.
   @visibleForTesting
@@ -84,6 +139,9 @@ class FullBackupService {
     fetchProfileOverride = null;
     fetchPortfolioOverride = null;
     writeOverride = null;
+    batchWriteOverride = null;
+    docWriteOverride = null;
+    signedInEmailOverride = null;
     collectionsOverride = null;
     cacheInvalidateOverride = null;
     snapshotDirOverride = null;
@@ -127,7 +185,13 @@ class FullBackupService {
 
     Map<String, dynamic>? profile;
     try {
-      profile = await _fetchProfile(email);
+      // Redacted here rather than inside the fetch, so the redaction also
+      // covers the test seam and any future read path: no purchase
+      // credential can reach the downloaded file.
+      final fetched = await _fetchProfile(email);
+      profile = fetched == null
+          ? null
+          : BackupArchive.redactProfileForArchive(fetched);
     } catch (e, s) {
       debugPrint('[FullBackupService] profile read failed: $e');
       AppAnalytics.recordError(e, s, reason: 'full_backup_profile_failed');
@@ -219,20 +283,44 @@ class FullBackupService {
   /// Returns a per-collection count of documents written, so the UI can report
   /// exactly what came back.
   static Future<BackupRestoreResult> restore(BackupArchive archive) async {
-    final email = archive.email.isNotEmpty
-        ? archive.email
-        : FirebaseAuth.instance.currentUser?.email;
-    if (email == null || email.isEmpty) {
+    // The restore writes into the account that is signed in NOW, not the one
+    // the archive was taken from.
+    //
+    // That is what makes the feature able to rebuild a deleted account: the
+    // user signs up again (possibly with the same address, possibly not) and
+    // restores their old file into the new account. Writing to the archived
+    // address instead would be denied by `firestore.rules` — an owner can
+    // only write their own document — so the restore would silently write
+    // nothing at all.
+    final signedIn = _currentUserEmail();
+    final email = signedIn.isNotEmpty ? signedIn : archive.email;
+    if (email.isEmpty) {
       throw Exception('No signed-in account to restore into.');
+    }
+    if (archive.email.isNotEmpty && archive.email != email) {
+      debugPrint(
+        '[FullBackupService] restoring a backup taken by ${archive.email} '
+        'into $email',
+      );
     }
 
     final written = <String, int>{};
     final failed = <String, Object>{};
 
-    // Profile first: it carries subscription/currency that the rest depends on.
+    // Profile first: it carries the personal details that make a rebuilt
+    // account usable.
+    //
+    // The entitlement and identity fields are stripped first. The rules
+    // reject most of them on an owner write, which would fail the *whole*
+    // write and cost the user their name and phone; and where the rules do
+    // allow it, restoring them would let a stale backup strip a paying
+    // user's Pro status. The live values survive because the write is a
+    // merge.
     if (archive.profile != null && archive.profile!.isNotEmpty) {
       try {
-        final data = _revive(archive.profile!);
+        final data = BackupArchive.stripServerAuthoritativeFields(
+          _revive(archive.profile!),
+        );
         await _writeDoc('users/$email', data);
         written['profile'] = 1;
       } catch (e, s) {
@@ -270,7 +358,8 @@ class FullBackupService {
         continue;
       }
 
-      var count = 0;
+      var committed = 0;
+      final rejected = <String>[];
       try {
         final pending = <Map<String, dynamic>>[];
         for (final raw in docs) {
@@ -279,36 +368,85 @@ class FullBackupService {
           final docId = (id == null || id.isEmpty)
               ? FirebaseFirestore.instance.collection('_').doc().id
               : id;
-          pending.add({'_docId': docId, '_data': _revive(data)});
+          try {
+            pending.add({'_docId': docId, '_data': _revive(data)});
+          } catch (e, s) {
+            // One unreadable document must not cost the whole collection.
+            rejected.add(docId);
+            AppAnalytics.recordError(
+              e,
+              s,
+              reason: 'full_backup_restore_doc_revive_failed',
+              context: {'collection': collection, 'docId': docId},
+            );
+          }
         }
 
         for (var i = 0; i < pending.length; i += _batchSize) {
-          final chunk = pending.skip(i).take(_batchSize);
-          final batch = FirebaseFirestore.instance.batch();
-          for (final item in chunk) {
-            final docId = item['_docId'] as String;
-            final data = item['_data'] as Map<String, dynamic>;
-            final ref = FirebaseFirestore.instance
-                .collection('users')
-                .doc(email)
-                .collection(collection)
-                .doc(docId);
-            batch.set(ref, data, SetOptions(merge: true));
-            count++;
+          final chunk = pending.skip(i).take(_batchSize).toList();
+          try {
+            await _commitChunk(email, collection, chunk);
+            committed += chunk.length;
+          } catch (e, s) {
+            // A Firestore batch is atomic: ONE document the rules reject
+            // fails every document in it. A recovery tool cannot afford
+            // that — 399 good transactions must not be lost to one bad
+            // one — so the chunk is retried one document at a time and
+            // only the document the server actually rejects is lost.
+            //
+            // A transient failure (the network dropped) is NOT retried that
+            // way: the same request would fail 400 times over, so the chunk
+            // is reported as failed and the restore moves on.
+            AppAnalytics.recordError(
+              e,
+              s,
+              reason: 'full_backup_restore_batch_failed',
+              context: {'collection': collection, 'chunkSize': chunk.length},
+            );
+            if (!_isDocumentRejection(e)) {
+              failed[collection] = e;
+              continue;
+            }
+            for (final item in chunk) {
+              final docId = item['_docId'] as String;
+              final data = item['_data'] as Map<String, dynamic>;
+              try {
+                await _writeCollectionDoc(email, collection, docId, data);
+                committed++;
+              } catch (docError) {
+                rejected.add(docId);
+                AppAnalytics.recordError(
+                  docError,
+                  s,
+                  reason: 'full_backup_restore_doc_failed',
+                  context: {'collection': collection, 'docId': docId},
+                );
+              }
+            }
           }
-          await batch.commit();
         }
-        written[collection] = count;
+        // Only documents the server actually accepted are counted. Reporting
+        // a batch that failed as "restored" is exactly the false success this
+        // feature exists to prevent.
+        written[collection] = committed;
+        if (rejected.isNotEmpty) {
+          failed[collection] =
+              '${rejected.length} of ${docs.length} document(s) were rejected '
+              'by the server';
+        }
       } catch (e, s) {
         debugPrint('[FullBackupService] restore of "$collection" failed: $e');
         AppAnalytics.recordError(
           e,
           s,
           reason: 'full_backup_restore_collection',
-          context: {'collection': collection, 'restoredBeforeFailure': count},
+          context: {
+            'collection': collection,
+            'restoredBeforeFailure': committed,
+          },
         );
         failed[collection] = e;
-        if (count > 0) written[collection] = count;
+        if (committed > 0) written[collection] = committed;
       }
     }
 
@@ -331,6 +469,23 @@ class FullBackupService {
     }
 
     return BackupRestoreResult(written: written, failed: failed);
+  }
+
+  /// The signed-in account's email, or '' when there is none.
+  ///
+  /// Reading `FirebaseAuth.instance` needs an initialized Firebase app, so a
+  /// pure unit test has no way to answer this. The seam keeps the lookup
+  /// testable without the restore depending on a live session.
+  static String _currentUserEmail() {
+    final override = signedInEmailOverride;
+    if (override != null) return override;
+    try {
+      return FirebaseAuth.instance.currentUser?.email ?? '';
+    } catch (_) {
+      // No Firebase app in this context. The caller falls back to the
+      // archive's own address.
+      return '';
+    }
   }
 
   /// Cache keys keyed by user email, matching the controllers' `_cacheKey`
@@ -508,6 +663,65 @@ class FullBackupService {
         .set(data, SetOptions(merge: true));
   }
 
+  /// Commits one chunk of documents as a single Firestore batch.
+  ///
+  /// Atomic by construction: the whole chunk lands or none of it does. That
+  /// is why the caller falls back to per-document writes when it fails.
+  static Future<void> _commitChunk(
+    String email,
+    String collection,
+    List<Map<String, dynamic>> chunk,
+  ) async {
+    final override = batchWriteOverride;
+    if (override != null) {
+      await override(email, collection, chunk);
+      return;
+    }
+    final batch = FirebaseFirestore.instance.batch();
+    for (final item in chunk) {
+      final ref = _collectionRef(
+        email,
+        collection,
+        item['_docId'] as String,
+      );
+      batch.set(
+        ref,
+        item['_data'] as Map<String, dynamic>,
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
+  }
+
+  /// Writes one document on its own — the fallback for a rejected batch.
+  static Future<void> _writeCollectionDoc(
+    String email,
+    String collection,
+    String docId,
+    Map<String, dynamic> data,
+  ) async {
+    final override = docWriteOverride;
+    if (override != null) {
+      await override(email, collection, docId, data);
+      return;
+    }
+    await _collectionRef(email, collection, docId).set(
+          data,
+          SetOptions(merge: true),
+        );
+  }
+
+  static DocumentReference<Map<String, dynamic>> _collectionRef(
+    String email,
+    String collection,
+    String docId,
+  ) =>
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(email)
+          .collection(collection)
+          .doc(docId);
+
   // ============================
   // SERIALIZATION
   // ============================
@@ -517,34 +731,11 @@ class FullBackupService {
   /// [GeoPoint] and [DocumentReference] are preserved with a tagged envelope so
   /// they can be revived exactly; without this a location-based asset would
   /// come back as an unusable `"GeoPoint(lat, lng)"` string.
-  static Map<String, dynamic> _jsonSafe(Map<String, dynamic> data) {
-    final out = <String, dynamic>{};
-    data.forEach((key, value) {
-      out[key] = _jsonSafeValue(value);
-    });
-    return out;
-  }
-
-  static Object? _jsonSafeValue(Object? value) {
-    if (value == null) return null;
-    if (value is Timestamp) return {'__ts__': value.toDate().toUtc().toIso8601String()};
-    if (value is DateTime) return {'__ts__': value.toUtc().toIso8601String()};
-    if (value is GeoPoint) {
-      return {'__geo__': {'lat': value.latitude, 'lng': value.longitude}};
-    }
-    if (value is DocumentReference) {
-      return {'__ref__': value.path};
-    }
-    if (value is Map) {
-      final m = <String, dynamic>{};
-      value.forEach((k, v) => m[k.toString()] = _jsonSafeValue(v));
-      return m;
-    }
-    if (value is List) return value.map(_jsonSafeValue).toList();
-    // int/double/String/bool are already JSON-safe.
-    if (value is num || value is String || value is bool) return value;
-    return value.toString();
-  }
+  ///
+  /// The implementation lives on [BackupArchive] so the archive and the
+  /// capture path cannot drift into two different envelope formats.
+  static Map<String, dynamic> _jsonSafe(Map<String, dynamic> data) =>
+      BackupArchive.jsonSafeMap(data);
 
   /// Inverse of [_jsonSafe]. Also normalizes bare ISO strings in *date-named*
   /// fields to Timestamps so an archive produced by an older build (or by the

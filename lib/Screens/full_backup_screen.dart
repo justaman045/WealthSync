@@ -237,11 +237,18 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
       setState(() => _busy = false);
 
       if (result.hasFailures) {
+        // The detail matters: a collection can fail because the server
+        // rejected a handful of documents, and the user needs to know that
+        // most of their data came back and which few did not.
+        final details = result.failed.entries
+            .map((e) => '${e.key}: ${_failureDetail(e.value)}')
+            .join('; ');
         _snack(
           _l10n.backupRestorePartial(
             result.totalWritten,
             result.failed.length,
             result.failed.keys.join(', '),
+            details,
           ),
           AppColors.error,
         );
@@ -254,6 +261,19 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
       setState(() => _busy = false);
       _snack(_l10n.backupRestoreFailed('$e'), AppColors.error);
     }
+  }
+
+  /// A one-line description of a restore failure, for the snack bar.
+  ///
+  /// The service stores a human-readable string when it knows what went
+  /// wrong (for example "3 of 210 documents were rejected by the server")
+  /// and the raw error otherwise. The raw error can be a paragraph, so it is
+  /// trimmed to something a snack bar can show.
+  static String _failureDetail(Object failure) {
+    final text = failure is String ? failure : failure.toString();
+    final collapsed = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (collapsed.length <= 120) return collapsed;
+    return '${collapsed.substring(0, 117)}...';
   }
 
   void _snack(String message, Color color) {

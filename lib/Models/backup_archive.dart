@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// A complete, restorable snapshot of one user's account.
 ///
 /// This is the file a user downloads and keeps. Unlike the GDPR export (a human
@@ -67,6 +69,81 @@ class BackupArchive {
       if (e.value.isNotEmpty) e.key: e.value.length,
   };
 
+  // ============================
+  // PROFILE FIELD HYGIENE
+  // ============================
+
+  /// Fields on `users/{email}` that are *credentials* — secrets that must never
+  /// be written into a file the user downloads, emails to themselves, or drops
+  /// in a cloud drive.
+  ///
+  /// `purchaseToken` is the Google Play purchase credential the rules require
+  /// to claim 'pro'. It authenticates a purchase; a copy of it in a shared
+  /// file is a copy of it in someone's inbox.
+  static const Set<String> credentialProfileFields = {'purchaseToken'};
+
+  /// Fields on `users/{email}` that are *server-authoritative*: the purchase
+  /// entitlement, the trial, the admin flag and the referral bookkeeping.
+  ///
+  /// A restore must never write these back. There are two reasons, and the
+  /// second is the dangerous one:
+  ///
+  ///  1. `firestore.rules` refuses most of them on an owner write.
+  ///     `isAdmin` and `referredBy` are rejected outright, and
+  ///     `subscriptionStatus: 'pro'` needs a recorded purchase — so including
+  ///     them makes the *entire* profile write fail, and the user loses their
+  ///     name, phone and address as well.
+  ///  2. Even where the rules do allow it, a restore becomes a privilege
+  ///     regression. Restoring a backup taken before a purchase would write
+  ///     `subscriptionStatus: 'free'` over a live `'pro'` and silently strip
+  ///     the user's paid plan; a forged `trialEndDate` would grant trial days
+  ///     that no purchase paid for.
+  ///
+  /// The live document keeps its own values: the restore is a merge, and a
+  /// merge never removes a field the write does not mention — so the
+  /// entitlement survives the restore untouched.
+  static const Set<String> serverAuthoritativeProfileFields = {
+    'subscriptionStatus',
+    'isPro',
+    'trialEndDate',
+    'trialUsed',
+    'planType',
+    'expiryDate',
+    'purchaseToken',
+    'isAdmin',
+    'referredBy',
+    'referralCount',
+  };
+
+  /// Removes the credential fields from a captured profile so no secret is
+  /// written into the downloaded file.
+  ///
+  /// The rest of the document is kept verbatim: the archive is meant to be an
+  /// honest record of the account, and the entitlement fields are a useful
+  /// record of *what the plan was when the backup was taken*. They are simply
+  /// never written back — see [serverAuthoritativeProfileFields].
+  static Map<String, dynamic> redactProfileForArchive(
+    Map<String, dynamic> profile,
+  ) {
+    final copy = Map<String, dynamic>.from(profile);
+    for (final field in credentialProfileFields) {
+      copy.remove(field);
+    }
+    return copy;
+  }
+
+  /// Removes the server-authoritative fields from an archived profile before it
+  /// is written back, so a restore can never regress or fabricate entitlement.
+  static Map<String, dynamic> stripServerAuthoritativeFields(
+    Map<String, dynamic> profile,
+  ) {
+    final copy = Map<String, dynamic>.from(profile);
+    for (final field in serverAuthoritativeProfileFields) {
+      copy.remove(field);
+    }
+    return copy;
+  }
+
   Map<String, dynamic> toMap() => {
     'fileType': fileType,
     'formatVersion': formatVersion,
@@ -80,8 +157,60 @@ class BackupArchive {
   };
 
   /// Encodes to the bytes written to disk / handed to the share sheet.
-  String toJson({bool pretty = false}) =>
-      pretty ? const JsonEncoder.withIndent('  ').convert(toMap()) : jsonEncode(toMap());
+  ///
+  /// `toEncodable` is what keeps this from ever throwing: a Firestore type
+  /// that reached the archive without passing through [jsonSafeValue] (a
+  /// `Timestamp` in the profile, say) is encoded as its tagged envelope
+  /// rather than crashing the download. A backup that fails to write is the
+  /// one failure this feature cannot have.
+  String toJson({bool pretty = false}) {
+    final encoder = pretty
+        ? JsonEncoder.withIndent('  ', jsonSafeValue)
+        : JsonEncoder(jsonSafeValue);
+    return encoder.convert(toMap());
+  }
+
+  /// Converts one value into something JSON can hold.
+  ///
+  /// Firestore's own types do not survive a plain encode — a `Timestamp`
+  /// becomes a `DateTime` with a different shape, a `GeoPoint` becomes a
+  /// `LatLng`. They are written as tagged envelopes (`__ts__`, `__geo__`,
+  /// `__ref__`) that [BackupArchive.fromMap] revives exactly.
+  static Object? jsonSafeValue(Object? value) {
+    if (value == null) return null;
+    if (value is Timestamp) {
+      return {'__ts__': value.toDate().toUtc().toIso8601String()};
+    }
+    if (value is DateTime) {
+      return {'__ts__': value.toUtc().toIso8601String()};
+    }
+    if (value is GeoPoint) {
+      return {
+        '__geo__': {'lat': value.latitude, 'lng': value.longitude},
+      };
+    }
+    if (value is DocumentReference) {
+      return {'__ref__': value.path};
+    }
+    if (value is Map) {
+      final m = <String, dynamic>{};
+      value.forEach((k, v) => m[k.toString()] = jsonSafeValue(v));
+      return m;
+    }
+    if (value is List) return value.map(jsonSafeValue).toList();
+    // int/double/String/bool are already JSON-safe.
+    if (value is num || value is String || value is bool) return value;
+    return value.toString();
+  }
+
+  /// Converts a whole document into something JSON can hold.
+  static Map<String, dynamic> jsonSafeMap(Map<String, dynamic> data) {
+    final out = <String, dynamic>{};
+    data.forEach((key, value) {
+      out[key] = jsonSafeValue(value);
+    });
+    return out;
+  }
 
   /// Parses an archive, throwing [BackupFormatException] with an actionable
   /// message when the file is not a WealthSync backup or is too new to read.

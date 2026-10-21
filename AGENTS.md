@@ -544,6 +544,35 @@ and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
   "any ISO-looking string" rule destroyed notes like "2026-01-15T10:00 was the party".
 - **Restore is merge-only** (`SetOptions(merge: true)`, original doc ids): idempotent,
   and it can never delete what currently exists. Per-collection failures are reported.
+- **The restore writes into the account signed in NOW**, not the one the archive was
+  taken from (`_currentUserEmail()`; the `signedInEmailOverride` seam makes it
+  testable). That is what lets a user rebuild a deleted account — signing up again
+  and restoring their old file. Writing to the *archived* address is denied by
+  `firestore.rules` (an owner may only write their own document), so the restore
+  would silently write nothing.
+- **The profile restore strips the server-authoritative fields**
+  (`BackupArchive.serverAuthoritativeProfileFields`: `subscriptionStatus`, `isPro`,
+  `trialEndDate`, `trialUsed`, `planType`, `expiryDate`, `purchaseToken`, `isAdmin`,
+  `referredBy`, `referralCount`). Two reasons: `isOwnerUpdate` refuses most of them
+  on an owner write — so including them fails the **whole** profile write and the user
+  loses their name and phone too — and where the rules allow it, restoring them lets a
+  stale backup **regress a paying user's Pro status**. The live values survive because
+  the write is a merge.
+- **The capture redacts the purchase credential** (`BackupArchive.credentialProfileFields`
+  = `purchaseToken`). The file is meant to be emailed around or dropped in a cloud
+  drive; a purchase token in it is a purchase token in someone's inbox. The
+  entitlement fields are *kept* in the file as an honest record of the account — they
+  are simply never written back.
+- **A Firestore batch is atomic, so a rejected batch falls back to per-document
+  writes.** One document the rules refuse would otherwise fail all 400 in the batch.
+  The fallback runs only for a *document rejection* (`_documentRejectionCodes`); a
+  transient failure (`unavailable`) is not retried 400 times over. Only documents the
+  server actually accepted are counted — a failed batch must never be reported as
+  "restored", which is the false success this feature exists to prevent.
+- **The archive's JSON encoding never throws** (`BackupArchive.toJson` uses
+  `jsonSafeValue` as the encoder's `toEncodable`; `FullBackupService._jsonSafe`
+  delegates to it so the two envelope formats cannot drift). A backup that fails to
+  write is the one failure this feature cannot have.
 - **Automatic daily snapshot** (`background_worker.dart` `_checkDailySnapshot`): a full
   copy of the whole account on the device, so protection works for a user who never
   opens the backup screen. The schedule is the pure helper `shouldRunDailySnapshot`

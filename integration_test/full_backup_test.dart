@@ -96,6 +96,15 @@ void main() {
       expect(archive.profile, isNotNull);
       expect(archive.profile!['email'], userEmail);
 
+      // The downloaded file must never carry a purchase credential. The
+      // whole point of the file is that the user can email it to themselves
+      // or drop it in a cloud drive.
+      expect(
+        archive.profile!.containsKey('purchaseToken'),
+        isFalse,
+        reason: 'the archive carries the purchase credential',
+      );
+
       // ---- SERIALIZE / PARSE --------------------------------------------
       final json = archive.toJson();
       final reparsed = BackupArchive.fromJson(json);
@@ -118,6 +127,40 @@ void main() {
       }
       expect((await txCol.get()).docs, isEmpty);
 
+      // ---- THE PROFILE WRITE MUST ACTUALLY LAND --------------------------
+      // Delete one personal field so the restore has to write it back. This
+      // is the proof that the profile write is accepted by the live rules:
+      // `isOwnerUpdate` refuses a profile write that carries an entitlement
+      // field, and the whole document used to be lost when that happened.
+      final profileRef =
+          FirebaseFirestore.instance.collection('users').doc(userEmail);
+      final liveProfile = (await profileRef.get()).data() ?? const {};
+      const personalCandidates = [
+        'name',
+        'firstName',
+        'lastName',
+        'phone',
+        'address',
+        'photoUrl',
+      ];
+      final personalField = personalCandidates.firstWhere(
+        (f) => liveProfile.containsKey(f),
+        orElse: () => '',
+      );
+      expect(
+        personalField,
+        isNotEmpty,
+        reason: 'the account has no personal field to prove the profile '
+            'restore with',
+      );
+      final personalValue = liveProfile[personalField];
+      await profileRef.update({personalField: FieldValue.delete()});
+      expect(
+        (await profileRef.get()).data()?.containsKey(personalField),
+        isFalse,
+        reason: 'the field was not deleted, so the restore proves nothing',
+      );
+
       final result = await FullBackupService.restore(reparsed);
 
       expect(
@@ -126,6 +169,14 @@ void main() {
         reason: 'restore reported failures: ${result.failed}',
       );
       expect(result.totalWritten, greaterThan(0));
+
+      // The personal field must be back.
+      final restoredProfile = (await profileRef.get()).data() ?? const {};
+      expect(
+        restoredProfile[personalField],
+        personalValue,
+        reason: 'the restore did not put "$personalField" back',
+      );
 
       // The data must actually be back.
       final after = await txCol.get();
@@ -138,6 +189,47 @@ void main() {
         after.docs.any((d) => _contains(d.data(), 'Backup E2E')),
         isTrue,
         reason: 'the seeded transaction did not come back',
+      );
+
+      // ---- THE RESTORE MUST NOT TOUCH THE ENTITLEMENT --------------------
+      // A backup taken while the account was 'pending' must not write that
+      // back over a live 'free'. The plan is the server's business — a stale
+      // backup must never be able to change it, and the rules would refuse
+      // the write anyway for anything above 'free'/'pending'.
+      await profileRef.set(
+        {'subscriptionStatus': 'pending'},
+        SetOptions(merge: true),
+      );
+      final pendingArchive = await FullBackupService.capture(
+        userEmail,
+        appVersion: 'e2e',
+        onCollectionError: (c, _) => collectionErrors.add(c),
+      );
+      expect(
+        pendingArchive.profile!['subscriptionStatus'],
+        'pending',
+        reason: 'the capture did not read the live entitlement',
+      );
+
+      // The account goes back to free, as the free fixture expects.
+      await profileRef.set(
+        {'subscriptionStatus': 'free'},
+        SetOptions(merge: true),
+      );
+
+      final entitlementRestore =
+          await FullBackupService.restore(pendingArchive);
+      expect(
+        entitlementRestore.failed,
+        isEmpty,
+        reason: 'the entitlement restore reported failures: '
+            '${entitlementRestore.failed}',
+      );
+      expect(
+        (await profileRef.get()).data()?['subscriptionStatus'],
+        'free',
+        reason: 'the restore wrote the archived entitlement back over the '
+            'live one',
       );
 
       // ---- AUTOMATIC DEVICE SNAPSHOT --------------------------------------

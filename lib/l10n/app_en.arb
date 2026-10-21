@@ -210,7 +210,7 @@
     }
   },
   "backupRestoreFromFile": "Restore From Backup File",
-  "backupRestorePartial": "Restored {count} items, but {failed} collection(s) failed: {names}",
+  "backupRestorePartial": "Restored {count} items, but {failed} collection(s) failed: {names}. {details}",
   "@backupRestorePartial": {
     "placeholders": {
       "count": {
@@ -220,6 +220,9 @@
         "type": "int"
       },
       "names": {
+        "type": "String"
+      },
+      "details": {
         "type": "String"
       }
     }

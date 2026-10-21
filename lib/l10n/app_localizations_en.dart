@@ -585,8 +585,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestoreFromFile => 'Restore From Backup File';
 
   @override
-  String backupRestorePartial(int count, int failed, String names) {
-    return 'Restored $count items, but $failed collection(s) failed: $names';
+  String backupRestorePartial(
+    int count,
+    int failed,
+    String names,
+    String details,
+  ) {
+    return 'Restored $count items, but $failed collection(s) failed: $names. $details';
   }
 
   @override

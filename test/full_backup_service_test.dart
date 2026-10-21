@@ -394,6 +394,366 @@ void main() {
     });
   });
 
+  group('restore of subcollections', () {
+    setUp(FullBackupService.resetForTest);
+    tearDown(FullBackupService.resetForTest);
+
+    BackupArchive archiveWith(List<Map<String, dynamic>> docs) =>
+        BackupArchive(
+          formatVersion: BackupArchive.currentFormatVersion,
+          createdAt: DateTime.utc(2026),
+          email: 'a@b.com',
+          profile: null,
+          wealthPortfolio: null,
+          collections: {'transactions': docs},
+        );
+
+    test('every document is written with its original id', () async {
+      final written = <String, Map<String, dynamic>>{};
+      FullBackupService.batchWriteOverride = (email, collection, docs) async {
+            for (final doc in docs) {
+              written[doc['_docId'] as String] =
+                  doc['_data'] as Map<String, dynamic>;
+            }
+          };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final result = await FullBackupService.restore(
+        archiveWith([
+          {BackupArchive.idField: 'tx-1', 'amount': -10, 'note': 'a'},
+          {BackupArchive.idField: 'tx-2', 'amount': -20, 'note': 'b'},
+        ]),
+      );
+
+      expect(result.written['transactions'], 2);
+      expect(result.failed, isEmpty);
+      // The id is the document's identity in the user's account — a restore
+      // that invents a new one leaves the original behind as an orphan.
+      expect(written.keys, containsAll(['tx-1', 'tx-2']));
+      expect(written['tx-1']!['note'], 'a');
+      // The bookkeeping id must not be written as a field.
+      expect(written['tx-1']!.containsKey(BackupArchive.idField), isFalse);
+    });
+
+    test('a rejected batch falls back to one document at a time', () async {
+      // The Firestore rules reject a transaction that is missing `amount`,
+      // `date`, `senderId` or `recipientId`. A batch is atomic, so one such
+      // document must not take 399 good ones down with it.
+      FullBackupService.batchWriteOverride = (email, collection, docs) async {
+            throw Exception('PERMISSION_DENIED: some documents were invalid');
+          };
+      final individuallyWritten = <String>[];
+      FullBackupService.docWriteOverride =
+          (email, collection, docId, data) async {
+            // Exactly one document is the bad one.
+            if (docId == 'tx-bad') {
+              throw Exception('PERMISSION_DENIED: missing required fields');
+            }
+            individuallyWritten.add(docId);
+          };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final result = await FullBackupService.restore(
+        archiveWith([
+          {BackupArchive.idField: 'tx-1', 'amount': -10},
+          {BackupArchive.idField: 'tx-bad', 'amount': -20},
+          {BackupArchive.idField: 'tx-3', 'amount': -30},
+        ]),
+      );
+
+      // The good ones came back.
+      expect(individuallyWritten, containsAll(['tx-1', 'tx-3']));
+      expect(result.written['transactions'], 2);
+
+      // And the loss is reported rather than swallowed.
+      expect(result.hasFailures, isTrue);
+      expect(result.failed.containsKey('transactions'), isTrue);
+    });
+
+    test('a failed batch is never reported as restored', () async {
+      // The bug this pins: the document count was incremented as documents
+      // were added to the batch, so a batch the server rejected was reported
+      // as "N restored" when nothing was written at all.
+      FullBackupService.batchWriteOverride = (email, collection, docs) async {
+            throw Exception('PERMISSION_DENIED');
+          };
+      FullBackupService.docWriteOverride =
+          (email, collection, docId, data) async {
+            throw Exception('PERMISSION_DENIED');
+          };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final result = await FullBackupService.restore(
+        archiveWith([
+          {BackupArchive.idField: 'tx-1', 'amount': -10},
+          {BackupArchive.idField: 'tx-2', 'amount': -20},
+        ]),
+      );
+
+      expect(result.written['transactions'], 0);
+      expect(result.totalWritten, 0);
+      expect(result.hasFailures, isTrue);
+    });
+
+    test('a document the server rejects is named in the failure', () async {
+      FullBackupService.batchWriteOverride = (email, collection, docs) async {
+            throw Exception('PERMISSION_DENIED');
+          };
+      final rejected = <String>[];
+      FullBackupService.docWriteOverride =
+          (email, collection, docId, data) async {
+            if (docId == 'tx-bad') {
+              rejected.add(docId);
+              throw Exception('PERMISSION_DENIED');
+            }
+          };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final result = await FullBackupService.restore(
+        archiveWith([
+          {BackupArchive.idField: 'tx-bad', 'amount': -20},
+          {BackupArchive.idField: 'tx-ok', 'amount': -30},
+        ]),
+      );
+
+      expect(rejected, ['tx-bad']);
+      expect(result.written['transactions'], 1);
+      expect('${result.failed['transactions']}', contains('1 of 2'));
+    });
+
+    test('a transient failure is not retried 400 times over', () async {
+      // The batch never reached the server (the network dropped). Retrying
+      // it document by document would fail the same way 400 times, so the
+      // chunk is reported as failed and the restore moves on.
+      FullBackupService.batchWriteOverride = (email, collection, docs) async {
+            throw FirebaseException(
+              plugin: 'cloud_firestore',
+              code: 'unavailable',
+              message: 'backend unavailable',
+            );
+          };
+      var individualWrites = 0;
+      FullBackupService.docWriteOverride =
+          (email, collection, docId, data) async {
+            individualWrites++;
+          };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final result = await FullBackupService.restore(
+        archiveWith([
+          {BackupArchive.idField: 'tx-1', 'amount': -10},
+          {BackupArchive.idField: 'tx-2', 'amount': -20},
+        ]),
+      );
+
+      expect(individualWrites, 0);
+      expect(result.written['transactions'], 0);
+      expect(result.hasFailures, isTrue);
+    });
+
+    test('the restore writes into the account signed in NOW', () async {
+      // The whole point of the feature: rebuild a deleted account. The user
+      // signs up again (maybe with a different address) and restores their
+      // old file. Writing to the *archived* address would be denied by
+      // `firestore.rules` — an owner may only write their own document — so
+      // the restore would silently write nothing.
+      final writes = <String, Map<String, dynamic>>{};
+      FullBackupService.writeOverride = (path, data) async {
+        writes[path] = data;
+      };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+      FullBackupService.signedInEmailOverride = 'new-account@example.com';
+
+      final archive = BackupArchive(
+        formatVersion: BackupArchive.currentFormatVersion,
+        createdAt: DateTime.utc(2026),
+        email: 'old-account@example.com',
+        profile: {'firstName': 'Aman'},
+        wealthPortfolio: null,
+        collections: const {},
+      );
+
+      await FullBackupService.restore(archive);
+
+      expect(writes.keys, contains('users/new-account@example.com'));
+      expect(writes.keys, isNot(contains('users/old-account@example.com')));
+    });
+  });
+
+  group('profile hygiene', () {
+    setUp(FullBackupService.resetForTest);
+    tearDown(FullBackupService.resetForTest);
+
+    // A Pro user whose profile the archive captured verbatim.
+    Map<String, dynamic> proProfile() => {
+          'firstName': 'Aman',
+          'lastName': 'Ojha',
+          'phone': '8586047520',
+          'address': 'Hindalco Colony',
+          'dob': Timestamp.fromDate(DateTime.utc(1990, 1, 1)),
+          'photoURL': 'https://example.com/a.png',
+          'subscriptionStatus': 'pro',
+          'isPro': true,
+          'trialEndDate': Timestamp.fromDate(DateTime.utc(2026, 12, 1)),
+          'trialUsed': true,
+          'planType': 'yearly',
+          'expiryDate': Timestamp.fromDate(DateTime.utc(2027, 1, 1)),
+          'purchaseToken': 'secret-purchase-token',
+          'isAdmin': true,
+          'referredBy': 'AMANYB',
+          'referralCount': 4,
+          'referralCode': 'AMANXYZ',
+        };
+
+    test('capture redacts the purchase credential from the file', () async {
+      FullBackupService.fetchCollectionOverride = (_, __) async => [];
+      FullBackupService.fetchProfileOverride = (_) async => proProfile();
+      FullBackupService.fetchPortfolioOverride = (_) async => null;
+
+      final archive = await FullBackupService.capture('a@b.com');
+
+      // The downloaded file is meant to be emailed around or dropped in a
+      // cloud drive. A purchase token in it is a purchase token in someone's
+      // inbox.
+      expect(archive.profile!.containsKey('purchaseToken'), isFalse);
+
+      // The rest of the document is an honest record of the account.
+      expect(archive.profile!['firstName'], 'Aman');
+      expect(archive.profile!['subscriptionStatus'], 'pro');
+    });
+
+    test('the written file never contains the purchase credential', () async {
+      FullBackupService.fetchCollectionOverride = (_, __) async => [];
+      FullBackupService.fetchProfileOverride = (_) async => proProfile();
+      FullBackupService.fetchPortfolioOverride = (_) async => null;
+
+      final archive = await FullBackupService.capture('a@b.com');
+      final json = archive.toJson();
+
+      expect(json.contains('secret-purchase-token'), isFalse);
+      expect(json.contains('purchaseToken'), isFalse);
+    });
+
+    test('restore does not write entitlement or identity fields back',
+        () async {
+      final writes = <String, Map<String, dynamic>>{};
+      FullBackupService.writeOverride = (path, data) async {
+        writes[path] = data;
+      };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final archive = BackupArchive(
+        formatVersion: BackupArchive.currentFormatVersion,
+        createdAt: DateTime.utc(2026),
+        email: 'a@b.com',
+        profile: proProfile(),
+        wealthPortfolio: null,
+        collections: const {},
+      );
+
+      final result = await FullBackupService.restore(archive);
+
+      expect(result.hasFailures, isFalse);
+
+      final written = writes['users/a@b.com']!;
+      for (final field in BackupArchive.serverAuthoritativeProfileFields) {
+        expect(
+          written.containsKey(field),
+          isFalse,
+          reason: '$field must not be written back by a restore',
+        );
+      }
+    });
+
+    test('restore still writes the personal details', () async {
+      final writes = <String, Map<String, dynamic>>{};
+      FullBackupService.writeOverride = (path, data) async {
+        writes[path] = data;
+      };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final archive = BackupArchive(
+        formatVersion: BackupArchive.currentFormatVersion,
+        createdAt: DateTime.utc(2026),
+        email: 'a@b.com',
+        profile: proProfile(),
+        wealthPortfolio: null,
+        collections: const {},
+      );
+
+      await FullBackupService.restore(archive);
+
+      // The whole point of the profile in the archive is that a rebuilt
+      // account is usable. Stripping entitlement must not cost the user
+      // their name and phone.
+      final written = writes['users/a@b.com']!;
+      expect(written['firstName'], 'Aman');
+      expect(written['lastName'], 'Ojha');
+      expect(written['phone'], '8586047520');
+      expect(written['address'], 'Hindalco Colony');
+      expect(written['dob'], isA<Timestamp>());
+      expect(written['photoURL'], 'https://example.com/a.png');
+
+      // The user's own referral code is their identity, not an entitlement,
+      // so it is restored — that is what lets a rebuilt account still be
+      // referred to.
+      expect(written['referralCode'], 'AMANXYZ');
+    });
+
+    test('a stale backup cannot strip a paying user of their plan', () async {
+      // The scenario the stripping exists for: a backup taken BEFORE the
+      // purchase says 'free'. Restoring it must not write that back over a
+      // live 'pro' — the live value survives because the restore is a merge
+      // that does not mention the field.
+      final writes = <String, Map<String, dynamic>>{};
+      FullBackupService.writeOverride = (path, data) async {
+        writes[path] = data;
+      };
+      FullBackupService.cacheInvalidateOverride = (_) async {};
+
+      final staleBackup = BackupArchive(
+        formatVersion: BackupArchive.currentFormatVersion,
+        createdAt: DateTime.utc(2025),
+        email: 'a@b.com',
+        profile: {
+          'firstName': 'Aman',
+          'subscriptionStatus': 'free',
+          'isPro': false,
+        },
+        wealthPortfolio: null,
+        collections: const {},
+      );
+
+      await FullBackupService.restore(staleBackup);
+
+      final written = writes['users/a@b.com']!;
+      expect(written.containsKey('subscriptionStatus'), isFalse);
+      expect(written.containsKey('isPro'), isFalse);
+      expect(written['firstName'], 'Aman');
+    });
+
+    test('the redaction helpers are pure and do not mutate their input',
+        () {
+      final original = proProfile();
+      final snapshot = Map<String, dynamic>.from(original);
+
+      final redacted = BackupArchive.redactProfileForArchive(original);
+      final stripped =
+          BackupArchive.stripServerAuthoritativeFields(original);
+
+      expect(original, snapshot, reason: 'the input map was mutated');
+      expect(redacted.containsKey('purchaseToken'), isFalse);
+      expect(redacted['firstName'], 'Aman');
+      expect(
+        stripped.containsKey('subscriptionStatus'),
+        isFalse,
+      );
+      expect(stripped.containsKey('isAdmin'), isFalse);
+      expect(stripped.containsKey('referredBy'), isFalse);
+      expect(stripped.containsKey('referralCount'), isFalse);
+    });
+  });
+
   group('automatic device snapshot', () {
     late Directory tempDir;
 

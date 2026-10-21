@@ -1189,8 +1189,13 @@ abstract class AppLocalizations {
   /// No description provided for @backupRestorePartial.
   ///
   /// In en, this message translates to:
-  /// **'Restored {count} items, but {failed} collection(s) failed: {names}'**
-  String backupRestorePartial(int count, int failed, String names);
+  /// **'Restored {count} items, but {failed} collection(s) failed: {names}. {details}'**
+  String backupRestorePartial(
+    int count,
+    int failed,
+    String names,
+    String details,
+  );
 
   /// No description provided for @backupRestoreSuccess.
   ///
