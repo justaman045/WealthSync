@@ -168,6 +168,12 @@ jobs:
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
           PRO_TEST_EMAIL: ${{ secrets.PRO_TEST_EMAIL }}
           PRO_TEST_PASSWORD: ${{ secrets.PRO_TEST_PASSWORD }}
+          # The harness wipes each account's data before every test file, so
+          # one file cannot skew the next. It is opt-in (off by default)
+          # because the wipe is irreversible and the same code path runs
+          # against the Pro account — an implicit wipe once destroyed 791 live
+          # transactions. These accounts are disposable, so CI opts in.
+          E2E_ALLOW_WIPE: 'true'
 
       - name: Download unit test report
         if: always()

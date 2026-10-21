@@ -217,11 +217,17 @@ run_file() {
   else
     echo "=== $name: free account"
   fi
+  # E2E_ALLOW_WIPE enables the harness's destructive clearAccountData. It is
+  # opt-in and defaults to OFF because the same code path runs against the Pro
+  # account, which holds real data — an implicit wipe once destroyed 791 live
+  # transactions with no restore path. CI sets it explicitly (its accounts are
+  # disposable); a developer pointing this at a real account must not.
   timeout 15m flutter test "$f" -d emulator-5554 --no-uninstall \
     --dart-define=TEST_EMAIL="$email" \
     --dart-define=TEST_PASSWORD="$password" \
     --dart-define=PRO_TEST_EMAIL="$PRO_TEST_EMAIL" \
     --dart-define=PRO_TEST_PASSWORD="$PRO_TEST_PASSWORD" \
+    --dart-define=E2E_ALLOW_WIPE="${E2E_ALLOW_WIPE:-false}" \
     --file-reporter "json:build/report/parts/$name.json"
 }
 

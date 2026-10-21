@@ -531,8 +531,11 @@ Future<void> ensureAccountState(
   // Wipe any data this account accumulated in earlier files/runs (see
   // clearAccountData). The app is subscribed via streams, so home updates to a
   // clean slate before the test body starts.
+  //
+  // Off unless E2E_ALLOW_WIPE=true: the same call runs against the Pro account,
+  // which holds real data. See clearAccountData.
   final currentEmail = FirebaseAuth.instance.currentUser?.email;
-  if (currentEmail != null) {
+  if (currentEmail != null && kAllowAccountWipe) {
     await clearAccountData(currentEmail);
     await pumpReal(tester);
   }
@@ -635,10 +638,37 @@ Future<void> _clearSubcollection(String email, String path) async {
   }
 }
 
+/// Whether [clearAccountData] is allowed to run at all.
+///
+/// This is **opt-in and defaults to off** because the wipe is irreversible and
+/// the suite also runs against the *Pro* account, which is a real, hand-curated
+/// account rather than a disposable fixture. An implicit wipe on every
+/// `launchAndSignIn` once destroyed 34 subcollections (791 transactions) on a
+/// live account with no way to restore them — Firestore has no client-side
+/// backup, and the on-device cache prunes server-deleted documents to
+/// path-only stubs.
+///
+/// Set `--dart-define=E2E_ALLOW_WIPE=true` (CI does, against its disposable
+/// accounts) to enable the historical wipe-and-reset behaviour.
+const bool kAllowAccountWipe =
+    bool.fromEnvironment('E2E_ALLOW_WIPE', defaultValue: false);
+
 /// Wipes all test data for [email]: transactions (the free 150-txn/month cap
 /// makes accumulated data a hard blocker) plus the wealth + feature
 /// subcollections so a crashed earlier run can never skew later files.
+///
+/// **Irreversible.** No-ops unless `E2E_ALLOW_WIPE=true` is passed, so a normal
+/// test launch can never destroy a real account's data by accident.
 Future<void> clearAccountData(String email) async {
+  if (!kAllowAccountWipe) {
+    debugPrint(
+      'clearAccountData($email): SKIPPED (wipe not enabled). Pass '
+      '--dart-define=E2E_ALLOW_WIPE=true to enable — it permanently deletes '
+      'transactions, categories, budgets, goals, loans, recurring_payments, '
+      'lent_money, challenges and all 26 wealth subcollections.',
+    );
+    return;
+  }
   for (final path in _dataSubcollections) {
     await _clearSubcollection(email, path);
   }
