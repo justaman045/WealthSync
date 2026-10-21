@@ -1,5 +1,29 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Utils/wealth_math.dart';
+
+/// Minimal transaction fixture. Income convention: `recipientId == uid` with a
+/// positive amount; expenses are negative with an empty recipient.
+TransactionModel _tx({
+  required double amount,
+  required DateTime date,
+  String? category,
+  String senderId = 'me',
+  String recipientId = '',
+}) {
+  return TransactionModel(
+    id: '$category-$amount-${date.millisecondsSinceEpoch}',
+    senderId: senderId,
+    recipientId: recipientId,
+    recipientName: category ?? 'x',
+    amount: amount,
+    currency: 'INR',
+    tax: 0,
+    category: category,
+    date: date,
+    createdAt: date,
+  );
+}
 
 void main() {
   group('milestone() interpolation', () {
@@ -460,6 +484,158 @@ void main() {
       final d = lastWorkingDayOfMonth(2026, 9);
       expect(isLastWorkingDay(d), true);
       expect(isLastWorkingDay(DateTime(d.year, d.month, d.day - 1)), false);
+    });
+  });
+
+  // computeExpectedIncome reads DateTime.now() internally, so every fixture is
+  // built relative to `now` — the branches under test are the mode precedence
+  // and the "manual with no value falls back to blend" rule. These were
+  // previously unasserted, so a wrong branch shipped silently.
+  group('computeExpectedIncome() mode precedence', () {
+    // Income is recipientId == uid with a positive amount (see AGENTS.md).
+    TransactionModel income(double amount, DateTime date, {String uid = 'me'}) =>
+        _tx(amount: amount, date: date, recipientId: uid, senderId: '');
+
+    test('manual wins when a positive value is set', () {
+      final r = computeExpectedIncome(
+        allTx: [income(5000, DateTime.now())],
+        uid: 'me',
+        mode: IncomeMode.manual,
+        manualMonthly: 42000,
+      );
+      expect(r.expectedIncome, 42000);
+      expect(r.effectiveMode, IncomeMode.manual);
+      expect(r.usedManual, true);
+      expect(r.fellBackToBlend, false);
+    });
+
+    test('manual with NO value falls back to blend, not to zero', () {
+      final now = DateTime.now();
+      final r = computeExpectedIncome(
+        allTx: [income(3000, now)],
+        uid: 'me',
+        mode: IncomeMode.manual,
+        manualMonthly: 0,
+      );
+      // The trap: manual-with-no-value must NOT report 0 income.
+      expect(r.fellBackToBlend, true);
+      expect(r.usedManual, false);
+      expect(r.effectiveMode, IncomeMode.autoBlend);
+      expect(r.expectedIncome, greaterThan(0));
+    });
+
+    test('non-finite manual value is not treated as set', () {
+      final r = computeExpectedIncome(
+        allTx: [income(3000, DateTime.now())],
+        uid: 'me',
+        mode: IncomeMode.manual,
+        manualMonthly: double.infinity,
+      );
+      expect(r.usedManual, false);
+      expect(r.fellBackToBlend, true);
+    });
+
+    test('blend takes the max of this-month income and the 3-month average', () {
+      final now = DateTime.now();
+      // All four are inside the 90-day window, so the "3-month average"
+      // includes THIS month: last3m = 6000, avg = 2000, thisMonth = 6000.
+      final r = computeExpectedIncome(
+        allTx: [
+          income(1000, now),
+          income(1000, now),
+          income(1000, now),
+          income(3000, now),
+        ],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+      );
+      expect(r.expectedIncome, closeTo(6000, 0.01));
+    });
+
+    test('blend floors at the 3-month average when this month is quiet', () {
+      final now = DateTime.now();
+      // A prior-month income inside the 90-day window: this month = 0,
+      // so the 3-month average (9000/3 = 3000) is the floor that wins.
+      final lastMonth = DateTime(
+        now.month == 1 ? now.year - 1 : now.year,
+        now.month == 1 ? 12 : now.month - 1,
+        15,
+      );
+      final r = computeExpectedIncome(
+        allTx: [income(9000, lastMonth)],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+      );
+      expect(r.expectedIncome, closeTo(3000, 0.01));
+    });
+
+    test('blend ignores income older than the 90-day cutoff', () {
+      final now = DateTime.now();
+      // 200 days old: outside the window, and not this month → contributes 0.
+      final stale = now.subtract(const Duration(days: 200));
+      final r = computeExpectedIncome(
+        allTx: [income(99000, stale)],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+      );
+      expect(r.expectedIncome, 0);
+    });
+
+    test('blend ignores transactions whose recipient is not this user', () {
+      final now = DateTime.now();
+      final r = computeExpectedIncome(
+        allTx: [
+          income(9000, now),
+          _tx(amount: 9000, date: now, recipientId: 'someone-else', senderId: ''),
+        ],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+      );
+      expect(r.expectedIncome, closeTo(9000, 0.01));
+    });
+
+    test('empty salary window reports 0 AND flags the window as empty', () {
+      final r = computeExpectedIncome(
+        allTx: const [],
+        uid: 'me',
+        mode: IncomeMode.autoSalaryWindow,
+        manualMonthly: 0,
+      );
+      expect(r.expectedIncome, 0);
+      // The UI renders this as a note ("no salary recorded"), not an error —
+      // the flag is what tells it apart from a real zero.
+      expect(r.salaryWindowEmpty, true);
+      expect(r.effectiveMode, IncomeMode.autoSalaryWindow);
+    });
+
+    test('salary window sums income inside the first week of this month', () {
+      final now = DateTime.now();
+      final day3 = DateTime(now.year, now.month, 3);
+      final r = computeExpectedIncome(
+        allTx: [income(71000, day3)],
+        uid: 'me',
+        mode: IncomeMode.autoSalaryWindow,
+        manualMonthly: 0,
+      );
+      expect(r.expectedIncome, closeTo(71000, 0.01));
+      expect(r.salaryWindowEmpty, false);
+    });
+
+    test('a manual value does not leak into salary-window mode', () {
+      // manualMonthly is only consulted in IncomeMode.manual.
+      final r = computeExpectedIncome(
+        allTx: const [],
+        uid: 'me',
+        mode: IncomeMode.autoSalaryWindow,
+        manualMonthly: 99999,
+      );
+      expect(r.expectedIncome, 0);
+      expect(r.usedManual, false);
+      expect(r.salaryWindowEmpty, true);
     });
   });
 }
