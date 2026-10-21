@@ -34,14 +34,14 @@ void main() {
       await tapNavTab(tester, Icons.tune_rounded, 'Settings');
       await tapUntilMarker(
         tester,
-        find.text('Data & Support'),
-        find.text('Backup & Restore All Data'),
+        find.text(AppStrings.dataSupport),
+        find.text(AppStrings.backupAndRestoreAllData),
       );
-      await tapWhenVisible(tester, find.text('Backup & Restore All Data'));
-      await waitFor(tester, find.text('Keep your own copy'));
-      expect(find.text('Keep your own copy'), findsWidgets);
-      expect(find.text('Download Backup'), findsWidgets);
-      expect(find.text('Restore From Backup File'), findsWidgets);
+      await tapWhenVisible(tester, find.text(AppStrings.backupAndRestoreAllData));
+      await waitFor(tester, find.text(AppStrings.backupKeepOwnCopy));
+      expect(find.text(AppStrings.backupKeepOwnCopy), findsWidgets);
+      expect(find.text(AppStrings.backupDownload), findsWidgets);
+      expect(find.text(AppStrings.backupRestoreFromFile), findsWidgets);
       await popScreen(tester); // Backup & Restore → Data & Support
       await popScreen(tester); // Data & Support → Settings
       // Back to Home — the transaction helper drives the home balance card.

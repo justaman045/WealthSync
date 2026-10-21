@@ -68,6 +68,16 @@ class AppStrings {
   static const String currentPeriod = 'Current Period';
   static const String expenseBreakdown = 'Expense Breakdown';
 
+  // ---- Backup & restore ----
+  // Asserted by the integration tests, so they live here rather than being
+  // re-typed in the test file (the screen itself renders the ARB copy; these
+  // must stay in sync with it).
+  static const String dataSupport = 'Data & Support';
+  static const String backupAndRestoreAllData = 'Backup & Restore All Data';
+  static const String backupKeepOwnCopy = 'Keep your own copy';
+  static const String backupDownload = 'Download Backup';
+  static const String backupRestoreFromFile = 'Restore From Backup File';
+
   // ---- Admin feature flags ----
   static const String featureFlags = 'Feature Flags';
   static const String featureFlagsSubtitle =
