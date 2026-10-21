@@ -18,37 +18,19 @@ import 'test_helpers.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets(
-    'a full backup captures every collection and restores back',
-    (tester) async {
-      await launchAndSignIn(tester, account: TestAccount.free);
+  // The wrapper captures a screenshot at the end of the body, so the UI
+  // navigation deliberately comes last — the report then shows the Backup &
+  // Restore screen itself, not whatever screen the assertions left behind.
+  testWidgetsWithScreenshots('a full backup captures every collection and restores back', (
+    WidgetTester tester,
+  ) async {
+    await launchAndSignIn(tester, account: TestAccount.free);
 
-      final email = FirebaseAuth.instance.currentUser?.email;
-      expect(email, isNotNull, reason: 'must be signed in');
-      final userEmail = email!;
+    final email = FirebaseAuth.instance.currentUser?.email;
+    expect(email, isNotNull, reason: 'must be signed in');
+    final userEmail = email!;
 
-      // ---- UI: the screen is reachable and renders -----------------------
-      // The service layer is verified below; this proves the wiring — the
-      // feature gate, the settings tile and the navigation — so a rename
-      // cannot silently orphan the feature.
-      await tapNavTab(tester, Icons.tune_rounded, 'Settings');
-      await tapUntilMarker(
-        tester,
-        find.text(AppStrings.dataSupport),
-        find.text(AppStrings.backupAndRestoreAllData),
-      );
-      await tapWhenVisible(tester, find.text(AppStrings.backupAndRestoreAllData));
-      await waitFor(tester, find.text(AppStrings.backupKeepOwnCopy));
-      expect(find.text(AppStrings.backupKeepOwnCopy), findsWidgets);
-      expect(find.text(AppStrings.backupDownload), findsWidgets);
-      expect(find.text(AppStrings.backupRestoreFromFile), findsWidgets);
-      await popScreen(tester); // Backup & Restore → Data & Support
-      await popScreen(tester); // Data & Support → Settings
-      // Back to Home — the transaction helper drives the home balance card.
-      await tapNavTab(tester, Icons.grid_view_rounded, AppStrings.totalBalance);
-      await waitForHome(tester);
-
-      // Seed one transaction so the archive has something to carry.
+    // Seed one transaction so the archive has something to carry.
       await createTransaction(
         tester,
         receive: true,
@@ -208,6 +190,23 @@ void main() {
             '${snapshotRestore.failed}',
       );
       expect((await txCol.get()).docs.length, before.docs.length);
+
+      // ---- UI: the screen is reachable and renders -----------------------
+      // The service layer is verified above; this proves the wiring — the
+      // feature gate, the settings tile and the navigation — so a rename
+      // cannot silently orphan the feature. It runs last so the screenshot
+      // the wrapper captures shows this screen.
+      await tapNavTab(tester, Icons.tune_rounded, 'Settings');
+      await tapUntilMarker(
+        tester,
+        find.text(AppStrings.dataSupport),
+        find.text(AppStrings.backupAndRestoreAllData),
+      );
+      await tapWhenVisible(tester, find.text(AppStrings.backupAndRestoreAllData));
+      await waitFor(tester, find.text(AppStrings.backupKeepOwnCopy));
+      expect(find.text(AppStrings.backupKeepOwnCopy), findsWidgets);
+      expect(find.text(AppStrings.backupDownload), findsWidgets);
+      expect(find.text(AppStrings.backupRestoreFromFile), findsWidgets);
     },
   );
 }
