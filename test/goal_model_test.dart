@@ -121,4 +121,30 @@ void main() {
       expect(s.progress, 1.0);
     });
   });
+
+  // daysLeftAt() exists so this branch is testable at all: the old
+  // `DateTime.now()`-only getter could not be pinned to a fixed date.
+  group('GoalModel.daysLeftAt', () {
+    final now = DateTime(2026, 6, 15, 12);
+
+    test('null deadline yields null (no countdown rendered)', () {
+      expect(goal(targetDate: null).daysLeftAt(now), isNull);
+    });
+
+    test('a future deadline counts whole days ahead', () {
+      expect(goal(targetDate: now.add(const Duration(days: 10))).daysLeftAt(now), 10);
+    });
+
+    test('a past deadline goes NEGATIVE — it is not clamped', () {
+      // Deliberate: the goals UI renders overdue goals in red, which needs the
+      // sign. (Contrast ChallengeModel.daysLeftAt, which floors at 0.)
+      final past = now.subtract(const Duration(days: 3));
+      expect(goal(targetDate: past).daysLeftAt(now), -3);
+    });
+
+    test('the same deadline yields the same value on a later call', () {
+      final g = goal(targetDate: now.add(const Duration(days: 5)));
+      expect(g.daysLeftAt(now), g.daysLeftAt(now));
+    });
+  });
 }

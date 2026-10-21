@@ -196,7 +196,12 @@ class _BalanceCardState extends State<BalanceCard> {
                             FeatureVisible(
                               flagKey: 'lent_money',
                               child: Obx(
-                                () => GestureDetector(
+                                () => Semantics(
+                                  button: true,
+                                  toggled: _includeLentMoney.value,
+                                  label:
+                                      'Include lent money in the total balance',
+                                  child: GestureDetector(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
                                     if (_privacyController.isPrivacyMode.value) {
@@ -233,6 +238,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                       ),
                                     ),
                                   ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -245,7 +251,12 @@ class _BalanceCardState extends State<BalanceCard> {
                                 final committed =
                                     _recurringPaymentController
                                         .pendingSubscriptions.value;
-                                return GestureDetector(
+                                return Semantics(
+                                  button: true,
+                                  toggled: _includeDues.value,
+                                  label:
+                                      "Deduct this month's dues from the total balance",
+                                  child: GestureDetector(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
                                     if (_privacyController.isPrivacyMode.value) {
@@ -286,6 +297,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                       ),
                                     ),
                                   ),
+                                  ),
                                 );
                               }),
                             ),
@@ -299,7 +311,13 @@ class _BalanceCardState extends State<BalanceCard> {
                         if (_transactionController.isLoading.value) {
                           return _balanceShimmer(Theme.of(context).colorScheme);
                         }
-                        return GestureDetector(
+                        final label = _privacyController.isPrivacyMode.value
+                            ? '${AppStrings.totalBalance}. Hidden'
+                            : '${AppStrings.totalBalance}. Tap to hide';
+                        return Semantics(
+                          button: true,
+                          label: label,
+                          child: GestureDetector(
                           onTap: () {
                             HapticFeedback.selectionClick();
                             _privacyController.toggle();
@@ -367,6 +385,7 @@ class _BalanceCardState extends State<BalanceCard> {
                               ),
                             ],
                           ),
+                        ),
                         );
                       })
                     else

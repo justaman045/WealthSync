@@ -27,10 +27,16 @@ class GoalModel {
   double get progress =>
       targetAmount > 0 ? (currentAmount / targetAmount).clamp(0.0, 1.0) : 0;
 
-  int? get daysLeft {
+  /// Days until [targetDate], or null when the goal has no deadline.
+  ///
+  /// [now] is injectable so the null-deadline and negative-day branches are
+  /// testable — a hardcoded `DateTime.now()` makes this un-pinnable.
+  int? daysLeftAt(DateTime now) {
     if (targetDate == null) return null;
-    return targetDate!.difference(DateTime.now()).inDays;
+    return targetDate!.difference(now).inDays;
   }
+
+  int? get daysLeft => daysLeftAt(DateTime.now());
 
   GoalModel copyWith({
     double? currentAmount,

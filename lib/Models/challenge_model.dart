@@ -87,10 +87,20 @@ class SavingsChallengeModel {
     );
   }
 
-  int get daysLeft {
-    final diff = endDate.difference(DateTime.now()).inDays;
+  /// Days until [endDate], floored at 0.
+  ///
+  /// [now] is injectable so the boundary behaviour (the `< 0` clamp) is
+  /// testable — with a hardcoded `DateTime.now()` no test can pin it.
+  int daysLeftAt(DateTime now) {
+    final diff = endDate.difference(now).inDays;
     return diff < 0 ? 0 : diff;
   }
 
-  bool get isExpired => DateTime.now().isAfter(endDate) && !isCompleted;
+  int get daysLeft => daysLeftAt(DateTime.now());
+
+  /// An expired challenge is past its end date AND not completed — completing
+  /// one before the deadline must keep it non-expired.
+  bool isExpiredAt(DateTime now) => now.isAfter(endDate) && !isCompleted;
+
+  bool get isExpired => isExpiredAt(DateTime.now());
 }
