@@ -44,6 +44,13 @@ class LocalBackupService {
   @visibleForTesting
   static Future<void> Function(String key, String data)? writeOverride;
 
+  /// Replaces the on-disk *read*, so a test can assert on what a backup run
+  /// preserved. The key is the same one [writeOverride] receives:
+  /// `backup_<safe-email>` for the live mirror and `backup prev_<safe-email>`
+  /// for the preserved pre-deletion snapshot.
+  @visibleForTesting
+  static Future<String?> Function(String key)? readOverride;
+
   @visibleForTesting
   static void resetSchedulingForTest() {
     for (final t in _trailing.values) {
@@ -55,6 +62,7 @@ class LocalBackupService {
     _trailing.clear();
     fetchOverride = null;
     writeOverride = null;
+    readOverride = null;
     minInterval = const Duration(seconds: 30);
   }
 
@@ -63,17 +71,28 @@ class LocalBackupService {
   // ============================
 
   static Future<int> restoreUserTransactions(String email) async {
-    final transactions = await readUserTransactionsBackup(email);
+    // Restore the *best* snapshot available, not just the current mirror: a
+    // mass deletion empties the mirror but leaves the preserved
+    // pre-deletion copy behind, and that copy is the one worth writing back.
+    final transactions = await bestAvailableBackup(email);
     if (transactions.isEmpty) return 0;
+    return _writeTransactions(email, transactions);
+  }
 
+  /// Writes [transactions] back into the user's transaction collection.
+  ///
+  /// Firestore batches are capped at 500 writes — chunk large restores so a
+  /// big backup does not fail wholesale.
+  static Future<int> _writeTransactions(
+    String email,
+    List<Map<String, dynamic>> transactions,
+  ) async {
     final col = FirebaseFirestore.instance
         .collection('users')
         .doc(email)
         .collection('transactions');
 
     var restored = 0;
-    // Firestore batches are capped at 500 writes — chunk large restores so a
-    // big backup does not fail wholesale.
     const chunkSize = 499;
     for (var i = 0; i < transactions.length; i += chunkSize) {
       final chunk = transactions.skip(i).take(chunkSize);
@@ -197,6 +216,7 @@ class LocalBackupService {
     for (int attempt = 0; attempt < maxRetries; attempt++) {
       try {
         final list = await _fetchAll(userEmail);
+        await _preserveIfShrunk(userEmail, list.length);
         await _writeData(_prefsKey(userEmail), jsonEncode(list));
         debugPrint(
           '[LocalBackupService] Backup success: ${list.length} items for $userEmail',
@@ -214,6 +234,62 @@ class LocalBackupService {
       ErrorHandler.showError('Backup failed. Data is safe in the cloud.', title: 'Backup');
     }
     return false;
+  }
+
+  // ============================
+  // PRE-DELETION PRESERVATION
+  //
+  // The automatic backup runs after every write and *overwrites* the only copy
+  // it keeps. That is harmless while the data only grows — but it is exactly
+  // wrong after a mass deletion: the very next write replaces the pre-deletion
+  // history with the emptied one, and the recovery path is gone. On
+  // 2026-10-21 that is the sequence that destroyed 791 transactions: the
+  // account was wiped, the next write fired the automatic backup, and the
+  // only local copy was overwritten with the empty collection.
+  //
+  // So a shrinking backup preserves the previous snapshot in a second slot
+  // instead of destroying it. The preserved copy is only replaced by a
+  // *larger* one, so the most complete history always survives.
+  // ============================
+
+  /// Keeps the previous snapshot when a new backup would hold fewer documents.
+  ///
+  /// Best-effort: a failure here must never fail the backup itself, so every
+  /// error is swallowed after being logged.
+  static Future<void> _preserveIfShrunk(String email, int newCount) async {
+    try {
+      final currentRaw = await _readData(_prefsKey(email));
+      if (currentRaw == null) return;
+
+      final currentCount = _countDocuments(currentRaw);
+      // Not a shrink — the new snapshot is at least as complete, so there is
+      // nothing to preserve.
+      if (currentCount <= newCount) return;
+
+      final preservedRaw = await _readPreservedData(email);
+      final preservedCount =
+          preservedRaw == null ? 0 : _countDocuments(preservedRaw);
+      // A better-preserved snapshot already exists; keep it.
+      if (preservedCount >= currentCount) return;
+
+      await _writePreservedData(email, currentRaw);
+      debugPrint(
+        '[LocalBackupService] Preserved pre-deletion backup '
+        '($currentCount items, now $newCount) for $email',
+      );
+    } catch (e) {
+      debugPrint('[LocalBackupService] preserve-on-shrink failed: $e');
+    }
+  }
+
+  /// Number of documents in a stored snapshot payload; 0 when unreadable.
+  static int _countDocuments(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is List ? decoded.length : 0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   /// The authoritative read: raw documents straight from the server.
@@ -254,19 +330,71 @@ class LocalBackupService {
 
   /// Whether a non-empty backup exists for this email on this device. Lets the
   /// UI tell "no backup yet" apart from a successful-but-empty restore.
+  ///
+  /// Checks the preserved pre-deletion snapshot too: after a mass deletion the
+  /// current mirror is empty but the preserved copy still holds the history,
+  /// and reporting "no backup found" there would send the user away from the
+  /// one thing that can bring their data back.
   static Future<bool> hasUserBackup(String email) async {
-    final transactions = await readUserTransactionsBackup(email);
+    final transactions = await bestAvailableBackup(email);
     return transactions.isNotEmpty;
+  }
+
+  /// The preserved (pre-deletion) snapshot for this email, if any.
+  static Future<List<Map<String, dynamic>>> readPreservedBackup(
+    String email,
+  ) async {
+    try {
+      final raw = await _readPreservedData(email);
+      if (raw == null) return [];
+      final data = jsonDecode(raw);
+      if (data is! List) return [];
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      debugPrint("[LocalBackupService] preserved read error: $e");
+      return [];
+    }
+  }
+
+  /// Whether a preserved pre-deletion snapshot is available.
+  static Future<bool> hasPreservedBackup(String email) async {
+    final list = await readPreservedBackup(email);
+    return list.isNotEmpty;
+  }
+
+  /// The most complete on-device snapshot: the current mirror, unless the
+  /// preserved pre-deletion copy holds more documents.
+  ///
+  /// This is what the restore path uses. After a mass deletion the mirror is
+  /// empty and the preserved copy holds the pre-deletion history, so a plain
+  /// "restore the mirror" would report "0 transactions restored" while the
+  /// data was sitting right there.
+  static Future<List<Map<String, dynamic>>> bestAvailableBackup(
+    String email,
+  ) async {
+    final current = await readUserTransactionsBackup(email);
+    final preserved = await readPreservedBackup(email);
+    return preserved.length > current.length ? preserved : current;
+  }
+
+  /// Restores the preserved pre-deletion snapshot (not the current mirror).
+  static Future<int> restorePreservedTransactions(String email) async {
+    final transactions = await readPreservedBackup(email);
+    if (transactions.isEmpty) return 0;
+    return _writeTransactions(email, transactions);
   }
 
   static Future<void> clearUserBackup(String userEmail) async {
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_prefsKey(userEmail));
+      await prefs.remove(_preservedPrefsKey(userEmail));
       return;
     }
     final file = await _transactionsFile(userEmail);
     if (await file.exists()) await file.delete();
+    final preserved = await _preservedFile(userEmail);
+    if (await preserved.exists()) await preserved.delete();
   }
 
   // ============================
@@ -275,7 +403,75 @@ class LocalBackupService {
 
   static String _prefsKey(String email) => '$_prefsPrefix${_sanitizeEmail(email)}';
 
+  /// Key of the preserved pre-deletion snapshot. Deliberately a *different*
+  /// key from [_prefsKey] so it maps to a different preference on web and a
+  /// different file on disk.
+  ///
+  /// The space in the marker is load-bearing: a sanitized email contains only
+  /// `[A-Za-z0-9_]`, so a key holding a space can never collide with the key
+  /// of a real account whose name happens to start with "preserved". Without
+  /// it, an account called `preserved_a@b.com` would share a key with the
+  /// preserved snapshot of `a@b.com` and the two would overwrite each other.
+  static String _preservedPrefsKey(String email) =>
+      '$_prefsPrefix preserved ${_sanitizeEmail(email)}';
+
+  /// The preserved snapshot's file. Kept separate from [_transactionsFile] so
+  /// the two snapshots can never overwrite each other.
+  static Future<File> _preservedFile(String email) async {
+    final dir = await _backupDir();
+    return File('${dir.path}/txprev_${_sanitizeEmail(email)}.json');
+  }
+
+  /// The storage key of the live mirror. Exposed so a test can assert on the
+  /// two slots without hardcoding the key format.
+  @visibleForTesting
+  static String debugCurrentKey(String email) => _prefsKey(email);
+
+  /// The storage key of the preserved pre-deletion snapshot.
+  @visibleForTesting
+  static String debugPreservedKey(String email) => _preservedPrefsKey(email);
+
+  /// Reads the preserved snapshot.
+  ///
+  /// It does not go through [_readData]: that helper reconstructs the email
+  /// from the key, and the "prev" marker would end up baked into the file
+  /// name — so the preserved file would be written as `txprev_prev_…` while
+  /// [clearUserBackup] deleted `txprev_…`, and the copy would survive
+  /// deletion.
+  static Future<String?> _readPreservedData(String email) async {
+    final override = readOverride;
+    if (override != null) return override(_preservedPrefsKey(email));
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_preservedPrefsKey(email));
+    }
+    final file = await _preservedFile(email);
+    if (!await file.exists()) return null;
+    return file.readAsString();
+  }
+
+  /// Writes the preserved snapshot. Routed through the same test seam as
+  /// [_writeData] so a test can observe both slots.
+  static Future<void> _writePreservedData(
+    String email,
+    String data,
+  ) async {
+    final override = writeOverride;
+    if (override != null) return override(_preservedPrefsKey(email), data);
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_preservedPrefsKey(email), data);
+      return;
+    }
+    final file = await _preservedFile(email);
+    final tmp = File('${file.path}.tmp');
+    await tmp.writeAsString(data);
+    await tmp.rename(file.path);
+  }
+
   static Future<String?> _readData(String key) async {
+    final override = readOverride;
+    if (override != null) return override(key);
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(key);

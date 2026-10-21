@@ -525,6 +525,130 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grantPermission => 'Grant Permission';
 
   @override
+  String get backupAndRestore => 'Backup & Restore';
+
+  @override
+  String get backupAndRestoreAllData => 'Backup & Restore All Data';
+
+  @override
+  String get backupDownload => 'Download Backup';
+
+  @override
+  String get backupDownloadExplain =>
+      'Saves a .json file you choose the location for. Keep it somewhere safe (email it to yourself, or a cloud drive) — a backup on the same device is not a backup.';
+
+  @override
+  String backupFailed(String error) {
+    return 'Backup failed: $error';
+  }
+
+  @override
+  String backupIncompleteWarning(String collections) {
+    return 'Last backup was incomplete — these could not be read: $collections. Try again before relying on that file.';
+  }
+
+  @override
+  String get backupKeepOwnCopy => 'Keep your own copy';
+
+  @override
+  String get backupKeepOwnCopyBody =>
+      'A backup is a single file holding every transaction, category, budget, goal, loan and asset, plus your profile. It downloads to your device and works without the app — so even a deleted account can be rebuilt from it.';
+
+  @override
+  String get backupRestoreCancel => 'Cancel';
+
+  @override
+  String get backupRestoreConfirm => 'Restore';
+
+  @override
+  String backupRestoreConfirmItems(int count) {
+    return '$count items will be written back.';
+  }
+
+  @override
+  String get backupRestoreConfirmTitle => 'Restore this backup?';
+
+  @override
+  String get backupRestoreExistingKept =>
+      'Existing items are kept — restoring adds anything missing and updates items that are already there. Nothing is deleted.';
+
+  @override
+  String get backupRestoreExplain =>
+      'Pick a backup file to restore. Existing items are kept; nothing is deleted.';
+
+  @override
+  String backupRestoreFailed(String error) {
+    return 'Restore failed: $error';
+  }
+
+  @override
+  String get backupRestoreFromFile => 'Restore From Backup File';
+
+  @override
+  String backupRestorePartial(int count, int failed, String names) {
+    return 'Restored $count items, but $failed collection(s) failed: $names';
+  }
+
+  @override
+  String backupRestoreSuccess(int count) {
+    return 'Restored $count items.';
+  }
+
+  @override
+  String backupRestoreTaken(String when) {
+    return 'Backup taken $when';
+  }
+
+  @override
+  String backupRestoreWrongAccount(String backupEmail, String currentEmail) {
+    return 'Warning: this backup was made for $backupEmail, but you are signed in as $currentEmail.';
+  }
+
+  @override
+  String backupSaved(int count, int collections) {
+    return 'Backup saved: $count items across $collections collections';
+  }
+
+  @override
+  String get backupSectionTitle => 'Backup';
+
+  @override
+  String get backupWorking => 'Working…';
+
+  @override
+  String get backupNotSignedIn => 'You are not signed in.';
+
+  @override
+  String get backupHadNoTransactions => 'Backup had no transactions to restore';
+
+  @override
+  String restoreFailed(String error) {
+    return 'Restore failed: $error';
+  }
+
+  @override
+  String restoredFromBackup(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restored $count transactions',
+      one: 'Restored 1 transaction',
+    );
+    return '$_temp0 from backup';
+  }
+
+  @override
+  String restoredFromPreservedBackup(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restored $count transactions',
+      one: 'Restored 1 transaction',
+    );
+    return '$_temp0 from backup — the preserved pre-deletion copy';
+  }
+
+  @override
   String get handlesRestoringLocalCacheMerge =>
       'This handles restoring from local cache. Merge restored transactions with current data?';
 

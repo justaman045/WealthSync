@@ -1090,6 +1090,174 @@ abstract class AppLocalizations {
   /// **'Grant Permission'**
   String get grantPermission;
 
+  /// No description provided for @backupAndRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Restore'**
+  String get backupAndRestore;
+
+  /// No description provided for @backupAndRestoreAllData.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Restore All Data'**
+  String get backupAndRestoreAllData;
+
+  /// No description provided for @backupDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Backup'**
+  String get backupDownload;
+
+  /// No description provided for @backupDownloadExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Saves a .json file you choose the location for. Keep it somewhere safe (email it to yourself, or a cloud drive) — a backup on the same device is not a backup.'**
+  String get backupDownloadExplain;
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup failed: {error}'**
+  String backupFailed(String error);
+
+  /// No description provided for @backupIncompleteWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup was incomplete — these could not be read: {collections}. Try again before relying on that file.'**
+  String backupIncompleteWarning(String collections);
+
+  /// No description provided for @backupKeepOwnCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your own copy'**
+  String get backupKeepOwnCopy;
+
+  /// No description provided for @backupKeepOwnCopyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A backup is a single file holding every transaction, category, budget, goal, loan and asset, plus your profile. It downloads to your device and works without the app — so even a deleted account can be rebuilt from it.'**
+  String get backupKeepOwnCopyBody;
+
+  /// No description provided for @backupRestoreCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get backupRestoreCancel;
+
+  /// No description provided for @backupRestoreConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get backupRestoreConfirm;
+
+  /// No description provided for @backupRestoreConfirmItems.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items will be written back.'**
+  String backupRestoreConfirmItems(int count);
+
+  /// No description provided for @backupRestoreConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup?'**
+  String get backupRestoreConfirmTitle;
+
+  /// No description provided for @backupRestoreExistingKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing items are kept — restoring adds anything missing and updates items that are already there. Nothing is deleted.'**
+  String get backupRestoreExistingKept;
+
+  /// No description provided for @backupRestoreExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a backup file to restore. Existing items are kept; nothing is deleted.'**
+  String get backupRestoreExplain;
+
+  /// No description provided for @backupRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore failed: {error}'**
+  String backupRestoreFailed(String error);
+
+  /// No description provided for @backupRestoreFromFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore From Backup File'**
+  String get backupRestoreFromFile;
+
+  /// No description provided for @backupRestorePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items, but {failed} collection(s) failed: {names}'**
+  String backupRestorePartial(int count, int failed, String names);
+
+  /// No description provided for @backupRestoreSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored {count} items.'**
+  String backupRestoreSuccess(int count);
+
+  /// No description provided for @backupRestoreTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup taken {when}'**
+  String backupRestoreTaken(String when);
+
+  /// No description provided for @backupRestoreWrongAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: this backup was made for {backupEmail}, but you are signed in as {currentEmail}.'**
+  String backupRestoreWrongAccount(String backupEmail, String currentEmail);
+
+  /// No description provided for @backupSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved: {count} items across {collections} collections'**
+  String backupSaved(int count, int collections);
+
+  /// No description provided for @backupSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup'**
+  String get backupSectionTitle;
+
+  /// No description provided for @backupWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get backupWorking;
+
+  /// No description provided for @backupNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not signed in.'**
+  String get backupNotSignedIn;
+
+  /// No description provided for @backupHadNoTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup had no transactions to restore'**
+  String get backupHadNoTransactions;
+
+  /// No description provided for @restoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore failed: {error}'**
+  String restoreFailed(String error);
+
+  /// No description provided for @restoredFromBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Restored 1 transaction} other{Restored {count} transactions}} from backup'**
+  String restoredFromBackup(int count);
+
+  /// No description provided for @restoredFromPreservedBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Restored 1 transaction} other{Restored {count} transactions}} from backup — the preserved pre-deletion copy'**
+  String restoredFromPreservedBackup(int count);
+
   /// No description provided for @handlesRestoringLocalCacheMerge.
   ///
   /// In en, this message translates to:

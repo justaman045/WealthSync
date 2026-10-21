@@ -166,6 +166,130 @@
   "goalNameRequired": "Goal name is required",
   "goalsYet": "No goals yet",
   "grantPermission": "Grant Permission",
+  "backupAndRestore": "Backup & Restore",
+  "backupAndRestoreAllData": "Backup & Restore All Data",
+  "backupDownload": "Download Backup",
+  "backupDownloadExplain": "Saves a .json file you choose the location for. Keep it somewhere safe (email it to yourself, or a cloud drive) \u2014 a backup on the same device is not a backup.",
+  "backupFailed": "Backup failed: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupIncompleteWarning": "Last backup was incomplete \u2014 these could not be read: {collections}. Try again before relying on that file.",
+  "@backupIncompleteWarning": {
+    "placeholders": {
+      "collections": {
+        "type": "String"
+      }
+    }
+  },
+  "backupKeepOwnCopy": "Keep your own copy",
+  "backupKeepOwnCopyBody": "A backup is a single file holding every transaction, category, budget, goal, loan and asset, plus your profile. It downloads to your device and works without the app \u2014 so even a deleted account can be rebuilt from it.",
+  "backupRestoreCancel": "Cancel",
+  "backupRestoreConfirm": "Restore",
+  "backupRestoreConfirmItems": "{count} items will be written back.",
+  "@backupRestoreConfirmItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreConfirmTitle": "Restore this backup?",
+  "backupRestoreExistingKept": "Existing items are kept \u2014 restoring adds anything missing and updates items that are already there. Nothing is deleted.",
+  "backupRestoreExplain": "Pick a backup file to restore. Existing items are kept; nothing is deleted.",
+  "backupRestoreFailed": "Restore failed: {error}",
+  "@backupRestoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "backupRestoreFromFile": "Restore From Backup File",
+  "backupRestorePartial": "Restored {count} items, but {failed} collection(s) failed: {names}",
+  "@backupRestorePartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "backupRestoreSuccess": "Restored {count} items.",
+  "@backupRestoreSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreTaken": "Backup taken {when}",
+  "@backupRestoreTaken": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backupRestoreWrongAccount": "Warning: this backup was made for {backupEmail}, but you are signed in as {currentEmail}.",
+  "@backupRestoreWrongAccount": {
+    "placeholders": {
+      "backupEmail": {
+        "type": "String"
+      },
+      "currentEmail": {
+        "type": "String"
+      }
+    }
+  },
+  "backupSaved": "Backup saved: {count} items across {collections} collections",
+  "@backupSaved": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "collections": {
+        "type": "int"
+      }
+    }
+  },
+  "backupSectionTitle": "Backup",
+  "backupWorking": "Working\u2026",
+  "backupNotSignedIn": "You are not signed in.",
+  "backupHadNoTransactions": "Backup had no transactions to restore",
+  "restoreFailed": "Restore failed: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "restoredFromBackup": "{count, plural, =1{Restored 1 transaction} other{Restored {count} transactions}} from backup",
+  "@restoredFromBackup": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "restoredFromPreservedBackup": "{count, plural, =1{Restored 1 transaction} other{Restored {count} transactions}} from backup \u2014 the preserved pre-deletion copy",
+  "@restoredFromPreservedBackup": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "handlesRestoringLocalCacheMerge": "This handles restoring from local cache. Merge restored transactions with current data?",
   "homeWidget": "Home Widget",
   "howCategoryCountsTowardSmart": "How this category counts toward your Smart Daily Limit. Ignored categories (e.g. investments/SIPs) never reduce it.",

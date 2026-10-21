@@ -30,6 +30,17 @@ class AnalyticsEvent {
   static const String referralApplied = 'referral_applied';
   static const String exportUsed = 'export_used';
 
+  /// The user downloaded a complete, restorable account archive. Tracked
+  /// separately from [exportUsed] because the two answer different questions:
+  /// an export is "I want a copy for my records", a backup is "I want to be
+  /// able to get my account back" — and only the latter is a safety net.
+  static const String fullBackupDownloaded = 'full_backup_downloaded';
+
+  /// A restore from a downloaded archive completed, with how many documents
+  /// came back and whether any collection failed. Logged from the *result*, not
+  /// the tap, so a failed restore that reported success is visible here.
+  static const String fullBackupRestored = 'full_backup_restored';
+
   /// A user reached a feature that an admin has set to `comingSoon` or
   /// `hidden`. This is the demand signal for what to build next, and the only
   /// way to know which of the feature flags are dead weight.

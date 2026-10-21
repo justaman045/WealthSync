@@ -341,6 +341,13 @@ class FeatureFlag {
       icon: Icons.cloud_download_outlined,
     ),
     FeatureFlag(
+      key: 'full_backup',
+      title: 'Backup & Restore All Data',
+      description:
+          'Download a complete archive of every collection and restore it later',
+      icon: Icons.save_alt_outlined,
+    ),
+    FeatureFlag(
       key: 'transaction_audit',
       title: 'Transaction Audit',
       description: 'Cross-check transactions against your bank records',
@@ -477,7 +484,7 @@ class FeatureFlag {
     FeatureFlagGroup(
       title: 'Data Management',
       icon: Icons.folder_open_rounded,
-      keys: ['restore_data', 'import_data', 'export_all_data'],
+      keys: ['full_backup', 'restore_data', 'import_data', 'export_all_data'],
     ),
     FeatureFlagGroup(
       title: 'Settings & Extras',

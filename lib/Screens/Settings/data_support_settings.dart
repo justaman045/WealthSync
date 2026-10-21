@@ -12,6 +12,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Screens/about_application.dart';
 import 'package:money_control/Screens/feedback_form.dart';
+import 'package:money_control/Screens/full_backup_screen.dart';
 import 'package:money_control/Screens/terms_and_policy.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/local_backup_service.dart';
@@ -71,6 +72,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
     if (!ensureFeatureVisible(context, 'restore_data')) return;
     final userEmail = FirebaseAuth.instance.currentUser?.email;
     if (userEmail == null) return;
+    final l10n = AppLocalizations.of(context)!;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -105,18 +107,32 @@ class DataSupportSettingsScreen extends StatelessWidget {
         );
         return;
       }
+      // Read the preserved-snapshot flag *before* the restore: the restore
+      // only writes the transactions collection, so the flag cannot change
+      // underneath us, and reading it first keeps the BuildContext use out of
+      // an async gap.
+      final recoveredFromPreserved = await LocalBackupService
+          .hasPreservedBackup(userEmail);
+
       final restored =
           await LocalBackupService.restoreUserTransactions(userEmail);
       // The restore re-writes Firestore; drop the cold-load cache so a reload
       // within the TTL doesn't surface stale data (mirrors import_screen).
       LocalCacheService.invalidate('transactions_$userEmail');
       if (!context.mounted) return;
+
+      // When the mirror is empty but the preserved pre-deletion snapshot is
+      // bigger, the restore brought back data the account had lost. Say so —
+      // a bare "restored 791 transactions" after a wipe is confusing without
+      // the explanation.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             restored > 0
-                ? "Restored $restored transaction${restored == 1 ? '' : 's'} from backup"
-                : "Backup had no transactions to restore",
+                ? (recoveredFromPreserved
+                    ? l10n.restoredFromPreservedBackup(restored)
+                    : l10n.restoredFromBackup(restored))
+                : l10n.backupHadNoTransactions,
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
@@ -126,7 +142,7 @@ class DataSupportSettingsScreen extends StatelessWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Restore failed: $e"),
+          content: Text(AppLocalizations.of(context)!.restoreFailed('$e')),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -364,6 +380,19 @@ class DataSupportSettingsScreen extends StatelessWidget {
                 child: Column(
                   children: [
                 SectionHeader("Data Management"),
+                FeatureVisible(
+                  flagKey: 'full_backup',
+                  child: SettingsTile(
+                    icon: Icons.save_alt_outlined,
+                    title: AppLocalizations.of(context)!.backupAndRestoreAllData,
+                    onTap: () {
+                      if (!ensureFeatureVisible(context, 'full_backup')) {
+                        return;
+                      }
+                      Get.to(() => const FullBackupScreen());
+                    },
+                  ),
+                ),
                 SettingsTile(
                   icon: Icons.backup_outlined,
                   title: "Backup Data",
