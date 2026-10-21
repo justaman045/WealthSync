@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:money_control/Components/analytics/analytics_cards.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Components/staggered_slide_fade.dart';
 import 'package:money_control/Utils/responsive.dart';
@@ -878,11 +879,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: _summary(
-                              AppLocalizations.of(context)!.tabIncome,
-                              totalIncome,
-                              AppColors.primary,
-                              Icons.arrow_upward_rounded,
+                            child: AnalyticsStatCard(
+                              label:
+                                  AppLocalizations.of(context)!.tabIncome,
+                              amount: totalIncome,
+                              color: AppColors.primary,
+                              icon: Icons.arrow_upward_rounded,
+                              isDark: _cachedIsDark,
                               onTap: () => Get.to(
                                 () => TransactionHistoryScreen(
                                   initialTab: 1,
@@ -893,11 +896,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ),
                           SizedBox(width: 16.w),
                           Expanded(
-                            child: _summary(
-                              AppLocalizations.of(context)!.analyticsExpenses,
-                              totalExpense,
-                              AppColors.error,
-                              Icons.arrow_downward_rounded,
+                            child: AnalyticsStatCard(
+                              label: AppLocalizations.of(context)!
+                                  .analyticsExpenses,
+                              amount: totalExpense,
+                              color: AppColors.error,
+                              icon: Icons.arrow_downward_rounded,
+                              isDark: _cachedIsDark,
                               onTap: () => Get.to(
                                 () => TransactionHistoryScreen(
                                   initialTab: 2,
@@ -912,11 +917,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     SizedBox(height: 16.h),
                     StaggeredSlideFade(
                       delay: 200,
-                      child: _summary(
-                        AppLocalizations.of(context)!.analyticsNetBalance,
-                        netBalance,
-                        netBalance >= 0 ? AppColors.primary : AppColors.error,
-                        Icons.account_balance_wallet_rounded,
+                      child: AnalyticsStatCard(
+                        label:
+                            AppLocalizations.of(context)!.analyticsNetBalance,
+                        amount: netBalance,
+                        color: netBalance >= 0
+                            ? AppColors.primary
+                            : AppColors.error,
+                        icon: Icons.account_balance_wallet_rounded,
+                        isDark: _cachedIsDark,
                         isWide: true,
                         onTap: () => Get.to(
                           () => TransactionHistoryScreen(
@@ -1006,7 +1015,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SizedBox(height: 32.h),
-                    StaggeredSlideFade(delay: 300, child: _quickOverviewCard()),
+                    StaggeredSlideFade(
+                      delay: 300,
+                      child: AnalyticsQuickOverviewCard(
+                        isDark: _cachedIsDark,
+                        todayIncome: _todayTotals.$1,
+                        todayExpense: _todayTotals.$2,
+                        weekIncome: _thisWeekTotals.$1,
+                        weekExpense: _thisWeekTotals.$2,
+                        monthIncome: _thisMonthTotals.$1,
+                        monthExpense: _thisMonthTotals.$2,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1086,7 +1106,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     SizedBox(height: 32.h),
                     StaggeredSlideFade(
                       delay: 900,
-                      child: _buildSpendingPersonality(),
+                      child: AnalyticsPersonalityCard(
+                        personality: _spendingPersonality,
+                        income: totalIncome,
+                        expense: totalExpense,
+                        isDark: _cachedIsDark,
+                      ),
                     ),
                   ],
                 ),
@@ -1101,238 +1126,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   // ---------- QUICK OVERVIEW CARD UI (Updated) -----------
-
-  Color _c([double opacity = 1]) => isDark
-      ? Colors.white.withValues(alpha: opacity)
-      : AppColors.lightTextPrimary.withValues(alpha: opacity);
-  Color _glassBg() =>
-      isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightSurface;
-  Color _glassBorder() =>
-      isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder;
-
-  Widget _quickOverviewCard() {
-    final (dIncome, dExpense) = _todayTotals;
-    final (wIncome, wExpense) = _thisWeekTotals;
-    final (mIncome, mExpense) = _thisMonthTotals;
-
-    final maxVal = [
-      dIncome,
-      dExpense,
-      wIncome,
-      wExpense,
-      mIncome,
-      mExpense,
-    ].fold<double>(0, (p, e) => e > p ? e : p);
-
-    return Container(
-      padding: EdgeInsets.all(22.w),
-      decoration: BoxDecoration(
-        color: _glassBg(),
-        borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(color: _glassBorder()),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-            blurRadius: 15.r,
-            offset: Offset(0, 8.h),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.flash_on_rounded, size: 20.sp, color: Colors.amber),
-              SizedBox(width: 8.w),
-              Text(
-                AppLocalizations.of(context)!.quickOverview,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.bold,
-                  color: _c(),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-
-          _quickHistogramRow(
-            AppLocalizations.of(context)!.today,
-            dIncome,
-            dExpense,
-            maxVal,
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            child: Divider(color: _glassBorder()),
-          ),
-
-          _quickHistogramRow(
-            AppLocalizations.of(context)!.analyticsThisWeek,
-            wIncome,
-            wExpense,
-            maxVal,
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            child: Divider(color: _glassBorder()),
-          ),
-
-          _quickHistogramRow(
-            AppLocalizations.of(context)!.analyticsThisMonth,
-            mIncome,
-            mExpense,
-            maxVal,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _quickHistogramRow(
-    String label,
-    double inc,
-    double exp,
-    double maxVal,
-  ) {
-    final safeMax = maxVal <= 0 ? 1 : maxVal;
-    final incRatio = (inc / safeMax).clamp(0.0, 1.0);
-    final expRatio = (exp / safeMax).clamp(0.0, 1.0);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: _c(0.9),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8.h),
-
-        Row(
-          children: [
-            SizedBox(
-              width: 40.w,
-              child: Text(
-                AppLocalizations.of(context)!.analyticsIn,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Container(
-                    height: 6.h,
-                    decoration: BoxDecoration(
-                      color: _glassBg(),
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: incRatio > 0 ? incRatio : 0.01,
-                    child: Container(
-                      height: 6.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(10.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.4),
-                            blurRadius: 6.r,
-                            spreadRadius: 1.r,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 8.w),
-            SizedBox(
-              width: 60.w,
-              child: Text(
-                "${CurrencyController.to.currencySymbol.value}${inc.toStringAsFixed(0)}",
-                textAlign: TextAlign.end,
-                style: TextStyle(fontSize: 11.sp, color: _c(0.7)),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8.h),
-
-        Row(
-          children: [
-            SizedBox(
-              width: 40.w,
-              child: Text(
-                AppLocalizations.of(context)!.out2,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AppColors.error,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Container(
-                    height: 6.h,
-                    decoration: BoxDecoration(
-                      color: _glassBg(),
-                      borderRadius: BorderRadius.circular(10.r),
-                    ),
-                  ),
-                  FractionallySizedBox(
-                    widthFactor: expRatio > 0 ? expRatio : 0.01,
-                    child: Container(
-                      height: 6.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        borderRadius: BorderRadius.circular(10.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.error.withValues(alpha: 0.4),
-                            blurRadius: 6.r,
-                            spreadRadius: 1.r,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 8.w),
-            SizedBox(
-              width: 60.w,
-              child: Text(
-                "${CurrencyController.to.currencySymbol.value}${exp.toStringAsFixed(0)}",
-                textAlign: TextAlign.end,
-                style: TextStyle(fontSize: 11.sp, color: _c(0.7)),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ---------- Reusable dropdown with label -----------
 
   Widget _dropdown<T>({
     required String label,
@@ -1412,101 +1205,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _summary(
-    String label,
-    double amount,
-    Color color,
-    IconData icon, {
-    bool isWide = false,
-    VoidCallback? onTap,
-  }) {
-    final isDark = _cachedIsDark;
-    return GestureDetector(
-      onTap: onTap,
-      // The card reads as text; only the button role is missing. `button` is
-      // false when there is nothing to tap, so a plain summary card never
-      // announces itself as actionable.
-      child: Semantics(
-        button: onTap != null,
-        child: Container(
-        width: isWide ? double.infinity : null,
-        padding: EdgeInsets.all(18.w),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : AppColors.lightSurface,
-          borderRadius: BorderRadius.circular(24.r),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : AppColors.lightBorder,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
-              blurRadius: 12.r,
-              offset: Offset(0, 6.h),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.2),
-                    blurRadius: 10.r,
-                    spreadRadius: 1.r,
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: color, size: 22.sp),
-            ),
-            SizedBox(width: 16.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.6)
-                        : AppColors.lightTextSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  "${CurrencyController.to.currencySymbol.value}${amount.toStringAsFixed(0)}",
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        ), // Container
-      ),
-    ); // GestureDetector
-  }
-
-  // ================= TREND CHART ===================
-
   Widget _buildTrendChart() {
     final isDark = _cachedIsDark;
     final data = _monthlyTrend;
     if (data.isEmpty) {
-      return _emptyCard(
-        AppLocalizations.of(context)!.analyticsNotEnoughDataForTrend,
+      return AnalyticsEmptyCard(
+        text: AppLocalizations.of(context)!.analyticsNotEnoughDataForTrend,
+        isDark: _cachedIsDark,
       );
     }
 
@@ -1559,7 +1264,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               Row(
                 children: [
-                  _legendDot(AppColors.primary),
+                  AnalyticsLegendDot(color: AppColors.primary),
                   Text(
                     " In ",
                     style: TextStyle(
@@ -1571,7 +1276,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   ),
                   SizedBox(width: 8.w),
-                  _legendDot(AppColors.error),
+                  AnalyticsLegendDot(color: AppColors.error),
                   Text(
                     AppLocalizations.of(context)!.out,
                     style: TextStyle(
@@ -1869,23 +1574,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _legendDot(Color c) => Container(
-    width: 10.w,
-    height: 10.h,
-    margin: EdgeInsets.only(right: 4.w),
-    decoration: BoxDecoration(
-      color: c,
-      borderRadius: BorderRadius.circular(50.r),
-      boxShadow: [
-        BoxShadow(
-          color: c.withValues(alpha: 0.4),
-          blurRadius: 4.r,
-          spreadRadius: 1.r,
-        ),
-      ],
-    ),
-  );
-
   Widget _buildPieChart() {
     final data = spendingByCategory;
     if (data.isEmpty) return const SizedBox.shrink();
@@ -2038,35 +1726,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _emptyCard(String text) {
-    final isDark = _cachedIsDark;
-    return Container(
-      height: 200.h,
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : AppColors.lightSurface,
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : AppColors.lightBorder,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.7)
-                : AppColors.lightTextSecondary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ------------- SPENDING HEATMAP -------------------
   Widget _buildHeatmap() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
@@ -2295,21 +1954,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             spacing: 12.w,
             runSpacing: 4.h,
             children: [
-              _heatmapLegend(
-                Colors.green.shade200,
-                AppLocalizations.of(context)!.analyticsHeatmapLowSpend,
+              AnalyticsHeatmapLegendItem(
+                color: Colors.green.shade200,
+                label:
+                    AppLocalizations.of(context)!.analyticsHeatmapLowSpend,
+                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),
-              _heatmapLegend(
-                Colors.green.shade900,
-                AppLocalizations.of(context)!.analyticsHeatmapHighSpend,
+              AnalyticsHeatmapLegendItem(
+                color: Colors.green.shade900,
+                label:
+                    AppLocalizations.of(context)!.analyticsHeatmapHighSpend,
+                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),
-              _heatmapLegend(
-                Colors.cyanAccent,
-                AppLocalizations.of(context)!.analyticsHeatmapSalary,
+              AnalyticsHeatmapLegendItem(
+                color: Colors.cyanAccent,
+                label: AppLocalizations.of(context)!.analyticsHeatmapSalary,
+                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),
-              _heatmapLegend(
-                Colors.amber,
-                AppLocalizations.of(context)!.analyticsHeatmapBillDue,
+              AnalyticsHeatmapLegendItem(
+                color: Colors.amber,
+                label: AppLocalizations.of(context)!.analyticsHeatmapBillDue,
+                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),
             ],
           ),
@@ -2318,31 +1983,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _heatmapLegend(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10.w,
-          height: 10.w,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2.r),
-          ),
-        ),
-        SizedBox(width: 4.w),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10.sp,
-            color: _cachedTheme.textTheme.bodySmall?.color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ------------- MERCHANT INSIGHTS -------------------
   Widget _buildMerchantInsights() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return const SizedBox.shrink();
@@ -2536,8 +2176,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
   // ------------- SPENDING PERSONALITY -------------------
 
-  ({String label, String emoji, String description, Color color})
-  get _spendingPersonality {
+  SpendingPersonality get _spendingPersonality {
     final l10n = AppLocalizations.of(context)!;
     final income = totalIncome;
     final expense = totalExpense;
@@ -2546,7 +2185,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     // Saving rate
     if (income > 0 && (income - expense) / income >= 0.40) {
-      return (
+      return SpendingPersonality(
         label: l10n.analyticsPersonalitySmartSaver,
         emoji: '💰',
         description: l10n.analyticsPersonalitySmartSaverDesc,
@@ -2567,7 +2206,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('grocer') ||
               cat.contains('restaurant') ||
               cat.contains('eat'))) {
-        return (
+        return SpendingPersonality(
           label: l10n.analyticsPersonalityFoodie,
           emoji: '🍔',
           description: l10n.analyticsPersonalityFoodieDesc(
@@ -2585,7 +2224,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('bus') ||
               cat.contains('uber') ||
               cat.contains('auto'))) {
-        return (
+        return SpendingPersonality(
           label: l10n.analyticsPersonalityCommuter,
           emoji: '🚌',
           description: l10n.analyticsPersonalityCommuterDesc(
@@ -2601,7 +2240,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('fashion') ||
               cat.contains('apparel') ||
               cat.contains('shoes'))) {
-        return (
+        return SpendingPersonality(
           label: l10n.analyticsPersonalityShopaholic,
           emoji: '🛍️',
           description: l10n.analyticsPersonalityShopaholicDesc(
@@ -2618,7 +2257,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('game') ||
               cat.contains('fun') ||
               cat.contains('sport'))) {
-        return (
+        return SpendingPersonality(
           label: l10n.analyticsPersonalityFunSeeker,
           emoji: '🎉',
           description: l10n.analyticsPersonalityFunSeekerDesc,
@@ -2632,7 +2271,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     if (sendTxs.isNotEmpty) {
       final avg = expense / sendTxs.length;
       if (avg > 5000) {
-        return (
+        return SpendingPersonality(
           label: l10n.analyticsPersonalityBigSpender,
           emoji: '💸',
           description: l10n.analyticsPersonalityBigSpenderDesc(
@@ -2647,7 +2286,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           .where((tx) => tx.senderId == uid && tx.date.isAfter(cutoff))
           .length;
       if (recentCount > 20) {
-        return (
+        return SpendingPersonality(
           label: l10n.analyticsPersonalityFrequentSpender,
           emoji: '⚡',
           description:
@@ -2658,7 +2297,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     if (income == 0) {
-      return (
+      return SpendingPersonality(
         label: l10n.analyticsPersonalityJustStarting,
         emoji: '🌱',
         description: l10n.analyticsPersonalityJustStartingDesc,
@@ -2666,7 +2305,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       );
     }
 
-    return (
+    return SpendingPersonality(
       label: l10n.analyticsPersonalityBalanced,
       emoji: '⚖️',
       description: l10n.analyticsPersonalityBalancedDesc,
@@ -2674,118 +2313,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildSpendingPersonality() {
-    final theme = _cachedTheme;
-    final isDark = _cachedIsDark;
-    final p = _spendingPersonality;
-    final income = totalIncome;
-    final expense = totalExpense;
-    final rawRate = income > 0 ? (income - expense) / income : 0.0;
-    final isDeficit = rawRate < 0;
-    final savingRate = rawRate.clamp(0.0, 1.0);
-    final rateColor = isDeficit ? Colors.redAccent : p.color;
-
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: p.color.withValues(alpha: isDark ? 0.08 : 0.1),
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: p.color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(10.w),
-                decoration: BoxDecoration(
-                  color: p.color.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Text(p.emoji, style: TextStyle(fontSize: 20.sp)),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.spendingPersonality,
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
-                        color: p.color,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    Text(
-                      p.label,
-                      style: TextStyle(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w800,
-                        color: theme.textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            p.description,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: theme.textTheme.bodyMedium?.color,
-            ),
-          ),
-          if (income > 0) ...[
-            SizedBox(height: 14.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.savingRate,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: theme.textTheme.bodyMedium?.color,
-                  ),
-                ),
-                Text(
-                  '${(rawRate * 100).toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: rateColor,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 6.h),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6.r),
-              child: LinearProgressIndicator(
-                value: savingRate,
-                minHeight: 6.h,
-                backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation(rateColor),
-              ),
-            ),
-            if (isDeficit) ...[
-              SizedBox(height: 4.h),
-              Text(
-                AppLocalizations.of(context)!.analyticsSpendingExceedsIncome(
-                  ((-rawRate) * 100).toStringAsFixed(1),
-                ),
-                style: TextStyle(fontSize: 11.sp, color: Colors.redAccent),
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
 }
 
 // --- Model for chart ---
