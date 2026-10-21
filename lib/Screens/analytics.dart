@@ -369,10 +369,29 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Map<String, double> get spendingByCategory {
     final Map<String, double> map = {};
     for (var tx in _filtered.where((t) => t.senderId == uid)) {
-      map[tx.category ?? "Other"] =
-          (map[tx.category ?? "Other"] ?? 0) + tx.amount.abs() + tx.tax;
+      map[tx.category ?? _otherBucketKey] =
+          (map[tx.category ?? _otherBucketKey] ?? 0) + tx.amount.abs() + tx.tax;
     }
     return map;
+  }
+
+  /// The bucket transactions with no category land in. It is a key, not copy:
+  /// the category filter compares it against `tx.category`, so it must not
+  /// change with the locale.
+  static const String _otherBucketKey = 'Other';
+
+  /// Everything past the top five categories is rolled into one bucket.
+  /// Also a key, not copy.
+  static const String _othersBucketKey = 'Others';
+
+  /// The display name of a spending bucket. The two aggregate buckets are
+  /// ours rather than the user's, so they are translated; a real category
+  /// name is shown as the user typed it.
+  String _bucketLabel(String key) {
+    final l10n = AppLocalizations.of(context)!;
+    if (key == _othersBucketKey) return l10n.analyticsOthers;
+    if (key == _otherBucketKey) return l10n.other;
+    return key;
   }
 
   // Monthly trend
@@ -419,8 +438,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final SubscriptionController subscriptionController = Get.find();
     if (!subscriptionController.isPro) {
       _showProLockModal(
-        "Data Export",
-        "Export your transaction history as CSV.",
+        AppLocalizations.of(context)!.analyticsDataExport,
+        AppLocalizations.of(context)!.analyticsExportCsvDesc,
       );
       return;
     }
@@ -432,8 +451,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final SubscriptionController subscriptionController = Get.find();
     if (!subscriptionController.isPro) {
       _showProLockModal(
-        "Data Export",
-        "Generate detailed PDF reports for analysis.",
+        AppLocalizations.of(context)!.analyticsDataExport,
+        AppLocalizations.of(context)!.analyticsExportPdfDesc,
       );
       return;
     }
@@ -451,12 +470,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final SubscriptionController subscriptionController = Get.find();
     if (!subscriptionController.isPro) {
       _showProLockModal(
-        "Share Report",
-        "Share your monthly report as an image.",
+        AppLocalizations.of(context)!.shareReport,
+        AppLocalizations.of(context)!.analyticsShareReportDesc,
       );
       return;
     }
     try {
+      // Read the copy before the await: the widget may be gone by the time
+      // the screenshot is captured.
+      final shareText = AppLocalizations.of(context)!
+          .analyticsShareReportFileName(_periodLabel);
       final Uint8List? image = await _screenshotController.capture(
         pixelRatio: 2.0,
       );
@@ -470,7 +493,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               mimeType: 'image/png',
             ),
           ],
-          text: 'My $_periodLabel Financial Report — Money Control',
+          text: shareText,
         ),
       );
     } catch (e) {
@@ -482,8 +505,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final SubscriptionController subscriptionController = Get.find();
     if (!subscriptionController.isPro) {
       _showProLockModal(
-        "Tax Summary",
-        "Export categorized annual tax summary PDF.",
+        AppLocalizations.of(context)!.analyticsTaxSummary,
+        AppLocalizations.of(context)!.analyticsTaxSummaryDesc,
       );
       return;
     }
@@ -756,16 +779,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           children: [
                             Expanded(
                               child: _dropdown<String>(
-                                label: "Period",
+                                label: AppLocalizations.of(context)!
+                                    .analyticsPeriod,
                                 value: _period,
                                 items: _periodOptions,
                                 onChanged: (v) async {
                                   final SubscriptionController subCtrl =
                                       Get.find();
-                                  if (!subCtrl.isPro && v != "This Month") {
+                                  if (!subCtrl.isPro &&
+                                      v != "This Month") {
                                     _showProLockModal(
-                                      "Advanced Analytics",
-                                      "Unlock full history and custom date ranges.",
+                                      AppLocalizations.of(context)!
+                                          .analyticsAdvanced,
+                                      AppLocalizations.of(context)!
+                                          .analyticsUnlockHistory,
                                     );
                                     return;
                                   }
@@ -802,10 +829,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             SizedBox(width: 16.w),
                             Expanded(
                               child: _dropdown<String?>(
-                                label: "Category",
+                                label: AppLocalizations.of(context)!
+                                    .analyticsCategory,
                                 value: _categoryFilter,
                                 items: [null, ...categories],
-                                format: (v) => v ?? "All Categories",
+                                format: (v) => v == null
+                                    ? AppLocalizations.of(context)!
+                                        .analyticsAllCategories
+                                    : _bucketLabel(v),
                                 onChanged: (v) => setState(() {
                                   _categoryFilter = v;
                                   _filteredCache = null;
@@ -848,7 +879,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         children: [
                           Expanded(
                             child: _summary(
-                              "Income",
+                              AppLocalizations.of(context)!.tabIncome,
                               totalIncome,
                               AppColors.primary,
                               Icons.arrow_upward_rounded,
@@ -863,7 +894,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           SizedBox(width: 16.w),
                           Expanded(
                             child: _summary(
-                              "Expenses",
+                              AppLocalizations.of(context)!.analyticsExpenses,
                               totalExpense,
                               AppColors.error,
                               Icons.arrow_downward_rounded,
@@ -882,7 +913,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     StaggeredSlideFade(
                       delay: 200,
                       child: _summary(
-                        "Net Balance",
+                        AppLocalizations.of(context)!.analyticsNetBalance,
                         netBalance,
                         netBalance >= 0 ? AppColors.primary : AppColors.error,
                         Icons.account_balance_wallet_rounded,
@@ -1126,19 +1157,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           SizedBox(height: 16.h),
 
-          _quickHistogramRow("Today", dIncome, dExpense, maxVal),
+          _quickHistogramRow(
+            AppLocalizations.of(context)!.today,
+            dIncome,
+            dExpense,
+            maxVal,
+          ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: Divider(color: _glassBorder()),
           ),
 
-          _quickHistogramRow("This Week", wIncome, wExpense, maxVal),
+          _quickHistogramRow(
+            AppLocalizations.of(context)!.analyticsThisWeek,
+            wIncome,
+            wExpense,
+            maxVal,
+          ),
           Padding(
             padding: EdgeInsets.symmetric(vertical: 12.h),
             child: Divider(color: _glassBorder()),
           ),
 
-          _quickHistogramRow("This Month", mIncome, mExpense, maxVal),
+          _quickHistogramRow(
+            AppLocalizations.of(context)!.analyticsThisMonth,
+            mIncome,
+            mExpense,
+            maxVal,
+          ),
         ],
       ),
     );
@@ -1177,7 +1223,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             SizedBox(
               width: 40.w,
               child: Text(
-                "In",
+                AppLocalizations.of(context)!.analyticsIn,
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: AppColors.primary,
@@ -1459,7 +1505,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final isDark = _cachedIsDark;
     final data = _monthlyTrend;
     if (data.isEmpty) {
-      return _emptyCard("Not enough data for trend.");
+      return _emptyCard(
+        AppLocalizations.of(context)!.analyticsNotEnoughDataForTrend,
+      );
     }
 
     // If only 1 month -> show bar chart comparison
@@ -1772,7 +1820,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         return Padding(
                           padding: EdgeInsets.only(top: 8.0.h),
                           child: Text(
-                            v == 0 ? "Income" : "Expense",
+                            v == 0
+                                ? AppLocalizations.of(context)!.tabIncome
+                                : AppLocalizations.of(context)!
+                                    .analyticsExpense,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13.sp,
@@ -1854,7 +1905,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       for (int i = 5; i < sortedKeys.length; i++) {
         otherSum += data[sortedKeys[i]]!;
       }
-      finalMap["Others"] = otherSum;
+      finalMap[_othersBucketKey] = otherSum;
     } else {
       finalMap = data;
     }
@@ -1964,7 +2015,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           SizedBox(width: 8.w),
                           Expanded(
                             child: Text(
-                              entry.key,
+                              _bucketLabel(entry.key),
                               style: TextStyle(
                                 color: isDark
                                     ? Colors.white70
@@ -2244,10 +2295,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             spacing: 12.w,
             runSpacing: 4.h,
             children: [
-              _heatmapLegend(Colors.green.shade200, 'Low spend'),
-              _heatmapLegend(Colors.green.shade900, 'High spend'),
-              _heatmapLegend(Colors.cyanAccent, 'Salary'),
-              _heatmapLegend(Colors.amber, 'Bill/EMI due'),
+              _heatmapLegend(
+                Colors.green.shade200,
+                AppLocalizations.of(context)!.analyticsHeatmapLowSpend,
+              ),
+              _heatmapLegend(
+                Colors.green.shade900,
+                AppLocalizations.of(context)!.analyticsHeatmapHighSpend,
+              ),
+              _heatmapLegend(
+                Colors.cyanAccent,
+                AppLocalizations.of(context)!.analyticsHeatmapSalary,
+              ),
+              _heatmapLegend(
+                Colors.amber,
+                AppLocalizations.of(context)!.analyticsHeatmapBillDue,
+              ),
             ],
           ),
         ],
@@ -2290,7 +2353,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final Map<String, ({int count, double total})> merchants = {};
     for (final tx in _filtered) {
       if (tx.senderId != uid) continue;
-      final name = tx.recipientName.isEmpty ? 'Unknown' : tx.recipientName;
+      final name = tx.recipientName.isEmpty
+          ? AppLocalizations.of(context)!.analyticsUnknownMerchant
+          : tx.recipientName;
       final existing = merchants[name];
       if (existing == null) {
         merchants[name] = (count: 1, total: tx.amount.abs());
@@ -2364,7 +2429,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ),
                         ),
                         Text(
-                          '${e.value.count} transaction${e.value.count > 1 ? 's' : ''}',
+                          AppLocalizations.of(context)!
+                              .analyticsTransactionCount(e.value.count),
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -2472,6 +2538,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   ({String label, String emoji, String description, Color color})
   get _spendingPersonality {
+    final l10n = AppLocalizations.of(context)!;
     final income = totalIncome;
     final expense = totalExpense;
     final byCategory = spendingByCategory;
@@ -2480,10 +2547,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     // Saving rate
     if (income > 0 && (income - expense) / income >= 0.40) {
       return (
-        label: 'Smart Saver',
+        label: l10n.analyticsPersonalitySmartSaver,
         emoji: '💰',
-        description:
-            'You save over 40% of your income — great financial discipline!',
+        description: l10n.analyticsPersonalitySmartSaverDesc,
         color: AppColors.success,
       );
     }
@@ -2502,10 +2568,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('restaurant') ||
               cat.contains('eat'))) {
         return (
-          label: 'Foodie',
+          label: l10n.analyticsPersonalityFoodie,
           emoji: '🍔',
-          description:
-              'Food & dining makes up ${(topPct * 100).toStringAsFixed(0)}% of your spending.',
+          description: l10n.analyticsPersonalityFoodieDesc(
+            (topPct * 100).toStringAsFixed(0),
+          ),
           color: const Color(0xFFFF8A65),
         );
       }
@@ -2519,10 +2586,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('uber') ||
               cat.contains('auto'))) {
         return (
-          label: 'Commuter',
+          label: l10n.analyticsPersonalityCommuter,
           emoji: '🚌',
-          description:
-              'Transport accounts for ${(topPct * 100).toStringAsFixed(0)}% of your expenses.',
+          description: l10n.analyticsPersonalityCommuterDesc(
+            (topPct * 100).toStringAsFixed(0),
+          ),
           color: const Color(0xFF4FC3F7),
         );
       }
@@ -2534,10 +2602,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('apparel') ||
               cat.contains('shoes'))) {
         return (
-          label: 'Shopaholic',
+          label: l10n.analyticsPersonalityShopaholic,
           emoji: '🛍️',
-          description:
-              'Shopping takes ${(topPct * 100).toStringAsFixed(0)}% of your budget.',
+          description: l10n.analyticsPersonalityShopaholicDesc(
+            (topPct * 100).toStringAsFixed(0),
+          ),
           color: const Color(0xFFE040FB),
         );
       }
@@ -2550,9 +2619,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               cat.contains('fun') ||
               cat.contains('sport'))) {
         return (
-          label: 'Fun Seeker',
+          label: l10n.analyticsPersonalityFunSeeker,
           emoji: '🎉',
-          description: 'Entertainment & leisure is your top spending category.',
+          description: l10n.analyticsPersonalityFunSeekerDesc,
           color: const Color(0xFFFFD54F),
         );
       }
@@ -2564,10 +2633,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       final avg = expense / sendTxs.length;
       if (avg > 5000) {
         return (
-          label: 'Big Spender',
+          label: l10n.analyticsPersonalityBigSpender,
           emoji: '💸',
-          description:
-              'Your average transaction is over ${CurrencyController.to.currencySymbol.value}5,000 — you go big.',
+          description: l10n.analyticsPersonalityBigSpenderDesc(
+            '${CurrencyController.to.currencySymbol.value}5,000',
+          ),
           color: AppColors.error,
         );
       }
@@ -2578,10 +2648,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           .length;
       if (recentCount > 20) {
         return (
-          label: 'Frequent Spender',
+          label: l10n.analyticsPersonalityFrequentSpender,
           emoji: '⚡',
           description:
-              '$recentCount transactions in the last 30 days — always on the move.',
+              l10n.analyticsPersonalityFrequentSpenderDesc(recentCount),
           color: const Color(0xFFFFB300),
         );
       }
@@ -2589,18 +2659,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     if (income == 0) {
       return (
-        label: 'Just Getting Started',
+        label: l10n.analyticsPersonalityJustStarting,
         emoji: '🌱',
-        description:
-            'Add more transactions to unlock your spending personality.',
+        description: l10n.analyticsPersonalityJustStartingDesc,
         color: const Color(0xFFA5D6A7),
       );
     }
 
     return (
-      label: 'Balanced Spender',
+      label: l10n.analyticsPersonalityBalanced,
       emoji: '⚖️',
-      description: 'Your spending is well-distributed across categories.',
+      description: l10n.analyticsPersonalityBalancedDesc,
       color: const Color(0xFF80CBC4),
     );
   }
@@ -2706,7 +2775,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             if (isDeficit) ...[
               SizedBox(height: 4.h),
               Text(
-                'Spending exceeds income by ${((-rawRate) * 100).toStringAsFixed(1)}%',
+                AppLocalizations.of(context)!.analyticsSpendingExceedsIncome(
+                  ((-rawRate) * 100).toStringAsFixed(1),
+                ),
                 style: TextStyle(fontSize: 11.sp, color: Colors.redAccent),
               ),
             ],

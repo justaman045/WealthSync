@@ -239,6 +239,178 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadyImported => 'Already Imported';
 
   @override
+  String get analyticsAdvanced => 'Advanced Analytics';
+
+  @override
+  String get analyticsAllCategories => 'All Categories';
+
+  @override
+  String get analyticsCategory => 'Category';
+
+  @override
+  String get analyticsDataExport => 'Data Export';
+
+  @override
+  String get analyticsExpense => 'Expense';
+
+  @override
+  String get analyticsExpenses => 'Expenses';
+
+  @override
+  String get analyticsExportCsvDesc =>
+      'Export your transaction history as CSV.';
+
+  @override
+  String get analyticsExportPdfDesc =>
+      'Generate detailed PDF reports for analysis.';
+
+  @override
+  String get analyticsHeatmapBillDue => 'Bill/EMI due';
+
+  @override
+  String get analyticsHeatmapHighSpend => 'High spend';
+
+  @override
+  String get analyticsHeatmapLowSpend => 'Low spend';
+
+  @override
+  String get analyticsHeatmapSalary => 'Salary';
+
+  @override
+  String get analyticsIn => 'In';
+
+  @override
+  String get analyticsNetBalance => 'Net Balance';
+
+  @override
+  String get analyticsNotEnoughDataForTrend => 'Not enough data for trend.';
+
+  @override
+  String get analyticsOthers => 'Others';
+
+  @override
+  String get analyticsPeriod => 'Period';
+
+  @override
+  String get analyticsPersonalityBalanced => 'Balanced Spender';
+
+  @override
+  String get analyticsPersonalityBalancedDesc =>
+      'Your spending is well-distributed across categories.';
+
+  @override
+  String get analyticsPersonalityBigSpender => 'Big Spender';
+
+  @override
+  String analyticsPersonalityBigSpenderDesc(Object amount) {
+    return 'Your average transaction is over $amount — you go big.';
+  }
+
+  @override
+  String get analyticsPersonalityCommuter => 'Commuter';
+
+  @override
+  String analyticsPersonalityCommuterDesc(Object pct) {
+    return 'Transport accounts for $pct% of your expenses.';
+  }
+
+  @override
+  String get analyticsPersonalityFoodie => 'Foodie';
+
+  @override
+  String analyticsPersonalityFoodieDesc(Object pct) {
+    return 'Food & dining makes up $pct% of your spending.';
+  }
+
+  @override
+  String get analyticsPersonalityFrequentSpender => 'Frequent Spender';
+
+  @override
+  String analyticsPersonalityFrequentSpenderDesc(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions in the last 30 days',
+      one: '1 transaction in the last 30 days',
+    );
+    return '$_temp0 — always on the move.';
+  }
+
+  @override
+  String get analyticsPersonalityFunSeeker => 'Fun Seeker';
+
+  @override
+  String get analyticsPersonalityFunSeekerDesc =>
+      'Entertainment & leisure is your top spending category.';
+
+  @override
+  String get analyticsPersonalityJustStarting => 'Just Getting Started';
+
+  @override
+  String get analyticsPersonalityJustStartingDesc =>
+      'Add more transactions to unlock your spending personality.';
+
+  @override
+  String get analyticsPersonalityShopaholic => 'Shopaholic';
+
+  @override
+  String analyticsPersonalityShopaholicDesc(Object pct) {
+    return 'Shopping takes $pct% of your budget.';
+  }
+
+  @override
+  String get analyticsPersonalitySmartSaver => 'Smart Saver';
+
+  @override
+  String get analyticsPersonalitySmartSaverDesc =>
+      'You save over 40% of your income — great financial discipline!';
+
+  @override
+  String get analyticsShareReportDesc =>
+      'Share your monthly report as an image.';
+
+  @override
+  String analyticsShareReportFileName(Object period) {
+    return 'My $period Financial Report — Money Control';
+  }
+
+  @override
+  String analyticsSpendingExceedsIncome(Object pct) {
+    return 'Spending exceeds income by $pct%';
+  }
+
+  @override
+  String get analyticsTaxSummary => 'Tax Summary';
+
+  @override
+  String get analyticsTaxSummaryDesc =>
+      'Export categorized annual tax summary PDF.';
+
+  @override
+  String get analyticsThisMonth => 'This Month';
+
+  @override
+  String get analyticsThisWeek => 'This Week';
+
+  @override
+  String analyticsTransactionCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions',
+      one: '1 transaction',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get analyticsUnknownMerchant => 'Unknown';
+
+  @override
+  String get analyticsUnlockHistory =>
+      'Unlock full history and custom date ranges.';
+
+  @override
   String get analyticsReports => 'Analytics & Reports';
 
   @override

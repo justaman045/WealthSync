@@ -538,6 +538,276 @@ abstract class AppLocalizations {
   /// **'Already Imported'**
   String get alreadyImported;
 
+  /// No description provided for @analyticsAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced Analytics'**
+  String get analyticsAdvanced;
+
+  /// No description provided for @analyticsAllCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'All Categories'**
+  String get analyticsAllCategories;
+
+  /// No description provided for @analyticsCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get analyticsCategory;
+
+  /// No description provided for @analyticsDataExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Data Export'**
+  String get analyticsDataExport;
+
+  /// No description provided for @analyticsExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense'**
+  String get analyticsExpense;
+
+  /// No description provided for @analyticsExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Expenses'**
+  String get analyticsExpenses;
+
+  /// No description provided for @analyticsExportCsvDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Export your transaction history as CSV.'**
+  String get analyticsExportCsvDesc;
+
+  /// No description provided for @analyticsExportPdfDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate detailed PDF reports for analysis.'**
+  String get analyticsExportPdfDesc;
+
+  /// No description provided for @analyticsHeatmapBillDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill/EMI due'**
+  String get analyticsHeatmapBillDue;
+
+  /// No description provided for @analyticsHeatmapHighSpend.
+  ///
+  /// In en, this message translates to:
+  /// **'High spend'**
+  String get analyticsHeatmapHighSpend;
+
+  /// No description provided for @analyticsHeatmapLowSpend.
+  ///
+  /// In en, this message translates to:
+  /// **'Low spend'**
+  String get analyticsHeatmapLowSpend;
+
+  /// No description provided for @analyticsHeatmapSalary.
+  ///
+  /// In en, this message translates to:
+  /// **'Salary'**
+  String get analyticsHeatmapSalary;
+
+  /// No description provided for @analyticsIn.
+  ///
+  /// In en, this message translates to:
+  /// **'In'**
+  String get analyticsIn;
+
+  /// No description provided for @analyticsNetBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Net Balance'**
+  String get analyticsNetBalance;
+
+  /// No description provided for @analyticsNotEnoughDataForTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough data for trend.'**
+  String get analyticsNotEnoughDataForTrend;
+
+  /// No description provided for @analyticsOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Others'**
+  String get analyticsOthers;
+
+  /// No description provided for @analyticsPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get analyticsPeriod;
+
+  /// No description provided for @analyticsPersonalityBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced Spender'**
+  String get analyticsPersonalityBalanced;
+
+  /// No description provided for @analyticsPersonalityBalancedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your spending is well-distributed across categories.'**
+  String get analyticsPersonalityBalancedDesc;
+
+  /// No description provided for @analyticsPersonalityBigSpender.
+  ///
+  /// In en, this message translates to:
+  /// **'Big Spender'**
+  String get analyticsPersonalityBigSpender;
+
+  /// No description provided for @analyticsPersonalityBigSpenderDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your average transaction is over {amount} — you go big.'**
+  String analyticsPersonalityBigSpenderDesc(Object amount);
+
+  /// No description provided for @analyticsPersonalityCommuter.
+  ///
+  /// In en, this message translates to:
+  /// **'Commuter'**
+  String get analyticsPersonalityCommuter;
+
+  /// No description provided for @analyticsPersonalityCommuterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport accounts for {pct}% of your expenses.'**
+  String analyticsPersonalityCommuterDesc(Object pct);
+
+  /// No description provided for @analyticsPersonalityFoodie.
+  ///
+  /// In en, this message translates to:
+  /// **'Foodie'**
+  String get analyticsPersonalityFoodie;
+
+  /// No description provided for @analyticsPersonalityFoodieDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Food & dining makes up {pct}% of your spending.'**
+  String analyticsPersonalityFoodieDesc(Object pct);
+
+  /// No description provided for @analyticsPersonalityFrequentSpender.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequent Spender'**
+  String get analyticsPersonalityFrequentSpender;
+
+  /// No description provided for @analyticsPersonalityFrequentSpenderDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 transaction in the last 30 days} other{{count} transactions in the last 30 days}} — always on the move.'**
+  String analyticsPersonalityFrequentSpenderDesc(num count);
+
+  /// No description provided for @analyticsPersonalityFunSeeker.
+  ///
+  /// In en, this message translates to:
+  /// **'Fun Seeker'**
+  String get analyticsPersonalityFunSeeker;
+
+  /// No description provided for @analyticsPersonalityFunSeekerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Entertainment & leisure is your top spending category.'**
+  String get analyticsPersonalityFunSeekerDesc;
+
+  /// No description provided for @analyticsPersonalityJustStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Just Getting Started'**
+  String get analyticsPersonalityJustStarting;
+
+  /// No description provided for @analyticsPersonalityJustStartingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Add more transactions to unlock your spending personality.'**
+  String get analyticsPersonalityJustStartingDesc;
+
+  /// No description provided for @analyticsPersonalityShopaholic.
+  ///
+  /// In en, this message translates to:
+  /// **'Shopaholic'**
+  String get analyticsPersonalityShopaholic;
+
+  /// No description provided for @analyticsPersonalityShopaholicDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Shopping takes {pct}% of your budget.'**
+  String analyticsPersonalityShopaholicDesc(Object pct);
+
+  /// No description provided for @analyticsPersonalitySmartSaver.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Saver'**
+  String get analyticsPersonalitySmartSaver;
+
+  /// No description provided for @analyticsPersonalitySmartSaverDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'You save over 40% of your income — great financial discipline!'**
+  String get analyticsPersonalitySmartSaverDesc;
+
+  /// No description provided for @analyticsShareReportDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your monthly report as an image.'**
+  String get analyticsShareReportDesc;
+
+  /// No description provided for @analyticsShareReportFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'My {period} Financial Report — Money Control'**
+  String analyticsShareReportFileName(Object period);
+
+  /// No description provided for @analyticsSpendingExceedsIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending exceeds income by {pct}%'**
+  String analyticsSpendingExceedsIncome(Object pct);
+
+  /// No description provided for @analyticsTaxSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax Summary'**
+  String get analyticsTaxSummary;
+
+  /// No description provided for @analyticsTaxSummaryDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Export categorized annual tax summary PDF.'**
+  String get analyticsTaxSummaryDesc;
+
+  /// No description provided for @analyticsThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get analyticsThisMonth;
+
+  /// No description provided for @analyticsThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get analyticsThisWeek;
+
+  /// No description provided for @analyticsTransactionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 transaction} other{{count} transactions}}'**
+  String analyticsTransactionCount(num count);
+
+  /// No description provided for @analyticsUnknownMerchant.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get analyticsUnknownMerchant;
+
+  /// No description provided for @analyticsUnlockHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock full history and custom date ranges.'**
+  String get analyticsUnlockHistory;
+
   /// No description provided for @analyticsReports.
   ///
   /// In en, this message translates to:
