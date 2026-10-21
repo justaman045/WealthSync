@@ -508,8 +508,57 @@ flushing writes inside the window. Callers get "scheduled", not "read". Two rule
 snackbar); `force: true` from the explicit Settings action (`data_support_settings.dart`)
 so it really reads. The read stays un-ordered/server-sourced — do NOT add the listener's
 `orderBy('createdAt')` for a cache hit (docs missing that field drop out, and this is the
-recovery path). Test seams: `fetchOverride`/`writeOverride` + `resetSchedulingForTest()`
-(`test/local_backup_coalesce_test.dart`).
+recovery path). Test seams: `fetchOverride`/`writeOverride`/`readOverride` +
+`resetSchedulingForTest()` (`test/local_backup_coalesce_test.dart`).
+
+**The mirror must never destroy the pre-deletion snapshot.** The automatic backup
+*overwrites* the only local copy it keeps — harmless while the data only grows, but
+exactly wrong after a mass deletion: the next write replaces the pre-deletion history
+with the emptied one, and the recovery path is gone. That is the sequence that lost
+791 live transactions on 2026-10-21 (account wiped → next write fired the backup →
+the only local copy was overwritten with the empty collection). So a backup holding
+**fewer** documents than the one on disk preserves the previous snapshot in a second
+slot (`backup preserved_<safe-email>` — the space makes the key un-collidable with a
+real account's key, since a sanitized email never contains one), and the preserved
+copy is only ever replaced by a **larger** one. `restoreUserTransactions` takes the
+larger of the two slots, and `hasUserBackup` checks both — otherwise the UI reported
+"No local backup found. Tap 'Backup Data' first." while the data sat on the device.
+Equal counts *refresh* (the account may have swapped one transaction for another).
+Pinned by `test/local_backup_preserve_test.dart`.
+
+## Full Backup (download / restore)
+
+`FullBackupService` + `BackupArchive` are the user-held safety net. Scope =
+`UserService.subcollections` (the same list the account-deletion flow uses, so backup
+and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
+
+- **Capture** reads every collection; one failed read is **surfaced**, not swallowed
+  (`onCollectionError`), because an incomplete backup that reports success is the
+  failure mode this feature exists to prevent.
+- **The format guard is strict**: `fileType` + `formatVersion` must match, or the file
+  is refused with an actionable `BackupFormatException` — never "restored 0 documents"
+  and reported as a success. An archive newer than the build is refused too.
+- **Firestore types survive JSON** via tagged envelopes (`__ts__` / `__geo__` / `__ref__`).
+  A bare ISO string is revived to a Timestamp only in a **date-named field** (the
+  allow/deny-list model inherited from `LocalBackupService`) — the blanket
+  "any ISO-looking string" rule destroyed notes like "2026-01-15T10:00 was the party".
+- **Restore is merge-only** (`SetOptions(merge: true)`, original doc ids): idempotent,
+  and it can never delete what currently exists. Per-collection failures are reported.
+- **Automatic daily snapshot** (`background_worker.dart` `_checkDailySnapshot`): a full
+  copy of the whole account on the device, so protection works for a user who never
+  opens the backup screen. The schedule is the pure helper `shouldRunDailySnapshot`
+  (after 22:00, once per calendar day, a failed run retried at most hourly — the
+  worker wakes every 15 min, so an unguarded retry would re-read every collection 96×
+  a day). Honours the `full_backup` kill-switch like every other background task.
+  The snapshot uses the same shrink-guard: a smaller snapshot is **rejected**, so the
+  day a deletion is noticed does not destroy the last complete copy.
+- Feature flag `full_backup` (group "Data Management"); analytics events
+  `full_backup_downloaded` / `full_backup_restored` via `AppAnalytics`.
+- Tests: `test/full_backup_service_test.dart` (format guard, type round-trip,
+  shrink-guard), `test/backup_strings_contract_test.dart` (AppStrings ↔ ARB pairing),
+  `integration_test/full_backup_test.dart` (live capture → delete → restore, plus the
+  device snapshot). `tool/check_ui_strings.sh` counts integration-test literals, so
+  copy asserted by a test belongs in `lib/Config/app_strings.dart`.
 
 ## Common Gotchas
 
@@ -838,6 +887,19 @@ Gotchas:
    while DNS is still broken), re-enables data and warns rather than skipping. When login
    fails on a local `flutter run`, check `adb shell ping firestore.googleapis.com` **first**
    — this is the most common false alarm.
+11. **The account wipe is opt-in — `--dart-define=E2E_ALLOW_WIPE=true`.** `clearAccountData`
+    used to run on every `launchAndSignIn`, deleting all 34 subcollections (transactions,
+    categories, budgets, goals, loans, recurring payments, lent money, challenges and all
+    26 wealth collections) of whichever account the file launched against. The suite also
+    runs against the **Pro** account, which is a real, hand-curated account rather than a
+    disposable fixture — so the same call that reset a test fixture destroyed 791 live
+    transactions on 2026-10-21, with no recovery path (Firestore has no client-side
+    backup; scheduled backup/PITR is a paid-tier feature and is not retro-enableable;
+    the on-device cache prunes server-deleted documents to path-only stubs).
+    `kAllowAccountWipe` now defaults to **off**; CI opts in through the workflow env
+    (its accounts are disposable) and `tool/run_integration_tests.sh` defaults to **off**
+    as well. Pointing the runner at a real account must never wipe it — if a test needs
+    a clean slate, seed its own data instead.
 
 ## UI Copy / Revamp Audit
 
