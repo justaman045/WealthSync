@@ -12,6 +12,7 @@ import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Screens/add_goal_screen.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/wealth_math.dart';
+import 'package:money_control/Components/empty_state.dart';
 
 class GoalsScreen extends StatefulWidget {
   const GoalsScreen({super.key});
@@ -413,41 +414,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text("🎯", style: TextStyle(fontSize: 60.sp)),
-          SizedBox(height: 16.h),
-          Text(
-            AppLocalizations.of(context)!.goalsYet,
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w700,
-              color: theme.textTheme.bodyLarge?.color,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            AppLocalizations.of(context)!.setSavingsPurchaseGoalTrack,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14.sp, color: theme.textTheme.bodyMedium?.color),
-          ),
-          SizedBox(height: 28.h),
-          ElevatedButton.icon(
-            onPressed: () => Get.to(() => const AddGoalScreen()),
-            icon: const Icon(Icons.add),
-            label: Text(AppLocalizations.of(context)!.addFirstGoal),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-            ),
-          ),
-        ],
-      ),
+    final l10n = AppLocalizations.of(context)!;
+    // One empty state for the whole app (EmptyStateWidget): an emoji at 60 pt
+    // rendered in the OS emoji font, which is why this screen looked unlike
+    // every other empty list.
+    return EmptyStateWidget(
+      icon: Icons.flag_outlined,
+      title: l10n.goalsYet,
+      subtitle: l10n.setSavingsPurchaseGoalTrack,
+      actionLabel: l10n.addFirstGoal,
+      onAction: () => Get.to(() => const AddGoalScreen()),
     );
   }
 }

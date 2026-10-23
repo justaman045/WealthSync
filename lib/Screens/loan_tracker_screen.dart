@@ -9,6 +9,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
 import 'package:money_control/Models/loan_model.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/empty_state.dart';
 
 class LoanTrackerScreen extends StatefulWidget {
   const LoanTrackerScreen({super.key});
@@ -62,7 +63,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (ctrl.loans.isEmpty) {
-            return _buildEmptyState(isDark);
+            return _buildEmptyState();
           }
           return Center(
             child: ConstrainedBox(
@@ -275,29 +276,14 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.account_balance_outlined,
-            size: 64.sp,
-            color: isDark ? Colors.white24 : Colors.black12,
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            AppLocalizations.of(context)!.loansTrackedYet,
-            style: AppType.titleMedium(isDark ? Colors.white60 : AppColors.lightTextSecondary),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            AppLocalizations.of(context)!.addLoanTrackEMIsSee,
-            textAlign: TextAlign.center,
-            style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextSecondary),
-          ),
-        ],
-      ),
+  Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
+    return EmptyStateWidget(
+      icon: Icons.account_balance_outlined,
+      title: l10n.loansTrackedYet,
+      subtitle: l10n.addLoanTrackEMIsSee,
+      actionLabel: l10n.addLoan,
+      onAction: () => _showAddLoanSheet(context),
     );
   }
 
