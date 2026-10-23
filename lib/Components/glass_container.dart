@@ -6,12 +6,19 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 
+/// The app's universal card surface.
+///
+/// Frosted (a real backdrop blur) on phones, solid in lite mode and on tablets.
+/// Those two branches used to build two near-identical Containers and had
+/// already drifted apart: fill alpha 0.92 vs 0.85, shadow blur 12 vs 10, spread
+/// 1 vs 2. There is now one Container; only the fill alpha and the blur depend
+/// on the mode.
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final EdgeInsetsGeometry? margin;
   final BorderRadius? borderRadius;
-  final BoxBorder? border; // NEW
+  final BoxBorder? border;
   final double? width;
   final double? height;
   final VoidCallback? onTap;
@@ -22,7 +29,7 @@ class GlassContainer extends StatelessWidget {
     this.padding,
     this.margin,
     this.borderRadius,
-    this.border, // NEW
+    this.border,
     this.width,
     this.height,
     this.onTap,
@@ -40,21 +47,21 @@ class GlassContainer extends StatelessWidget {
     // dependency inside this Obx; reading inherited widgets (Theme/MediaQuery)
     // or ScreenUtil before it leaves the observer unregistered and trips
     // GetX's "improper use of a GetX" guard (when later rebuilt under test).
-    final useBlur =
-        !PerformanceController.to.liteMode.value && !Responsive.isTablet(context);
+    final liteMode = PerformanceController.to.liteMode.value;
+    final useBlur = !liteMode && !Responsive.isTablet(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final rBorderRadius = borderRadius ?? BorderRadius.circular(20.r);
+    final radius = borderRadius ?? BorderRadius.circular(AppRadius.lg.r);
 
-    final solid = Container(
+    final card = Container(
       width: width,
       height: height,
       margin: margin ?? EdgeInsets.zero,
-      padding: padding ?? EdgeInsets.all(16.w),
+      padding: padding ?? EdgeInsets.all(AppSpace.s16.w),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.black.withValues(alpha: 0.3)
-            : AppColors.lightGlassBg.withValues(alpha: 0.92),
-        borderRadius: rBorderRadius,
+            ? Colors.black.withValues(alpha: useBlur ? 0.2 : 0.3)
+            : AppColors.lightGlassBg.withValues(alpha: useBlur ? 0.85 : 0.92),
+        borderRadius: radius,
         border:
             border ??
             Border.all(
@@ -63,61 +70,32 @@ class GlassContainer extends StatelessWidget {
                   : AppColors.lightBorder.withValues(alpha: 0.6),
               width: 1.5,
             ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12.w,
-            spreadRadius: 1.w,
-          ),
-        ],
+        boxShadow: AppElevation.raised(isDark: isDark),
       ),
       child: child,
     );
 
-    final container = RepaintBoundary(
+    Widget container = RepaintBoundary(
       child: ClipRRect(
-        borderRadius: rBorderRadius,
+        borderRadius: radius,
         child: useBlur
             ? BackdropFilter(
+                // Keep sigma <= 4: two 10-sigma blurs made scrolling unusable.
                 filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                child: Container(
-                  width: width,
-                  height: height,
-                  margin: margin ?? EdgeInsets.zero,
-                  padding: padding ?? EdgeInsets.all(16.w),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.black.withValues(alpha: 0.2)
-                        : AppColors.lightGlassBg.withValues(alpha: 0.85),
-                    borderRadius: rBorderRadius,
-                    border:
-                        border ??
-                        Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.1)
-                              : AppColors.lightBorder.withValues(alpha: 0.6),
-                          width: 1.5,
-                        ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10.w,
-                        spreadRadius: 2.w,
-                      ),
-                    ],
-                  ),
-                  child: child,
-                ),
+                child: card,
               )
-            : solid,
+            : card,
       ),
     );
 
     if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.translucent,
-        child: container,
+      container = Semantics(
+        button: true,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.translucent,
+          child: container,
+        ),
       );
     }
     return container;
