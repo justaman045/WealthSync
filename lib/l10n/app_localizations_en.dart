@@ -90,6 +90,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newCategory => 'New Category';
 
   @override
+  String get category => 'Category';
+
+  @override
   String get categoryNameHint => 'Category Name';
 
   @override
@@ -155,6 +158,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invalidNumberError => 'Invalid number';
 
   @override
+  String get transactionId => 'Transaction ID';
+
+  @override
+  String get transactionPdfFooter => 'Generated using Money Control App';
+
+  @override
+  String get transactionReceipt => 'Transaction Receipt';
+
+  @override
   String get transactionHistoryTitle => 'Transaction History';
 
   @override
@@ -174,6 +186,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yesterday => 'Yesterday';
+
+  @override
+  String get unknown => 'Unknown';
 
   @override
   String get unknownRecipient => 'Unknown';
@@ -859,6 +874,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currentPlan => 'Current Plan';
 
   @override
+  String get currency => 'Currency';
+
+  @override
   String get custom => 'Custom';
 
   @override
@@ -1534,6 +1552,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get payViaUPI => 'Pay via UPI';
 
   @override
+  String get moneyReceived => 'Money Received!';
+
+  @override
+  String get moneyReceivedSuccess => 'You received money successfully.';
+
+  @override
+  String get moneySent => 'Money Sent!';
+
+  @override
+  String get moneySentSuccess => 'Your payment has been sent successfully.';
+
+  @override
+  String get paymentCouldNotComplete => 'Payment could not be completed.';
+
+  @override
+  String get paymentProcessing => 'Your payment is being processed.';
+
+  @override
+  String get processingTransaction => 'Processing Transaction';
+
+  @override
   String get paymentHistory => 'Payment History';
 
   @override
@@ -1704,6 +1743,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get save33 => 'SAVE 33%';
 
   @override
+  String get savePdf => 'Save PDF';
+
+  @override
   String get saveSettings => 'Save Settings';
 
   @override
@@ -1759,6 +1801,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get setSavingsPurchaseGoalTrack =>
       'Set a savings or purchase goal\\nand track your progress.';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String shareScreenshotFailed(Object error) {
+    return 'Failed to share screenshot: $error';
+  }
 
   @override
   String get shareReport => 'Share Report';
@@ -1912,6 +1962,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapTrackVehicles => 'Tap + to track your vehicles';
 
   @override
+  String get status => 'Status';
+
+  @override
+  String get tax => 'Tax';
+
+  @override
   String get taxSummaryPDF => 'Tax Summary PDF';
 
   @override
@@ -1920,6 +1976,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get topMerchants => 'Top Merchants';
+
+  @override
+  String get total => 'Total';
+
+  @override
+  String get transactionFailed => 'Transaction Failed!';
 
   @override
   String get totalNetWorth => 'Total Net Worth';

@@ -250,6 +250,12 @@ abstract class AppLocalizations {
   /// **'New Category'**
   String get newCategory;
 
+  /// No description provided for @category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get category;
+
   /// No description provided for @categoryNameHint.
   ///
   /// In en, this message translates to:
@@ -370,6 +376,24 @@ abstract class AppLocalizations {
   /// **'Invalid number'**
   String get invalidNumberError;
 
+  /// No description provided for @transactionId.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction ID'**
+  String get transactionId;
+
+  /// No description provided for @transactionPdfFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated using Money Control App'**
+  String get transactionPdfFooter;
+
+  /// No description provided for @transactionReceipt.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction Receipt'**
+  String get transactionReceipt;
+
   /// No description provided for @transactionHistoryTitle.
   ///
   /// In en, this message translates to:
@@ -411,6 +435,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yesterday'**
   String get yesterday;
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
 
   /// No description provided for @unknownRecipient.
   ///
@@ -1511,6 +1541,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Current Plan'**
   String get currentPlan;
+
+  /// No description provided for @currency.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get currency;
 
   /// No description provided for @custom.
   ///
@@ -2681,6 +2717,48 @@ abstract class AppLocalizations {
   /// **'Pay via UPI'**
   String get payViaUPI;
 
+  /// No description provided for @moneyReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Money Received!'**
+  String get moneyReceived;
+
+  /// No description provided for @moneyReceivedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'You received money successfully.'**
+  String get moneyReceivedSuccess;
+
+  /// No description provided for @moneySent.
+  ///
+  /// In en, this message translates to:
+  /// **'Money Sent!'**
+  String get moneySent;
+
+  /// No description provided for @moneySentSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment has been sent successfully.'**
+  String get moneySentSuccess;
+
+  /// No description provided for @paymentCouldNotComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment could not be completed.'**
+  String get paymentCouldNotComplete;
+
+  /// No description provided for @paymentProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment is being processed.'**
+  String get paymentProcessing;
+
+  /// No description provided for @processingTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing Transaction'**
+  String get processingTransaction;
+
   /// No description provided for @paymentHistory.
   ///
   /// In en, this message translates to:
@@ -3011,6 +3089,12 @@ abstract class AppLocalizations {
   /// **'SAVE 33%'**
   String get save33;
 
+  /// No description provided for @savePdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PDF'**
+  String get savePdf;
+
   /// No description provided for @saveSettings.
   ///
   /// In en, this message translates to:
@@ -3118,6 +3202,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set a savings or purchase goal\\nand track your progress.'**
   String get setSavingsPurchaseGoalTrack;
+
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @shareScreenshotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to share screenshot: {error}'**
+  String shareScreenshotFailed(Object error);
 
   /// No description provided for @shareReport.
   ///
@@ -3395,6 +3491,18 @@ abstract class AppLocalizations {
   /// **'Tap + to track your vehicles'**
   String get tapTrackVehicles;
 
+  /// No description provided for @status.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get status;
+
+  /// No description provided for @tax.
+  ///
+  /// In en, this message translates to:
+  /// **'Tax'**
+  String get tax;
+
   /// No description provided for @taxSummaryPDF.
   ///
   /// In en, this message translates to:
@@ -3412,6 +3520,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Top Merchants'**
   String get topMerchants;
+
+  /// No description provided for @total.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get total;
+
+  /// No description provided for @transactionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction Failed!'**
+  String get transactionFailed;
 
   /// No description provided for @totalNetWorth.
   ///

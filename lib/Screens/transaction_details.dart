@@ -56,18 +56,38 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       context: context,
       builder: (ctx) {
         final dlgIsDark = Theme.of(ctx).brightness == Brightness.dark;
+        final l10n = AppLocalizations.of(ctx)!;
         return AlertDialog(
-          backgroundColor: dlgIsDark ? AppColors.darkSurface : AppColors.lightSurface,
-          title: Text(AppLocalizations.of(context)!.deleteTransaction, style: TextStyle(color: dlgIsDark ? Colors.white : AppColors.lightTextPrimary)),
-          content: Text(AppLocalizations.of(context)!.sureWantDeleteTransaction, style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+          backgroundColor: dlgIsDark
+              ? AppColors.darkSurface
+              : AppColors.lightSurface,
+          title: Text(
+            l10n.deleteTransaction,
+            style: AppType.titleMedium(
+              dlgIsDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.lightTextPrimary,
+            ),
+          ),
+          content: Text(
+            l10n.sureWantDeleteTransaction,
+            style: AppType.bodyMedium(
+              dlgIsDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: dlgIsDark ? Colors.white70 : AppColors.lightTextSecondary)),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: Text("Delete", style: TextStyle(color: AppColors.error)),
+              child: Text(
+                l10n.delete,
+                style: const TextStyle(color: AppColors.error),
+              ),
             ),
           ],
         );
@@ -102,7 +122,10 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         ]);
       }
     } catch (e) {
-      ErrorHandler.showError('Failed to share screenshot: $e');
+      if (!mounted) return;
+      ErrorHandler.showError(
+        AppLocalizations.of(context)!.shareScreenshotFailed(e.toString()),
+      );
     }
   }
 
@@ -111,6 +134,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
   // ----------------------------------------------------------------------
   Future<void> _savePDF() async {
     final tx = widget.transaction;
+    final l10n = AppLocalizations.of(context)!;
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -121,7 +145,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text(
-                "Transaction Receipt",
+                l10n.transactionReceipt,
                 style: pw.TextStyle(
                   fontSize: 22,
                   fontWeight: pw.FontWeight.bold,
@@ -130,23 +154,23 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               pw.SizedBox(height: 8),
               pw.Divider(),
               pw.SizedBox(height: 12),
-              _pdfRow("Transaction ID", tx.id),
-              _pdfRow("Date", tx.date.toLocal().toString()),
-              _pdfRow("Recipient", tx.recipientName),
+              _pdfRow(l10n.transactionId, tx.id),
+              _pdfRow(l10n.date, tx.date.toLocal().toString()),
+              _pdfRow(l10n.recipient, tx.recipientName),
               _pdfRow(
-                "Amount",
+                l10n.amount,
                 "${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}",
               ),
-              _pdfRow("Tax", tx.tax.toStringAsFixed(2)),
-              _pdfRow("Total", tx.total.toStringAsFixed(2)),
-              _pdfRow("Currency", tx.currency),
-              _pdfRow("Category", tx.category ?? "-"),
+              _pdfRow(l10n.tax, tx.tax.toStringAsFixed(2)),
+              _pdfRow(l10n.total, tx.total.toStringAsFixed(2)),
+              _pdfRow(l10n.currency, tx.currency),
+              _pdfRow(l10n.category, tx.category ?? "-"),
               if (tx.note != null && tx.note!.isNotEmpty)
-                _pdfRow("Note", tx.note!),
-              _pdfRow("Status", tx.status ?? "-"),
+                _pdfRow(l10n.note, tx.note!),
+              _pdfRow(l10n.status, tx.status ?? "-"),
               pw.SizedBox(height: 24),
               pw.Text(
-                "Generated using Money Control App",
+                l10n.transactionPdfFooter,
                 style: pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
               ),
             ],
@@ -197,17 +221,13 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text(
-            AppLocalizations.of(context)!.transactionDetails,
-            style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold),
-          ),
+          title: Text(AppLocalizations.of(context)!.transactionDetails),
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
           actions: [
             IconButton(
-              icon: Icon(Icons.edit, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+              icon: const Icon(Icons.edit),
               onPressed: () async {
                 if (!ensureFeatureVisible(context, 'transactions')) return;
                 await Get.to(
@@ -217,7 +237,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               },
             ),
             IconButton(
-              icon: Icon(Icons.delete_outline, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+              icon: const Icon(Icons.delete_outline),
               onPressed: () {
                 if (!ensureFeatureVisible(context, 'transactions')) return;
                 _deleteTransaction();
@@ -266,13 +286,13 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                 children: [
                   _capsuleButton(
                     icon: Icons.share_outlined,
-                    label: "Share",
+                    label: AppLocalizations.of(context)!.share,
                     onTap: _shareScreenshot,
                   ),
                   SizedBox(width: 16.w),
                   _capsuleButton(
                     icon: Icons.picture_as_pdf,
-                    label: "Save PDF",
+                    label: AppLocalizations.of(context)!.savePdf,
                     onTap: _savePDF,
                   ),
                 ],
@@ -282,33 +302,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               _detailsCard(tx, isReceived),
 
               SizedBox(height: 30.h),
-              Container(
+              SizedBox(
                 width: double.infinity,
                 height: 54.h,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.secondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(AppRadius.pill.r),
-                  boxShadow: AppElevation.floating(isDark: isDark),
-                ),
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.pill.r),
-                    ),
-                  ),
-                  // White on the brand gradient: the foreground used to be
-                  // near-black in light mode on a saturated purple-blue.
-                  child: Text(
-                    AppLocalizations.of(context)!.back,
-                    style: AppType.labelLarge(Colors.white),
-                  ),
+                  child: Text(AppLocalizations.of(context)!.back),
                 ),
               ),
               SizedBox(height: 20.h),
@@ -367,9 +366,16 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
           padding: EdgeInsets.all(4.r),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.onPrimary,
+              width: 2,
+            ),
           ),
-          child: Icon(icon, size: 40.sp, color: Colors.white),
+          child: Icon(
+            icon,
+            size: 40.sp,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
       ),
     );
@@ -377,38 +383,42 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
 
   Widget _titleText(bool isReceived) {
     final t = widget.type;
+    final l10n = AppLocalizations.of(context)!;
     String text;
     if (t == TransactionResultType.success) {
-      text = isReceived ? "Money Received!" : "Money Sent!";
+      text = isReceived ? l10n.moneyReceived : l10n.moneySent;
     } else if (t == TransactionResultType.failed) {
-      text = "Transaction Failed!";
+      text = l10n.transactionFailed;
     } else {
-      text = "Processing Transaction";
+      text = l10n.processingTransaction;
     }
 
     return Text(
       text,
-      style: AppType.titleLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
+      style: AppType.titleLarge(
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+      ),
     );
   }
 
   Widget _subtitleText(bool isReceived) {
     final t = widget.type;
+    final l10n = AppLocalizations.of(context)!;
     String text;
     if (t == TransactionResultType.success) {
-      text = isReceived
-          ? "You received money successfully."
-          : "Your payment has been sent successfully.";
+      text = isReceived ? l10n.moneyReceivedSuccess : l10n.moneySentSuccess;
     } else if (t == TransactionResultType.failed) {
-      text = "Payment could not be completed.";
+      text = l10n.paymentCouldNotComplete;
     } else {
-      text = "Your payment is being processed.";
+      text = l10n.paymentProcessing;
     }
 
     return Text(
       text,
       textAlign: TextAlign.center,
-      style: AppType.bodyMedium(isDark ? Colors.white60 : AppColors.lightTextSecondary),
+      style: AppType.bodyMedium(
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+      ),
     );
   }
 
@@ -423,22 +433,18 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
       height: 48.h,
       width: 140.w,
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.lightActionSurface,
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10.w,
-            offset: Offset(0, 4.w),
-          ),
-        ],
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightActionSurface,
+        borderRadius: BorderRadius.circular(AppRadius.pill.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+        boxShadow: AppElevation.raised(isDark: isDark),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24.r),
+          borderRadius: BorderRadius.circular(AppRadius.pill.r),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -450,7 +456,11 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               SizedBox(width: 8.w),
               Text(
                 label,
-                style: AppType.titleSmall(isDark ? Colors.white : AppColors.lightTextPrimary),
+                style: AppType.titleSmall(
+                  isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
+                ),
               ),
             ],
           ),
@@ -461,64 +471,82 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
 
   Widget _detailsCard(TransactionModel tx, bool isReceived) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpace.s20.w,
+        vertical: AppSpace.s24.h,
+      ),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightSurfaceCard,
-        borderRadius: BorderRadius.circular(24.r),
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : AppColors.lightBorder.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 15.w,
-            offset: Offset(0, 5.w),
-          ),
-        ],
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+        borderRadius: BorderRadius.circular(AppRadius.xl.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+        boxShadow: AppElevation.raised(isDark: isDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             AppLocalizations.of(context)!.transactionDetails,
-            style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+            style: AppType.titleMedium(
+              isDark
+                  ? AppColors.darkTextPrimary
+                  : AppColors.lightTextPrimary,
+            ),
           ),
-          SizedBox(height: 16.h),
-          Divider(color: isDark ? Colors.white.withValues(alpha: 0.15) : AppColors.lightDivider),
-          SizedBox(height: 16.h),
-          _detailRow("Transaction ID", tx.id),
-          _detailRow("Date", tx.date.toLocal().toString().split('.')[0]),
+          SizedBox(height: AppSpace.s16.h),
+          Divider(
+            color: isDark ? AppColors.darkDivider : AppColors.lightDivider,
+          ),
+          SizedBox(height: AppSpace.s16.h),
+          _detailRow(AppLocalizations.of(context)!.transactionId, tx.id),
+          _detailRow(
+            AppLocalizations.of(context)!.date,
+            tx.date.toLocal().toString().split('.')[0],
+          ),
 
           if (isReceived)
             _detailRow(
-              "Sender",
-              tx.recipientName.isNotEmpty ? tx.recipientName : "Unknown",
+              AppLocalizations.of(context)!.sender,
+              tx.recipientName.isNotEmpty
+                  ? tx.recipientName
+                  : AppLocalizations.of(context)!.unknown,
             ),
-          if (!isReceived) _detailRow("Recipient", tx.recipientName),
+          if (!isReceived)
+            _detailRow(
+              AppLocalizations.of(context)!.recipient,
+              tx.recipientName,
+            ),
 
           _detailRow(
-            "Amount",
+            AppLocalizations.of(context)!.amount,
             "${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}",
-            valueColor: isReceived
-                ? AppColors.primary
-                : AppColors.error,
+            valueColor: isReceived ? AppColors.success : AppColors.error,
             masked: true,
           ),
 
           _detailRow(
-            "Tax",
+            AppLocalizations.of(context)!.tax,
             "${CurrencyController.to.currencySymbol.value}${tx.tax.toStringAsFixed(2)}",
             masked: true,
           ),
           _detailRow(
-            "Total",
+            AppLocalizations.of(context)!.total,
             "${CurrencyController.to.currencySymbol.value}${tx.total.toStringAsFixed(2)}",
             bold: true,
             masked: true,
           ),
-          _detailRow("Currency", tx.currency),
-          _detailRow("Category", tx.category ?? "-"),
+          _detailRow(AppLocalizations.of(context)!.currency, tx.currency),
+          _detailRow(
+            AppLocalizations.of(context)!.category,
+            tx.category ?? "-",
+          ),
           if (tx.note != null && tx.note!.isNotEmpty)
-            _detailRow("Note", tx.note!),
-          _detailRow("Status", tx.status ?? "-"),
+            _detailRow(AppLocalizations.of(context)!.note, tx.note!),
+          _detailRow(
+            AppLocalizations.of(context)!.status,
+            tx.status ?? "-",
+          ),
         ],
       ),
     );
@@ -531,17 +559,14 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     Color? valueColor,
     bool masked = false,
   }) {
-    final TextStyle style = TextStyle(
-      fontSize: bold ? 15.sp : 13.5.sp,
-      fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-      color: valueColor ??
-          (bold
-              ? (isDark ? Colors.white : AppColors.lightTextPrimary)
-              : (isDark
-                  ? Colors.white.withValues(alpha: 0.9)
-                  : AppColors.lightTextPrimary.withValues(alpha: 0.9))),
-      letterSpacing: 0.3,
-    );
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final TextStyle style =
+        (bold
+                ? AppType.titleSmall(textColor)
+                : AppType.bodyMedium(textColor.withValues(alpha: 0.9)))
+            .copyWith(color: valueColor);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 10.h), // More spacing
       child: Row(
@@ -551,7 +576,11 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             flex: 4,
             child: Text(
               name,
-              style: AppType.bodySmall(isDark ? Colors.white60 : AppColors.lightTextSecondary),
+              style: AppType.bodySmall(
+                isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
             ),
           ),
           Expanded(
