@@ -14,6 +14,7 @@ import 'package:money_control/Models/challenge_model.dart';
 import 'package:money_control/data/challenge_presets.dart';
 import 'dart:math';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Components/empty_state.dart';
 
 class SavingsChallengesScreen extends StatefulWidget {
   const SavingsChallengesScreen({super.key});
@@ -70,17 +71,11 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(AppLocalizations.of(context)!.savingsChallenges),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
           bottom: TabBar(
             controller: _tab,
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: isDark ? Colors.white60 : AppColors.lightTextSecondary,
-            tabs: const [
-              Tab(text: "Active"),
-              Tab(text: "Library"),
+            tabs: [
+              Tab(text: AppLocalizations.of(context)!.activeTab),
+              Tab(text: AppLocalizations.of(context)!.libraryTab),
             ],
           ),
         ),
@@ -89,12 +84,8 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
           builder: (index) => index == 0
               ? FloatingActionButton.extended(
                   onPressed: _showCustomChallengeSheet,
-                  backgroundColor: AppColors.primary,
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  label: Text(
-                    AppLocalizations.of(context)!.custom,
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  icon: const Icon(Icons.add),
+                  label: Text(AppLocalizations.of(context)!.custom),
                 )
               : const SizedBox.shrink(),
         ),
@@ -128,7 +119,6 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
   }
 
   Widget _buildActiveTab() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Obx(() {
       final ctrl = _ctrl;
       if (ctrl.isLoading.value) {
@@ -137,32 +127,19 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
       final active = ctrl.challenges.where((c) => !c.isCompleted).toList();
       if (active.isEmpty) {
         return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.emoji_events_outlined,
-                size: 64.sp,
-                color: isDark ? Colors.white24 : AppColors.lightBorder,
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                AppLocalizations.of(context)!.startFirstChallenge,
-                style: AppType.bodyLarge(isDark ? Colors.white60 : AppColors.lightTextSecondary),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                AppLocalizations.of(context)!.browseLibraryTabTapCustom,
-                style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
-              ),
-            ],
+          child: EmptyStateWidget(
+            icon: Icons.emoji_events_outlined,
+            title: AppLocalizations.of(context)!.startFirstChallenge,
+            subtitle: AppLocalizations.of(
+              context,
+            )!.browseLibraryTabTapCustom,
           ),
         );
       }
       return ListView.separated(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(AppSpace.s16.w),
         itemCount: active.length,
-        separatorBuilder: (_, __) => SizedBox(height: 12.h),
+        separatorBuilder: (_, __) => SizedBox(height: AppSpace.s12.h),
         itemBuilder: (_, i) => _buildChallengeCard(active[i]),
       );
     });
@@ -171,6 +148,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
   Widget _buildChallengeCard(SavingsChallengeModel c) {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     final txCtrl = _txCtrl;
+    final l10n = AppLocalizations.of(context)!;
     final sym = CurrencyController.to.currencySymbol.value;
     final progress = _ctrl.computeProgress(c, txCtrl.transactions, uid);
 
@@ -183,14 +161,21 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
       percent = c.targetAmount == 0
           ? (spent == 0 ? 1.0 : 0.0)
           : (1 - (spent / c.targetAmount)).clamp(0.0, 1.0);
-      progressLabel = "$sym${spent.toStringAsFixed(0)} spent";
-      targetLabel = "Goal: ${sym}0 on ${c.trackedCategory}";
+      progressLabel = l10n.challengeSpent("$sym${spent.toStringAsFixed(0)}");
+      targetLabel = l10n.challengeZeroSpendGoal(
+        "${sym}0",
+        c.trackedCategory ?? '',
+      );
     } else {
       percent = c.targetAmount > 0
           ? (progress / c.targetAmount).clamp(0.0, 1.0)
           : 0;
-      progressLabel = "$sym${progress.toStringAsFixed(0)} saved";
-      targetLabel = "Target: $sym${c.targetAmount.toStringAsFixed(0)}";
+      progressLabel = l10n.challengeSaved(
+        "$sym${progress.toStringAsFixed(0)}",
+      );
+      targetLabel = l10n.challengeTarget(
+        "$sym${c.targetAmount.toStringAsFixed(0)}",
+      );
     }
 
     // Auto-complete: savings challenges reach 100% of target, or no-spend challenges
@@ -215,23 +200,25 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
         ? (c.isExpired && progress == 0 && !c.isCompleted)
         : (percent >= 0.9 && !c.isCompleted);
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final tertiaryColor =
+        isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
 
     return Container(
-      padding: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(AppSpace.s16.w),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.06)
-            : Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(20.r),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+        borderRadius: BorderRadius.circular(AppRadius.lg.r),
         border: Border.all(
           color: isNearComplete
               ? AppColors.warning.withValues(alpha: 0.5)
-              : isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppColors.lightBorder,
+              : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
         ),
+        boxShadow: AppElevation.raised(isDark: isDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,50 +226,48 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
           Row(
             children: [
               Expanded(
-                child: Text(
-                  c.name,
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w700,
-                    color: theme.textTheme.bodyLarge?.color,
-                  ),
-                ),
+                child: Text(c.name, style: AppType.titleMedium(textColor)),
               ),
               if (c.daysLeft == 0 && !c.isCompleted)
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpace.s8.w,
+                    vertical: AppSpace.s2.h,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8.r),
+                    borderRadius: BorderRadius.circular(AppRadius.xs.r),
                   ),
                   child: Text(
-                    AppLocalizations.of(context)!.expired,
+                    l10n.expired,
                     style: AppType.labelSmall(AppColors.error),
                   ),
                 )
               else
                 Text(
-                  "${c.daysLeft}d left",
-                  style: AppType.bodySmall(isDark ? Colors.white60 : AppColors.lightTextSecondary),
+                  l10n.challengeDaysLeftShort(c.daysLeft),
+                  style: AppType.bodySmall(secondaryColor),
                 ),
-              SizedBox(width: 8.w),
-              GestureDetector(
-                onTap: () => _ctrl.deleteChallenge(c.id),
-                child: Icon(Icons.close,
-                    size: 18.sp,
-                    color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
+              SizedBox(width: AppSpace.s4.w),
+              // Was an 18 pt icon in a GestureDetector: a destructive action on
+              // a ~20 dp target, with nothing announced to a screen reader.
+              IconButton(
+                onPressed: () => _ctrl.deleteChallenge(c.id),
+                tooltip: l10n.delete,
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.close, size: 18.sp, color: tertiaryColor),
               ),
             ],
           ),
-          SizedBox(height: 10.h),
+          SizedBox(height: AppSpace.s8.h),
           ClipRRect(
-            borderRadius: BorderRadius.circular(6.r),
+            borderRadius: BorderRadius.circular(AppRadius.xs.r),
             child: LinearProgressIndicator(
               value: percent,
               minHeight: 8.h,
               backgroundColor: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : AppColors.lightBorder,
+                  ? AppColors.darkSurface
+                  : AppColors.lightActionSurface,
               valueColor: AlwaysStoppedAnimation(
                 c.trackingType == 'no_spend_category'
                     ? (percent > 0 ? AppColors.error : AppColors.success)
@@ -290,27 +275,21 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
               ),
             ),
           ),
-          SizedBox(height: 8.h),
+          SizedBox(height: AppSpace.s8.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                progressLabel,
-                style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
-              ),
+              Text(progressLabel, style: AppType.bodySmall(secondaryColor)),
               Text(
                 "${(percent * 100).toStringAsFixed(0)}%",
-                style: AppType.labelMedium(percent >= 1.0
-                      ? AppColors.success
-                      : AppColors.primary),
+                style: AppType.labelMedium(
+                  percent >= 1.0 ? AppColors.success : AppColors.primary,
+                ),
               ),
             ],
           ),
-          SizedBox(height: 4.h),
-          Text(
-            targetLabel,
-            style: AppType.labelSmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
-          ),
+          SizedBox(height: AppSpace.s4.h),
+          Text(targetLabel, style: AppType.labelSmall(tertiaryColor)),
         ],
       ),
     );
@@ -337,91 +316,86 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
   }
 
   Widget _buildPresetCard(ChallengePreset preset, {bool isInProgress = false}) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Opacity(
       opacity: isInProgress ? 0.4 : 1.0,
       child: Container(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(AppSpace.s16.w),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.white.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(20.r),
+              ? AppColors.darkSurfaceCard
+              : AppColors.lightSurfaceCard,
+          borderRadius: BorderRadius.circular(AppRadius.lg.r),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.lightBorder,
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
           ),
+          boxShadow: AppElevation.raised(isDark: isDark),
         ),
         child: Row(
           children: [
-            Text(preset.emoji, style: TextStyle(fontSize: 30.sp)),
-            SizedBox(width: 14.w),
+            Text(preset.emoji, style: AppType.headlineSmall(textColor)),
+            SizedBox(width: AppSpace.s12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    preset.name,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
+                  Text(preset.name, style: AppType.titleSmall(textColor)),
+                  SizedBox(height: AppSpace.s4.h),
                   Text(
                     preset.description,
-                    style: AppType.bodySmall(isDark
-                          ? Colors.white60
-                          : AppColors.lightTextSecondary),
+                    style: AppType.bodySmall(secondaryColor),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            SizedBox(width: 12.w),
-            isInProgress
-                ? Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : AppColors.lightActionSurface,
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context)!.progress,
-                      style: AppType.labelMedium(isDark
-                            ? Colors.white38
-                            : AppColors.lightTextTertiary),
-                    ),
-                  )
-                : GestureDetector(
-                    onTap: () => _startPreset(preset),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primary, AppColors.secondary],
-                        ),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.start,
-                        style: AppType.labelMedium(Colors.white),
-                      ),
-                    ),
+            SizedBox(width: AppSpace.s12.w),
+            if (isInProgress)
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpace.s12.w,
+                  vertical: AppSpace.s8.h,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkSurface
+                      : AppColors.lightActionSurface,
+                  borderRadius: BorderRadius.circular(AppRadius.sm.r),
+                ),
+                child: Text(
+                  l10n.progress,
+                  style: AppType.labelMedium(
+                    isDark
+                        ? AppColors.darkTextTertiary
+                        : AppColors.lightTextTertiary,
                   ),
+                ),
+              )
+            else
+              // A primary→secondary gradient on a GestureDetector: two accent
+              // colours for one button, and no ripple or button semantics.
+              FilledButton(
+                onPressed: () => _startPreset(preset),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpace.s16.w,
+                    vertical: AppSpace.s8.h,
+                  ),
+                  textStyle: AppType.labelMedium(
+                    Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(l10n.start),
+              ),
           ],
         ),
       ),
@@ -519,11 +493,15 @@ class _ChallengeSheetContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     final showTarget = targetCtrl != null;
     final quickOptions = const [7, 14, 30, 60, 90];
     final currentDays = showDays ? durationState.selectedDays : 0;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final fieldFill =
+        isDark ? AppColors.darkSurfaceCard : AppColors.lightActionSurface;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -533,10 +511,12 @@ class _ChallengeSheetContent extends StatelessWidget {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        padding: EdgeInsets.all(24.w),
+        padding: EdgeInsets.all(AppSpace.s24.w),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl.r),
+          ),
         ),
         child: SingleChildScrollView(
           child: Center(
@@ -548,109 +528,56 @@ class _ChallengeSheetContent extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  SizedBox(height: 20.h),
+                  Text(title, style: AppType.titleLarge(textColor)),
+                  SizedBox(height: AppSpace.s20.h),
                   if (nameCtrl != null) ...[
                     TextField(
                       controller: nameCtrl,
-                      style: TextStyle(
-                        color: theme.textTheme.bodyLarge?.color,
-                        fontSize: 15.sp,
-                      ),
+                      style: AppType.titleMedium(textColor),
                       decoration: InputDecoration(
-                        hintText: "Challenge Name",
-                        hintStyle: AppType.bodyMedium(isDark
-                              ? Colors.white38
-                              : AppColors.lightTextTertiary),
-                        filled: true,
-                        fillColor: isDark
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                          borderSide: BorderSide.none,
-                        ),
+                        hintText: l10n.challengeNameHint,
                       ),
                     ),
-                    SizedBox(height: 14.h),
+                    SizedBox(height: AppSpace.s12.h),
                   ],
                   if (showTarget) ...[
                     TextField(
                       controller: targetCtrl,
                       keyboardType: TextInputType.number,
-                      style: TextStyle(
-                        color: theme.textTheme.bodyLarge?.color,
-                        fontSize: 15.sp,
-                      ),
+                      style: AppType.titleMedium(textColor),
                       decoration: InputDecoration(
-                        hintText:
-                            "Target Amount (${CurrencyController.to.currencySymbol.value})",
-                        hintStyle: AppType.bodyMedium(isDark
-                              ? Colors.white38
-                              : AppColors.lightTextTertiary),
-                        filled: true,
-                        fillColor: isDark
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                          borderSide: BorderSide.none,
+                        hintText: l10n.challengeTargetHint(
+                          CurrencyController.to.currencySymbol.value,
                         ),
                       ),
                     ),
-                    SizedBox(height: 14.h),
+                    SizedBox(height: AppSpace.s12.h),
                   ],
                   if (showDays) ...[
                     Text(
-                      AppLocalizations.of(context)!.durationDays,
-                      style: AppType.bodySmall(isDark ? Colors.white60 : Colors.black54),
+                      l10n.durationDays,
+                      style: AppType.bodySmall(
+                        isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                      ),
                     ),
-                    SizedBox(height: 8.h),
+                    SizedBox(height: AppSpace.s8.h),
+                    // Hand-painted pills became chips: the chip theme owns
+                    // selection colour, border and semantics.
                     Wrap(
-                      spacing: 8.w,
-                      runSpacing: 8.h,
+                      spacing: AppSpace.s8.w,
+                      runSpacing: AppSpace.s8.h,
                       children: quickOptions.map((d) {
                         final isSelected = d == currentDays;
-                        return GestureDetector(
-                          onTap: () => onDaysChanged?.call(d),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 8.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primary.withValues(alpha: 0.2)
-                                  : (isDark
-                                        ? Colors.white.withValues(alpha: 0.07)
-                                        : Colors.grey.shade100),
-                              borderRadius: BorderRadius.circular(10.r),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Colors.transparent,
-                              ),
-                            ),
-                            child: Text(
-                              "$d days",
-                              style: AppType.labelMedium(isSelected
-                                    ? AppColors.primary
-                                    : (isDark
-                                          ? Colors.white70
-                                          : Colors.black54)),
-                            ),
-                          ),
+                        return ChoiceChip(
+                          label: Text(l10n.challengeDaysOption(d)),
+                          selected: isSelected,
+                          onSelected: (_) => onDaysChanged?.call(d),
                         );
                       }).toList(),
                     ),
-                    SizedBox(height: 10.h),
+                    SizedBox(height: AppSpace.s12.h),
                     TextField(
                       controller: durationState.daysCtrl,
                       keyboardType: TextInputType.number,
@@ -658,78 +585,57 @@ class _ChallengeSheetContent extends StatelessWidget {
                         final days = int.tryParse(v) ?? 0;
                         if (days > 0) onDaysChanged?.call(days);
                       },
-                      style: TextStyle(
-                        color: theme.textTheme.bodyLarge?.color,
-                        fontSize: 15.sp,
-                      ),
+                      style: AppType.titleMedium(textColor),
                       decoration: InputDecoration(
-                        hintText: "Or enter custom days",
-                        hintStyle: AppType.bodyMedium(isDark
-                              ? Colors.white38
-                              : AppColors.lightTextTertiary),
-                        filled: true,
-                        fillColor: isDark
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.grey.shade100,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                          borderSide: BorderSide.none,
-                        ),
+                        hintText: l10n.challengeCustomDaysHint,
                       ),
                     ),
-                    SizedBox(height: 14.h),
+                    SizedBox(height: AppSpace.s12.h),
                   ],
-                  GestureDetector(
+                  InkWell(
                     onTap: onEndDatePick,
+                    borderRadius: BorderRadius.circular(AppRadius.sm.r),
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 14.h,
+                        horizontal: AppSpace.s16.w,
+                        vertical: AppSpace.s12.h,
                       ),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(14.r),
+                        color: fieldFill,
+                        borderRadius: BorderRadius.circular(AppRadius.sm.r),
                       ),
                       child: Row(
                         children: [
                           Icon(
-                            Icons.calendar_today,
+                            Icons.calendar_today_outlined,
                             size: 18.sp,
                             color: AppColors.primary,
                           ),
-                          SizedBox(width: 10.w),
-                          Text(
-                            "Ends: ${DateFormat('dd MMM yyyy').format(durationState.endDate)}",
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: theme.textTheme.bodyLarge?.color,
+                          SizedBox(width: AppSpace.s8.w),
+                          Expanded(
+                            child: Text(
+                              l10n.challengeEndsOn(
+                                DateFormat(
+                                  'dd MMM yyyy',
+                                ).format(durationState.endDate),
+                              ),
+                              style: AppType.bodyLarge(textColor),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  SizedBox(height: 24.h),
+                  SizedBox(height: AppSpace.s24.h),
                   SizedBox(
                     width: double.infinity,
                     height: 52.h,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14.r),
-                        ),
-                      ),
+                    child: FilledButton(
                       onPressed: onSubmit,
-                      child: Text(
-                        AppLocalizations.of(context)!.startChallenge,
-                        style: AppType.titleMedium(Colors.white),
-                      ),
+                      child: Text(l10n.startChallenge),
                     ),
                   ),
-                  SizedBox(height: 8.h),
+                  SizedBox(height: AppSpace.s8.h),
                 ],
               ),
             ),
@@ -855,7 +761,9 @@ class _PresetChallengeSheetState extends State<_PresetChallengeSheet> {
   Widget build(BuildContext context) {
     final showTarget = widget.preset.trackingType != 'no_spend_category';
     return _ChallengeSheetContent(
-      title: "Start ${widget.preset.name}",
+      title: AppLocalizations.of(context)!.challengeStartTitle(
+        widget.preset.name,
+      ),
       targetCtrl: showTarget ? _targetCtrl : null,
       durationState: _durationState,
       showDays: true,
@@ -943,7 +851,7 @@ class _CustomChallengeSheetState extends State<_CustomChallengeSheet> {
     final challenge = SavingsChallengeModel(
       id: '',
       name: _nameCtrl.text.trim(),
-      description: "Custom challenge",
+      description: AppLocalizations.of(context)!.challengeCustomDescription,
       targetAmount: target,
       startDate: now,
       endDate: _durationState.endDate,
@@ -961,7 +869,7 @@ class _CustomChallengeSheetState extends State<_CustomChallengeSheet> {
   @override
   Widget build(BuildContext context) {
     return _ChallengeSheetContent(
-      title: "Custom Challenge",
+      title: AppLocalizations.of(context)!.challengeCustomTitle,
       nameCtrl: _nameCtrl,
       targetCtrl: _targetCtrl,
       durationState: _durationState,

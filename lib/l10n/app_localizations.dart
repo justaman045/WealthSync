@@ -148,6 +148,18 @@ abstract class AppLocalizations {
   /// **'Receive Money'**
   String get receiveMoney;
 
+  /// No description provided for @activeTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeTab;
+
+  /// No description provided for @libraryTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get libraryTab;
+
   /// No description provided for @amount.
   ///
   /// In en, this message translates to:
@@ -1053,6 +1065,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Category in Use'**
   String get categoryUse;
+
+  /// No description provided for @challengeCustomDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom challenge'**
+  String get challengeCustomDescription;
+
+  /// No description provided for @challengeCustomDaysHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Or enter custom days'**
+  String get challengeCustomDaysHint;
+
+  /// No description provided for @challengeCustomTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Challenge'**
+  String get challengeCustomTitle;
+
+  /// No description provided for @challengeDaysLeftShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d left'**
+  String challengeDaysLeftShort(Object days);
+
+  /// No description provided for @challengeDaysOption.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String challengeDaysOption(Object days);
+
+  /// No description provided for @challengeEndsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends: {date}'**
+  String challengeEndsOn(Object date);
+
+  /// No description provided for @challengeNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge Name'**
+  String get challengeNameHint;
+
+  /// No description provided for @challengeSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} saved'**
+  String challengeSaved(Object amount);
+
+  /// No description provided for @challengeSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} spent'**
+  String challengeSpent(Object amount);
+
+  /// No description provided for @challengeStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start {name}'**
+  String challengeStartTitle(Object name);
+
+  /// No description provided for @challengeTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target: {amount}'**
+  String challengeTarget(Object amount);
+
+  /// No description provided for @challengeTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Amount ({symbol})'**
+  String challengeTargetHint(Object symbol);
+
+  /// No description provided for @challengeZeroSpendGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal: {amount} on {category}'**
+  String challengeZeroSpendGoal(Object amount, Object category);
 
   /// No description provided for @changePassword.
   ///

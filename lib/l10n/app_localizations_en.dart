@@ -37,6 +37,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receiveMoney => 'Receive Money';
 
   @override
+  String get activeTab => 'Active';
+
+  @override
+  String get libraryTab => 'Library';
+
+  @override
   String get amount => 'Amount';
 
   @override
@@ -547,6 +553,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryUse => 'Category in Use';
+
+  @override
+  String get challengeCustomDescription => 'Custom challenge';
+
+  @override
+  String get challengeCustomDaysHint => 'Or enter custom days';
+
+  @override
+  String get challengeCustomTitle => 'Custom Challenge';
+
+  @override
+  String challengeDaysLeftShort(Object days) {
+    return '${days}d left';
+  }
+
+  @override
+  String challengeDaysOption(Object days) {
+    return '$days days';
+  }
+
+  @override
+  String challengeEndsOn(Object date) {
+    return 'Ends: $date';
+  }
+
+  @override
+  String get challengeNameHint => 'Challenge Name';
+
+  @override
+  String challengeSaved(Object amount) {
+    return '$amount saved';
+  }
+
+  @override
+  String challengeSpent(Object amount) {
+    return '$amount spent';
+  }
+
+  @override
+  String challengeStartTitle(Object name) {
+    return 'Start $name';
+  }
+
+  @override
+  String challengeTarget(Object amount) {
+    return 'Target: $amount';
+  }
+
+  @override
+  String challengeTargetHint(Object symbol) {
+    return 'Target Amount ($symbol)';
+  }
+
+  @override
+  String challengeZeroSpendGoal(Object amount, Object category) {
+    return 'Goal: $amount on $category';
+  }
 
   @override
   String get changePassword => 'Change Password';
