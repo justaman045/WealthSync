@@ -84,11 +84,7 @@ class NavItem extends StatelessWidget {
                 SizedBox(width: (8.w).floorToDouble()),
                 Text(
                   label!,
-                  style: TextStyle(
-                    color: activeColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.sp,
-                  ),
+                  style: AppType.labelMedium(activeColor),
                 ),
               ],
             ],

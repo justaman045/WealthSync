@@ -94,11 +94,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
         ),
         title: Text(
           "Categories History",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
       ),
       body: Container(
@@ -283,15 +279,11 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
         alignment: Alignment.center,
         child: Text(
           text,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: isSelected
+          style: AppType.titleSmall(isSelected
                 ? activeColor
                 : isDark
                     ? Colors.white54
-                    : AppColors.lightTextSecondary,
-            fontSize: 14.sp,
-          ),
+                    : AppColors.lightTextSecondary),
         ),
       ),
     );
@@ -354,11 +346,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                   children: [
                     Text(
                       category.name,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                     ),
                     if (budget > 0 && isExpense) ...[
                       SizedBox(height: 6.h),
@@ -409,10 +397,7 @@ class _CategoriesHistoryScreenState extends State<CategoriesHistoryScreen> {
                       padding: EdgeInsets.only(top: 4.h),
                       child: Text(
                         'of ${CurrencyController.to.currencySymbol.value}${budget.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                          fontSize: 11.sp,
-                        ),
+                        style: AppType.labelSmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
                       ),
                     ),
                 ],

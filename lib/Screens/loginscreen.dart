@@ -170,11 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Expanded(
                       child: Text(
                         _authController.errorMessage.value,
-                        style: TextStyle(
-                          color: AppColors.error,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: AppType.bodyMedium(AppColors.error),
                       ),
                     ),
                   ],
@@ -320,10 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             decoration: InputDecoration(
               hintText: "Enter your ${label.toLowerCase()}",
-              hintStyle: TextStyle(
-                color: isDark ? Colors.white30 : Colors.black38,
-                fontSize: 14.sp,
-              ),
+              hintStyle: AppType.bodyMedium(isDark ? Colors.white30 : Colors.black38),
               prefixIcon: Icon(
                 icon,
                 color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
@@ -372,11 +365,7 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Text(
                 "Or continue with",
-                style: TextStyle(
-                  color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: AppType.bodyMedium(isDark ? Colors.white54 : AppColors.lightTextSecondary),
               ),
             ),
             Expanded(
@@ -408,11 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(width: 12.w),
                 Text(
                   "Sign in with Google",
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16.sp,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
               ],
             ),
@@ -428,10 +413,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Text(
           "Don't have an account?",
-          style: TextStyle(
-            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-            fontSize: 14.sp,
-          ),
+          style: AppType.bodyMedium(isDark ? Colors.white70 : AppColors.lightTextSecondary),
         ),
         TextButton(
           onPressed: () {

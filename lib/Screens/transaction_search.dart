@@ -113,11 +113,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
         iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
         title: Text(
           "Search Transactions",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 20.sp,
-          ),
+          style: AppType.titleLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
       ),
       body: Container(
@@ -152,7 +148,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                     child: TextField(
                       controller: _search,
                       onChanged: _onSearchChanged,
-                      style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp),
+                      style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                       cursorColor: AppColors.primary,
                       decoration: InputDecoration(
                         prefixIcon: Icon(
@@ -160,10 +156,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                           color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
                         ),
                         hintText: "Search by name, amount, category...",
-                        hintStyle: TextStyle(
-                          color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                          fontSize: 14.sp,
-                        ),
+                        hintStyle: AppType.bodyMedium(isDark ? Colors.white38 : AppColors.lightTextTertiary),
                         filled: true,
                         fillColor: isDark ? Colors.white.withValues(
                           alpha: 0.08,
@@ -226,10 +219,7 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                 SizedBox(height: 16.h),
                                 Text(
                                   "Search your transactions",
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white.withValues(alpha: 0.3) : AppColors.lightTextTertiary,
-                                    fontSize: 16.sp,
-                                  ),
+                                  style: AppType.bodyLarge(isDark ? Colors.white.withValues(alpha: 0.3) : AppColors.lightTextTertiary),
                                 ),
                               ],
                             ).animate().fadeIn(delay: 200.ms),
@@ -296,19 +286,12 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                       children: [
                                         Text(
                                           tx.recipientName,
-                                          style: TextStyle(
-                                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15.sp,
-                                          ),
+                                          style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                                         ),
                                         SizedBox(height: 4.h),
                                         Text(
                                           tx.category ?? "Uncategorized",
-                                          style: TextStyle(
-                                            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                                            fontSize: 12.sp,
-                                          ),
+                                          style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
                                         ),
                                       ],
                                     ),
@@ -319,19 +302,12 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                     children: [
                                       PrivacyText(
                                         "${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
-                                        style: TextStyle(
-                                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15.sp,
-                                        ),
+                                        style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                                       ),
                                       SizedBox(height: 4.h),
                                       Text(
                                         _formatDate(tx.date),
-                                        style: TextStyle(
-                                          color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                                          fontSize: 11.sp,
-                                        ),
+                                        style: AppType.labelSmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
                                       ),
                                     ],
                                   ),

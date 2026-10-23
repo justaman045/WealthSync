@@ -100,11 +100,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
         centerTitle: true,
         title: Text(
           AppStrings.categoryBudgets,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(textColor),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 20.sp),
@@ -239,21 +235,12 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
               Expanded(
                 child: Text(
                   item.categoryName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp,
-                    color: textColor,
-                    letterSpacing: 0.5,
-                  ),
+                  style: AppType.titleMedium(textColor),
                 ),
               ),
               Text(
                 "${CurrencyController.to.currencySymbol.value}${item.spent.toStringAsFixed(0)} / ${item.budget.toStringAsFixed(0)}",
-                style: TextStyle(
-                  color: secondaryTextColor,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: AppType.bodySmall(secondaryTextColor),
               ),
             ],
           ),
@@ -291,7 +278,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                     focusNode: _focusNodes[item.categoryName],
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(color: textColor, fontSize: 14.sp),
+                    style: AppType.bodyMedium(textColor),
                     decoration: InputDecoration(
                       hintText: 'Set Limit',
                       hintStyle: TextStyle(
@@ -327,11 +314,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                   ),
                   child: Text(
                     "Update",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13.sp,
-                    ),
+                    style: AppType.labelMedium(Colors.white),
                   ),
                 ),
               ),

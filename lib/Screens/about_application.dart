@@ -67,11 +67,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           centerTitle: true,
           title: Text(
             "About Application",
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
+            style: AppType.titleMedium(textColor),
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
@@ -138,11 +134,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
       alignment: Alignment.centerLeft,
       child: Text(
         title,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 13.5.sp,
-          color: color,
-        ),
+        style: AppType.labelMedium(color),
       ),
     );
   }
@@ -182,11 +174,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           SizedBox(height: 14.h),
           Text(
             "WealthSync",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20.sp,
-              color: textColor,
-            ),
+            style: AppType.titleLarge(textColor),
           ),
           SizedBox(height: 6.h),
           AnimatedOpacity(
@@ -194,7 +182,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             opacity: version == "Loading..." ? 0.5 : 1,
             child: Text(
               "Version $version",
-              style: TextStyle(color: secondary, fontSize: 13.sp),
+              style: AppType.bodySmall(secondary),
             ),
           ),
           SizedBox(height: 14.h),
@@ -203,11 +191,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           Text(
             "Empower your financial journey with WealthSync. Seamlessly track expenses, visualize income streams, and gain profound insights into your spending habits with our AI-powered analytics. Crafted for elegance, designed for control.",
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: textColor.withValues(alpha: 0.85),
-              fontSize: 13.5.sp,
-              height: 1.4,
-            ),
+            style: AppType.bodySmall(textColor.withValues(alpha: 0.85)),
           ),
           SizedBox(height: 18.h),
         ],
@@ -246,19 +230,15 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
             backgroundColor: isDark
                 ? Colors.white.withValues(alpha: 0.05)
                 : AppColors.lightSurfaceCard,
-            child: const Icon(Icons.code_rounded, color: Colors.teal),
+            child: const Icon(Icons.code_rounded, color: AppColors.success),
           ),
           title: Text(
             "Developed by Aman Ojha",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15.5.sp,
-              color: textColor,
-            ),
+            style: AppType.labelLarge(textColor),
           ),
           subtitle: Text(
             "Software Engineer & Designer",
-            style: TextStyle(fontSize: 12.sp, color: secondary),
+            style: AppType.bodySmall(secondary),
           ),
         ),
       ),
@@ -293,11 +273,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         children: [
           Text(
             "Powered by open-source technologies:",
-            style: TextStyle(
-              fontSize: 13.5.sp,
-              fontWeight: FontWeight.w600,
-              color: secondary,
-            ),
+            style: AppType.labelMedium(secondary),
           ),
           SizedBox(height: 10.h),
 
@@ -319,7 +295,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
               SizedBox(width: 6.w),
               Text(
                 "${DateTime.now().year} WealthSync",
-                style: TextStyle(color: secondary, fontSize: 13.sp),
+                style: AppType.bodySmall(secondary),
               ),
             ],
           ),
@@ -336,15 +312,12 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         children: [
           Text(
             "•  ",
-            style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade500),
+            style: AppType.bodyMedium(Colors.grey.shade500),
           ),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 13.5.sp,
-                color: textColor.withValues(alpha: 0.8),
-              ),
+              style: AppType.bodySmall(textColor.withValues(alpha: 0.8)),
             ),
           ),
         ],

@@ -223,20 +223,12 @@ class _AuthScreenState extends State<AuthScreen> {
         SizedBox(height: 10.h),
         Text(
           "Create Account",
-          style: TextStyle(
-            fontSize: 26.sp,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-            letterSpacing: 0.5,
-          ),
+          style: AppType.headlineSmall(textColor),
         ),
         SizedBox(height: 6.h),
         Text(
           "Join Money Control today",
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: textColor.withValues(alpha: 0.6),
-          ),
+          style: AppType.bodyMedium(textColor.withValues(alpha: 0.6)),
         ),
       ],
     );
@@ -307,7 +299,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 padding: EdgeInsets.only(bottom: 12.h),
                 child: Text(
                   _errorMessage!,
-                  style: TextStyle(color: AppColors.error, fontSize: 13.sp),
+                  style: AppType.bodySmall(AppColors.error),
                 ),
               ),
 
@@ -348,11 +340,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       )
                     : Text(
                         "Sign Up",
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                        style: AppType.titleMedium(Colors.white),
                       ),
               ),
             ),
@@ -396,7 +384,7 @@ class _AuthScreenState extends State<AuthScreen> {
               child: RichText(
                 text: TextSpan(
                   text: "Already have an account? ",
-                  style: TextStyle(color: hintColor, fontSize: 13.5.sp),
+                  style: AppType.bodySmall(hintColor),
                   children: [
                     TextSpan(
                       text: "Log In",

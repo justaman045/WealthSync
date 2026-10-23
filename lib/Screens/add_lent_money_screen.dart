@@ -194,7 +194,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
             Set<WidgetState> states,
           ) {
             if (states.contains(WidgetState.selected)) {
-              return _selectedType == 'lent' ? Colors.green : Colors.orange;
+              return _selectedType == 'lent' ? AppColors.success : AppColors.warning;
             }
             return Theme.of(
               context,
@@ -213,12 +213,9 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.amount,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Theme.of(
+            style: AppType.bodyMedium(Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+              ).colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
           SizedBox(height: 8.h),
           Row(
@@ -349,11 +346,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
                 ),
                 Text(
                   "${NumberFormat.simpleCurrency(name: currency).format(repaid)} repaid",
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: Colors.teal,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppType.labelMedium(AppColors.success),
                 ),
               ],
             ),
@@ -361,10 +354,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
             if (repayments.isEmpty)
               Text(
                 AppLocalizations.of(context)!.repaymentsRecordedYet,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
+                style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(alpha: 0.5)),
               )
             else
               for (var i = 0; i < repayments.length; i++) ...[
@@ -420,7 +410,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
       padding: EdgeInsets.symmetric(vertical: 8.h),
       child: Row(
         children: [
-          Icon(Icons.currency_rupee, size: 18.sp, color: Colors.teal),
+          Icon(Icons.currency_rupee, size: 18.sp, color: AppColors.success),
           SizedBox(width: 10.w),
           Expanded(
             child: Column(
@@ -437,19 +427,13 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
                 ),
                 Text(
                   DateFormat('MMM dd, yyyy').format(repayment.date),
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                  style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
                 if (repayment.note.isNotEmpty) ...[
                   SizedBox(height: 2.h),
                   Text(
                     repayment.note,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
+                    style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -487,11 +471,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
               ? const CircularProgressIndicator(color: Colors.white)
               : Text(
                   widget.existingEntry != null ? "Update Entry" : "Save Entry",
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: AppType.titleMedium(Colors.white),
                 ),
         ),
       ),

@@ -146,11 +146,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         appBar: AppBar(
           title: Text(
             "Feedback",
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
+            style: AppType.titleMedium(textColor),
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
@@ -172,21 +168,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 children: [
                   Text(
                     "Help me improve WealthSync",
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
+                    style: AppType.titleMedium(textColor),
                   ),
                   SizedBox(height: 8.h),
                   Text(
                     "Share bugs, feature requests, or general feedback. "
                     "This goes straight to my inbox via Google Forms.",
-                    style: TextStyle(
-                      fontSize: 13.5.sp,
-                      color: secondaryTextColor,
-                      height: 1.4,
-                    ),
+                    style: AppType.bodySmall(secondaryTextColor),
                   ),
                   SizedBox(height: 30.h),
 
@@ -262,12 +250,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                               )
                             : Text(
                                 "Submit Feedback",
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                ),
+                                style: AppType.titleMedium(Colors.white),
                               ),
                       ),
                     ),
@@ -314,7 +297,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
-        style: TextStyle(color: textColor, fontSize: 15.sp),
+        style: AppType.bodyLarge(textColor),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: hintColor.withValues(alpha: 0.5)),

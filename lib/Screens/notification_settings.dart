@@ -132,11 +132,7 @@ class _NotificationSettingsScreenState
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       body: Container(
         height: double.infinity,
@@ -191,13 +187,9 @@ class _NotificationSettingsScreenState
                             Expanded(
                               child: Text(
                                 AppLocalizations.of(context)!.masterToggleOffNothingPosted,
-                                style: TextStyle(
-                                  color: isDark
+                                style: AppType.bodySmall(isDark
                                       ? Colors.white70
-                                      : AppColors.lightTextPrimary,
-                                  fontSize: 12.sp,
-                                  height: 1.4,
-                                ),
+                                      : AppColors.lightTextPrimary),
                               ),
                             ),
                           ],

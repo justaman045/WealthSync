@@ -140,7 +140,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
             ? const SizedBox.shrink()
             : FloatingActionButton.extended(
                 onPressed: _add,
-                backgroundColor: Colors.pink,
+                backgroundColor: AppColors.accent,
                 icon: const Icon(Icons.add, color: Colors.white),
                 label: Text(
                   AppLocalizations.of(context)!.addPolicy,
@@ -187,11 +187,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
                 SizedBox(height: 20.h),
                 Text(
                   AppLocalizations.of(context)!.policies,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 12.h),
                 ...docs.map((d) {
@@ -241,13 +237,10 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
+        Text(label, style: AppType.bodySmall(Colors.white70)),
         SizedBox(height: 4.h),
         Text(value,
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 22.sp,
-                fontWeight: FontWeight.bold)),
+            style: AppType.titleLarge(Colors.white)),
       ],
     );
   }
@@ -276,32 +269,29 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
             ? Colors.white.withValues(alpha: 0.05)
             : Colors.white.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.pink.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.health_and_safety, color: Colors.pink, size: 20.sp),
+              Icon(Icons.health_and_safety, color: AppColors.accent, size: 20.sp),
               SizedBox(width: 8.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(name,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15.sp,
-                            color: isDark ? Colors.white : AppColors.lightTextPrimary)),
+                        style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary)),
                     if (type.isNotEmpty)
                       Text(type,
-                          style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
+                          style: AppType.bodySmall(Colors.grey)),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                icon: const Icon(Icons.delete_outline, color: AppColors.error),
                 onPressed: () => _delete(id),
                 iconSize: 20.sp,
                 padding: EdgeInsets.zero,
@@ -314,15 +304,15 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _infoCol("Sum Assured", "$symbol${_compact(sumAssured)}",
-                  Colors.pink, isDark),
+                  AppColors.accent, isDark),
               _infoCol(
                   "Annual Premium",
                   "$symbol${premium.toStringAsFixed(0)}",
-                  Colors.orange,
+                  AppColors.warning,
                   isDark),
               if (maturity != null)
                 _infoCol("Matures",
-                    DateFormat('MMM yyyy').format(maturity), Colors.teal, isDark),
+                    DateFormat('MMM yyyy').format(maturity), AppColors.success, isDark),
             ],
           ),
         ],
@@ -335,12 +325,9 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+        Text(label, style: AppType.labelSmall(Colors.grey)),
         Text(value,
-            style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-                color: color)),
+            style: AppType.titleSmall(color)),
       ],
     );
   }
@@ -355,14 +342,10 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
               color: isDark ? Colors.white24 : AppColors.lightBorder),
           SizedBox(height: 16.h),
           Text(AppLocalizations.of(context)!.policiesAdded,
-              style: TextStyle(
-                  color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                  fontSize: 16.sp)),
+              style: AppType.bodyLarge(isDark ? Colors.white54 : AppColors.lightTextSecondary)),
           SizedBox(height: 8.h),
           Text(AppLocalizations.of(context)!.tapTrackLifeInsuranceULIPs,
-              style: TextStyle(
-                  color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                  fontSize: 13.sp)),
+              style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextTertiary)),
         ],
       ),
     );
@@ -381,7 +364,7 @@ Future<bool> _confirm(BuildContext context) async {
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
         TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red))),
+            child: const Text("Delete", style: TextStyle(color: AppColors.error))),
       ],
     ),
   );
@@ -492,10 +475,7 @@ class _SheetState extends State<_Sheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.title,
-                style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.sp)),
+                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary)),
             SizedBox(height: 16.h),
             ...List.generate(widget.fields.length, (i) {
               final f = widget.fields[i];

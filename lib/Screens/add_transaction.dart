@@ -202,13 +202,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                       child: Text(
                         AppLocalizations.of(context)!.add,
-                        style: TextStyle(
-                          color: isDark
+                        style: AppType.titleMedium(isDark
                               ? Colors.white
-                              : AppColors.lightTextPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.sp,
-                        ),
+                              : AppColors.lightTextPrimary),
                       ),
                     ),
                   ),
@@ -528,11 +524,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: Obx(
               () => Text(
                 CurrencyController.to.currencyCode.value,
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15.sp,
-                ),
+                style: AppType.labelLarge(AppColors.primary),
               ),
             ),
           ),
@@ -836,12 +828,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 )
               : Text(
                   label.toUpperCase(),
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp,
-                    letterSpacing: 1.5,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
         ),
       ),
@@ -879,11 +866,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             SizedBox(width: 8.w),
             Text(
               "Scan & Pay with UPI",
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp,
-              ),
+              style: AppType.titleSmall(AppColors.primary),
             ),
           ],
         ),

@@ -202,25 +202,18 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                 children: [
                   Text(
                     email,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     isPro
                         ? "Exp: ${expiry != null ? DateFormat('MMM dd, yyyy').format(expiry.toDate()) : 'Lifetime/Unknown'}"
                         : "Free Plan",
-                    style: TextStyle(
-                      color: isPro
+                    style: AppType.bodySmall(isPro
                           ? AppColors.success
                           : isDark
                               ? Colors.white54
-                              : AppColors.lightTextSecondary,
-                      fontSize: 12.sp,
-                    ),
+                              : AppColors.lightTextSecondary),
                   ),
                 ],
               ),
@@ -249,17 +242,14 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
             backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
             title: Text(
               AppLocalizations.of(context)!.manageSubscription,
-              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 18.sp),
+              style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   email,
-                  style: TextStyle(
-                    color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                    fontSize: 14.sp,
-                  ),
+                  style: AppType.bodyMedium(isDark ? Colors.white70 : AppColors.lightTextSecondary),
                 ),
                 SizedBox(height: 20.h),
                 Row(
@@ -284,10 +274,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                 if (isPro) ...[
                   Text(
                     AppLocalizations.of(context)!.expiryDate,
-                    style: TextStyle(
-                      color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                      fontSize: 14.sp,
-                    ),
+                    style: AppType.bodyMedium(isDark ? Colors.white70 : AppColors.lightTextSecondary),
                   ),
                   SizedBox(height: 8.h),
                   InkWell(

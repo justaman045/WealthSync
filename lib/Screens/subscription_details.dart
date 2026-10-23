@@ -159,8 +159,8 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                           decoration: BoxDecoration(
                             color:
                                 (paymentData.isActive
-                                        ? Colors.orange
-                                        : Colors.green)
+                                        ? AppColors.warning
+                                        : AppColors.success)
                                     .withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
@@ -169,8 +169,8 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                                 ? Icons.pause_rounded
                                 : Icons.play_arrow_rounded,
                             color: paymentData.isActive
-                                ? Colors.orange
-                                : Colors.green,
+                                ? AppColors.warning
+                                : AppColors.success,
                             size: 18.sp,
                           ),
                         ),
@@ -195,12 +195,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                           Container(
                             padding: EdgeInsets.all(8.w),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.skip_next_rounded,
-                              color: Colors.blue,
+                              color: AppColors.primary,
                               size: 18.sp,
                             ),
                           ),
@@ -223,7 +223,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         Container(
                           padding: EdgeInsets.all(8.w),
                           decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.1),
+                            color: AppColors.error.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -310,11 +310,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 ],
                 Text(
                   AppLocalizations.of(context)!.paymentHistory,
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
+                  style: AppType.titleMedium(textColor),
                 ).animate().fadeIn(delay: 300.ms).slideX(),
                 SizedBox(height: 16.h),
                 _buildHistoryList(isDark, textColor),
@@ -358,7 +354,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             radius: 30.r,
             backgroundColor: payment.isActive
                 ? (_isPending(payment)
-                      ? Colors.orange.withValues(alpha: 0.12)
+                      ? AppColors.warning.withValues(alpha: 0.12)
                       : AppColors.primary.withValues(alpha: 0.1))
                 : Colors.grey.withValues(alpha: 0.1),
             child: Icon(
@@ -368,7 +364,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         : Icons.receipt_long_rounded)
                   : Icons.pause_rounded,
               color: payment.isActive
-                  ? (_isPending(payment) ? Colors.orange : AppColors.primary)
+                  ? (_isPending(payment) ? AppColors.warning : AppColors.primary)
                   : Colors.grey,
               size: 30.sp,
             ),
@@ -376,20 +372,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           SizedBox(height: 16.h),
           Text(
             payment.title,
-            style: TextStyle(
-              fontSize: 22.sp,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+            style: AppType.titleLarge(textColor),
           ),
           SizedBox(height: 8.h),
           Text(
             "${CurrencyController.to.currencySymbol.value}${payment.amount.toStringAsFixed(0)} / ${payment.frequency.name}",
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: textColor.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppType.bodyLarge(textColor.withValues(alpha: 0.6)),
           ),
           if (!payment.isActive || _isPending(payment) || payment.autoPay)
             Padding(
@@ -399,12 +387,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                 decoration: BoxDecoration(
                   color: payment.isActive && !_isPending(payment)
                       ? AppColors.primary.withValues(alpha: 0.12)
-                      : Colors.orange.withValues(alpha: 0.1),
+                      : AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
                     color: payment.isActive && !_isPending(payment)
                         ? AppColors.primary.withValues(alpha: 0.35)
-                        : Colors.orange.withValues(alpha: 0.3),
+                        : AppColors.warning.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Text(
@@ -413,13 +401,9 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                       : (_isPending(payment)
                             ? "PENDING — due ${DateFormat('MMM dd, yyyy').format(payment.nextDueDate)}"
                             : "AUTO-PAY ON"),
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.bold,
-                    color: payment.isActive && !_isPending(payment)
+                  style: AppType.labelMedium(payment.isActive && !_isPending(payment)
                         ? AppColors.primary
-                        : Colors.orange,
-                  ),
+                        : AppColors.warning),
                 ),
               ),
             ),
@@ -458,10 +442,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: textColor.withValues(alpha: 0.4),
-          ),
+          style: AppType.bodySmall(textColor.withValues(alpha: 0.4)),
         ),
         SizedBox(height: 4.h),
         Text(
@@ -515,20 +496,13 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             },
             title: Text(
               AppLocalizations.of(context)!.autoPay,
-              style: TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
+              style: AppType.labelLarge(textColor),
             ),
             subtitle: Text(
               payment.autoPay
                   ? "When due, a transaction is created automatically."
                   : "Remind me when due — I'll mark it paid manually.",
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: textColor.withValues(alpha: 0.6),
-              ),
+              style: AppType.bodySmall(textColor.withValues(alpha: 0.6)),
             ),
             secondary: Icon(
               payment.autoPay
@@ -536,7 +510,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                   : Icons.notifications_active_outlined,
               color: payment.autoPay
                   ? AppColors.primary
-                  : Colors.orange,
+                  : AppColors.warning,
               size: 22.sp,
             ),
             activeThumbColor: AppColors.primary,
@@ -675,20 +649,13 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     SizedBox(height: 12.h),
                     Text(
                       AppLocalizations.of(context)!.couldnTLoadPaymentHistory,
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.6),
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: AppType.titleSmall(textColor.withValues(alpha: 0.6)),
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 6.h),
                     Text(
                       '${snapshot.error}',
-                      style: TextStyle(
-                        color: textColor.withValues(alpha: 0.35),
-                        fontSize: 11.sp,
-                      ),
+                      style: AppType.labelSmall(textColor.withValues(alpha: 0.35)),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -758,12 +725,12 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         Container(
                           padding: EdgeInsets.all(10.w),
                           decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
+                            color: AppColors.success.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.check_rounded,
-                            color: Colors.green,
+                            color: AppColors.success,
                             size: 18.sp,
                           ),
                         ),
@@ -774,29 +741,18 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                             children: [
                               Text(
                                 DateFormat('MMM dd, yyyy').format(tx.date),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14.sp,
-                                  color: textColor,
-                                ),
+                                style: AppType.titleSmall(textColor),
                               ),
                               Text(
                                 tx.note ?? 'Payment',
-                                style: TextStyle(
-                                  fontSize: 12.sp,
-                                  color: textColor.withValues(alpha: 0.5),
-                                ),
+                                style: AppType.bodySmall(textColor.withValues(alpha: 0.5)),
                               ),
                             ],
                           ),
                         ),
                         Text(
                           "${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(0)}",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.sp,
-                            color: textColor,
-                          ),
+                          style: AppType.titleMedium(textColor),
                         ),
                         SizedBox(width: 8.w),
                         Icon(
@@ -900,7 +856,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: Text(AppLocalizations.of(context)!.skip),
@@ -931,7 +887,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -1056,11 +1012,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
               Expanded(
                 child: Text(
                   AppLocalizations.of(context)!.linkTransaction,
-                  style: TextStyle(
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    color: textColor,
-                  ),
+                  style: AppType.titleLarge(textColor),
                 ),
               ),
               GestureDetector(
@@ -1075,10 +1027,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
           SizedBox(height: 8.h),
           Text(
             "Select a transaction to link to ${widget.payment.title}",
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: textColor.withValues(alpha: 0.6),
-            ),
+            style: AppType.bodySmall(textColor.withValues(alpha: 0.6)),
           ),
           SizedBox(height: 16.h),
           TextField(
@@ -1141,7 +1090,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
                               Container(
                                 padding: EdgeInsets.all(10.w),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.1),
+                                  color: AppColors.error.withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -1169,10 +1118,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
                                     SizedBox(height: 2.h),
                                     Text(
                                       DateFormat('MMM dd, yyyy').format(tx.date),
-                                      style: TextStyle(
-                                        fontSize: 12.sp,
-                                        color: textColor.withValues(alpha: 0.5),
-                                      ),
+                                      style: AppType.bodySmall(textColor.withValues(alpha: 0.5)),
                                     ),
                                   ],
                                 ),
@@ -1184,35 +1130,26 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
                                     vertical: 2.h,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.12),
+                                    color: AppColors.success.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6.r),
                                   ),
                                   child: Text(
                                     AppLocalizations.of(context)!.linked,
-                                    style: TextStyle(
-                                      fontSize: 9.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.green,
-                                      letterSpacing: 0.5,
-                                    ),
+                                    style: AppType.labelSmall(AppColors.success),
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
                               ] else if (linkedElsewhere) ...[
                                 Icon(
                                   Icons.warning_amber_rounded,
-                                  color: Colors.orange,
+                                  color: AppColors.warning,
                                   size: 16.sp,
                                 ),
                                 SizedBox(width: 8.w),
                               ],
                               Text(
                                 "${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(0)}",
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: textColor,
-                                ),
+                                style: AppType.labelLarge(textColor),
                               ),
                             ],
                           ),

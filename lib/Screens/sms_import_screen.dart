@@ -514,11 +514,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                             ),
                                             child: Text(
                                               AppLocalizations.of(context)!.imported,
-                                              style: TextStyle(
-                                                color: Colors.cyan,
-                                                fontSize: 9.sp,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                              style: AppType.labelSmall(Colors.cyan),
                                             ),
                                           ),
                                         ],
@@ -543,20 +539,14 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                     DateFormat(
                                       'dd MMM yyyy, hh:mm a',
                                     ).format(tx.date),
-                                    style: TextStyle(
-                                      color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                                      fontSize: 12.sp,
-                                    ),
+                                    style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
                                   ),
                                   SizedBox(height: 4.h),
                                   Text(
                                     tx.body,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: isDark ? Colors.white30 : AppColors.lightTextSecondary.withValues(alpha: 0.6),
-                                      fontSize: 10.sp,
-                                    ),
+                                    style: AppType.labelSmall(isDark ? Colors.white30 : AppColors.lightTextSecondary.withValues(alpha: 0.6)),
                                   ),
                                 ],
                               ),

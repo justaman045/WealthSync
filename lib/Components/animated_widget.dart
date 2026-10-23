@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:money_control/Components/colors.dart';
 
 class CAnimatedWidget extends StatelessWidget {
   const CAnimatedWidget({
@@ -27,7 +28,7 @@ class CAnimatedWidget extends StatelessWidget {
               ? Text(
                   title!,
                   key: ValueKey(title),
-                  style: style ?? TextStyle(color: Colors.white70, fontSize: 15.sp),
+                  style: style ?? AppType.bodyLarge(Colors.white70),
                   textAlign: textAlign ?? TextAlign.left,
                 )
               : const SizedBox.shrink(),

@@ -52,11 +52,7 @@ class _TransactionAuditScreenState extends State<TransactionAuditScreen>
       appBar: AppBar(
         title: Text(
           AppLocalizations.of(context)!.transactionAudit,
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.w600,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -68,7 +64,7 @@ class _TransactionAuditScreenState extends State<TransactionAuditScreen>
         actions: [
           IconButton(
             icon: Icon(Icons.refresh,
-                color: isDark ? Colors.white70 : Colors.grey[600], size: 20.sp),
+                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary, size: 20.sp),
             onPressed: () => _controller.runFullAudit(),
           ),
         ],
@@ -76,7 +72,7 @@ class _TransactionAuditScreenState extends State<TransactionAuditScreen>
           controller: _tabController,
           isScrollable: true,
           labelColor: AppColors.primary,
-          unselectedLabelColor: isDark ? Colors.white54 : Colors.grey[500],
+          unselectedLabelColor: isDark ? AppColors.darkTextSecondary : AppColors.lightTextTertiary,
           indicatorColor: AppColors.primary,
           indicatorSize: TabBarIndicatorSize.label,
           labelStyle: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600),
@@ -128,9 +124,7 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 12.h),
               Text(
                 AppLocalizations.of(context)!.issuesFound,
-                style: TextStyle(
-                    color: isDark ? Colors.white70 : Colors.grey[600],
-                    fontSize: 14.sp),
+                style: AppType.bodyMedium(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
               ),
             ],
           ),
@@ -169,7 +163,7 @@ class _IssuesTab extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showDuplicateResolutionSheet(context, group, isDark),
       child: Card(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
         margin: EdgeInsets.only(bottom: 8.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
@@ -187,19 +181,12 @@ class _IssuesTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${group.merchant} — ${group.amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.sp,
-                      ),
+                      style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                     ),
                   ),
                   Text(
                     '${group.transactions.length}×',
-                    style: TextStyle(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13.sp),
+                    style: AppType.labelMedium(AppColors.warning),
                   ),
                 ],
               ),
@@ -208,9 +195,7 @@ class _IssuesTab extends StatelessWidget {
                     padding: EdgeInsets.only(left: 24.w, top: 2.h),
                     child: Text(
                       '${tx.date.toIso8601String().substring(0, 16)} — ${tx.amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                          color: isDark ? Colors.white54 : Colors.grey[600],
-                          fontSize: 11.sp),
+                      style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                     ),
                   )),
               SizedBox(height: 6.h),
@@ -239,7 +224,7 @@ class _IssuesTab extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showSignErrorResolutionSheet(context, error, isDark),
       child: Card(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
         margin: EdgeInsets.only(bottom: 8.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
@@ -260,11 +245,7 @@ class _IssuesTab extends StatelessWidget {
                       error.transaction.recipientName.isNotEmpty
                           ? error.transaction.recipientName
                           : 'Unknown',
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.sp,
-                      ),
+                      style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                     ),
                   ),
                 ],
@@ -274,17 +255,14 @@ class _IssuesTab extends StatelessWidget {
                 padding: EdgeInsets.only(left: 24.w),
                 child: Text(
                   'Expected: ${error.expected} | Got: ${error.actual}',
-                  style: TextStyle(
-                      color: AppColors.error, fontSize: 11.sp),
+                  style: AppType.labelSmall(AppColors.error),
                 ),
               ),
               Padding(
                 padding: EdgeInsets.only(left: 24.w, top: 2.h),
                 child: Text(
                   '${error.transaction.date.toIso8601String().substring(0, 10)} — ${error.transaction.amount.toStringAsFixed(2)}',
-                  style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.grey[600],
-                      fontSize: 11.sp),
+                  style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                 ),
               ),
               SizedBox(height: 6.h),
@@ -313,7 +291,7 @@ class _IssuesTab extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showOrphanResolutionSheet(context, orphan, isDark),
       child: Card(
-        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
         margin: EdgeInsets.only(bottom: 8.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
@@ -331,11 +309,7 @@ class _IssuesTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       orphan.payment.title,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.sp,
-                      ),
+                      style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                     ),
                   ),
                 ],
@@ -345,17 +319,14 @@ class _IssuesTab extends StatelessWidget {
                 padding: EdgeInsets.only(left: 24.w),
                 child: Text(
                   orphan.reason,
-                  style: TextStyle(
-                      color: AppColors.accent, fontSize: 11.sp),
+                  style: AppType.labelSmall(AppColors.accent),
                 ),
               ),
               Padding(
                 padding: EdgeInsets.only(left: 24.w, top: 2.h),
                 child: Text(
                   'Amount: ${orphan.payment.amount.toStringAsFixed(2)}',
-                  style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.grey[600],
-                      fontSize: 11.sp),
+                  style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                 ),
               ),
               SizedBox(height: 6.h),
@@ -387,7 +358,7 @@ class _IssuesTab extends StatelessWidget {
   void _showDuplicateResolutionSheet(BuildContext context, DuplicateGroup group, bool isDark) {
     final bgColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
+    final subtextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     showModalBottomSheet(
       context: context,
@@ -421,11 +392,7 @@ class _IssuesTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       AppLocalizations.of(context)!.duplicateTransaction,
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16.sp,
-                      ),
+                      style: AppType.titleMedium(textColor),
                     ),
                   ),
                 ],
@@ -433,7 +400,7 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 8.h),
               Text(
                 '${group.transactions.length} transactions for "${group.merchant}" on the same day, each ${group.amount.toStringAsFixed(2)}.',
-                style: TextStyle(color: subtextColor, fontSize: 12.sp),
+                style: AppType.bodySmall(subtextColor),
               ),
               SizedBox(height: 6.h),
               ...group.transactions.asMap().entries.map((entry) {
@@ -447,7 +414,7 @@ class _IssuesTab extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '${tx.date.toIso8601String().substring(0, 16)} — ${tx.amount.toStringAsFixed(2)}',
-                          style: TextStyle(color: subtextColor, fontSize: 11.sp),
+                          style: AppType.labelSmall(subtextColor),
                         ),
                       ),
                     ],
@@ -552,7 +519,7 @@ class _IssuesTab extends StatelessWidget {
   void _showSignErrorResolutionSheet(BuildContext context, SignError error, bool isDark) {
     final bgColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
+    final subtextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final tx = error.transaction;
 
     showModalBottomSheet(
@@ -587,11 +554,7 @@ class _IssuesTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       AppLocalizations.of(context)!.signConventionError,
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16.sp,
-                      ),
+                      style: AppType.titleMedium(textColor),
                     ),
                   ),
                 ],
@@ -599,12 +562,12 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 8.h),
               Text(
                 '${tx.recipientName.isNotEmpty ? tx.recipientName : "Unknown"} — ${tx.amount.toStringAsFixed(2)} on ${tx.date.toIso8601String().substring(0, 10)}',
-                style: TextStyle(color: subtextColor, fontSize: 12.sp),
+                style: AppType.bodySmall(subtextColor),
               ),
               SizedBox(height: 4.h),
               Text(
                 'Expected: ${error.expected}  •  Got: ${error.actual}',
-                style: TextStyle(color: AppColors.error, fontSize: 11.sp),
+                style: AppType.labelSmall(AppColors.error),
               ),
               SizedBox(height: 16.h),
               _resolutionButton(
@@ -665,7 +628,7 @@ class _IssuesTab extends StatelessWidget {
   void _showOrphanResolutionSheet(BuildContext context, OrphanedRecurring orphan, bool isDark) {
     final bgColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final subtextColor = isDark ? Colors.white54 : Colors.grey[600]!;
+    final subtextColor = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
     final pmt = orphan.payment;
 
     showModalBottomSheet(
@@ -700,11 +663,7 @@ class _IssuesTab extends StatelessWidget {
                   Expanded(
                     child: Text(
                       AppLocalizations.of(context)!.missingRecurringPayment,
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16.sp,
-                      ),
+                      style: AppType.titleMedium(textColor),
                     ),
                   ),
                 ],
@@ -712,12 +671,12 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 8.h),
               Text(
                 '"${pmt.title}" was due on ${pmt.nextDueDate.toIso8601String().substring(0, 10)}, but no transaction was found.',
-                style: TextStyle(color: subtextColor, fontSize: 12.sp),
+                style: AppType.bodySmall(subtextColor),
               ),
               SizedBox(height: 4.h),
               Text(
                 'Amount: ${pmt.amount.toStringAsFixed(2)}  •  Category: ${pmt.category}',
-                style: TextStyle(color: subtextColor, fontSize: 11.sp),
+                style: AppType.labelSmall(subtextColor),
               ),
               SizedBox(height: 16.h),
               _resolutionButton(
@@ -802,11 +761,7 @@ Widget _resolutionButton({
       icon: Icon(icon, color: color, size: 18.sp),
       label: Text(
         label,
-        style: TextStyle(
-          color: color,
-          fontSize: 13.sp,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppType.labelMedium(color),
       ),
       style: OutlinedButton.styleFrom(
         alignment: Alignment.centerLeft,
@@ -831,7 +786,7 @@ Future<bool> _confirmDestructive(
     builder: (ctx) => AlertDialog(
       backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
       title: Text(title, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
-      content: Text(message, style: TextStyle(color: isDark ? Colors.white70 : Colors.grey[600], fontSize: 13.sp)),
+      content: Text(message, style: AppType.bodySmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(false),
@@ -864,14 +819,12 @@ class _BankCompareTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.account_balance,
-                  color: isDark ? Colors.white24 : Colors.grey[400],
+                  color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
                   size: 48.sp),
               SizedBox(height: 12.h),
               Text(
                 AppLocalizations.of(context)!.bankDataImported,
-                style: TextStyle(
-                    color: isDark ? Colors.white54 : Colors.grey[500],
-                    fontSize: 13.sp),
+                style: AppType.bodySmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextTertiary),
               ),
               SizedBox(height: 16.h),
               ElevatedButton.icon(
@@ -905,11 +858,9 @@ class _BankCompareTab extends StatelessWidget {
                   onPressed: () => controller.importBankCsv(),
                   icon: Icon(Icons.upload_file,
                       size: 14.sp,
-                      color: isDark ? Colors.white70 : Colors.grey[600]),
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                   label: Text(AppLocalizations.of(context)!.reImport,
-                      style: TextStyle(
-                          fontSize: 11.sp,
-                          color: isDark ? Colors.white70 : Colors.grey[600])),
+                      style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
                 ),
               ],
             ),
@@ -940,14 +891,13 @@ class _BankCompareTab extends StatelessWidget {
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: Text(label,
-          style: TextStyle(
-              color: color, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+          style: AppType.labelSmall(color)),
     );
   }
 
   Widget _bankOnlyCard(BankComparisonRow row, bool isDark) {
     return Card(
-      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+      color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
       margin: EdgeInsets.only(bottom: 6.h),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.r),
@@ -956,11 +906,7 @@ class _BankCompareTab extends StatelessWidget {
         padding: EdgeInsets.all(10.w),
         child: Text(
           row.bankRow.map((e) => e.toString()).join(' | '),
-          style: TextStyle(
-            color: isDark ? Colors.white70 : Colors.grey[700],
-            fontSize: 11.sp,
-            fontFamily: 'monospace',
-          ),
+          style: AppType.labelSmall(isDark ? AppColors.darkTextPrimary : AppColors.lightTextSecondary),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -983,9 +929,7 @@ class _LedgerTab extends StatelessWidget {
         return Center(
           child: Text(
             AppLocalizations.of(context)!.ledgerEntries,
-            style: TextStyle(
-                color: isDark ? Colors.white54 : Colors.grey[500],
-                fontSize: 13.sp),
+            style: AppType.bodySmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextTertiary),
           ),
         );
       }
@@ -997,23 +941,17 @@ class _LedgerTab extends StatelessWidget {
               children: [
                 Text(
                   AppLocalizations.of(context)!.opening,
-                  style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.grey[600],
-                      fontSize: 12.sp),
+                  style: AppType.bodySmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                 ),
                 SizedBox(
                   width: 100.w,
                   height: 32.h,
                   child: TextField(
                     keyboardType: TextInputType.number,
-                    style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black,
-                        fontSize: 12.sp),
+                    style: AppType.bodySmall(isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
                       hintText: '0.00',
-                      hintStyle: TextStyle(
-                          color: isDark ? Colors.white24 : Colors.grey[400],
-                          fontSize: 12.sp),
+                      hintStyle: AppType.bodySmall(isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                       border: OutlineInputBorder(
@@ -1044,11 +982,9 @@ class _LedgerTab extends StatelessWidget {
                   },
                   icon: Icon(Icons.copy,
                       size: 14.sp,
-                      color: isDark ? Colors.white70 : Colors.grey[600]),
+                      color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                   label: Text(AppLocalizations.of(context)!.exportCSV,
-                      style: TextStyle(
-                          fontSize: 11.sp,
-                          color: isDark ? Colors.white70 : Colors.grey[600])),
+                      style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary)),
                 ),
               ],
             ),
@@ -1076,19 +1012,14 @@ class _LedgerTab extends StatelessWidget {
                         width: 70.w,
                         child: Text(
                           e.date.toIso8601String().substring(5, 10),
-                          style: TextStyle(
-                              color: isDark ? Colors.white54 : Colors.grey[500],
-                              fontSize: 10.sp),
+                          style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextTertiary),
                         ),
                       ),
                       Expanded(
                         flex: 3,
                         child: Text(
                           e.description,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                            fontSize: 11.sp,
-                          ),
+                          style: AppType.labelSmall(isDark ? Colors.white : AppColors.lightTextPrimary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1096,8 +1027,7 @@ class _LedgerTab extends StatelessWidget {
                       Expanded(
                         child: Text(
                           e.debit != null ? '-${e.debit!.toStringAsFixed(0)}' : '',
-                          style: TextStyle(
-                              color: AppColors.error, fontSize: 11.sp),
+                          style: AppType.labelSmall(AppColors.error),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -1105,8 +1035,7 @@ class _LedgerTab extends StatelessWidget {
                       Expanded(
                         child: Text(
                           e.credit != null ? '+${e.credit!.toStringAsFixed(0)}' : '',
-                          style: TextStyle(
-                              color: AppColors.success, fontSize: 11.sp),
+                          style: AppType.labelSmall(AppColors.success),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -1114,11 +1043,7 @@ class _LedgerTab extends StatelessWidget {
                       Expanded(
                         child: Text(
                           e.runningBalance.toStringAsFixed(0),
-                          style: TextStyle(
-                            color: isDark ? Colors.white70 : Colors.grey[700],
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: AppType.labelSmall(isDark ? AppColors.darkTextPrimary : AppColors.lightTextSecondary),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -1195,9 +1120,11 @@ class _SummaryTab extends StatelessWidget {
 
   Widget _summaryCard(String label, String value, IconData icon, bool isDark,
       {Color? color}) {
-    final effectiveColor = color ?? (isDark ? Colors.white70 : Colors.grey[700]);
+    final effectiveColor =
+        color ??
+        (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary);
     return Card(
-      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+      color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.r),
       ),
@@ -1210,18 +1137,12 @@ class _SummaryTab extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                    color: isDark ? Colors.white54 : Colors.grey[600],
-                    fontSize: 13.sp),
+                style: AppType.bodySmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
               ),
             ),
             Text(
               value,
-              style: TextStyle(
-                color: effectiveColor,
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w700,
-              ),
+              style: AppType.labelLarge(effectiveColor),
             ),
           ],
         ),
@@ -1243,10 +1164,6 @@ class _EditTransactionProxy extends StatelessWidget {
 Widget _sectionHeader(String text, bool isDark) {
   return Text(
     text,
-    style: TextStyle(
-      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-      fontSize: 15.sp,
-      fontWeight: FontWeight.w700,
-    ),
+    style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
   );
 }

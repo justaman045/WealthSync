@@ -137,11 +137,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       body: Container(
         height: double.infinity,
@@ -215,11 +211,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               Expanded(
                 child: Text(
                   AppLocalizations.of(context)!.inviteFriendsGetProFree,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppType.titleMedium(Colors.white),
                 ),
               ),
             ],
@@ -227,20 +219,12 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.whenFriendSignsUpCode,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 13.sp,
-              height: 1.4,
-            ),
+            style: AppType.bodySmall(Colors.white.withValues(alpha: 0.9)),
           ),
           SizedBox(height: 4.h),
           Text(
             isDark ? "No limit — keep stacking!" : "No limit — keep stacking!",
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppType.labelMedium(Colors.white.withValues(alpha: 0.8)),
           ),
         ],
       ),
@@ -281,24 +265,14 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                   children: [
                     Text(
                       AppLocalizations.of(context)!.referralCODE,
-                      style: TextStyle(
-                        color: isDark
+                      style: AppType.labelSmall(isDark
                             ? Colors.white54
-                            : AppColors.lightTextSecondary,
-                        fontSize: 11.sp,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w600,
-                      ),
+                            : AppColors.lightTextSecondary),
                     ),
                     SizedBox(height: 6.h),
                     Text(
                       _code.isEmpty ? '—' : _code,
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 26.sp,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3,
-                      ),
+                      style: AppType.headlineSmall(AppColors.primary),
                     ),
                   ],
                 ),
@@ -347,11 +321,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
                   ? "Share your code to earn your first month of Pro!"
                   : "You've referred $_count friend${_count > 1 ? 's' : ''} — "
                         "$_count month${_count > 1 ? 's' : ''} earned 🎉",
-              style: TextStyle(
-                color: isDark ? Colors.white70 : AppColors.lightTextPrimary,
-                fontSize: 13.sp,
-                height: 1.4,
-              ),
+              style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextPrimary),
             ),
           ),
         ],
@@ -402,11 +372,7 @@ class _InviteFriendsScreenState extends State<InviteFriendsScreen> {
               icon: Icon(icon, size: 20.sp),
               label: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                ),
+                style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
               ),
             ),
     );

@@ -246,21 +246,14 @@ class _AdminMenuState extends State<AdminMenu> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     loading ? 'Scanning SMS...' : subtitle,
-                    style: TextStyle(
-                      color: isDark
+                    style: AppType.bodyMedium(isDark
                           ? Colors.white54
-                          : AppColors.lightTextSecondary,
-                      fontSize: 14.sp,
-                    ),
+                          : AppColors.lightTextSecondary),
                   ),
                 ],
               ),

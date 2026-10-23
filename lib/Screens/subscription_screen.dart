@@ -66,6 +66,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
+  Color _textPrimary(bool isDark) =>
+      isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+
+  Color _textSecondary(bool isDark) =>
+      isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+  Color _textTertiary(bool isDark) =>
+      isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -87,7 +96,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.close, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+            icon: Icon(Icons.close, color: _textPrimary(isDark)),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -106,49 +115,41 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         Container(
                           padding: EdgeInsets.all(20.w),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.1),
+                            color: AppColors.warning.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.amber.withValues(alpha: 0.2),
+                            color: AppColors.warning.withValues(alpha: 0.2),
                             blurRadius: 20.w,
                             spreadRadius: 5.w,
                           ),
                         ],
                       ),
-                      child: Icon(Icons.timer_outlined, size: 60.sp, color: Colors.amber),
+                      child: Icon(Icons.timer_outlined, size: 60.sp, color: AppColors.warning),
                     ),
                     SizedBox(height: 24.h),
                     Text(
                       AppLocalizations.of(context)!.freeTrialActive,
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      ),
+                      style: AppType.headlineSmall(_textPrimary(isDark)),
                     ),
                     SizedBox(height: 12.h),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.15),
+                        color: AppColors.warning.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                        border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
                       ),
                       child: Text(
                         "$days day${days == 1 ? '' : 's'} remaining",
-                        style: TextStyle(
-                          color: Colors.amber,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppType.labelLarge(AppColors.warning),
                       ),
                     ),
                     SizedBox(height: 12.h),
                     Text(
                       AppLocalizations.of(context)!.fullProAccessDuringTrial,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 15.sp, color: isDark ? Colors.white70 : AppColors.lightTextSecondary, height: 1.5),
+                      style: AppType.bodyLarge(_textSecondary(isDark)),
                     ),
                     SizedBox(height: 32.h),
                     _buildFeatureRow("Unlimited Transactions", "No monthly limits on your activity.", isDark),
@@ -172,10 +173,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             borderRadius: BorderRadius.circular(16.r),
                           ),
                         ),
-                        child: Text(
-                          AppLocalizations.of(context)!.upgradeProNow,
-                          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                        ),
+                        // Button labels now come from the ElevatedButton theme.
+                        child: Text(AppLocalizations.of(context)!.upgradeProNow),
                       ),
                     ),
                     SizedBox(height: 12.h),
@@ -198,13 +197,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     SizedBox(height: 16.h),
                                     Text(
                                       AppLocalizations.of(context)!.endFreeTrial,
-                                      style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 20.sp, fontWeight: FontWeight.bold),
+                                      style: AppType.titleLarge(_textPrimary(isDark)),
                                     ),
                                     SizedBox(height: 12.h),
                                     Text(
                                       AppLocalizations.of(context)!.loseProAccessImmediatelyCannot,
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 15.sp, height: 1.5),
+                                      style: AppType.bodyLarge(_textSecondary(isDark)),
                                     ),
                                     SizedBox(height: 32.h),
                                     Row(
@@ -227,7 +226,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                                 ),
                                               );
                                             },
-                                            child: Text(AppLocalizations.of(context)!.endTrial, style: TextStyle(color: AppColors.error, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                                            child: Text(AppLocalizations.of(context)!.endTrial, style: AppType.labelLarge(AppColors.error)),
                                           ),
                                         ),
                                         SizedBox(width: 16.w),
@@ -240,7 +239,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                               padding: EdgeInsets.symmetric(vertical: 14.h),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                                             ),
-                                            child: Text(AppLocalizations.of(context)!.keepTrial, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                                            child: Text(AppLocalizations.of(context)!.keepTrial),
                                           ),
                                         ),
                                       ],
@@ -254,7 +253,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       },
                       child: Text(
                         AppLocalizations.of(context)!.endTrial,
-                        style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 14.sp),
+                        style: AppType.bodyMedium(_textTertiary(isDark)),
                       ),
                     ),
                     SizedBox(height: 40.h),
@@ -278,11 +277,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         Container(
                           padding: EdgeInsets.all(20.w),
                           decoration: BoxDecoration(
-                            color: Colors.cyan.withValues(alpha: 0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.cyan.withValues(alpha: 0.2),
+                            color: AppColors.primary.withValues(alpha: 0.2),
                             blurRadius: 20.w,
                             spreadRadius: 5.w,
                           ),
@@ -297,17 +296,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     SizedBox(height: 24.h),
                     Text(
                       AppStrings.youAreAProMember,
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      ),
+                      style: AppType.headlineSmall(_textPrimary(isDark)),
                     ),
                     SizedBox(height: 12.h),
                     Text(
                       AppLocalizations.of(context)!.enjoyUnlimitedAccessPremiumFeatures,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16.sp, color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
+                      style: AppType.bodyLarge(_textSecondary(isDark)),
                     ),
                     SizedBox(height: 40.h),
                     Container(
@@ -324,10 +319,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         children: [
                           Text(
                             AppLocalizations.of(context)!.currentPlan,
-                            style: TextStyle(
-                              color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                              fontSize: 14.sp,
-                            ),
+                            style: AppType.bodyMedium(_textSecondary(isDark)),
                           ),
                           SizedBox(height: 8.h),
                           Obx(() {
@@ -335,11 +327,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                 SubscriptionController.to.planType.value;
                             return Text(
                               plan.isNotEmpty ? "Pro ($plan)" : "Pro",
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20.sp,
-                              ),
+                              style: AppType.titleLarge(AppColors.primary),
                             );
                           }),
                           SizedBox(height: 8.h),
@@ -351,10 +339,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                 : "${AppStrings.renewsOn} --";
                             return Text(
                               label,
-                              style: TextStyle(
-                                color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3),
-                                fontSize: 12.sp,
-                              ),
+                              style: AppType.bodySmall(_textTertiary(isDark)),
                             );
                           }),
                         ],
@@ -393,21 +378,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     SizedBox(height: 24.h),
                                     Text(
                                       AppLocalizations.of(context)!.cancelSubscription2,
-                                      style: TextStyle(
-                                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                        fontSize: 20.sp,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: AppType.titleLarge(_textPrimary(isDark)),
                                     ),
                                     SizedBox(height: 12.h),
                                     Text(
                                       AppLocalizations.of(context)!.sureWantCancelLoseAccess,
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                                        fontSize: 15.sp,
-                                        height: 1.5,
-                                      ),
+                                      style: AppType.bodyLarge(_textSecondary(isDark)),
                                     ),
                                     SizedBox(height: 32.h),
                                     Row(
@@ -437,11 +414,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                             ),
                                             child: Text(
                                               AppLocalizations.of(context)!.cancelPlan,
-                                              style: TextStyle(
-                                                color: AppColors.error,
-                                                fontSize: 16.sp,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                              style: AppType.labelLarge(AppColors.error),
                                             ),
                                           ),
                                         ),
@@ -464,10 +437,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                             ),
                                             child: Text(
                                               AppLocalizations.of(context)!.keepPlan,
-                                              style: TextStyle(
-                                                fontSize: 16.sp,
-                                                fontWeight: FontWeight.bold,
-                                              ),
                                             ),
                                           ),
                                         ),
@@ -537,21 +506,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Text(
                       AppLocalizations.of(context)!.verificationProgress,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      ),
+                      style: AppType.headlineSmall(_textPrimary(isDark)),
                     ),
                     SizedBox(height: 16.h),
                     Text(
                       AppLocalizations.of(context)!.upgradeRequestCurrentlyUnderReview,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                        height: 1.5,
-                      ),
+                      style: AppType.bodyLarge(_textSecondary(isDark)),
                     ),
                     SizedBox(height: 40.h),
                     SizedBox(
@@ -559,7 +520,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3)),
+                          side: BorderSide(color: _textTertiary(isDark)),
                           padding: EdgeInsets.symmetric(vertical: 16.h),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.r),
@@ -567,11 +528,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                         child: Text(
                           AppLocalizations.of(context)!.goBack,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AppType.labelLarge(_textPrimary(isDark)),
                         ),
                       ),
                     ),
@@ -593,11 +550,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       Container(
                         padding: EdgeInsets.all(20.w),
                         decoration: BoxDecoration(
-                          color: Colors.cyan.withValues(alpha: 0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.cyan.withValues(alpha: 0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                                                      blurRadius: 20.w,
                           spreadRadius: 5.w,
                         ),
@@ -613,22 +570,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
                   Text(
                     AppLocalizations.of(context)!.unlockProAccess,
-                    style: TextStyle(
-                      fontSize: 28.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      letterSpacing: 1,
-                    ),
+                    style: AppType.headlineMedium(_textPrimary(isDark)),
                   ),
                   SizedBox(height: 12.h),
                   Text(
                     AppLocalizations.of(context)!.superchargeFinancialControlPremiumFeat,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                      height: 1.5,
-                    ),
+                    style: AppType.bodyLarge(_textSecondary(isDark)),
                   ),
                   Obx(() {
                     final sub = SubscriptionController.to;
@@ -647,11 +595,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             SizedBox(width: 8.w),
                             Text(
                               '${sub.daysLeftInTrial} day${sub.daysLeftInTrial == 1 ? '' : 's'} left in free trial',
-                              style: TextStyle(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14.sp,
-                              ),
+                              style: AppType.titleSmall(AppColors.success),
                             ),
                           ],
                         ),
@@ -672,11 +616,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             SizedBox(width: 8.w),
                             Text(
                               AppLocalizations.of(context)!.freeTrialEnded,
-                              style: TextStyle(
-                                color: AppColors.error,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14.sp,
-                              ),
+                              style: AppType.titleSmall(AppColors.error),
                             ),
                           ],
                         ),
@@ -802,16 +742,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp,
-                  ),
+                  style: AppType.labelLarge(_textPrimary(isDark)),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   subtitle,
-                  style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary, fontSize: 14.sp),
+                  style: AppType.bodyMedium(_textSecondary(isDark)),
                 ),
               ],
             ),
@@ -837,7 +773,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.cyan.withValues(alpha: 0.15)
+              ? AppColors.primary.withValues(alpha: 0.15)
               : (isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightSurfaceCard),
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
@@ -859,11 +795,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.bestVALUE,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10.sp,
-                  ),
+                  // White on the indigo pill — this stayed black from when the badge was a
+                  // near-white cyan, and measured 3.1:1.
+                  style: AppType.labelSmall(Colors.white),
                 ),
               ),
               Container(
@@ -876,21 +810,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.save33,
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10.sp,
-                  ),
+                  style: AppType.labelSmall(AppColors.success),
                 ),
               ),
             ],
             Text(
               title,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppType.bodyMedium(_textSecondary(isDark)),
             ),
             SizedBox(height: 8.h),
             RichText(
@@ -898,15 +824,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   TextSpan(
                     text: price,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24.sp,
-                    ),
+                    style: AppType.headlineSmall(_textPrimary(isDark)),
                   ),
                   TextSpan(
                     text: period,
-                    style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary, fontSize: 14.sp),
+                    style: AppType.bodyMedium(_textSecondary(isDark)),
                   ),
                 ],
               ),
@@ -950,18 +872,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               ),
               child: loading
                   ? SizedBox(height: 24.h, width: 24.w,
-                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
-                  : Text(label, style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  : Text(label, style: AppType.titleMedium(Colors.white)),
             ),
           );
         }),
         SizedBox(height: 12.h),
         TextButton(
           onPressed: () { if (Get.isRegistered<IapService>()) Get.find<IapService>().restorePurchases(); },
-          child: Text(AppLocalizations.of(context)!.restorePurchases, style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 13.sp)),
+          child: Text(AppLocalizations.of(context)!.restorePurchases, style: AppType.bodySmall(_textTertiary(isDark))),
         ),
         SizedBox(height: 8.h),
-        Text(AppLocalizations.of(context)!.cancelAnytimeQuestionsAsked, style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 12.sp)),
+        Text(AppLocalizations.of(context)!.cancelAnytimeQuestionsAsked, style: AppType.bodySmall(_textTertiary(isDark))),
       ],
     );
   }
@@ -986,13 +908,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(AppLocalizations.of(context)!.payViaUPI, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                Text(AppLocalizations.of(context)!.payViaUPI, style: AppType.labelLarge(AppColors.primary)),
                 SizedBox(height: 8.h),
-                Text('Send ${CurrencyController.to.currencySymbol.value}$amount to:', style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 14.sp)),
+                Text('Send ${CurrencyController.to.currencySymbol.value}$amount to:', style: AppType.bodyMedium(_textSecondary(isDark))),
                 SizedBox(height: 4.h),
                 Row(
                   children: [
-                    Expanded(child: Text(upiId.isNotEmpty ? upiId : '—', style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 16.sp))),
+                    Expanded(child: Text(upiId.isNotEmpty ? upiId : '—', style: AppType.labelLarge(_textPrimary(isDark)))),
                     if (upiId.isNotEmpty)
                       IconButton(
                         icon: Icon(Icons.copy, color: AppColors.primary, size: 18.sp),
@@ -1004,7 +926,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ],
                 ),
                 SizedBox(height: 4.h),
-                Text('Note: Money Control Pro - $_selectedPlan', style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 12.sp)),
+                Text('Note: Money Control Pro - $_selectedPlan', style: AppType.bodySmall(_textTertiary(isDark))),
               ],
             ),
           ),
@@ -1017,7 +939,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               child: ElevatedButton.icon(
                 onPressed: () => _openUpiApp(amountRaw, upiId, setLocal),
                 icon: const Icon(Icons.account_balance_wallet_rounded),
-                label: Text(AppLocalizations.of(context)!.openUPIApp, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                label: Text(AppLocalizations.of(context)!.openUPIApp),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -1027,25 +949,25 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
 
           SizedBox(height: 16.h),
-          Text(AppLocalizations.of(context)!.enterTransactionID, style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 13.sp)),
+          Text(AppLocalizations.of(context)!.enterTransactionID, style: AppType.bodySmall(_textSecondary(isDark))),
           SizedBox(height: 8.h),
           GlassContainer(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
             borderRadius: BorderRadius.circular(14.r),
             child: TextField(
               controller: _txnController,
-              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp),
+              style: AppType.bodyLarge(_textPrimary(isDark)),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: _upiTxnId ?? 'Paste UPI transaction ID here',
-                hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 14.sp),
+                hintStyle: AppType.bodyMedium(_textTertiary(isDark)),
                 prefixIcon: const Icon(Icons.receipt_long_rounded, color: AppColors.primary),
               ),
               onChanged: (_) => setLocal(() {}),
             ),
           ),
           SizedBox(height: 8.h),
-          Text(AppLocalizations.of(context)!.transactionIDShownUPIApp, style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 11.sp)),
+          Text(AppLocalizations.of(context)!.transactionIDShownUPIApp, style: AppType.labelSmall(_textTertiary(isDark))),
           SizedBox(height: 20.h),
 
           SizedBox(
@@ -1062,13 +984,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               ),
               child: _upiSubmitting
                   ? SizedBox(height: 24.h, width: 24.w,
-                      child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
-                  : Text(AppLocalizations.of(context)!.submitVerification, style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold)),
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                  : Text(AppLocalizations.of(context)!.submitVerification),
             ),
           ),
           SizedBox(height: 12.h),
           Text(AppLocalizations.of(context)!.requestReviewedAdminNotifiedOnce,
-              textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.white30 : Colors.black.withValues(alpha: 0.3), fontSize: 12.sp)),
+              textAlign: TextAlign.center, style: AppType.bodySmall(_textTertiary(isDark))),
         ],
       );
     });
@@ -1099,10 +1021,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(AppLocalizations.of(context)!.chooseUPIApp, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+            Text(AppLocalizations.of(context)!.chooseUPIApp, style: AppType.titleMedium(_textPrimary(isDark))),
             SizedBox(height: 20.h),
             ...apps.map((app) => ListTile(
-              title: Text(app.name, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary)),
+              title: Text(app.name, style: TextStyle(color: _textPrimary(isDark))),
               trailing: Icon(Icons.arrow_forward_ios, color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2), size: 14.sp),
               onTap: () {
                 Navigator.pop(context);
@@ -1160,7 +1082,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         result.txnId.isEmpty
             ? 'Payment confirmed. Enter the transaction ID manually if you have one.'
             : 'Transaction ID auto-filled. Tap Submit to complete.',
-        Colors.green,
+        AppColors.success,
       );
     } else if (result.isPending) {
       _showMessengerSnackBar('Payment Pending', 'Enter the transaction ID manually once confirmed.', AppColors.warning);

@@ -135,7 +135,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
         children: [
           Icon(icon, color: color, size: 14.sp),
           SizedBox(width: 6.w),
-          Text(label, style: TextStyle(color: color, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+          Text(label, style: AppType.labelMedium(color)),
         ],
       ),
     );
@@ -212,21 +212,13 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       ),
                       child: Text(
                         AppLocalizations.of(context)!.done,
-                        style: TextStyle(
-                          color: AppColors.success,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppType.labelMedium(AppColors.success),
                       ),
                     )
                   else
                     Text(
                       "$pct%",
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
+                      style: AppType.titleSmall(AppColors.primary),
                     ),
                   _buildGoalMenu(context, goal, ctrl, theme),
                 ],
@@ -327,11 +319,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               const Spacer(),
               Text(
                 "$pct%",
-                style: TextStyle(
-                  fontSize: 26.sp,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
+                style: AppType.headlineSmall(AppColors.primary),
               ),
             ],
           ),
@@ -402,7 +390,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text(AppLocalizations.of(context)!.deleteGoal, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 17.sp)),
+        title: Text(AppLocalizations.of(context)!.deleteGoal, style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary)),
         content: Text(
           "Delete \"${goal.name}\"? This cannot be undone.",
           style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
@@ -510,7 +498,7 @@ class _AddProgressSheetState extends State<_AddProgressSheet> {
             children: [
               Text(
                 "Add to ${widget.goal.emoji} ${widget.goal.name}",
-                style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
               ),
               SizedBox(height: 16.h),
               TextField(
@@ -520,7 +508,7 @@ class _AddProgressSheetState extends State<_AddProgressSheet> {
                 style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
                 decoration: InputDecoration(
                   prefixText: "$sym ",
-                  prefixStyle: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 16.sp),
+                  prefixStyle: AppType.bodyLarge(isDark ? Colors.white70 : AppColors.lightTextSecondary),
                   hintText: "Amount to add",
                   hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
                   filled: true,
@@ -543,7 +531,7 @@ class _AddProgressSheetState extends State<_AddProgressSheet> {
                   ),
                   child: widget.ctrl.isSaving.value
                       ? SizedBox(width: 20.w, height: 20.h, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
-                      : Text(AppLocalizations.of(context)!.addProgress, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+                      : Text(AppLocalizations.of(context)!.addProgress, style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary)),
                 )),
               ),
             ],

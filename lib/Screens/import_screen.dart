@@ -226,11 +226,7 @@ class _ImportScreenState extends State<ImportScreen> {
             icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : AppColors.lightTextPrimary),
             onPressed: () => Navigator.pop(context),
           ),
-          titleTextStyle: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
+          titleTextStyle: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         body: _isLoading
             ? const Center(
@@ -262,10 +258,7 @@ class _ImportScreenState extends State<ImportScreen> {
                       Center(
                         child: Text(
                           AppLocalizations.of(context)!.matchCSVHeadersAppFields,
-                          style: TextStyle(
-                            color: isDark ? Colors.white38 : AppColors.lightTextSecondary,
-                            fontSize: 12.sp,
-                          ),
+                          style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextSecondary),
                         ),
                       ),
                       SizedBox(height: 15.h),
@@ -303,11 +296,7 @@ class _ImportScreenState extends State<ImportScreen> {
                       Center(
                         child: Text(
                           AppLocalizations.of(context)!.previewingFirst5Rows,
-                          style: TextStyle(
-                            color: isDark ? Colors.white54 : AppColors.lightTextPrimary,
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AppType.titleSmall(isDark ? Colors.white54 : AppColors.lightTextPrimary),
                         ),
                       ),
                       SizedBox(height: 10.h),
@@ -330,11 +319,7 @@ class _ImportScreenState extends State<ImportScreen> {
         SizedBox(width: 8.w),
         Text(
           title,
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
       ],
     );
@@ -405,7 +390,7 @@ class _ImportScreenState extends State<ImportScreen> {
           children: [
             Text(
               label,
-              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 14.sp),
+              style: AppType.bodyMedium(isDark ? Colors.white70 : AppColors.lightTextSecondary),
             ),
             DropdownButton<String>(
               value: _headers.contains(value) ? value : null,
@@ -414,9 +399,9 @@ class _ImportScreenState extends State<ImportScreen> {
               underline: const SizedBox(),
               hint: Text(
                 AppLocalizations.of(context)!.selectColumn,
-                style: TextStyle(color: isDark ? Colors.white24 : AppColors.lightTextSecondary, fontSize: 12.sp),
+                style: AppType.bodySmall(isDark ? Colors.white24 : AppColors.lightTextSecondary),
               ),
-              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 14.sp),
+              style: AppType.bodyMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
               items: _headers
                   .map((h) => DropdownMenuItem(value: h, child: Text(h)))
                   .toList(),
@@ -456,11 +441,7 @@ class _ImportScreenState extends State<ImportScreen> {
         ),
         child: Text(
           text,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-          ),
+          style: AppType.titleMedium(Colors.white),
         ),
       ),
     );
@@ -477,12 +458,8 @@ class _ImportScreenState extends State<ImportScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
-        headingTextStyle: TextStyle(
-          color: AppColors.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 12.sp,
-        ),
-        dataTextStyle: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 12.sp),
+        headingTextStyle: AppType.labelMedium(AppColors.primary),
+        dataTextStyle: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
         border: TableBorder.all(color: isDark ? Colors.white10 : AppColors.lightBorder.withValues(alpha: 0.5)),
         columns: _headers.map((h) => DataColumn(label: Text(h))).toList(),
         rows: previewRows.skip(1).map((row) {

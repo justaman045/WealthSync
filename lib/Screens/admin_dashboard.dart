@@ -98,12 +98,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     SizedBox(height: 16.h),
                     Text(
                       AppLocalizations.of(context)!.pendingRequests,
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        color: isDark
+                      style: AppType.titleMedium(isDark
                             ? Colors.white54
-                            : AppColors.lightTextSecondary,
-                      ),
+                            : AppColors.lightTextSecondary),
                     ),
                   ],
                 ),
@@ -153,13 +150,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 children: [
                                   Text(
                                     email,
-                                    style: TextStyle(
-                                      color: isDark
+                                    style: AppType.titleMedium(isDark
                                           ? Colors.white
-                                          : AppColors.lightTextPrimary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16.sp,
-                                    ),
+                                          : AppColors.lightTextPrimary),
                                   ),
                                   SizedBox(height: 4.h),
                                   Text(
@@ -168,12 +161,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                             'MMM dd, hh:mm a',
                                           ).format(date.toDate())
                                         : "Unknown Date",
-                                    style: TextStyle(
-                                      color: isDark
+                                    style: AppType.bodySmall(isDark
                                           ? Colors.white54
-                                          : AppColors.lightTextSecondary,
-                                      fontSize: 12.sp,
-                                    ),
+                                          : AppColors.lightTextSecondary),
                                   ),
                                   SizedBox(height: 4.h),
                                   if (data.containsKey('transactionId'))
@@ -181,11 +171,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                       padding: EdgeInsets.only(top: 4.h),
                                       child: SelectableText(
                                         "Txn ID: ${data['transactionId']}",
-                                        style: TextStyle(
-                                          color: AppColors.primary,
-                                          fontSize: 13.sp,
-                                          fontFamily: 'Courier',
-                                        ),
+                                        style: AppType.bodySmall(AppColors.primary),
                                       ),
                                     ),
                                 ],

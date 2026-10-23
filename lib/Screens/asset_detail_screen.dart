@@ -156,7 +156,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
               style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary))),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text("Delete", style: TextStyle(color: Colors.red))),
+              child: const Text("Delete", style: TextStyle(color: AppColors.error))),
         ],
       ),
     );
@@ -243,11 +243,7 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                 SizedBox(height: 20.h),
                 Text(
                   AppLocalizations.of(context)!.entries,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 12.h),
                 ...docs.map((d) {
@@ -290,21 +286,18 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
               children: [
                 Text(
                   cfg.summaryLabel,
-                  style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+                  style: AppType.bodySmall(Colors.white70),
                 ),
                 Text(
                   "$symbol${_compact(total)}",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26.sp,
-                      fontWeight: FontWeight.bold),
+                  style: AppType.headlineSmall(Colors.white),
                 ),
               ],
             ),
           ),
           Text(
             "$count item${count == 1 ? '' : 's'}",
-            style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+            style: AppType.bodySmall(Colors.white70),
           ),
         ],
       ),
@@ -382,31 +375,25 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15.sp,
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                    style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     "$symbol${_compact(amountVal)}",
-                    style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: cfg.accentColor),
+                    style: AppType.titleMedium(cfg.accentColor),
                   ),
                   if (extraRows.isNotEmpty) ...[
                     SizedBox(height: 4.h),
                     ...extraRows.take(2).map((row) => Text(
                           row,
-                          style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                          style: AppType.labelSmall(Colors.grey),
                         )),
                   ],
                 ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              icon: const Icon(Icons.delete_outline, color: AppColors.error),
               onPressed: () => _delete(id),
               iconSize: 20.sp,
               padding: EdgeInsets.zero,
@@ -428,15 +415,11 @@ class _AssetDetailScreenState extends State<AssetDetailScreen> {
               color: isDark ? Colors.white24 : AppColors.lightBorder),
           SizedBox(height: 16.h),
           Text(cfg.emptyMessage,
-              style: TextStyle(
-                  color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                  fontSize: 16.sp),
+              style: AppType.bodyLarge(isDark ? Colors.white54 : AppColors.lightTextSecondary),
               textAlign: TextAlign.center),
           SizedBox(height: 8.h),
           Text(AppLocalizations.of(context)!.tapAddFirstEntry,
-              style: TextStyle(
-                  color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                  fontSize: 13.sp)),
+              style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextTertiary)),
         ],
       ),
     );
@@ -559,10 +542,7 @@ class _AddSheetState extends State<_AddSheet> {
           children: [
             Text(
               widget.existingId != null ? "Edit ${widget.config.title}" : widget.config.fabLabel,
-              style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18.sp),
+              style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
             SizedBox(height: 16.h),
             ...widget.config.fields.map((f) => Padding(

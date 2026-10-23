@@ -487,11 +487,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         elevation: 0,
         title: Text(
           "AI Insights",
-          style: TextStyle(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w700,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(scheme.onSurface),
         ),
         centerTitle: true,
         actions: [
@@ -624,12 +620,7 @@ child: loading
                       delay: 300,
                       child: Text(
                         "🔮 Category Insights (This Month)",
-                        style: TextStyle(
-                          fontSize: 17.sp,
-                          fontWeight: FontWeight.bold,
-                          color: scheme.onSurface,
-                          letterSpacing: 0.5,
-                        ),
+                        style: AppType.titleMedium(scheme.onSurface),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -740,12 +731,7 @@ child: loading
             children: [
               Text(
                 "This Month Forecast",
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                ),
+                style: AppType.titleSmall(Colors.white.withValues(alpha: 0.85)),
               ),
               Icon(Icons.auto_awesome, color: AppColors.warning, size: 20.sp),
             ],
@@ -760,12 +746,7 @@ child: loading
             builder: (context, value, child) {
               return Text(
                 "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32.sp,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -1,
-                ),
+                style: AppType.headlineLarge(Colors.white),
               );
             },
           ),
@@ -777,18 +758,11 @@ child: loading
             children: [
               Text(
                 "Spent: ${CurrencyController.to.currencySymbol.value}${spent.toStringAsFixed(0)}",
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.95),
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: AppType.titleSmall(Colors.white.withValues(alpha: 0.95)),
               ),
               Text(
                 "Target: ${CurrencyController.to.currencySymbol.value}${total.toStringAsFixed(0)}",
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 12.sp,
-                ),
+                style: AppType.bodySmall(Colors.white.withValues(alpha: 0.7)),
               ),
             ],
           ),
@@ -814,11 +788,7 @@ child: loading
               SizedBox(width: 12.w),
               Text(
                 "${(pct * 100).toStringAsFixed(0)}%",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14.sp,
-                ),
+                style: AppType.titleSmall(Colors.white),
               ),
             ],
           ),
@@ -839,11 +809,7 @@ child: loading
                 SizedBox(width: 6.w),
                 Text(
                   warningText,
-                  style: TextStyle(
-                    color: warningColor,
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppType.labelSmall(warningColor),
                 ),
               ],
             ),
@@ -883,12 +849,7 @@ child: loading
     final List<Widget> children = [
       Text(
         "Smart Daily Limit",
-        style: TextStyle(
-          fontSize: 15.sp,
-          fontWeight: FontWeight.w600,
-          color: scheme.onSurface.withValues(alpha: 0.95),
-          letterSpacing: 0.3,
-        ),
+        style: AppType.labelLarge(scheme.onSurface.withValues(alpha: 0.95)),
       ),
       SizedBox(height: 4.h),
       Obx(() {
@@ -906,10 +867,7 @@ child: loading
         }
         return Text(
           note,
-          style: TextStyle(
-            fontSize: 11.sp,
-            color: scheme.onSurface.withValues(alpha: 0.7),
-          ),
+          style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.7)),
         );
       }),
     ];
@@ -921,10 +879,7 @@ child: loading
         SizedBox(height: 8.h),
         Text(
           "Add your income (a received Salary/Income entry) to see how much you can safely spend per day.",
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: scheme.onSurface.withValues(alpha: 0.8),
-          ),
+          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
       ]);
     } else {
@@ -973,19 +928,12 @@ child: loading
           "spent $sym${limit.variableSpent.toStringAsFixed(0)} on other items, "
           "leaving $sym${limit.remainingVariable.toStringAsFixed(0)} over "
           "${limit.remainingDays} day${limit.remainingDays == 1 ? '' : 's'}.",
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: scheme.onSurface.withValues(alpha: 0.8),
-          ),
+          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
         SizedBox(height: 6.h),
         Text(
           statusText,
-          style: TextStyle(
-            fontSize: 12.5.sp,
-            fontWeight: FontWeight.w600,
-            color: statusColor,
-          ),
+          style: AppType.labelMedium(statusColor),
         ),
       ]);
     }
@@ -1080,12 +1028,7 @@ child: loading
                 children: [
                   Text(
                     "Items spent this month",
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurface.withValues(alpha: 0.95),
-                      letterSpacing: 0.3,
-                    ),
+                    style: AppType.labelLarge(scheme.onSurface.withValues(alpha: 0.95)),
                   ),
                   SizedBox(height: 4.h),
                   Text(
@@ -1093,19 +1036,12 @@ child: loading
                         ? "No other items yet — every expense is a bill"
                         : "$sym${total.toStringAsFixed(0)} · "
                             "$count transaction${count == 1 ? '' : 's'}",
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: scheme.onSurface.withValues(alpha: 0.75),
-                    ),
+                    style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.75)),
                   ),
                   SizedBox(height: 2.h),
                   Text(
                     "See which transactions count as other items",
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppType.labelSmall(scheme.primary),
                   ),
                 ],
               ),
@@ -1126,19 +1062,12 @@ child: loading
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11.sp,
-            color: Colors.grey.withValues(alpha: 0.9),
-          ),
+          style: AppType.labelSmall(Colors.grey.withValues(alpha: 0.9)),
         ),
         SizedBox(height: 2.h),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 15.sp,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
+          style: AppType.labelLarge(color),
         ),
       ],
     );
@@ -1160,10 +1089,7 @@ child: loading
         ),
         child: Text(
           "No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.",
-          style: TextStyle(
-            color: scheme.onSurface.withValues(alpha: 0.8),
-            fontSize: 12.5.sp,
-          ),
+          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
       );
     }
@@ -1208,12 +1134,7 @@ child: loading
         children: [
           Text(
             "Monthly Spend Heatmap",
-            style: TextStyle(
-              fontSize: 15.sp,
-              fontWeight: FontWeight.w600,
-              color: scheme.onSurface.withValues(alpha: 0.95),
-              letterSpacing: 0.3,
-            ),
+            style: AppType.labelLarge(scheme.onSurface.withValues(alpha: 0.95)),
           ),
           SizedBox(height: 8.h),
           // Weekday header row
@@ -1223,11 +1144,7 @@ child: loading
                 child: Center(
                   child: Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurface.withValues(alpha: 0.5),
-                    ),
+                    style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.5)),
                   ),
                 ),
               );
@@ -1285,7 +1202,7 @@ child: loading
                     boxShadow: [
                       if (!lite && intensity > 0.3)
                         BoxShadow(
-                          color: Colors.green.withValues(alpha: 0.3),
+                          color: AppColors.success.withValues(alpha: 0.3),
                           blurRadius: 4.w,
                           offset: Offset(0, 2.w),
                         ),
@@ -1294,13 +1211,9 @@ child: loading
                   child: Center(
                     child: Text(
                       "$day",
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: intensity > 0.5
+                      style: AppType.labelMedium(intensity > 0.5
                             ? Colors.white
-                            : scheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
+                            : scheme.onSurface),
                     ),
                   ),
                 ),
@@ -1310,10 +1223,7 @@ child: loading
           SizedBox(height: 8.h),
           Text(
             "Darker boxes indicate higher spending days.",
-            style: TextStyle(
-              fontSize: 11.sp,
-              color: scheme.onSurface.withValues(alpha: 0.7),
-            ),
+            style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.7)),
           ),
         ],
       ),
@@ -1384,11 +1294,7 @@ child: loading
               children: [
                 Text(
                   c.category,
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w700,
-                    color: scheme.onSurface,
-                  ),
+                  style: AppType.labelLarge(scheme.onSurface),
                 ),
                 if (c.trendPercent.abs() > 1) // Only show significant trends
                   Container(
@@ -1406,11 +1312,7 @@ child: loading
                         SizedBox(width: 2.w),
                         Text(
                           "${c.trendPercent.abs().toStringAsFixed(0)}%",
-                          style: TextStyle(
-                            color: trendColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11.sp,
-                          ),
+                          style: AppType.labelSmall(trendColor),
                         ),
                       ],
                     ),
@@ -1440,20 +1342,12 @@ child: loading
                   children: [
                     Text(
                       "Spent: ${CurrencyController.to.currencySymbol.value}${c.currentSoFar.toStringAsFixed(0)}",
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
-                        color: healthColor,
-                      ),
+                      style: AppType.labelMedium(healthColor),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       "Predicted: ${CurrencyController.to.currencySymbol.value}${c.forecastMonthTotal.toStringAsFixed(0)}",
-                      style: TextStyle(
-                        fontSize: 11.5.sp,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.onSurface.withValues(alpha: 0.8),
-                      ),
+                      style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.8)),
                     ),
                   ],
                 ),
@@ -1462,18 +1356,12 @@ child: loading
                   children: [
                     Text(
                       "Usual: ${CurrencyController.to.currencySymbol.value}${c.smartBudget.toStringAsFixed(0)}",
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: scheme.onSurface.withValues(alpha: 0.6),
-                      ),
+                      style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.6)),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       "Limit",
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: scheme.onSurface.withValues(alpha: 0.4),
-                      ),
+                      style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.4)),
                     ),
                   ],
                 ),
@@ -1500,12 +1388,7 @@ child: loading
                   Expanded(
                     child: Text(
                       c.message,
-                      style: TextStyle(
-                        color: scheme.onSurface.withValues(alpha: 0.85),
-                        fontSize: 11.5.sp,
-                        height: 1.2,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.85)),
                     ),
                   ),
                 ],

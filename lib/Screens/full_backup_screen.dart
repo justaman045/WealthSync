@@ -319,11 +319,7 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       body: Container(
         height: double.infinity,
@@ -365,26 +361,18 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
                               SizedBox(width: 8.w),
                               Text(
                                 _l10n.backupKeepOwnCopy,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15.sp,
-                                  color: isDark
+                                style: AppType.labelLarge(isDark
                                       ? Colors.white
-                                      : AppColors.lightTextPrimary,
-                                ),
+                                      : AppColors.lightTextPrimary),
                               ),
                             ],
                           ),
                           SizedBox(height: 8.h),
                           Text(
                             _l10n.backupKeepOwnCopyBody,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              height: 1.45,
-                              color: isDark
+                            style: AppType.bodySmall(isDark
                                   ? AppColors.darkTextSecondary
-                                  : AppColors.lightTextSecondary,
-                            ),
+                                  : AppColors.lightTextSecondary),
                           ),
                         ],
                       ),
@@ -402,10 +390,7 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
                           _l10n.backupIncompleteWarning(
                             _captureErrors.join(', '),
                           ),
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppColors.error,
-                          ),
+                          style: AppType.bodySmall(AppColors.error),
                         ),
                       ),
                     ],
@@ -423,13 +408,9 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
                       padding: EdgeInsets.only(left: 16.w, right: 16.w, top: 4.h),
                       child: Text(
                         _l10n.backupDownloadExplain,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          height: 1.4,
-                          color: isDark
+                        style: AppType.labelSmall(isDark
                               ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                        ),
+                              : AppColors.lightTextSecondary),
                       ),
                     ),
 
@@ -444,13 +425,9 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
                       padding: EdgeInsets.only(left: 16.w, right: 16.w, top: 4.h),
                       child: Text(
                         _l10n.backupRestoreExplain,
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          height: 1.4,
-                          color: isDark
+                        style: AppType.labelSmall(isDark
                               ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                        ),
+                              : AppColors.lightTextSecondary),
                       ),
                     ),
 
@@ -472,13 +449,9 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
                         ),
                         child: Text(
                           _l10n.backupRestoreFromDeviceSnapshotExplain,
-                          style: TextStyle(
-                            fontSize: 11.sp,
-                            height: 1.4,
-                            color: isDark
+                          style: AppType.labelSmall(isDark
                                 ? AppColors.darkTextSecondary
-                                : AppColors.lightTextSecondary,
-                          ),
+                                : AppColors.lightTextSecondary),
                         ),
                       ),
                     ],

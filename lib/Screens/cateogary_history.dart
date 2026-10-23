@@ -59,7 +59,7 @@ class _CategoryTransactionsScreenState
         body: Center(
           child: Text(
             AppLocalizations.of(context)!.userLogged,
-            style: TextStyle(color: Colors.red),
+            style: TextStyle(color: AppColors.error),
           ),
         ),
       );
@@ -96,11 +96,7 @@ class _CategoryTransactionsScreenState
           widget.startDate != null && widget.endDate != null
               ? "${widget.categoryName}: ${_formatDateRange(widget.startDate!, widget.endDate!)}"
               : "Transactions: ${widget.categoryName}",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
       ),
       body: Container(
@@ -153,10 +149,7 @@ class _CategoryTransactionsScreenState
                     SizedBox(height: 16.h),
                     Text(
                       AppLocalizations.of(context)!.transactionsFound,
-                      style: TextStyle(
-                          color:
-                              isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                          fontSize: 16.sp),
+                      style: AppType.bodyLarge(isDark ? Colors.white38 : AppColors.lightTextTertiary),
                     ),
                   ],
                 ),

@@ -223,11 +223,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         appBar: AppBar(
           title: Text(
             "Legal & Privacy",
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
+            style: AppType.titleMedium(textColor),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -276,11 +272,11 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
                   icon: Icon(
                     Icons.open_in_new,
                     size: 14.sp,
-                    color: Colors.blue,
+                    color: AppColors.primary,
                   ),
                   label: Text(
                     "View full policy online",
-                    style: TextStyle(fontSize: 13.sp, color: Colors.blue),
+                    style: AppType.bodySmall(AppColors.primary),
                   ),
                 ),
               ),
@@ -310,11 +306,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
   Widget _sectionTitle(String title, Color color) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.bold,
-        color: color,
-      ),
+      style: AppType.titleMedium(color),
     );
   }
 
@@ -347,20 +339,12 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         children: [
           Text(
             title,
-            style: TextStyle(
-              fontSize: 17.sp,
-              fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.primary : Colors.deepPurple,
-            ),
+            style: AppType.titleMedium(isDark ? AppColors.primary : AppColors.accent),
           ),
           SizedBox(height: 12.h),
           Text(
             content,
-            style: TextStyle(
-              fontSize: 13.5.sp,
-              height: 1.5,
-              color: secondaryColor,
-            ),
+            style: AppType.bodySmall(secondaryColor),
             textAlign: TextAlign.justify,
           ),
         ],
@@ -423,15 +407,11 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       title: Text(
         title,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w600,
-          fontSize: 14.5.sp,
-        ),
+        style: AppType.titleSmall(textColor),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: secondaryColor, fontSize: 12.sp),
+        style: AppType.bodySmall(secondaryColor),
       ),
       value: value,
       onChanged: onChanged,
@@ -482,11 +462,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
                 : const Icon(Icons.download_rounded, color: Colors.white),
             label: Text(
               downloadingData ? "Preparing..." : "Download My Data (JSON)",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15.sp,
-              ),
+              style: AppType.labelLarge(Colors.white),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
@@ -544,11 +520,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
             ),
             child: Text(
               message!,
-              style: TextStyle(
-                color: AppColors.error,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppType.bodySmall(AppColors.error),
               textAlign: TextAlign.center,
             ),
           ),

@@ -294,11 +294,7 @@ class _RailItem extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: active ? activeColor : inactiveColor,
-                      fontSize: 11.sp,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-                    ),
+                    style: AppType.labelSmall(active ? activeColor : inactiveColor),
                   ),
                 ],
               ),

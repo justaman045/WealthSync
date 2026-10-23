@@ -250,10 +250,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                             Icons.keyboard_arrow_down,
                             color: isDark ? Colors.white : AppColors.lightTextPrimary,
                           ),
-                          style: TextStyle(
-                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                            fontSize: 16.sp,
-                          ),
+                          style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                           items: _categories.map((c) {
                             return DropdownMenuItem(value: c, child: Text(c));
                           }).toList(),
@@ -287,10 +284,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                         Icons.keyboard_arrow_down,
                         color: isDark ? Colors.white : AppColors.lightTextPrimary,
                       ),
-                          style: TextStyle(
-                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                            fontSize: 16.sp,
-                          ),
+                          style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                           items: _rangeOptions.map((r) {
                             return DropdownMenuItem(value: r, child: Text(r));
                           }).toList(),
@@ -342,11 +336,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                       SizedBox(width: 8.w),
                       Text(
                         "Spending Over Time",
-                        style: TextStyle(
-                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                       ),
                     ],
                   ),
@@ -356,10 +346,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                         ? Center(
                             child: Text(
                               "Not enough data",
-                              style: TextStyle(
-                                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                                fontSize: 14.sp,
-                              ),
+                              style: AppType.bodyMedium(isDark ? Colors.white54 : AppColors.lightTextSecondary),
                             ),
                           )
                         : LineChart(
@@ -395,10 +382,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                         child: Text(
                                           _getMonthLabel(idx),
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.lightTextSecondary,
-                                            fontSize: 10.sp,
-                                          ),
+                                          style: AppType.labelSmall(isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.lightTextSecondary),
                                         ),
                                       );
                                     },
@@ -412,10 +396,7 @@ class _AnalyticsTrendsScreenState extends State<AnalyticsTrendsScreen> {
                                     getTitlesWidget: (val, meta) {
                                       return Text(
                                         "${(val / 1000).toStringAsFixed(1)}k",
-                                        style: TextStyle(
-                                          color: isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.lightTextSecondary,
-                                          fontSize: 10.sp,
-                                        ),
+                                        style: AppType.labelSmall(isDark ? Colors.white.withValues(alpha: 0.5) : AppColors.lightTextSecondary),
                                       );
                                     },
                                   ),

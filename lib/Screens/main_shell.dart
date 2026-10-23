@@ -158,26 +158,17 @@ class _MainShellState extends State<MainShell> {
                   SizedBox(height: 20.h),
                   Text(
                     "Setup Required",
-                    style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Get.isDarkMode
+                    style: AppType.titleLarge(Get.isDarkMode
                           ? Colors.white
-                          : AppColors.lightTextPrimary,
-                      letterSpacing: 0.5,
-                    ),
+                          : AppColors.lightTextPrimary),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 12.h),
                   Text(
                     "To use the Wealth Builder, we need your age to calculate financial targets.",
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: Get.isDarkMode
+                    style: AppType.bodyMedium(Get.isDarkMode
                           ? Colors.white70
-                          : AppColors.lightTextSecondary,
-                      height: 1.5,
-                    ),
+                          : AppColors.lightTextSecondary),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 28.h),

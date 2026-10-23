@@ -388,12 +388,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
 
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 20.sp,
-        fontWeight: FontWeight.bold,
-        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-        letterSpacing: 0.5,
-      ),
+      style: AppType.titleLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
     );
   }
 
@@ -413,10 +408,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     return Text(
       text,
       textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 14.sp,
-        color: isDark ? Colors.white60 : AppColors.lightTextSecondary,
-      ),
+      style: AppType.bodyMedium(isDark ? Colors.white60 : AppColors.lightTextSecondary),
     );
   }
 
@@ -458,11 +450,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
               SizedBox(width: 8.w),
               Text(
                 label,
-                style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
-                ),
+                style: AppType.titleSmall(isDark ? Colors.white : AppColors.lightTextPrimary),
               ),
             ],
           ),
@@ -491,11 +479,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.transactionDetails,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
+            style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
           ),
           SizedBox(height: 16.h),
           Divider(color: isDark ? Colors.white.withValues(alpha: 0.15) : AppColors.lightDivider),
@@ -567,10 +551,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             flex: 4,
             child: Text(
               name,
-              style: TextStyle(
-                color: isDark ? Colors.white60 : AppColors.lightTextSecondary,
-                fontSize: 13.5.sp,
-              ),
+              style: AppType.bodySmall(isDark ? Colors.white60 : AppColors.lightTextSecondary),
             ),
           ),
           Expanded(

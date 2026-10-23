@@ -161,12 +161,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                 Text(
                                   splashData.headline,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 28.sp,
-                                    fontWeight: FontWeight.bold,
-                                    color: textColor,
-                                    letterSpacing: 0.5,
-                                  ),
+                                  style: AppType.headlineMedium(textColor),
                                 ),
                                 slideBegin: 0.3,
                               ),
@@ -175,11 +170,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                                 Text(
                                   splashData.subtitle,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 15.sp,
-                                    color: secondaryTextColor,
-                                    height: 1.5,
-                                  ),
+                                  style: AppType.bodyLarge(secondaryTextColor),
                                 ),
                                 slideBegin: 0.1,
                               ),
@@ -214,7 +205,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                               color: currentIndex == index
                                   ? (isDark
                                         ? AppColors.primary
-                                        : Colors.deepPurple)
+                                        : AppColors.accent)
                                   : (isDark
                                         ? Colors.white.withValues(alpha: 0.2)
                                         : Colors.black.withValues(alpha: 0.1)),
@@ -263,12 +254,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                               ),
                               child: Text(
                                 splashData.buttonText,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
+                                style: AppType.titleMedium(Colors.white),
                               ),
                             ),
                           )

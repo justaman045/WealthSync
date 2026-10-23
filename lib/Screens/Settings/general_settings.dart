@@ -112,10 +112,7 @@ class _NextSmsAutoImportCountdownState
         valueListenable: _text,
         builder: (_, text, __) => Text(
           text,
-          style: TextStyle(
-            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-            fontSize: 12.sp,
-          ),
+          style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
         ),
       ),
     );
@@ -184,11 +181,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       body: Container(
         height: double.infinity,
@@ -264,12 +257,9 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                           padding: EdgeInsets.only(left: 88.w, right: 16.w, top: 4.h),
                           child: Text(
                             "Currently using: ${IncomeSettings.modeLabel()}",
-                            style: TextStyle(
-                              color: Theme.of(context).brightness == Brightness.dark
+                            style: AppType.bodySmall(Theme.of(context).brightness == Brightness.dark
                                   ? Colors.white54
-                                  : AppColors.lightTextSecondary,
-                              fontSize: 12.sp,
-                            ),
+                                  : AppColors.lightTextSecondary),
                           ),
                         )),
                     FeatureVisible(
@@ -460,11 +450,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             children: [
               Text(
                 AppLocalizations.of(context)!.selectCurrency,
-                style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
               ),
               SizedBox(height: 16.h),
               ...currencies.map(
@@ -497,11 +483,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(
           AppLocalizations.of(context)!.incomeSource,
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         content: RadioGroup<IncomeMode>(
           groupValue: IncomeSettings.mode.value,
@@ -551,15 +533,15 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
         builder: (ctx, setLocal) => AlertDialog(
           backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-          title: Text(AppLocalizations.of(context)!.savingsTarget, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+          title: Text(AppLocalizations.of(context)!.savingsTarget, style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Reserve $temp% of your income for savings", style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 15.sp, fontWeight: FontWeight.w600)),
+              Text("Reserve $temp% of your income for savings", style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary)),
               SizedBox(height: 8.h),
               Slider(value: temp.toDouble(), min: SavingsSettings.minPercent.toDouble(), max: SavingsSettings.maxPercent.toDouble(), divisions: (SavingsSettings.maxPercent - SavingsSettings.minPercent) ~/ 5, label: "$temp%", activeColor: AppColors.primary, onChanged: (v) => setLocal(() => temp = v.round())),
-              Text(AppLocalizations.of(context)!.shareSetAsideBeforeAI, style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 12.sp)),
+              Text(AppLocalizations.of(context)!.shareSetAsideBeforeAI, style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary)),
             ],
           ),
           actions: [
@@ -631,11 +613,7 @@ class _ManualIncomeDialogState extends State<_ManualIncomeDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       title: Text(
         AppLocalizations.of(context)!.manualMonthlyIncome,
-        style: TextStyle(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       content: TextField(
         controller: _controller,

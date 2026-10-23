@@ -222,12 +222,7 @@ class _ForecastScreenState extends State<ForecastScreen> {
         SizedBox(width: 8.w),
         Text(
           title,
-          style: TextStyle(
-            color: color.withValues(alpha: 0.8),
-            fontSize: 12.sp,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-          ),
+          style: AppType.labelMedium(color.withValues(alpha: 0.8)),
         ),
         SizedBox(width: 8.w),
         Expanded(

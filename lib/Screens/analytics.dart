@@ -751,14 +751,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           children: [
                             Text(
                               AppLocalizations.of(context)!.dataFilters,
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
+                              style: AppType.titleMedium(isDark
                                     ? Colors.white
-                                    : AppColors.lightTextPrimary,
-                                letterSpacing: 0.5,
-                              ),
+                                    : AppColors.lightTextPrimary),
                             ),
                             Container(
                               padding: EdgeInsets.all(8.w),
@@ -863,14 +858,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       delay: 100,
                       child: Text(
                         AppLocalizations.of(context)!.financialSummary,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
+                        style: AppType.titleMedium(isDark
                               ? Colors.white
-                              : AppColors.lightTextPrimary,
-                          letterSpacing: 0.5,
-                        ),
+                              : AppColors.lightTextPrimary),
                       ),
                     ),
                     SizedBox(height: 16.h),
@@ -982,13 +972,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                               SizedBox(width: 8.w),
                               Text(
                                 AppLocalizations.of(context)!.viewAdvancedCategoryTrends,
-                                style: TextStyle(
-                                  color: isDark
+                                style: AppType.titleSmall(isDark
                                       ? Colors.white
-                                      : AppColors.lightTextPrimary,
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                      : AppColors.lightTextPrimary),
                               ),
                               SizedBox(width: 8.w),
                               Icon(
@@ -1144,13 +1130,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11.sp,
-            color: isDark
+          style: AppType.labelSmall(isDark
                 ? Colors.white.withValues(alpha: 0.6)
-                : AppColors.lightTextSecondary,
-            fontWeight: FontWeight.w500,
-          ),
+                : AppColors.lightTextSecondary),
         ),
         SizedBox(height: 6.h),
         Container(
@@ -1187,12 +1169,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       child: Text(
                         format?.call(e) ?? e.toString(),
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12.5.sp,
-                          color: isDark
+                        style: AppType.bodySmall(isDark
                               ? Colors.white
-                              : AppColors.lightTextPrimary,
-                        ),
+                              : AppColors.lightTextPrimary),
                       ),
                     ),
                   )
@@ -1256,36 +1235,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Text(
                 AppStrings.monthlyTrend,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                ),
+                style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
               ),
               Row(
                 children: [
                   AnalyticsLegendDot(color: AppColors.primary),
                   Text(
                     " In ",
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isDark
+                    style: AppType.labelSmall(isDark
                           ? Colors.white.withValues(alpha: 0.7)
-                          : AppColors.lightTextSecondary,
-                    ),
+                          : AppColors.lightTextSecondary),
                   ),
                   SizedBox(width: 8.w),
                   AnalyticsLegendDot(color: AppColors.error),
                   Text(
                     AppLocalizations.of(context)!.out,
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isDark
+                    style: AppType.labelSmall(isDark
                           ? Colors.white.withValues(alpha: 0.7)
-                          : AppColors.lightTextSecondary,
-                    ),
+                          : AppColors.lightTextSecondary),
                   ),
                 ],
               ),
@@ -1325,12 +1292,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           padding: EdgeInsets.only(top: 8.0.h),
                           child: Text(
                             parts.first,
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              color: isDark
+                            style: AppType.labelSmall(isDark
                                   ? Colors.white.withValues(alpha: 0.6)
-                                  : AppColors.lightTextTertiary,
-                            ),
+                                  : AppColors.lightTextTertiary),
                           ),
                         );
                       },
@@ -1479,20 +1443,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 children: [
                   Text(
                     AppStrings.currentPeriod,
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    ),
+                    style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                   Text(
                     point.label,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: isDark
+                    style: AppType.bodySmall(isDark
                           ? Colors.white.withValues(alpha: 0.6)
-                          : AppColors.lightTextSecondary,
-                    ),
+                          : AppColors.lightTextSecondary),
                   ),
                 ],
               ),
@@ -1529,13 +1486,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 ? AppLocalizations.of(context)!.tabIncome
                                 : AppLocalizations.of(context)!
                                     .analyticsExpense,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13.sp,
-                              color: isDark
+                            style: AppType.labelMedium(isDark
                                   ? Colors.white
-                                  : AppColors.lightTextPrimary,
-                            ),
+                                  : AppColors.lightTextPrimary),
                           ),
                         );
                       },
@@ -1635,11 +1588,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         children: [
           Text(
             AppStrings.expenseBreakdown,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
+            style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
           ),
           SizedBox(height: 24.h),
           Row(
@@ -1699,12 +1648,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           Expanded(
                             child: Text(
                               _bucketLabel(entry.key),
-                              style: TextStyle(
-                                color: isDark
+                              style: AppType.bodySmall(isDark
                                     ? Colors.white70
-                                    : AppColors.lightTextSecondary,
-                                fontSize: 12.sp,
-                              ),
+                                    : AppColors.lightTextSecondary),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1862,7 +1808,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               final spend = daySpend[day] ?? 0;
               final intensity = maxSpend > 0 ? (spend / maxSpend) : 0.0;
               final bgColor = spend == 0
-                  ? Colors.green.withValues(alpha: 0.08)
+                  ? AppColors.success.withValues(alpha: 0.08)
                   : Color.lerp(
                       Colors.green.shade200,
                       Colors.green.shade900,
@@ -1930,7 +1876,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   width: 4.w,
                                   height: 4.w,
                                   decoration: const BoxDecoration(
-                                    color: Colors.amber,
+                                    color: AppColors.warning,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -1967,7 +1913,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),
               AnalyticsHeatmapLegendItem(
-                color: Colors.amber,
+                color: AppColors.warning,
                 label: AppLocalizations.of(context)!.analyticsHeatmapBillDue,
                 textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),
@@ -2044,11 +1990,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Center(
                       child: Text(
                         e.key.isNotEmpty ? e.key[0].toUpperCase() : '?',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                          fontSize: 14.sp,
-                        ),
+                        style: AppType.titleSmall(AppColors.primary),
                       ),
                     ),
                   ),
@@ -2073,11 +2015,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                   Text(
                     '$sym${e.value.total.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15.sp,
-                      color: AppColors.error,
-                    ),
+                    style: AppType.labelLarge(AppColors.error),
                   ),
                 ],
               ),

@@ -81,22 +81,13 @@ class AnalyticsStatCard extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: AnalyticsTokens.mutedText(isDark, 0.6),
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppType.labelMedium(AnalyticsTokens.mutedText(isDark, 0.6)),
                   ),
                   SizedBox(height: 2.h),
                   Text(
                     '${CurrencyController.to.currencySymbol.value}'
                     '${amount.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: AnalyticsTokens.text(isDark),
-                      letterSpacing: 0.5,
-                    ),
+                    style: AppType.titleMedium(AnalyticsTokens.text(isDark)),
                   ),
                 ],
               ),
@@ -161,15 +152,11 @@ class AnalyticsQuickOverviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.flash_on_rounded, size: 20.sp, color: Colors.amber),
+              Icon(Icons.flash_on_rounded, size: 20.sp, color: AppColors.warning),
               SizedBox(width: 8.w),
               Text(
                 l10n.quickOverview,
-                style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AnalyticsTokens.text(isDark),
-                ),
+                style: AppType.labelLarge(AnalyticsTokens.text(isDark)),
               ),
             ],
           ),
@@ -241,11 +228,7 @@ class _QuickHistogramRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: AnalyticsTokens.text(isDark, 0.9),
-              ),
+              style: AppType.labelMedium(AnalyticsTokens.text(isDark, 0.9)),
             ),
           ],
         ),
@@ -256,11 +239,7 @@ class _QuickHistogramRow extends StatelessWidget {
               width: 40.w,
               child: Text(
                 l10n.analyticsIn,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppType.labelSmall(AppColors.primary),
               ),
             ),
             Expanded(
@@ -283,10 +262,7 @@ class _QuickHistogramRow extends StatelessWidget {
               child: Text(
                 '$symbol${income.toStringAsFixed(0)}',
                 textAlign: TextAlign.end,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AnalyticsTokens.text(isDark, 0.7),
-                ),
+                style: AppType.labelSmall(AnalyticsTokens.text(isDark, 0.7)),
               ),
             ),
           ],
@@ -298,11 +274,7 @@ class _QuickHistogramRow extends StatelessWidget {
               width: 40.w,
               child: Text(
                 l10n.out2,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AppColors.error,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppType.labelSmall(AppColors.error),
               ),
             ),
             Expanded(
@@ -325,10 +297,7 @@ class _QuickHistogramRow extends StatelessWidget {
               child: Text(
                 '$symbol${expense.toStringAsFixed(0)}',
                 textAlign: TextAlign.end,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: AnalyticsTokens.text(isDark, 0.7),
-                ),
+                style: AppType.labelSmall(AnalyticsTokens.text(isDark, 0.7)),
               ),
             ),
           ],
@@ -471,7 +440,7 @@ class AnalyticsHeatmapLegendItem extends StatelessWidget {
         SizedBox(width: 4.w),
         Text(
           label,
-          style: TextStyle(fontSize: 10.sp, color: textColor),
+          style: AppType.labelSmall(textColor),
         ),
       ],
     );
@@ -532,12 +501,7 @@ class AnalyticsPersonalityCard extends StatelessWidget {
                   children: [
                     Text(
                       l10n.spendingPersonality,
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
-                        color: personality.color,
-                        letterSpacing: 0.8,
-                      ),
+                      style: AppType.labelSmall(personality.color),
                     ),
                     Text(
                       personality.label,
@@ -574,11 +538,7 @@ class AnalyticsPersonalityCard extends StatelessWidget {
                 ),
                 Text(
                   '${(rawRate * 100).toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: rateColor,
-                  ),
+                  style: AppType.labelMedium(rateColor),
                 ),
               ],
             ),
@@ -598,7 +558,7 @@ class AnalyticsPersonalityCard extends StatelessWidget {
                 l10n.analyticsSpendingExceedsIncome(
                   ((-rawRate) * 100).toStringAsFixed(1),
                 ),
-                style: TextStyle(fontSize: 11.sp, color: AppColors.error),
+                style: AppType.labelSmall(AppColors.error),
               ),
             ],
           ],

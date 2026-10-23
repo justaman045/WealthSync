@@ -396,11 +396,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                   sliver: SliverToBoxAdapter(
                                     child: Text(
                                       AppLocalizations.of(context)!.allocation,
-                                      style: TextStyle(
-                                        fontSize: 18.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: scheme.onSurface,
-                                      ),
+                                      style: AppType.titleMedium(scheme.onSurface),
                                     ),
                                   ),
                                 ),
@@ -424,11 +420,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                   sliver: SliverToBoxAdapter(
                                     child: Text(
                                       AppLocalizations.of(context)!.idealIncome,
-                                      style: TextStyle(
-                                        fontSize: 18.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: scheme.onSurface,
-                                      ),
+                                      style: AppType.titleMedium(scheme.onSurface),
                                     ),
                                   ),
                                 ),
@@ -452,11 +444,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                   sliver: SliverToBoxAdapter(
                                     child: Text(
                                       AppLocalizations.of(context)!.smartSuggestions,
-                                      style: TextStyle(
-                                        fontSize: 18.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: scheme.onSurface,
-                                      ),
+                                      style: AppType.titleMedium(scheme.onSurface),
                                     ),
                                   ),
                                 ),
@@ -514,21 +502,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             SizedBox(height: 24.h),
             Text(
               AppLocalizations.of(context)!.setAgeFirst,
-              style: TextStyle(
-                fontSize: 22.sp,
-                fontWeight: FontWeight.bold,
-                color: scheme.onSurface,
-              ),
+              style: AppType.titleLarge(scheme.onSurface),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 12.h),
             Text(
               AppLocalizations.of(context)!.wealthBuilderPersonalisesEveryTarget,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: scheme.onSurface.withValues(alpha: 0.6),
-                height: 1.5,
-              ),
+              style: AppType.bodyMedium(scheme.onSurface.withValues(alpha: 0.6)),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 32.h),
@@ -599,15 +579,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               _ageBasedEnabled
                   ? "Smart Mode · Age $userAge"
                   : "Custom Mode · Age $userAge",
-              style: TextStyle(
-                color: _ageBasedEnabled
+              style: AppType.labelMedium(_ageBasedEnabled
                     ? AppColors.primary
                     : isDark
                         ? Colors.white60
-                        : AppColors.lightTextSecondary,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.bold,
-              ),
+                        : AppColors.lightTextSecondary),
             ),
           ),
           SizedBox(
@@ -660,19 +636,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               children: [
                 Text(
                   geo.displayLocation,
-                  style: TextStyle(
-                    color: zoneColor,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppType.labelMedium(zoneColor),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   '${geo.zoneName} · ${geo.zoneDescription}',
-                  style: TextStyle(
-                    color: zoneColor.withValues(alpha: 0.8),
-                    fontSize: 11.sp,
-                  ),
+                  style: AppType.labelSmall(zoneColor.withValues(alpha: 0.8)),
                 ),
               ],
             ),
@@ -685,11 +654,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             ),
             child: PrivacyText(
               '~${CurrencyController.to.currencySymbol.value}${(geo.baselineMonthlyIncome / 1000).toStringAsFixed(0)}K/mo',
-              style: TextStyle(
-                color: zoneColor,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppType.labelSmall(zoneColor),
             ),
           ),
         ],
@@ -703,11 +668,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       children: [
         Text(
           _ageBasedEnabled ? "Recommended for You" : "Your Assets",
-          style: TextStyle(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-            color: scheme.onSurface,
-          ),
+          style: AppType.titleMedium(scheme.onSurface),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -721,11 +682,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.smartMode,
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
+                  style: AppType.labelSmall(AppColors.primary),
                 ),
               ),
             if (_ageBasedEnabled) SizedBox(width: 8.w),
@@ -925,19 +882,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               children: [
                 Text(
                   "Phase $phase · ${WealthAgeRecommendations.phaseName(phase)}",
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w800,
-                    color: scheme.onSurface,
-                  ),
+                  style: AppType.labelMedium(scheme.onSurface),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   WealthAgeRecommendations.phaseSubtitle(phase),
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    color: scheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                  style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.6)),
                 ),
               ],
             ),
@@ -969,12 +919,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             padding: EdgeInsets.symmetric(horizontal: 10.w),
             child: Text(
               label.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10.sp,
-                fontWeight: FontWeight.w700,
-                color: scheme.onSurface.withValues(alpha: 0.4),
-                letterSpacing: 1.2,
-              ),
+              style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.4)),
             ),
           ),
           Expanded(
@@ -1166,11 +1111,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
-                      color: scheme.onSurface.withValues(alpha: 0.9),
-                    ),
+                    style: AppType.labelMedium(scheme.onSurface.withValues(alpha: 0.9)),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1194,22 +1135,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             SizedBox(height: 10.h),
             PrivacyText(
               "$symbol${amount.toStringAsFixed(0)}",
-              style: TextStyle(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w800,
-                color: scheme.onSurface,
-                letterSpacing: 0.5,
-              ),
+              style: AppType.titleLarge(scheme.onSurface),
             ),
             if (secondaryLabel != null && secondaryValue != null) ...[
               SizedBox(height: 8.h),
               Text(
                 "$secondaryLabel: ${formatter.format(secondaryValue)}",
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: scheme.onSurface.withValues(alpha: 0.6),
-                  fontWeight: FontWeight.w500,
-                ),
+                style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.6)),
               ),
             ],
             SizedBox(height: 8.h),
@@ -1291,10 +1223,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                       : onTapOverride != null
                       ? "Tap to manage"
                       : "Tap to update",
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    color: scheme.onSurface.withValues(alpha: 0.4),
-                  ),
+                  style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.4)),
                 ),
                 const Spacer(),
                 Icon(
@@ -1404,11 +1333,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     children: [
                       Text(
                         isBank ? "Update Monthly Expense" : "Update $title",
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                       ),
                       SizedBox(height: 16.h),
 
@@ -1418,16 +1343,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         // Bank is readOnly. Others depend on passed param.
                         readOnly: isBank || readOnly,
                         keyboardType: TextInputType.number,
-                        style: TextStyle(
-                          color: (isBank || readOnly)
+                        style: AppType.titleMedium((isBank || readOnly)
                               ? isDark
                                   ? Colors.white54
                                   : AppColors.lightTextSecondary
                               : isDark
                                   ? Colors.white
-                                  : AppColors.lightTextPrimary,
-                          fontSize: 18.sp,
-                        ),
+                                  : AppColors.lightTextPrimary),
                         decoration: InputDecoration(
                           labelText: isBank
                               ? "Current Bank Balance"
@@ -1460,16 +1382,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         // editable in Custom Mode so targets can be overridden.
                         readOnly: !isBank && _ageBasedEnabled,
                         keyboardType: TextInputType.number,
-                        style: TextStyle(
-                          color: !isBank && _ageBasedEnabled
+                        style: AppType.titleMedium(!isBank && _ageBasedEnabled
                               ? isDark
                                   ? Colors.white.withValues(alpha: 0.7)
                                   : AppColors.lightTextPrimary
                               : isDark
                                   ? Colors.white
-                                  : AppColors.lightTextPrimary,
-                          fontSize: 18.sp,
-                        ),
+                                  : AppColors.lightTextPrimary),
                         decoration: InputDecoration(
                           labelText: isBank
                               ? "Monthly Expense Basis"
@@ -1485,10 +1404,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               : _ageBasedEnabled
                                   ? "Calculated based on expenses & age"
                                   : "Set your own goal — leave empty for formula",
-                          helperStyle: TextStyle(
-                            color: AppColors.secondary.withValues(alpha: 0.5),
-                            fontSize: 11.sp,
-                          ),
+                          helperStyle: AppType.labelSmall(AppColors.secondary.withValues(alpha: 0.5)),
                           filled: true,
                           fillColor: isDark
                               ? Colors.white.withValues(alpha: 0.04)
@@ -1692,11 +1608,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     children: [
                       Text(
                         AppLocalizations.of(context)!.manageVisibility,
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                       ),
                       SizedBox(height: 16.h),
                       if (_ageBasedEnabled)
@@ -1719,12 +1631,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                 Expanded(
                                   child: Text(
                                     AppLocalizations.of(context)!.smartModeVisibilityFollowsAge,
-                                    style: TextStyle(
-                                      fontSize: 11.sp,
-                                      color: isDark
+                                    style: AppType.labelSmall(isDark
                                           ? Colors.white70
-                                          : AppColors.lightTextSecondary,
-                                    ),
+                                          : AppColors.lightTextSecondary),
                                   ),
                                 ),
                               ],
@@ -1783,15 +1692,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                         isRec
                                             ? "Recommended"
                                             : "Not recommended",
-                                        style: TextStyle(
-                                          fontSize: 8.sp,
-                                          color: isRec
+                                        style: AppType.labelSmall(isRec
                                               ? AppColors.success
                                               : isDark
                                                   ? Colors.white30
-                                                  : AppColors.lightTextTertiary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                                  : AppColors.lightTextTertiary),
                                       ),
                                     ),
                                 ],
@@ -1896,7 +1801,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             color: color,
             radius: 50.r,
             title: title,
-            titleStyle: TextStyle(fontSize: 10.sp, color: Colors.white),
+            titleStyle: AppType.labelSmall(Colors.white),
           ),
         );
       }
@@ -2024,11 +1929,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               SizedBox(width: 8.w),
               Text(
                 AppLocalizations.of(context)!.whatShouldEarnStayTrack,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                  color: scheme.onSurface.withValues(alpha: 0.6),
-                ),
+                style: AppType.labelMedium(scheme.onSurface.withValues(alpha: 0.6)),
               ),
             ],
           ),
@@ -2044,10 +1945,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             sub: Obx(
               () => Text(
                 "incl. savings of ${Get.isRegistered<PrivacyController>() && Get.find<PrivacyController>().isPrivacyMode.value ? '••••' : savingsLabel} /mo",
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  color: scheme.onSurface.withValues(alpha: 0.5),
-                ),
+                style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.5)),
               ),
             ),
             color: AppColors.primary,
@@ -2063,10 +1961,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             ),
             sub: Text(
               AppLocalizations.of(context)!.annually,
-              style: TextStyle(
-                fontSize: 10.sp,
-                color: scheme.onSurface.withValues(alpha: 0.5),
-              ),
+              style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.5)),
             ),
             color: AppColors.success,
           ),
@@ -2126,21 +2021,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            color: scheme.onSurface.withValues(alpha: 0.6),
-          ),
+          style: AppType.labelMedium(scheme.onSurface.withValues(alpha: 0.6)),
         ),
         SizedBox(height: 4.h),
         PrivacyText(
           value,
-          style: TextStyle(
-            fontSize: 26.sp,
-            fontWeight: FontWeight.w800,
-            color: color,
-            letterSpacing: 0.5,
-          ),
+          style: AppType.headlineSmall(color),
         ),
         SizedBox(height: 2.h),
         sub,
@@ -2167,19 +2053,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: scheme.onSurface.withValues(alpha: 0.7),
-              ),
+              style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.7)),
             ),
           ),
           PrivacyText(
             value,
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
-            ),
+            style: AppType.labelMedium(scheme.onSurface),
           ),
         ],
       ),
@@ -2252,7 +2131,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.deepPurple.withValues(alpha: 0.4),
+            color: AppColors.accent.withValues(alpha: 0.4),
             blurRadius: 15.w,
             offset: Offset(0, 8.w),
           ),
@@ -2262,21 +2141,17 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.totalNetWorth,
-            style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+            style: AppType.bodyMedium(Colors.white70),
           ),
           SizedBox(height: 8.h),
           PrivacyText(
             "$symbol${total.toStringAsFixed(0)}",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 36.sp,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppType.displaySmall(Colors.white),
           ),
           SizedBox(height: 8.h),
           Text(
             AppLocalizations.of(context)!.assetsLiabilities,
-            style: TextStyle(color: Colors.white54, fontSize: 12.sp),
+            style: AppType.bodySmall(Colors.white54),
           ),
         ],
       ),
@@ -2293,7 +2168,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.check_circle_outline, color: Colors.green, size: 24.sp),
+            Icon(Icons.check_circle_outline, color: AppColors.success, size: 24.sp),
             SizedBox(width: 12.w),
             Expanded(
               child: Text(
@@ -2311,22 +2186,22 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         final type = insight['type'];
         final msg = insight['message'];
 
-        Color iconColor = Colors.blue;
+        Color iconColor = AppColors.primary;
         IconData iconData = Icons.info_outline;
-        Color bgColor = Colors.blue.withValues(alpha: 0.1);
+        Color bgColor = AppColors.primary.withValues(alpha: 0.1);
 
         if (type == 'warning') {
-          iconColor = Colors.orange;
+          iconColor = AppColors.warning;
           iconData = Icons.warning_amber_rounded;
-          bgColor = Colors.orange.withValues(alpha: 0.1);
+          bgColor = AppColors.warning.withValues(alpha: 0.1);
         } else if (type == 'alert') {
           iconColor = AppColors.error;
           iconData = Icons.dangerous_outlined;
-          bgColor = Colors.red.withValues(alpha: 0.1);
+          bgColor = AppColors.error.withValues(alpha: 0.1);
         } else if (type == 'success') {
-          iconColor = Colors.green;
+          iconColor = AppColors.success;
           iconData = Icons.check_circle_outline;
-          bgColor = Colors.green.withValues(alpha: 0.1);
+          bgColor = AppColors.success.withValues(alpha: 0.1);
         }
 
         return Container(
@@ -2345,11 +2220,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               Expanded(
                 child: Text(
                   msg,
-                  style: TextStyle(
-                    color: scheme.onSurface,
-                    fontSize: 13.sp,
-                    height: 1.4,
-                  ),
+                  style: AppType.bodySmall(scheme.onSurface),
                 ),
               ),
             ],
@@ -2444,7 +2315,7 @@ class _CustomAssetDialogState extends State<_CustomAssetDialog> {
         if (!_isNew)
           TextButton(
             onPressed: _busy ? null : _delete,
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
           ),
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),

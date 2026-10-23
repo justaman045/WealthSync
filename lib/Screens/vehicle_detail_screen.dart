@@ -174,18 +174,14 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                         color: isDark ? Colors.white24 : AppColors.lightBorder),
                     SizedBox(height: 16.h),
                     Text(AppLocalizations.of(context)!.vehiclesAdded,
-                        style: TextStyle(
-                            color: isDark
+                        style: AppType.bodyLarge(isDark
                                 ? Colors.white54
-                                : AppColors.lightTextSecondary,
-                            fontSize: 16.sp)),
+                                : AppColors.lightTextSecondary)),
                     SizedBox(height: 8.h),
                     Text(AppLocalizations.of(context)!.tapTrackVehicles,
-                        style: TextStyle(
-                            color: isDark
+                        style: AppType.bodySmall(isDark
                                 ? Colors.white38
-                                : AppColors.lightTextTertiary,
-                            fontSize: 13.sp)),
+                                : AppColors.lightTextTertiary)),
                   ],
                 ),
               );
@@ -208,11 +204,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                 SizedBox(height: 20.h),
                 Text(
                   AppLocalizations.of(context)!.vehicles2,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 12.h),
                 ...docs.map((d) {
@@ -260,13 +252,10 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
   Widget _col2(String label, String value) {
     return Column(
       children: [
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 12.sp)),
+        Text(label, style: AppType.bodySmall(Colors.white70)),
         SizedBox(height: 4.h),
         Text(value,
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 22.sp,
-                fontWeight: FontWeight.bold)),
+            style: AppType.titleLarge(Colors.white)),
       ],
     );
   }
@@ -314,30 +303,24 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
               children: [
                 Text(
                   "$make${model.isNotEmpty ? ' $model' : ''}",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15.sp,
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                  style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 if (year > 0)
                   Text("$year",
-                      style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
+                      style: AppType.bodySmall(Colors.grey)),
                 SizedBox(height: 4.h),
                 Text(
                   "$symbol${_compact(value)}",
-                  style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey.shade300),
+                  style: AppType.titleMedium(Colors.blueGrey.shade300),
                 ),
                 if (emi > 0)
                   Text("EMI: $symbol${emi.toStringAsFixed(0)}/mo",
-                      style: TextStyle(fontSize: 11.sp, color: Colors.orange)),
+                      style: AppType.labelSmall(AppColors.warning)),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            icon: const Icon(Icons.delete_outline, color: AppColors.error),
             onPressed: () => _delete(id),
             iconSize: 20.sp,
           ),
@@ -360,7 +343,7 @@ Future<bool> _confirm(BuildContext context) async {
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
         TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red))),
+            child: const Text("Delete", style: TextStyle(color: AppColors.error))),
       ],
     ),
   );
@@ -448,10 +431,7 @@ class _SheetState extends State<_Sheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.title,
-                style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.sp)),
+                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary)),
             SizedBox(height: 16.h),
             ...List.generate(widget.fields.length, (i) {
               final f = widget.fields[i];

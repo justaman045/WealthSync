@@ -65,11 +65,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
         ),
         title: Text(
           "Other items · ${DateFormat('MMMM yyyy').format(now)}",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
       ),
       body: SafeArea(
@@ -209,36 +205,22 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.spentOtherItems,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: isDark ? Colors.white70 : AppColors.lightTextTertiary,
-            ),
+            style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextTertiary),
           ),
           SizedBox(height: 4.h),
           Text(
             "$sym${total.toStringAsFixed(0)}",
-            style: TextStyle(
-              fontSize: 28.sp,
-              fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
+            style: AppType.headlineMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
           ),
           SizedBox(height: 2.h),
           Text(
             "$count transaction${count == 1 ? '' : 's'} this month",
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: isDark ? Colors.white54 : AppColors.lightTextTertiary,
-            ),
+            style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextTertiary),
           ),
           SizedBox(height: 12.h),
           Text(
             AppLocalizations.of(context)!.theseNonBillExpensesRent,
-            style: TextStyle(
-              fontSize: 12.sp,
-              height: 1.35,
-              color: isDark ? Colors.white70 : AppColors.lightTextTertiary,
-            ),
+            style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextTertiary),
           ),
         ],
       ),
@@ -248,11 +230,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
   Widget _sectionTitle(String text, {required bool isDark}) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 15.sp,
-        fontWeight: FontWeight.bold,
-        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-      ),
+      style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
     );
   }
 
@@ -293,20 +271,12 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
             Expanded(
               child: Text(
                 "$label ($count)",
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                ),
+                style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
               ),
             ),
             Text(
               "$sym${total.toStringAsFixed(0)}",
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : AppColors.lightTextTertiary,
-              ),
+              style: AppType.labelMedium(isDark ? Colors.white70 : AppColors.lightTextTertiary),
             ),
             SizedBox(width: 6.w),
             Icon(
@@ -371,10 +341,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
         ),
         label: Text(
           AppLocalizations.of(context)!.customizeWhichCategoriesCount,
-          style: TextStyle(
-            fontSize: 13.sp,
-            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-          ),
+          style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
         ),
       ),
     );
@@ -396,10 +363,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
       ),
       child: Text(
         message,
-        style: TextStyle(
-          fontSize: 13.sp,
-          color: isDark ? Colors.white60 : AppColors.lightTextTertiary,
-        ),
+        style: AppType.bodySmall(isDark ? Colors.white60 : AppColors.lightTextTertiary),
       ),
     );
   }

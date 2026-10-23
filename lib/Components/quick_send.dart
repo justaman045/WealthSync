@@ -63,10 +63,7 @@ class _QuickSendRowState extends State<QuickSendRow> {
           child: Center(
             child: Text(
               "No categories found",
-              style: TextStyle(
-                color: scheme.onSurface.withValues(alpha: 0.6),
-                fontSize: 13.sp,
-              ),
+              style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.6)),
             ),
           ),
         );
@@ -212,14 +209,9 @@ class _QuickSendRowState extends State<QuickSendRow> {
                 name,
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                  color: isDark
+                style: AppType.labelSmall(isDark
                       ? Colors.white.withValues(alpha: 0.9)
-                      : Colors.black87,
-                  letterSpacing: 0.3,
-                ),
+                      : Colors.black87),
               ),
             ),
           ],

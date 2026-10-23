@@ -231,22 +231,14 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
               children: [
                 Text(
                   AppStrings.featureFlags,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   AppStrings.featureFlagsSubtitle,
-                  style: TextStyle(
-                    color: isDark
+                  style: AppType.bodySmall(isDark
                         ? Colors.white54
-                        : AppColors.lightTextSecondary,
-                    fontSize: 13.sp,
-                    height: 1.4,
-                  ),
+                        : AppColors.lightTextSecondary),
                 ),
               ],
             ),
@@ -273,21 +265,12 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
           Expanded(
             child: Text(
               group.title.toUpperCase(),
-              style: TextStyle(
-                color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-              ),
+              style: AppType.labelMedium(isDark ? Colors.white70 : AppColors.lightTextSecondary),
             ),
           ),
           Text(
             '${group.keys.length}',
-            style: TextStyle(
-              color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppType.labelMedium(isDark ? Colors.white38 : AppColors.lightTextTertiary),
           ),
         ],
       ),
@@ -323,13 +306,9 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
                     children: [
                       Text(
                         flag.title,
-                        style: TextStyle(
-                          color: isDark
+                        style: AppType.titleMedium(isDark
                               ? Colors.white
-                              : AppColors.lightTextPrimary,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              : AppColors.lightTextPrimary),
                       ),
                       if (flag.critical) ...[
                         SizedBox(height: 4.h),
@@ -346,11 +325,7 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
                                 AppStrings.criticalFeatureTitle,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: AppColors.warning,
-                                  fontSize: 11.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: AppType.labelSmall(AppColors.warning),
                               ),
                             ),
                           ],
@@ -371,11 +346,7 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
             SizedBox(height: 10.h),
             Text(
               flag.description,
-              style: TextStyle(
-                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                fontSize: 13.sp,
-                height: 1.35,
-              ),
+              style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
             ),
           ],
         ),
@@ -493,11 +464,7 @@ class _FeatureStatusSelectorState extends State<_FeatureStatusSelector> {
             SizedBox(width: 7.w),
             Text(
               _FeatureFlagsScreenState._statusLabel(widget.status),
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
             SizedBox(width: 3.w),
             AnimatedRotation(
@@ -553,21 +520,14 @@ class _StatusOption extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppType.titleSmall(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 2.h),
                 Text(
                   hint,
-                  style: TextStyle(
-                    color: isDark
+                  style: AppType.labelSmall(isDark
                         ? Colors.white38
-                        : AppColors.lightTextTertiary,
-                    fontSize: 11.sp,
-                  ),
+                        : AppColors.lightTextTertiary),
                 ),
               ],
             ),

@@ -85,11 +85,7 @@ class TxTile extends StatelessWidget {
                     children: [
                       PrivacyText(
                         "${received ? "+" : "-"}${tx.amount.abs().toStringAsFixed(2)}",
-                        style: TextStyle(
-                          color: amtColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.sp,
-                        ),
+                        style: AppType.labelMedium(amtColor),
                       ),
                       SizedBox(width: 6.w),
                       Text(

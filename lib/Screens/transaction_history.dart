@@ -521,12 +521,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                             ),
                                             PrivacyText(
                                               '${received ? '+' : '-'}${CurrencyController.to.currencySymbol.value}${tx.amount.abs().toStringAsFixed(2)}',
-                                              style: TextStyle(
-                                                color: amountColor,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 17.sp,
-                                                letterSpacing: 0.5,
-                                              ),
+                                              style: AppType.titleMedium(amountColor),
                                             ),
                                           ],
                                         ),
@@ -572,7 +567,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           SizedBox(height: 16.h),
           Text(
             AppLocalizations.of(context)!.selectTransactionViewDetails,
-            style: TextStyle(color: theme.disabledColor, fontSize: 16.sp),
+            style: AppType.bodyLarge(theme.disabledColor),
           ),
         ],
       ),
@@ -612,7 +607,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),

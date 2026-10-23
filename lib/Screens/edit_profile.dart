@@ -150,12 +150,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           title: Text(
             AppLocalizations.of(context)!.editProfile,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-              fontSize: 18.sp,
-              letterSpacing: 0.5,
-            ),
+            style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
           ),
           leading: IconButton(
             icon: Icon(
@@ -330,11 +325,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 alignment: Alignment.centerLeft,
                                 child: Text(
                                   "Age: ${_calculateAge(_dob!)} years",
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: AppType.titleSmall(AppColors.primary),
                                 ),
                               ),
                             ),
@@ -400,12 +391,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               alignment: Alignment.center,
                               child: Text(
                                 AppStrings.saveChanges,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16.sp,
-                                  letterSpacing: 1.5,
-                                ),
+                                style: AppType.titleMedium(Colors.white),
                               ),
                             ),
                           ),
@@ -442,13 +428,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               },
                               child: Text(
                                 AppLocalizations.of(context)!.changePassword,
-                                style: TextStyle(
-                                  color: isDark
+                                style: AppType.labelLarge(isDark
                                       ? Colors.white
-                                      : AppColors.lightTextPrimary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15.sp,
-                                ),
+                                      : AppColors.lightTextPrimary),
                               ),
                             ),
                           ),
@@ -477,11 +459,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppType.titleSmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
         ),
         SizedBox(height: 8.h),
         Container(
@@ -501,13 +479,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             enabled: enabled,
             initialValue: controller == null ? value ?? '' : null,
             validator: enabled ? validator : null,
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: enabled
+            style: AppType.bodyLarge(enabled
                   ? (isDark ? Colors.white : AppColors.lightTextPrimary)
-                  : (isDark ? Colors.white38 : AppColors.lightTextSecondary),
-              fontWeight: FontWeight.w500,
-            ),
+                  : (isDark ? Colors.white38 : AppColors.lightTextSecondary)),
             decoration: InputDecoration(
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16.w,
@@ -518,10 +492,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               enabledBorder: InputBorder.none,
               errorBorder: InputBorder.none,
               disabledBorder: InputBorder.none,
-              hintStyle: TextStyle(
-                fontSize: 16.sp,
-                color: isDark ? Colors.white24 : AppColors.lightTextTertiary,
-              ),
+              hintStyle: AppType.bodyLarge(isDark ? Colors.white24 : AppColors.lightTextTertiary),
             ),
           ),
         ),
@@ -536,11 +507,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         Text(
           AppLocalizations.of(context)!.gender,
-          style: TextStyle(
-            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppType.titleSmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
         ),
         SizedBox(height: 8.h),
         Container(
@@ -567,10 +534,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             dropdownColor: isDark
                 ? AppColors.darkSurface
                 : AppColors.lightSurface,
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            ),
+            style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
             items: [
               DropdownMenuItem(value: 'male', child: Text(AppLocalizations.of(context)!.male)),
               DropdownMenuItem(value: 'female', child: Text(AppLocalizations.of(context)!.female)),
@@ -585,10 +549,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             },
             hint: Text(
               AppLocalizations.of(context)!.selectGender,
-              style: TextStyle(
-                fontSize: 16.sp,
-                color: isDark ? Colors.white38 : AppColors.lightTextSecondary,
-              ),
+              style: AppType.bodyLarge(isDark ? Colors.white38 : AppColors.lightTextSecondary),
             ),
           ),
         ),
@@ -608,11 +569,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppType.titleSmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
         ),
         SizedBox(height: 8.h),
         GestureDetector(
@@ -638,15 +595,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   selectedDate != null
                       ? "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"
                       : "Select Date",
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    color: selectedDate != null
+                  style: AppType.bodyLarge(selectedDate != null
                         ? (isDark ? Colors.white : AppColors.lightTextPrimary)
                         : (isDark
                               ? Colors.white38
-                              : AppColors.lightTextSecondary),
-                    fontWeight: FontWeight.w500,
-                  ),
+                              : AppColors.lightTextSecondary)),
                 ),
                 Icon(
                   Icons.calendar_today_rounded,

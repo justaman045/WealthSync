@@ -233,12 +233,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
         appBar: AppBar(
           title: Text(
             AppLocalizations.of(context)!.receiptScanner,
-            style: TextStyle(
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-              letterSpacing: 0.5,
-            ),
+            style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -286,10 +281,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                                 SizedBox(height: 16.h),
                                 Text(
                                   AppLocalizations.of(context)!.imageSelected,
-                                  style: TextStyle(
-                                    color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                                    fontSize: 14.sp,
-                                  ),
+                                  style: AppType.bodyMedium(isDark ? Colors.white38 : AppColors.lightTextTertiary),
                                 ),
                               ],
                             ),
@@ -343,13 +335,9 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                       : SingleChildScrollView(
                           child: Text(
                             _recognizedText ?? "Scanned text will appear here.",
-                            style: TextStyle(
-                              color: _recognizedText == null
+                            style: AppType.bodyMedium(_recognizedText == null
                                   ? (isDark ? Colors.white38 : AppColors.lightTextTertiary)
-                                  : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
-                              fontSize: 14.sp,
-                              height: 1.5,
-                            ),
+                                  : (isDark ? Colors.white70 : AppColors.lightTextSecondary)),
                           ),
                         ),
                 ),
@@ -381,12 +369,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
                   alignment: Alignment.center,
                   child: Text(
                     AppLocalizations.of(context)!.saveTRANSACTION,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16.sp,
-                      letterSpacing: 1.5,
-                    ),
+                    style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                 ),
               ),
@@ -422,11 +405,7 @@ class _ReceiptScanPageState extends State<ReceiptScanPage> {
             SizedBox(width: 8.w),
             Text(
               label,
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 14.sp,
-              ),
+              style: AppType.titleSmall(isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
           ],
         ),

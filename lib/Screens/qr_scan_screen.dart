@@ -166,11 +166,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                           const Spacer(),
                           Text(
                             AppLocalizations.of(context)!.scanQR,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: AppType.titleMedium(Colors.white),
                           ),
                           const Spacer(),
                           IconButton(
@@ -198,11 +194,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                         ),
                         child: Text(
                           AppLocalizations.of(context)!.upiQRCodeTryAgain,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: AppType.labelMedium(Colors.white),
                         ),
                       ),
                     const Spacer(),
@@ -216,10 +208,7 @@ class _QrScanScreenState extends State<QrScanScreen>
                         children: [
                           Text(
                             AppLocalizations.of(context)!.alignUPIQRCodeWithin,
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13.sp,
-                            ),
+                            style: AppType.bodySmall(Colors.white70),
                             textAlign: TextAlign.center,
                           ),
                           SizedBox(height: 16.h),
@@ -246,13 +235,9 @@ class _QrScanScreenState extends State<QrScanScreen>
                                   SizedBox(width: 8.w),
                                   Text(
                                     AppLocalizations.of(context)!.typeUPIIDInstead,
-                                    style: TextStyle(
-                                      color: isDark
+                                    style: AppType.titleSmall(isDark
                                           ? Colors.white
-                                          : AppColors.lightTextPrimary,
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                          : AppColors.lightTextPrimary),
                                   ),
                                 ],
                               ),

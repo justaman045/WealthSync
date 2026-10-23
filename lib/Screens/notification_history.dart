@@ -28,11 +28,7 @@ class NotificationHistoryScreen extends StatelessWidget {
           icon: Icon(Icons.arrow_back_ios_new, color: isDark ? Colors.white : Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : Colors.black,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(isDark ? Colors.white : Colors.black),
         actions: [
           IconButton(
             icon: Icon(Icons.delete_outline, color: isDark ? Colors.white : Colors.black),
@@ -78,10 +74,7 @@ class NotificationHistoryScreen extends StatelessWidget {
                             SizedBox(height: 16.h),
                             Text(
                               AppLocalizations.of(context)!.notificationsYet,
-                              style: TextStyle(
-                                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                                fontSize: 16.sp,
-                              ),
+                              style: AppType.bodyLarge(isDark ? Colors.white54 : AppColors.lightTextSecondary),
                             ),
                           ],
                         ),
@@ -270,27 +263,19 @@ class _NotificationTile extends StatelessWidget {
                     Expanded(
                       child: Text(
                         title,
-                        style: TextStyle(
-                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15.sp,
-                        ),
+                        style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                       ),
                     ),
                     Text(
                       _formatDate(date),
-                      style: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextSecondary, fontSize: 11.sp),
+                      style: AppType.labelSmall(isDark ? Colors.white38 : AppColors.lightTextSecondary),
                     ),
                   ],
                 ),
                 SizedBox(height: 6.h),
                 Text(
                   body,
-                  style: TextStyle(
-                    color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                    fontSize: 13.sp,
-                    height: 1.4,
-                  ),
+                  style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
                 ),
               ],
             ),

@@ -372,10 +372,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
           Center(
             child: Text(
               "No name or other details needed — just enter the amount and UPI ID.",
-              style: TextStyle(
-                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                fontSize: 12.sp,
-              ),
+              style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
               textAlign: TextAlign.center,
             ),
           ),
@@ -396,19 +393,12 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
       children: [
         Text(
           "Choose UPI App",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w700,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         SizedBox(height: 4.h),
         Text(
           "Pay $sym$amountStr to $vpa",
-          style: TextStyle(
-            color: isDark ? Colors.white60 : AppColors.lightTextSecondary,
-            fontSize: 13.sp,
-          ),
+          style: AppType.bodySmall(isDark ? Colors.white60 : AppColors.lightTextSecondary),
         ),
         SizedBox(height: 16.h),
         Expanded(
@@ -457,25 +447,17 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
                           alignment: Alignment.center,
                           child: Text(
                             app.icon,
-                            style: TextStyle(
-                              color: isDark
+                            style: AppType.labelMedium(isDark
                                   ? Colors.white
-                                  : AppColors.lightTextPrimary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13.sp,
-                            ),
+                                  : AppColors.lightTextPrimary),
                           ),
                         ),
                         SizedBox(width: 14.w),
                         Text(
                           app.name,
-                          style: TextStyle(
-                            color: isDark
+                          style: AppType.bodyLarge(isDark
                                 ? Colors.white
-                                : AppColors.lightTextPrimary,
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
+                                : AppColors.lightTextPrimary),
                         ),
                         const Spacer(),
                         if (_paying)
@@ -517,7 +499,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             decoration: BoxDecoration(
-              color: (_pending ? Colors.amber : AppColors.success)
+              color: (_pending ? AppColors.warning : AppColors.success)
                   .withValues(alpha: isDark ? 0.15 : 0.2),
               borderRadius: BorderRadius.circular(16.r),
             ),
@@ -530,20 +512,16 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
                       _pending
                           ? Icons.access_time_rounded
                           : Icons.check_circle_rounded,
-                      color: _pending ? Colors.amber : AppColors.success,
+                      color: _pending ? AppColors.warning : AppColors.success,
                       size: 22.sp,
                     ),
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
                         _pending ? 'Payment Pending' : 'Payment Successful',
-                        style: TextStyle(
-                          color: isDark
+                        style: AppType.titleMedium(isDark
                               ? Colors.white
-                              : AppColors.lightTextPrimary,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w700,
-                        ),
+                              : AppColors.lightTextPrimary),
                       ),
                     ),
                   ],
@@ -551,10 +529,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
                 SizedBox(height: 4.h),
                 Text(
                   'via $_appName',
-                  style: TextStyle(
-                    color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                    fontSize: 12.sp,
-                  ),
+                  style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
                 ),
                 if (_txnId.isNotEmpty) ...[
                   SizedBox(height: 8.h),
@@ -604,19 +579,12 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
       children: [
         Text(
           '$label: ',
-          style: TextStyle(
-            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-            fontSize: 12.sp,
-          ),
+          style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
         ),
         Expanded(
           child: Text(
             value,
-            style: TextStyle(
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppType.bodySmall(isDark ? Colors.white : AppColors.lightTextPrimary),
           ),
         ),
       ],
@@ -682,11 +650,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
             child: Obx(
               () => Text(
                 CurrencyController.to.currencyCode.value,
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15.sp,
-                ),
+                style: AppType.labelLarge(AppColors.primary),
               ),
             ),
           ),
@@ -735,10 +699,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
           ),
           child: Text(
             "No categories available.",
-            style: TextStyle(
-              color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-              fontSize: 14.sp,
-            ),
+            style: AppType.bodyMedium(isDark ? Colors.white54 : AppColors.lightTextSecondary),
           ),
         );
       }
@@ -758,11 +719,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
                     value: c.name,
                     child: Text(
                       c.name,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                     ),
                   ),
                 )
@@ -848,12 +805,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
               )
             : Text(
                 label.toUpperCase(),
-                style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16.sp,
-                  letterSpacing: 1.5,
-                ),
+                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
               ),
       ),
     );

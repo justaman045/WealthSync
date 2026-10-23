@@ -94,7 +94,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 await _categoryService.deleteCategory(category.id);
                 if (ctx.mounted) Navigator.of(ctx).pop();
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
               child: const Text("Delete"),
             ),
           ],
@@ -122,7 +122,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             ),
             title: Text(
               AppLocalizations.of(context)!.categoryUse,
-              style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 18.sp),
+              style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -135,7 +135,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                 SizedBox(height: 16.h),
                 Text(
                   AppLocalizations.of(context)!.migrate,
-                  style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 14.sp),
+                  style: AppType.bodyMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 8.h),
                 Container(
@@ -182,7 +182,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
                 child: Text(AppLocalizations.of(context)!.deleteAnyway,
-                    style: TextStyle(color: Colors.red)),
+                    style: TextStyle(color: AppColors.error)),
               ),
               ElevatedButton(
                 onPressed: currentSelected.isEmpty
@@ -216,11 +216,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       appBar: AppBar(
         title: Text(
           "Manage Categories",
-          style: TextStyle(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18.sp,
-          ),
+          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -327,11 +323,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             Text(
               cat.name,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 12.sp,
-              ),
+              style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -438,13 +430,9 @@ class _CategoryDialogState extends State<_CategoryDialog> {
       selectedColor: Color(_selectedColor).withValues(alpha: 0.25),
       backgroundColor:
           isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightSurfaceCard,
-      labelStyle: TextStyle(
-        fontSize: 12.sp,
-        color: selected
+      labelStyle: AppType.labelMedium(selected
             ? Color(_selectedColor)
-            : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
-        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-      ),
+            : (isDark ? Colors.white70 : AppColors.lightTextSecondary)),
       side: BorderSide(
         color: selected
             ? Color(_selectedColor)
@@ -474,11 +462,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
           children: [
             Text(
               widget.category == null ? "New Category" : "Edit Category",
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontSize: 20.sp,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppType.titleLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 20.h),
@@ -506,10 +490,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
             SizedBox(height: 4.h),
             Text(
               AppLocalizations.of(context)!.howCategoryCountsTowardSmart,
-              style: TextStyle(
-                fontSize: 11.sp,
-                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-              ),
+              style: AppType.labelSmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
             ),
             SizedBox(height: 10.h),
             Wrap(

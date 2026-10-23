@@ -174,10 +174,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
                   SizedBox(height: 4.h),
                   Text(
                     "${isReceivable ? 'Lent to' : 'Borrowed from'} ${DateFormat('MMM dd, yyyy').format(entry.dateLent)}",
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
+                    style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                   ),
                 ],
               ),
@@ -187,28 +184,18 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.outstanding,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                  style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   NumberFormat.simpleCurrency(name: currency).format(
                     entry.remainingAmount,
                   ),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.sp,
-                    color: color,
-                  ),
+                  style: AppType.titleMedium(color),
                 ),
                 Text(
                   "of ${NumberFormat.simpleCurrency(name: currency).format(entry.amount)}",
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
+                  style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                 ),
               ],
             ),
@@ -256,8 +243,8 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
             (Set<WidgetState> states) {
               if (states.contains(WidgetState.selected)) {
                 return _selectedDirection == 'received'
-                    ? Colors.green
-                    : Colors.orange;
+                    ? AppColors.success
+                    : AppColors.warning;
               }
               return Theme.of(
                 context,
@@ -277,12 +264,9 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.amount,
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Theme.of(
+            style: AppType.bodyMedium(Theme.of(
                 context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+              ).colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
           SizedBox(height: 8.h),
           Row(
@@ -360,11 +344,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
               ? const CircularProgressIndicator(color: Colors.white)
               : Text(
                   AppLocalizations.of(context)!.recordPayment,
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: AppType.titleMedium(Colors.white),
                 ),
         ),
       ),

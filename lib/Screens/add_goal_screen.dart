@@ -276,11 +276,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                         )
                       : Text(
                           widget.goal == null ? AppStrings.createGoal : AppStrings.saveChanges,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: AppType.titleMedium(Colors.white),
                         ),
                 ),
               )),
@@ -298,12 +294,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 13.sp,
-        fontWeight: FontWeight.w600,
-        color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-        letterSpacing: 0.8,
-      ),
+      style: AppType.labelMedium(isDark ? Colors.white54 : AppColors.lightTextSecondary),
     );
   }
 
@@ -327,7 +318,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
         prefixText: prefix,
         prefixStyle: TextStyle(fontSize: 15.sp, color: Theme.of(context).textTheme.bodyMedium?.color),
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey, fontSize: 14.sp),
+        hintStyle: AppType.bodyMedium(Colors.grey),
         filled: true,
         fillColor: isDark
             ? Colors.white.withValues(alpha: 0.06)

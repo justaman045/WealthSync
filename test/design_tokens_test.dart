@@ -208,9 +208,14 @@ void main() {
     // `redAccent` meant "delete" in one place and "danger" in another. Every one
     // now resolves to an AppColors token.
     //
-    // The one exception is asset identity colours: a portfolio chart needs 28
-    // distinguishable hues, which is data, not UI chrome.
-    const allowed = {'lib/Config/wealth_asset_registry.dart'};
+    // The exceptions are identity colours: a portfolio chart needs 28
+    // distinguishable hues and a category tile needs a stable per-name hue,
+    // which is data, not UI chrome.
+    const allowed = {
+      'lib/Config/wealth_asset_registry.dart',
+      'lib/Config/asset_screen_configs.dart',
+      'lib/Components/cateogary_initial_icon.dart',
+    };
     final accentPattern = RegExp(r'Colors\.[a-zA-Z]+Accent');
 
     test('no Material accent swatch is used as a UI colour', () {
@@ -230,6 +235,35 @@ void main() {
         isEmpty,
         reason:
             'Use an AppColors token instead of a Material accent swatch:\n'
+            '${offenders.join('\n')}',
+      );
+    });
+
+    // Same argument for the named Material swatches: 121 `Colors.green` /
+    // `Colors.red` / `Colors.deepPurple` sites meant "success" / "error" /
+    // "a decorative purple" without saying so, so a greyscale/accent change
+    // could not reach them.
+    test('no named Material swatch is used as a UI colour', () {
+      final named = RegExp(
+        r'Colors\.(red|green|orange|purple|blue|amber|pink|teal|lime|indigo|'
+        r'deepPurple|deepOrange|lightBlue|lightGreen|yellow)\b(?!\.shade)',
+      );
+      final offenders = <String>[];
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final relative = entity.path.replaceAll(r'\', '/');
+        if (allowed.contains(relative)) continue;
+        final source = entity.readAsStringSync();
+        for (final match in named.allMatches(source)) {
+          final line = source.substring(0, match.start).split('\n').length;
+          offenders.add('$relative:$line ${match.group(0)}');
+        }
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'Use an AppColors token instead of a named Material swatch:\n'
             '${offenders.join('\n')}',
       );
     });

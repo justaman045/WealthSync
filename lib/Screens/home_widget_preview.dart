@@ -48,11 +48,7 @@ class _HomeWidgetPreviewScreenState extends State<HomeWidgetPreviewScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       body: Container(
         height: double.infinity,
@@ -121,39 +117,24 @@ class _HomeWidgetPreviewScreenState extends State<HomeWidgetPreviewScreen> {
         children: [
           Text(
             AppLocalizations.of(context)!.wealthsync,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 11.sp,
-              letterSpacing: 0.5,
-            ),
+            style: AppType.labelSmall(Colors.white.withValues(alpha: 0.6)),
           ),
           SizedBox(height: 4.h),
           PrivacyText(
             "$currency${_transactionController.totalBalance.toStringAsFixed(2)}",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24.sp,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppType.headlineSmall(Colors.white),
           ),
           SizedBox(height: 6.h),
           Row(
             children: [
               Text(
                 "Total Balance",
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  fontSize: 10.sp,
-                ),
+                style: AppType.labelSmall(Colors.white.withValues(alpha: 0.4)),
               ),
               const Spacer(),
               Text(
                 AppLocalizations.of(context)!.add2,
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppType.labelSmall(AppColors.primary),
               ),
             ],
           ),
@@ -202,22 +183,14 @@ class _HomeWidgetPreviewScreenState extends State<HomeWidgetPreviewScreen> {
               children: [
                 Text(
                   "$step. $title",
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   body,
-                  style: TextStyle(
-                    color: isDark
+                  style: AppType.bodySmall(isDark
                         ? Colors.white54
-                        : AppColors.lightTextSecondary,
-                    fontSize: 12.sp,
-                    height: 1.4,
-                  ),
+                        : AppColors.lightTextSecondary),
                 ),
               ],
             ),

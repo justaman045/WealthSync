@@ -60,12 +60,7 @@ class EmptyStateWidget extends StatelessWidget {
             SizedBox(height: 24.h),
             Text(
                   title,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
+                  style: AppType.titleLarge(textColor),
                   textAlign: TextAlign.center,
                 )
                 .animate()
@@ -74,11 +69,7 @@ class EmptyStateWidget extends StatelessWidget {
             SizedBox(height: 12.h),
             Text(
                   subtitle,
-                  style: TextStyle(
-                    color: textColor.withValues(alpha: 0.6),
-                    fontSize: 15.sp,
-                    height: 1.4,
-                  ),
+                  style: AppType.bodyLarge(textColor.withValues(alpha: 0.6)),
                   textAlign: TextAlign.center,
                 )
                 .animate()

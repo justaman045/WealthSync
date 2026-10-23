@@ -300,7 +300,7 @@ class SubscriptionController extends GetxController {
           content: Text(
             "Upgrade Approved! 🎉\nCongratulations! You are now a Pro member.",
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 5),
         ),
@@ -329,7 +329,7 @@ class SubscriptionController extends GetxController {
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
           content: Text("You are now Pro! 💎"),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 4),
         ),

@@ -113,10 +113,10 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                       blastDirectionality: BlastDirectionality.explosive,
                       shouldLoop: false,
                       colors: const [
-                        Colors.green,
-                        Colors.blue,
-                        Colors.pink,
-                        Colors.orange,
+                        AppColors.success,
+                        AppColors.primary,
+                        AppColors.accent,
+                        AppColors.warning,
                       ],
                       createParticlePath: _drawStar,
                     ),
@@ -148,16 +148,12 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
               SizedBox(height: 16.h),
               Text(
                 AppLocalizations.of(context)!.startFirstChallenge,
-                style: TextStyle(
-                    fontSize: 16.sp,
-                    color: isDark ? Colors.white60 : AppColors.lightTextSecondary),
+                style: AppType.bodyLarge(isDark ? Colors.white60 : AppColors.lightTextSecondary),
               ),
               SizedBox(height: 8.h),
               Text(
                 AppLocalizations.of(context)!.browseLibraryTabTapCustom,
-                style: TextStyle(
-                    fontSize: 13.sp,
-                    color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
+                style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
               ),
             ],
           ),
@@ -231,7 +227,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
         borderRadius: BorderRadius.circular(20.r),
         border: Border.all(
           color: isNearComplete
-              ? Colors.amber.withValues(alpha: 0.5)
+              ? AppColors.warning.withValues(alpha: 0.5)
               : isDark
                   ? Colors.white.withValues(alpha: 0.08)
                   : AppColors.lightBorder,
@@ -256,20 +252,18 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.15),
+                    color: AppColors.error.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     AppLocalizations.of(context)!.expired,
-                    style: TextStyle(fontSize: 11.sp, color: Colors.red),
+                    style: AppType.labelSmall(AppColors.error),
                   ),
                 )
               else
                 Text(
                   "${c.daysLeft}d left",
-                  style: TextStyle(
-                      fontSize: 12.sp,
-                      color: isDark ? Colors.white60 : AppColors.lightTextSecondary),
+                  style: AppType.bodySmall(isDark ? Colors.white60 : AppColors.lightTextSecondary),
                 ),
               SizedBox(width: 8.w),
               GestureDetector(
@@ -291,7 +285,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                   : AppColors.lightBorder,
               valueColor: AlwaysStoppedAnimation(
                 c.trackingType == 'no_spend_category'
-                    ? (percent > 0 ? Colors.red : Colors.green)
+                    ? (percent > 0 ? AppColors.error : AppColors.success)
                     : AppColors.primary,
               ),
             ),
@@ -302,28 +296,20 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
             children: [
               Text(
                 progressLabel,
-                style: TextStyle(
-                    fontSize: 12.sp,
-                    color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
+                style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary),
               ),
               Text(
                 "${(percent * 100).toStringAsFixed(0)}%",
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w700,
-                  color: percent >= 1.0
+                style: AppType.labelMedium(percent >= 1.0
                       ? AppColors.success
-                      : AppColors.primary,
-                ),
+                      : AppColors.primary),
               ),
             ],
           ),
           SizedBox(height: 4.h),
           Text(
             targetLabel,
-            style: TextStyle(
-                fontSize: 11.sp,
-                color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
+            style: AppType.labelSmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
           ),
         ],
       ),
@@ -388,12 +374,9 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                   SizedBox(height: 4.h),
                   Text(
                     preset.description,
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: isDark
+                    style: AppType.bodySmall(isDark
                           ? Colors.white60
-                          : AppColors.lightTextSecondary,
-                    ),
+                          : AppColors.lightTextSecondary),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -415,13 +398,9 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                     ),
                     child: Text(
                       AppLocalizations.of(context)!.progress,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w700,
-                        color: isDark
+                      style: AppType.labelMedium(isDark
                             ? Colors.white38
-                            : AppColors.lightTextTertiary,
-                      ),
+                            : AppColors.lightTextTertiary),
                     ),
                   )
                 : GestureDetector(
@@ -439,11 +418,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                       ),
                       child: Text(
                         AppLocalizations.of(context)!.start,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                        style: AppType.labelMedium(Colors.white),
                       ),
                     ),
                   ),
@@ -591,12 +566,9 @@ class _ChallengeSheetContent extends StatelessWidget {
                       ),
                       decoration: InputDecoration(
                         hintText: "Challenge Name",
-                        hintStyle: TextStyle(
-                          color: isDark
+                        hintStyle: AppType.bodyMedium(isDark
                               ? Colors.white38
-                              : AppColors.lightTextTertiary,
-                          fontSize: 14.sp,
-                        ),
+                              : AppColors.lightTextTertiary),
                         filled: true,
                         fillColor: isDark
                             ? Colors.white.withValues(alpha: 0.07)
@@ -620,12 +592,9 @@ class _ChallengeSheetContent extends StatelessWidget {
                       decoration: InputDecoration(
                         hintText:
                             "Target Amount (${CurrencyController.to.currencySymbol.value})",
-                        hintStyle: TextStyle(
-                          color: isDark
+                        hintStyle: AppType.bodyMedium(isDark
                               ? Colors.white38
-                              : AppColors.lightTextTertiary,
-                          fontSize: 14.sp,
-                        ),
+                              : AppColors.lightTextTertiary),
                         filled: true,
                         fillColor: isDark
                             ? Colors.white.withValues(alpha: 0.07)
@@ -641,10 +610,7 @@ class _ChallengeSheetContent extends StatelessWidget {
                   if (showDays) ...[
                     Text(
                       AppLocalizations.of(context)!.durationDays,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: isDark ? Colors.white60 : Colors.black54,
-                      ),
+                      style: AppType.bodySmall(isDark ? Colors.white60 : Colors.black54),
                     ),
                     SizedBox(height: 8.h),
                     Wrap(
@@ -674,17 +640,11 @@ class _ChallengeSheetContent extends StatelessWidget {
                             ),
                             child: Text(
                               "$d days",
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                fontWeight: isSelected
-                                    ? FontWeight.w700
-                                    : FontWeight.normal,
-                                color: isSelected
+                              style: AppType.labelMedium(isSelected
                                     ? AppColors.primary
                                     : (isDark
                                           ? Colors.white70
-                                          : Colors.black54),
-                              ),
+                                          : Colors.black54)),
                             ),
                           ),
                         );
@@ -704,12 +664,9 @@ class _ChallengeSheetContent extends StatelessWidget {
                       ),
                       decoration: InputDecoration(
                         hintText: "Or enter custom days",
-                        hintStyle: TextStyle(
-                          color: isDark
+                        hintStyle: AppType.bodyMedium(isDark
                               ? Colors.white38
-                              : AppColors.lightTextTertiary,
-                          fontSize: 14.sp,
-                        ),
+                              : AppColors.lightTextTertiary),
                         filled: true,
                         fillColor: isDark
                             ? Colors.white.withValues(alpha: 0.07)
@@ -768,11 +725,7 @@ class _ChallengeSheetContent extends StatelessWidget {
                       onPressed: onSubmit,
                       child: Text(
                         AppLocalizations.of(context)!.startChallenge,
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                        style: AppType.titleMedium(Colors.white),
                       ),
                     ),
                   ),

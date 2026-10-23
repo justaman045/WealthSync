@@ -119,13 +119,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ? "A password reset link has been sent to\n${_emailController.text.trim()}\n\nCheck your inbox and follow the instructions."
                         : "Enter your registered email address and we'll send you a link to reset your password.",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: isDark
+                    style: AppType.bodyLarge(isDark
                           ? Colors.white70
-                          : AppColors.lightTextSecondary,
-                      fontSize: 15.sp,
-                      height: 1.5,
-                    ),
+                          : AppColors.lightTextSecondary),
                   ),
                   SizedBox(height: 40.h),
                   if (!_emailSent) ...[
@@ -168,10 +164,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ),
                               decoration: InputDecoration(
                                 hintText: "Enter your email address",
-                                hintStyle: TextStyle(
-                                  color: isDark ? Colors.white30 : Colors.black38,
-                                  fontSize: 14.sp,
-                                ),
+                                hintStyle: AppType.bodyMedium(isDark ? Colors.white30 : Colors.black38),
                                 prefixIcon: Icon(
                                   Icons.email_outlined,
                                   color: isDark

@@ -28,17 +28,13 @@ class ProLockWidget extends StatelessWidget {
             SizedBox(height: 24.h),
             Text(
               title,
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontSize: 24.sp,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppType.headlineSmall(isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
             SizedBox(height: 12.h),
             Text(
               description,
               textAlign: TextAlign.center,
-              style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 16.sp),
+              style: AppType.bodyLarge(isDark ? Colors.white70 : AppColors.lightTextSecondary),
             ),
             SizedBox(height: 32.h),
             ElevatedButton(

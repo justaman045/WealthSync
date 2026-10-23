@@ -183,11 +183,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 SizedBox(height: 20.h),
                 Text(
                   AppLocalizations.of(context)!.cards,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 12.h),
                 ...docs.map((d) {
@@ -226,14 +222,11 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(AppLocalizations.of(context)!.totalOutstanding,
-              style: TextStyle(color: Colors.white70, fontSize: 13.sp)),
+              style: AppType.bodySmall(Colors.white70)),
           SizedBox(height: 8.h),
           Text(
             "$symbol${total.toStringAsFixed(0)}",
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 28.sp,
-                fontWeight: FontWeight.bold),
+            style: AppType.headlineMedium(Colors.white),
           ),
         ],
       ),
@@ -275,15 +268,11 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
               Expanded(
                 child: Text(
                   name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15.sp,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  ),
+                  style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                icon: const Icon(Icons.delete_outline, color: AppColors.error),
                 onPressed: () => _delete(id, outstanding),
                 iconSize: 20.sp,
                 padding: EdgeInsets.zero,
@@ -299,13 +288,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(AppLocalizations.of(context)!.outstanding,
-                      style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+                      style: AppType.labelSmall(Colors.grey)),
                   Text(
                     "$symbol${outstanding.toStringAsFixed(0)}",
-                    style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red.shade700),
+                    style: AppType.titleMedium(Colors.red.shade700),
                   ),
                 ],
               ),
@@ -314,10 +300,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(AppLocalizations.of(context)!.limit,
-                        style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+                        style: AppType.labelSmall(Colors.grey)),
                     Text(
                       "$symbol${limit.toStringAsFixed(0)}",
-                      style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                      style: AppType.bodyMedium(Colors.grey),
                     ),
                   ],
                 ),
@@ -325,13 +311,11 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(AppLocalizations.of(context)!.due, style: TextStyle(fontSize: 11.sp, color: Colors.grey)),
+                    Text(AppLocalizations.of(context)!.due, style: AppType.labelSmall(Colors.grey)),
                     Text(
                       formatter.format(dueDate),
-                      style: TextStyle(
-                          fontSize: 14.sp,
-                          color: dueDate.isBefore(DateTime.now().add(const Duration(days: 3)))
-                              ? Colors.red
+                      style: AppType.bodyMedium(dueDate.isBefore(DateTime.now().add(const Duration(days: 3)))
+                              ? AppColors.error
                               : Colors.grey),
                     ),
                   ],
@@ -344,7 +328,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
               value: usage,
               backgroundColor: Colors.red.shade100,
               valueColor: AlwaysStoppedAnimation<Color>(
-                usage > 0.8 ? Colors.red : Colors.orange,
+                usage > 0.8 ? AppColors.error : AppColors.warning,
               ),
               borderRadius: BorderRadius.circular(2.r),
               minHeight: 4.h,
@@ -352,7 +336,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
             SizedBox(height: 4.h),
             Text(
               "${(usage * 100).toStringAsFixed(0)}% used",
-              style: TextStyle(fontSize: 10.sp, color: Colors.grey),
+              style: AppType.labelSmall(Colors.grey),
             ),
           ],
         ],
@@ -372,16 +356,12 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
           SizedBox(height: 16.h),
           Text(
             AppLocalizations.of(context)!.creditCardsAdded,
-            style: TextStyle(
-                color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                fontSize: 16.sp),
+            style: AppType.bodyLarge(isDark ? Colors.white54 : AppColors.lightTextSecondary),
           ),
           SizedBox(height: 8.h),
           Text(
             AppLocalizations.of(context)!.tapTrackCardOutstanding,
-            style: TextStyle(
-                color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                fontSize: 13.sp),
+            style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
           ),
         ],
       ),
@@ -399,7 +379,7 @@ Future<bool> _confirmDelete(BuildContext context) async {
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
-          child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          child: const Text("Delete", style: TextStyle(color: AppColors.error)),
         ),
       ],
     ),
@@ -517,10 +497,7 @@ class _AddSheetState extends State<_AddSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.title,
-                style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.sp)),
+                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary)),
             SizedBox(height: 16.h),
             ...List.generate(widget.fields.length, (i) {
               final f = widget.fields[i];

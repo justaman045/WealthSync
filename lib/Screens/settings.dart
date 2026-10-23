@@ -99,11 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false, // Hide back button on main tab
-        titleTextStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(Theme.of(context).colorScheme.onSurface),
       ),
       body: NotificationListener<UserScrollNotification>(
         onNotification: (notification) {
@@ -264,12 +260,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     SizedBox(height: 24.h),
                     Text(
                       "Version $_version",
-                      style: TextStyle(
-                        color: Theme.of(
+                      style: AppType.bodySmall(Theme.of(
                           context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.3),
-                        fontSize: 12.sp,
-                      ),
+                        ).colorScheme.onSurface.withValues(alpha: 0.3)),
                     ),
                     FeatureVisible(
                       flagKey: 'update_checker',
@@ -329,11 +322,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _isCheckingUpdate
                                     ? "Checking..."
                                     : "Check for Updates",
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.4),
-                                  fontSize: 12.sp,
-                                ),
+                                style: AppType.bodySmall(Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.4)),
                               ),
                             ],
                           ),
@@ -385,24 +375,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   children: [
                                     Text(
                                       AppLocalizations.of(context)!.wealthsyncWeb,
-                                      style: TextStyle(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(
+                                      style: AppType.titleMedium(Theme.of(
                                           context,
-                                        ).colorScheme.onSurface,
-                                      ),
+                                        ).colorScheme.onSurface),
                                     ),
                                     SizedBox(height: 4.h),
                                     Text(
                                       AppLocalizations.of(context)!.accessDevice,
-                                      style: TextStyle(
-                                        fontSize: 12.sp,
-                                        color: Theme.of(context)
+                                      style: AppType.bodySmall(Theme.of(context)
                                             .colorScheme
                                             .onSurface
-                                            .withValues(alpha: 0.6),
-                                      ),
+                                            .withValues(alpha: 0.6)),
                                     ),
                                     SizedBox(height: 2.h),
                                     Text(
@@ -479,11 +462,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       () => Text(
                         _profileController.currentUser.value?.displayName ??
                             "User",
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppType.titleMedium(Theme.of(context).colorScheme.onSurface),
                       ),
                     ),
                     SizedBox(height: 4.h),
@@ -491,12 +470,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       () => Text(
                         _profileController.currentUser.value?.email ??
                             "No Email",
-                        style: TextStyle(
-                          color: Theme.of(
+                        style: AppType.bodySmall(Theme.of(
                             context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          fontSize: 12.sp,
-                        ),
+                          ).colorScheme.onSurface.withValues(alpha: 0.6)),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -533,11 +509,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Text(
           AppStrings.signOut,
-          style: TextStyle(
-            color: AppColors.error,
-            fontWeight: FontWeight.bold,
-            fontSize: 16.sp,
-          ),
+          style: AppType.titleMedium(AppColors.error),
         ),
       ),
     );
@@ -556,14 +528,9 @@ class _SectionHeader extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: Text(
           title.toUpperCase(),
-          style: TextStyle(
-            color: Theme.of(
+          style: AppType.labelMedium(Theme.of(
               context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5),
-            fontSize: 12.sp,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
+            ).colorScheme.onSurface.withValues(alpha: 0.5)),
         ),
       ),
     );
@@ -610,21 +577,14 @@ class _SettingsCategoryCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppType.titleMedium(Theme.of(context).colorScheme.onSurface),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: Theme.of(
+                    style: AppType.bodySmall(Theme.of(
                         context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.5),
-                      fontSize: 12.sp,
-                    ),
+                      ).colorScheme.onSurface.withValues(alpha: 0.5)),
                   ),
                 ],
               ),
@@ -754,12 +714,9 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
               child: _loading
                   ? Text(
                       AppLocalizations.of(context)!.loading,
-                      style: TextStyle(
-                        color: isDark
+                      style: AppType.bodySmall(isDark
                             ? Colors.white54
-                            : AppColors.lightTextSecondary,
-                        fontSize: 13.sp,
-                      ),
+                            : AppColors.lightTextSecondary),
                     )
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -777,12 +734,9 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
                           children: [
                             Text(
                               AppLocalizations.of(context)!.code,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: isDark
+                              style: AppType.bodySmall(isDark
                                     ? Colors.white60
-                                    : AppColors.lightTextSecondary,
-                              ),
+                                    : AppColors.lightTextSecondary),
                             ),
                             InkWell(
                               onTap: _code.isEmpty ? null : _copyCode,
@@ -803,12 +757,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
                                   children: [
                                     Text(
                                       _code.isEmpty ? '—' : _code,
-                                      style: TextStyle(
-                                        fontSize: 13.sp,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.primary,
-                                        letterSpacing: 1.5,
-                                      ),
+                                      style: AppType.labelMedium(AppColors.primary),
                                     ),
                                     if (_code.isNotEmpty) ...[
                                       SizedBox(width: 4.w),
@@ -827,10 +776,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
                         if (_count > 0)
                           Text(
                             "You've referred $_count friend${_count > 1 ? 's' : ''} — $_count month${_count > 1 ? 's' : ''} earned 🎉",
-                            style: TextStyle(
-                              fontSize: 11.sp,
-                              color: AppColors.success,
-                            ),
+                            style: AppType.labelSmall(AppColors.success),
                           ),
                       ],
                     ),

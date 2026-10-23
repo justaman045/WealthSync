@@ -103,7 +103,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Text(
           "Add keyword to $category",
-          style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 16.sp),
+          style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
         content: TextField(
           controller: ctrl,
@@ -172,7 +172,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text(AppLocalizations.of(context)!.newCategory2, style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontSize: 16.sp)),
+        title: Text(AppLocalizations.of(context)!.newCategory2, style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -253,11 +253,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                         children: [
                           Text(
                             AppLocalizations.of(context)!.suggestedRules,
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.secondary,
-                            ),
+                            style: AppType.titleSmall(AppColors.secondary),
                           ),
                           SizedBox(height: 8.h),
                           ..._suggestions.map((s) {
@@ -280,22 +276,18 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                                       children: [
                                         Text(
                                           merchant.toUpperCase(),
-                                          style: TextStyle(
-                                            fontSize: 13.sp,
-                                            fontWeight: FontWeight.w700,
-                                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                          ),
+                                          style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                                         ),
                                         Text(
                                           "Categorized as $category ($count times)",
-                                          style: TextStyle(fontSize: 11.sp, color: isDark ? Colors.white60 : AppColors.lightTextSecondary),
+                                          style: AppType.labelSmall(isDark ? Colors.white60 : AppColors.lightTextSecondary),
                                         ),
                                       ],
                                     ),
                                   ),
                                   TextButton(
                                     onPressed: () => _acceptSuggestion(s),
-                                    child: Text(AppLocalizations.of(context)!.addRule, style: TextStyle(fontSize: 12.sp, color: AppColors.secondary)),
+                                    child: Text(AppLocalizations.of(context)!.addRule, style: AppType.bodySmall(AppColors.secondary)),
                                   ),
                                   GestureDetector(
                                     onTap: () => _dismissSuggestion(merchant),
@@ -384,7 +376,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                     children: [
                       Icon(Icons.add, size: 14.sp, color: AppColors.secondary),
                       SizedBox(width: 4.w),
-                      Text(AppStrings.add, style: TextStyle(fontSize: 12.sp, color: AppColors.secondary, fontWeight: FontWeight.w600)),
+                      Text(AppStrings.add, style: AppType.labelMedium(AppColors.secondary)),
                     ],
                   ),
                 ),
@@ -401,7 +393,7 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
                 return GestureDetector(
                   onLongPress: () => _removeKeyword(category, kw),
                   child: Chip(
-                    label: Text(kw, style: TextStyle(fontSize: 12.sp, color: isDefault ? (isDark ? Colors.white70 : AppColors.lightTextSecondary) : (isDark ? Colors.white : AppColors.lightTextPrimary))),
+                    label: Text(kw, style: AppType.bodySmall(isDefault ? (isDark ? Colors.white70 : AppColors.lightTextSecondary) : (isDark ? Colors.white : AppColors.lightTextPrimary))),
                     backgroundColor: isDefault
                         ? (isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightActionSurface)
                         : AppColors.primary.withValues(alpha: 0.3),

@@ -92,9 +92,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
               Text(AppLocalizations.of(context)!.paymentMode,
-                  style: TextStyle(
-                      color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                      fontSize: 13.sp)),
+                  style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary)),
               SizedBox(height: 12.h),
               _buildModeCard(
                 mode: 'google_play',
@@ -114,28 +112,22 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
               SizedBox(height: 32.h),
               if (_mode == 'upi') ...[
                 Text(AppLocalizations.of(context)!.upiID,
-                    style: TextStyle(
-                        color: isDark
+                    style: AppType.bodySmall(isDark
                             ? Colors.white70
-                            : AppColors.lightTextSecondary,
-                        fontSize: 13.sp)),
+                            : AppColors.lightTextSecondary)),
                 SizedBox(height: 8.h),
                 GlassContainer(
                   padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
                   borderRadius: BorderRadius.circular(14.r),
                   child: TextField(
                     controller: _upiCtrl,
-                    style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        fontSize: 16.sp),
+                    style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                     decoration: InputDecoration(
                       border: InputBorder.none,
                       hintText: 'yourname@upi',
-                      hintStyle: TextStyle(
-                          color: isDark
+                      hintStyle: AppType.bodyLarge(isDark
                               ? Colors.white38
-                              : AppColors.lightTextTertiary,
-                          fontSize: 16.sp),
+                              : AppColors.lightTextTertiary),
                       prefixIcon: const Icon(Icons.alternate_email, color: AppColors.primary),
                     ),
                   ),
@@ -143,11 +135,9 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 SizedBox(height: 8.h),
                 Text(
                   AppLocalizations.of(context)!.usersAskedPayUPIID,
-                  style: TextStyle(
-                      color: isDark
+                  style: AppType.bodySmall(isDark
                           ? Colors.white38
-                          : AppColors.lightTextTertiary,
-                      fontSize: 12.sp),
+                          : AppColors.lightTextTertiary),
                 ),
                 SizedBox(height: 32.h),
               ],
@@ -215,23 +205,18 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: TextStyle(
-                          color: selected
+                      style: AppType.labelLarge(selected
                               ? isDark
                                   ? Colors.white
                                   : AppColors.lightTextPrimary
                               : isDark
                                   ? Colors.white60
-                                  : AppColors.lightTextSecondary,
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.bold)),
+                                  : AppColors.lightTextSecondary)),
                   SizedBox(height: 4.h),
                   Text(subtitle,
-                      style: TextStyle(
-                          color: isDark
+                      style: AppType.bodySmall(isDark
                               ? Colors.white38
-                              : AppColors.lightTextTertiary,
-                          fontSize: 12.sp)),
+                              : AppColors.lightTextTertiary)),
                 ],
               ),
             ),

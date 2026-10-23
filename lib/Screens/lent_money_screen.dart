@@ -149,13 +149,9 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                     Expanded(
                       child: Text(
                         title,
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withValues(
+                        style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(
                             alpha: 0.8,
-                          ),
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
+                          )),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -180,11 +176,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                           NumberFormat.simpleCurrency(
                             name: currency,
                           ).format(value),
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurface,
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AppType.headlineSmall(theme.colorScheme.onSurface),
                         );
                       },
                     ),
@@ -237,11 +229,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                   SizedBox(width: 8.w),
                   Text(
                     "Grand Sum ($label)",
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: AppType.bodyMedium(theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                   ),
                 ],
               ),
@@ -252,11 +240,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                 builder: (context, value, child) {
                   return Text(
                     NumberFormat.simpleCurrency(name: currency).format(value),
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: AppType.titleMedium(color),
                   );
                 },
               ),
@@ -282,10 +266,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
               SizedBox(height: 16.h),
               Text(
                 "No active lent money records.",
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                  fontSize: 16.sp,
-                ),
+                style: AppType.bodyLarge(theme.colorScheme.onSurface.withValues(alpha: 0.5)),
               ),
             ],
           ),
@@ -356,7 +337,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                     _controller.markAsSettled(entry);
                   }
                 },
-                backgroundColor: Colors.green,
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
                 icon: Icons.check_circle_outline,
                 label: entry.isSettled ? 'Already Settled' : 'Settle',
@@ -377,7 +358,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
               color: entry.isSettled
-                  ? Colors.green.withValues(alpha: 0.3)
+                  ? AppColors.success.withValues(alpha: 0.3)
                   : theme.colorScheme.onSurface.withValues(alpha: 0.1),
             ),
             child: Row(
@@ -386,13 +367,13 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                   padding: EdgeInsets.all(12.w),
                   decoration: BoxDecoration(
                     color: entry.isSettled
-                        ? Colors.green.withValues(alpha: 0.1)
+                        ? AppColors.success.withValues(alpha: 0.1)
                         : activeColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     entry.isSettled ? Icons.check : iconData,
-                    color: entry.isSettled ? Colors.green : activeColor,
+                    color: entry.isSettled ? AppColors.success : activeColor,
                   ),
                 ),
                 SizedBox(width: 16.w),
@@ -415,20 +396,13 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                         children: [
                           Text(
                             typeLabel,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.bold,
-                              color: activeColor,
-                            ),
+                            style: AppType.labelMedium(activeColor),
                           ),
                           Text(
                             " • ${DateFormat('MMM dd, yyyy').format(entry.dateLent)}",
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: theme.colorScheme.onSurface.withValues(
+                            style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(
                                 alpha: 0.5,
-                              ),
-                            ),
+                              )),
                           ),
                         ],
                       ),
@@ -436,12 +410,9 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                         SizedBox(height: 4.h),
                         Text(
                           entry.note,
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: theme.colorScheme.onSurface.withValues(
+                          style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(
                               alpha: 0.7,
-                            ),
-                          ),
+                            )),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -450,11 +421,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                         SizedBox(height: 4.h),
                         Text(
                           "Repaid ${NumberFormat.simpleCurrency(name: currency).format(entry.repaidAmount)}",
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: entry.isSettled ? Colors.green : Colors.teal,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: AppType.labelMedium(entry.isSettled ? AppColors.success : AppColors.success),
                         ),
                       ],
                     ],
@@ -467,13 +434,9 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                       NumberFormat.simpleCurrency(
                         name: currency,
                       ).format(entry.amount),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.sp,
-                        color: entry.isSettled
+                      style: AppType.titleMedium(entry.isSettled
                             ? Colors.grey
-                            : theme.colorScheme.onSurface,
-                      ),
+                            : theme.colorScheme.onSurface),
                     ),
                     SizedBox(height: 4.h),
                     Text(
@@ -482,11 +445,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                           : entry.repaidAmount > 0
                               ? "${_currencyController.currencySymbol.value}${entry.remainingAmount.toStringAsFixed(0)} left"
                               : "Pending",
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: entry.isSettled ? Colors.green : activeColor,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppType.labelMedium(entry.isSettled ? AppColors.success : activeColor),
                     ),
                     if (!entry.isSettled) ...[
                       SizedBox(height: 6.h),
@@ -516,11 +475,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                               SizedBox(width: 3.w),
                               Text(
                                 actionLabel,
-                                style: TextStyle(
-                                  fontSize: 11.sp,
-                                  color: activeColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: AppType.labelSmall(activeColor),
                               ),
                             ],
                           ),
@@ -552,10 +507,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
           SizedBox(height: 16.h),
           Text(
             "Select an entry to view details",
-            style: TextStyle(
-              color: textColor.withValues(alpha: 0.4),
-              fontSize: 16.sp,
-            ),
+            style: AppType.bodyLarge(textColor.withValues(alpha: 0.4)),
           ),
         ],
       ),

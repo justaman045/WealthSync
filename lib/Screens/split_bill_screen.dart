@@ -261,11 +261,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                         child: Center(
                           child: Text(
                             "${i + 1}",
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
+                            style: AppType.labelMedium(AppColors.primary),
                           ),
                         ),
                       ),
@@ -312,7 +308,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                 icon: Icon(Icons.person_add_outlined, size: 18.sp, color: AppColors.secondary),
                 label: Text(
                   AppLocalizations.of(context)!.addPerson,
-                  style: TextStyle(color: AppColors.secondary, fontSize: 14.sp),
+                  style: AppType.bodyMedium(AppColors.secondary),
                 ),
               ),
               SizedBox(height: 8.h),
@@ -342,7 +338,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                         if (hasDiscrepancy)
                           Text(
                             "Doesn't match total ($sym${enteredTotal.toStringAsFixed(2)})",
-                            style: TextStyle(fontSize: 11.sp, color: AppColors.error),
+                            style: AppType.labelSmall(AppColors.error),
                           ),
                       ],
                     ),
@@ -375,11 +371,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                         )
                       : Text(
                           AppLocalizations.of(context)!.createSplitEntries,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: AppType.titleMedium(Colors.white),
                         ),
                 ),
               ),
@@ -397,12 +389,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 13.sp,
-        fontWeight: FontWeight.w600,
-        color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-        letterSpacing: 0.8,
-      ),
+      style: AppType.labelMedium(isDark ? Colors.white54 : AppColors.lightTextSecondary),
     );
   }
 
@@ -426,7 +413,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
         prefixText: prefix,
         prefixStyle: TextStyle(fontSize: 14.sp, color: theme.textTheme.bodyMedium?.color),
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey, fontSize: 13.sp),
+        hintStyle: AppType.bodySmall(Colors.grey),
         filled: true,
         fillColor: isDark
             ? Colors.white.withValues(alpha: 0.06)

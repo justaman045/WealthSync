@@ -93,11 +93,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
         appBar: AppBar(
           title: Text(
             AppStrings.subscriptions,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20.sp,
-              color: textColor,
-            ),
+            style: AppType.titleLarge(textColor),
           ),
           centerTitle: true,
           backgroundColor: Colors.transparent,
@@ -254,13 +250,9 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                   SizedBox(height: 24.h),
                                   Text(
                                         AppLocalizations.of(context)!.subscriptionsYet,
-                                        style: TextStyle(
-                                          color: textColor.withValues(
+                                        style: AppType.bodyLarge(textColor.withValues(
                                             alpha: 0.6,
-                                          ),
-                                          fontSize: 16.sp,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                          )),
                                       )
                                       .animate()
                                       .fadeIn(delay: 200.ms)
@@ -268,10 +260,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                   SizedBox(height: 8.h),
                                   Text(
                                     AppLocalizations.of(context)!.trackNetflixRentSpotifyEtc,
-                                    style: TextStyle(
-                                      color: textColor.withValues(alpha: 0.4),
-                                      fontSize: 12.sp,
-                                    ),
+                                    style: AppType.bodySmall(textColor.withValues(alpha: 0.4)),
                                   ).animate().fadeIn(delay: 400.ms),
                                 ],
                               ),
@@ -365,7 +354,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                     alpha: 0.3,
                   ) // Green glow for paid
                 : (isPending
-                      ? Colors.orange.withValues(alpha: 0.3)
+                      ? AppColors.warning.withValues(alpha: 0.3)
                       : (isDark
                             ? Colors.white.withValues(alpha: 0.08)
                             : Colors.white.withValues(alpha: 0.5))),
@@ -386,7 +375,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               color: isPaid
                   ? AppColors.success.withValues(alpha: 0.1)
                   : (isPending
-                        ? Colors.orange.withValues(alpha: 0.12)
+                        ? AppColors.warning.withValues(alpha: 0.12)
                         : Colors.black.withValues(alpha: isDark ? 0.2 : 0.05)),
               blurRadius: 15.w,
               offset: Offset(0.w, 8.w),
@@ -402,7 +391,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                   colors: isPaused
                       ? [Colors.grey.shade700, Colors.grey.shade800]
                       : (isPending
-                            ? [Colors.orange, Colors.deepOrange]
+                            ? [AppColors.warning, AppColors.warning]
                             : (isPaid
                                   ? [
                                       AppColors.success,
@@ -422,7 +411,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                         (isPaused
                                 ? Colors.grey
                                 : (isPending
-                                      ? Colors.orange
+                                      ? AppColors.warning
                                       : (isPaid
                                             ? AppColors.success
                                             : AppColors.primary)))
@@ -486,12 +475,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                           ),
                           child: Text(
                             AppLocalizations.of(context)!.auto,
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                              letterSpacing: 0.6,
-                            ),
+                            style: AppType.labelSmall(AppColors.primary),
                           ),
                         ),
                       ],
@@ -505,9 +489,9 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isPaused
-                          ? Colors.orange.withValues(alpha: 0.1)
+                          ? AppColors.warning.withValues(alpha: 0.1)
                           : (isPending
-                                ? Colors.orange.withValues(alpha: 0.12)
+                                ? AppColors.warning.withValues(alpha: 0.12)
                                 : (isPaid
                                       ? const Color(
                                           0xFF00E676,
@@ -516,12 +500,12 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                       borderRadius: BorderRadius.circular(6.r),
                       border: isPaused
                           ? Border.all(
-                              color: Colors.orange.withValues(alpha: 0.3),
+                              color: AppColors.warning.withValues(alpha: 0.3),
                               width: 1,
                             )
                           : (isPending
                                 ? Border.all(
-                                    color: Colors.orange.withValues(alpha: 0.4),
+                                    color: AppColors.warning.withValues(alpha: 0.4),
                                     width: 1,
                                   )
                                 : (isPaid
@@ -540,17 +524,13 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                 : (isPaid
                                       ? "PAID • Due ${DateFormat('MMM dd').format(item.nextDueDate)}"
                                       : "${item.frequency.name.capitalizeFirst} • Due ${DateFormat('MMM dd').format(item.nextDueDate)}")),
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        color: isPaused
-                            ? Colors.orange
+                      style: AppType.labelSmall(isPaused
+                            ? AppColors.warning
                             : (isPending
-                                  ? Colors.orange
+                                  ? AppColors.warning
                                   : (isPaid
                                         ? AppColors.success
-                                        : textColor.withValues(alpha: 0.6))),
-                        fontWeight: FontWeight.bold,
-                      ),
+                                        : textColor.withValues(alpha: 0.6)))),
                     ),
                   ),
                   if (isAutoMissed) ...[
@@ -561,7 +541,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                         vertical: 4.h,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
+                        color: AppColors.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6.r),
                         border: Border.all(
                           color: AppColors.error.withValues(alpha: 0.4),
@@ -570,12 +550,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                       ),
                       child: Text(
                         AppLocalizations.of(context)!.autoPAYMISSED,
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.error,
-                          letterSpacing: 0.5,
-                        ),
+                        style: AppType.labelSmall(AppColors.error),
                       ),
                     ),
                   ],
@@ -587,12 +562,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
               children: [
                 Text(
                   "${CurrencyController.to.currencySymbol.value}${item.amount.toStringAsFixed(0)}",
-                  style: TextStyle(
-                    fontSize: 17.sp,
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
-                    letterSpacing: 0.5,
-                  ),
+                  style: AppType.titleMedium(textColor),
                 ),
                 SizedBox(height: 8.h),
                 // Edit only
@@ -634,10 +604,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
           SizedBox(height: 16.h),
           Text(
             AppLocalizations.of(context)!.selectSubscriptionViewDetails,
-            style: TextStyle(
-              color: textColor.withValues(alpha: 0.4),
-              fontSize: 16.sp,
-            ),
+            style: AppType.bodyLarge(textColor.withValues(alpha: 0.4)),
           ),
         ],
       ),
@@ -899,26 +866,19 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                     onChanged: (v) => setState(() => _autoPay = v ?? false),
                     title: Text(
                       AppLocalizations.of(context)!.autoPay,
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
+                      style: AppType.labelLarge(textColor),
                     ),
                     subtitle: Text(
                       _autoPay
                           ? "When due, a transaction is created automatically."
                           : "Remind me when due — I'll mark it paid manually.",
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: textColor.withValues(alpha: 0.6),
-                      ),
+                      style: AppType.bodySmall(textColor.withValues(alpha: 0.6)),
                     ),
                     secondary: Icon(
                       _autoPay
                           ? Icons.auto_awesome_rounded
                           : Icons.notifications_active_outlined,
-                      color: _autoPay ? AppColors.primary : Colors.orange,
+                      color: _autoPay ? AppColors.primary : AppColors.warning,
                       size: 22.sp,
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
@@ -1003,12 +963,7 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
             children: [
               Text(
                 AppLocalizations.of(context)!.monthlyCommitment,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: widget.textColor.withValues(alpha: 0.6),
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
+                style: AppType.bodyMedium(widget.textColor.withValues(alpha: 0.6)),
               ),
               SizedBox(height: 12.h),
               TweenAnimationBuilder<double>(
@@ -1018,12 +973,7 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
                 builder: (context, value, child) {
                   return Text(
                     "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
-                    style: TextStyle(
-                      fontSize: 36.sp,
-                      fontWeight: FontWeight.bold,
-                      color: widget.textColor,
-                      letterSpacing: -1.0,
-                    ),
+                    style: AppType.displaySmall(widget.textColor),
                   );
                 },
               ),

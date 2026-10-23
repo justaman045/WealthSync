@@ -245,11 +245,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                             value: c['symbol'],
                                             child: Text(
                                               "${c['symbol']} (${c['code']})",
-                                              style: TextStyle(
-                                                color: textColor,
-                                                fontSize: 18.sp,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                              style: AppType.titleMedium(textColor),
                                             ),
                                           ),
                                         )
@@ -278,11 +274,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 child: TextFormField(
                                   controller: _budgetController,
                                   keyboardType: TextInputType.number,
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: AppType.titleMedium(textColor),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
@@ -332,12 +324,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   controller: _referralController,
                                   textCapitalization:
                                       TextCapitalization.characters,
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontSize: 18.sp,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 2,
-                                  ),
+                                  style: AppType.titleMedium(textColor),
                                   decoration: InputDecoration(
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
@@ -388,11 +375,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   )
                                 : Text(
                                     l10n.startTracking,
-                                    style: TextStyle(
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
+                                    style: AppType.titleMedium(Colors.white),
                                   ),
                           ),
                         ),
@@ -412,11 +395,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       blastDirectionality: BlastDirectionality.explosive,
                       shouldLoop: false,
                       colors: const [
-                        Colors.green,
-                        Colors.blue,
-                        Colors.pink,
-                        Colors.orange,
-                        Colors.purple,
+                        AppColors.success,
+                        AppColors.primary,
+                        AppColors.accent,
+                        AppColors.warning,
+                        AppColors.accent,
                       ],
                       createParticlePath: drawStar,
                     ),

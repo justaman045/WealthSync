@@ -82,41 +82,24 @@ class ComingSoonScreen extends StatelessWidget {
                     Text(
                       featureTitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppType.titleLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                     ),
                     SizedBox(height: 8.h),
                     Text(
                       AppStrings.comingSoonTitle,
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2,
-                      ),
+                      style: AppType.titleSmall(AppColors.primary),
                     ),
                     SizedBox(height: 16.h),
                     Text(
                       AppStrings.comingSoonBody,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-                        fontSize: 15.sp,
-                        height: 1.5,
-                      ),
+                      style: AppType.bodyLarge(isDark ? Colors.white70 : AppColors.lightTextSecondary),
                     ),
                     SizedBox(height: 8.h),
                     Text(
                       AppStrings.comingSoonFollow,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isDark ? Colors.white38 : AppColors.lightTextTertiary,
-                        fontSize: 13.sp,
-                        height: 1.5,
-                      ),
+                      style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
                     ),
                   ],
                 ),

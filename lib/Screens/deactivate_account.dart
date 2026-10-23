@@ -101,11 +101,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
           centerTitle: true,
           title: Text(
             "Delete Account",
-            style: TextStyle(
-              color: textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
+            style: AppType.titleMedium(textColor),
           ),
           leading: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: textColor, size: 20.sp),
@@ -157,40 +153,26 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                     Text(
                       "Delete Account Permanently?",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: textColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.sp,
-                      ),
+                      style: AppType.titleMedium(textColor),
                     ),
                     SizedBox(height: 12.h),
                     Text(
                       "This action cannot be undone. All your data including transactions, recurring payments, and wealth records will be permanently erased.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: secondaryTextColor,
-                        fontSize: 13.5.sp,
-                        height: 1.5,
-                      ),
+                      style: AppType.bodySmall(secondaryTextColor),
                     ),
                     if (error != null) ...[
                       SizedBox(height: 16.h),
                       Text(
                         error!,
-                        style: TextStyle(
-                          color: AppColors.error,
-                          fontSize: 13.sp,
-                        ),
+                        style: AppType.bodySmall(AppColors.error),
                       ),
                     ],
                     if (success != null) ...[
                       SizedBox(height: 16.h),
                       Text(
                         success!,
-                        style: TextStyle(
-                          color: AppColors.success,
-                          fontSize: 13.sp,
-                        ),
+                        style: AppType.bodySmall(AppColors.success),
                       ),
                     ],
                     SizedBox(height: 30.h),
@@ -278,11 +260,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
               Center(
                 child: Text(
                   "Need help?",
-                  style: TextStyle(
-                    color: secondaryTextColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14.sp,
-                  ),
+                  style: AppType.titleSmall(secondaryTextColor),
                 ),
               ),
               SizedBox(height: 8.h),
@@ -305,11 +283,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                     SizedBox(width: 8.w),
                     SelectableText(
                       "work.amanojha30@gmail.com",
-                      style: TextStyle(
-                        color: textColor,
-                        fontSize: 13.5.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppType.bodySmall(textColor),
                     ),
                   ],
                 ),

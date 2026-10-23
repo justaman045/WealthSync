@@ -143,12 +143,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.newCategory,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
+                  style: AppType.titleLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 20.h),
                 Container(
@@ -181,10 +176,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                       onPressed: () => Navigator.pop(context),
                       child: Text(
                         AppLocalizations.of(context)!.cancel,
-                        style: TextStyle(
-                          color: isDark ? Colors.white.withValues(alpha: 0.6) : AppColors.lightTextSecondary,
-                          fontSize: 16.sp,
-                        ),
+                        style: AppType.bodyLarge(isDark ? Colors.white.withValues(alpha: 0.6) : AppColors.lightTextSecondary),
                       ),
                     ),
                     SizedBox(width: 12.w),
@@ -227,11 +219,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                         ),
                         child: Text(
                           AppStrings.add,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.sp,
-                          ),
+                          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                         ),
                       ),
                     ),
@@ -366,11 +354,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18.sp,
-        ),
+        titleTextStyle: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         iconTheme: IconThemeData(color: isDark ? Colors.white : AppColors.lightTextPrimary),
       ),
       body: Container(
@@ -472,11 +456,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                                 )
                               : Text(
                                   AppStrings.saveChanges,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18.sp,
-                                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                                  ),
+                                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                                 ),
                         ),
                       ),
@@ -503,11 +483,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
       padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
       child: Text(
         text,
-        style: TextStyle(
-          color: isDark ? Colors.white70 : AppColors.lightTextSecondary,
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w500,
-        ),
+        style: AppType.bodyMedium(isDark ? Colors.white70 : AppColors.lightTextSecondary),
       ),
     );
   }
@@ -549,11 +525,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             margin: EdgeInsets.all(8.w),
             child: Text(
               widget.transaction.currency,
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w800,
-                fontSize: 15.sp,
-              ),
+              style: AppType.labelLarge(AppColors.primary),
             ),
           ),
           Expanded(
@@ -562,16 +534,11 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              style: TextStyle(
-                fontSize: 22.sp,
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
+              style: AppType.titleLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: "0.00",
-                hintStyle: TextStyle(color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2), fontSize: 22.sp),
+                hintStyle: AppType.titleLarge(isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2)),
               ),
               validator: (val) {
                 if (val == null || val.isEmpty) return "Required";
@@ -604,19 +571,11 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
             ? const TextInputType.numberWithOptions(decimal: true)
             : TextInputType.text,
         validator: validator,
-        style: TextStyle(
-          fontSize: 16.sp,
-          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-          fontWeight: FontWeight.w500,
-        ),
+        style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,
-          hintStyle: TextStyle(
-            color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
-          ),
+          hintStyle: AppType.bodyLarge(isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2)),
         ),
       ),
     );
@@ -682,11 +641,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
                       ],
                       Text(
                         cat.name,
-                        style: TextStyle(
-                          color: isSelected ? (isDark ? Colors.white : AppColors.lightTextPrimary) : (isDark ? Colors.white70 : AppColors.lightTextSecondary),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.sp,
-                        ),
+                        style: AppType.titleSmall(isSelected ? (isDark ? Colors.white : AppColors.lightTextPrimary) : (isDark ? Colors.white70 : AppColors.lightTextSecondary)),
                       ),
                     ],
                   ),
@@ -772,11 +727,7 @@ class _TransactionEditScreenState extends State<TransactionEditScreen> {
           children: [
             Text(
               "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
-              style: TextStyle(
-                fontSize: 16.sp,
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
             ),
             const Spacer(),
             const Icon(Icons.calendar_today_outlined, color: AppColors.primary),

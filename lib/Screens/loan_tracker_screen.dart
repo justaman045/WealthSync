@@ -74,11 +74,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                   SizedBox(height: 20.h),
                   Text(
                     AppLocalizations.of(context)!.activeLoans,
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                    ),
+                    style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                   ),
                   SizedBox(height: 12.h),
                   ...ctrl.loans.map((loan) => _buildLoanCard(context, loan, ctrl, isDark)),
@@ -118,16 +114,12 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.totalOutstanding,
-                  style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+                  style: AppType.bodySmall(Colors.white70),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   "$symbol${ctrl.totalOutstanding.toStringAsFixed(0)}",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppType.titleLarge(Colors.white),
                 ),
               ],
             ),
@@ -140,16 +132,12 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.monthlyEMI,
-                  style: TextStyle(color: Colors.white70, fontSize: 12.sp),
+                  style: AppType.bodySmall(Colors.white70),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   "$symbol${ctrl.totalMonthlyEmi.toStringAsFixed(0)}/mo",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppType.titleLarge(Colors.white),
                 ),
               ],
             ),
@@ -210,15 +198,11 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                     children: [
                       Text(
                         loan.name,
-                        style: TextStyle(
-                          color: textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15.sp,
-                        ),
+                        style: AppType.labelLarge(textPrimary),
                       ),
                       Text(
                         "${loan.loanType.name.capitalize} • ${loan.interestRate.toStringAsFixed(1)}% p.a.",
-                        style: TextStyle(color: textSecondary, fontSize: 12.sp),
+                        style: AppType.bodySmall(textSecondary),
                       ),
                     ],
                   ),
@@ -228,15 +212,11 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                   children: [
                     Text(
                       "$symbol${loan.emiAmount.toStringAsFixed(0)}/mo",
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.sp,
-                      ),
+                      style: AppType.titleSmall(AppColors.primary),
                     ),
                     Text(
                       "${loan.monthsPaid}/${loan.tenureMonths} mo paid",
-                      style: TextStyle(color: textSecondary, fontSize: 11.sp),
+                      style: AppType.labelSmall(textSecondary),
                     ),
                   ],
                 ),
@@ -248,15 +228,11 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               children: [
                 Text(
                   "Outstanding: $symbol${loan.outstandingBalance.toStringAsFixed(0)}",
-                  style: TextStyle(color: textSecondary, fontSize: 12.sp),
+                  style: AppType.bodySmall(textSecondary),
                 ),
                 Text(
                   "${(loan.progressPercent * 100).toStringAsFixed(0)}% paid",
-                  style: TextStyle(
-                    color: _progressColor(loan.progressPercent),
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: AppType.bodySmall(_progressColor(loan.progressPercent)),
                 ),
               ],
             ),
@@ -279,7 +255,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               children: [
                 Text(
                   "Started ${DateFormat('MMM yyyy').format(loan.startDate)}",
-                  style: TextStyle(color: textSecondary, fontSize: 11.sp),
+                  style: AppType.labelSmall(textSecondary),
                 ),
                 GestureDetector(
                   onTap: () async {
@@ -288,11 +264,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                   },
                   child: Text(
                     AppLocalizations.of(context)!.remove,
-                    style: TextStyle(
-                      color: AppColors.error,
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: AppType.labelSmall(AppColors.error),
                   ),
                 ),
               ],
@@ -316,20 +288,13 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
           SizedBox(height: 16.h),
           Text(
             AppLocalizations.of(context)!.loansTrackedYet,
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white60 : AppColors.lightTextSecondary,
-            ),
+            style: AppType.titleMedium(isDark ? Colors.white60 : AppColors.lightTextSecondary),
           ),
           SizedBox(height: 8.h),
           Text(
             AppLocalizations.of(context)!.addLoanTrackEMIsSee,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: isDark ? Colors.white38 : AppColors.lightTextSecondary,
-            ),
+            style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextSecondary),
           ),
         ],
       ),
@@ -384,16 +349,12 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               SizedBox(height: 16.h),
               Text(
                 "${loan.name} — Schedule",
-                style: TextStyle(
-                  color: textPrimary,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppType.titleMedium(textPrimary),
               ),
               SizedBox(height: 4.h),
               Text(
                 "Total interest: $symbol${loan.totalInterestPayable.toStringAsFixed(0)}",
-                style: TextStyle(color: textSecondary, fontSize: 12.sp),
+                style: AppType.bodySmall(textSecondary),
               ),
               SizedBox(height: 12.h),
               Padding(
@@ -423,7 +384,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                       color: isPast
                           ? (isDark
                               ? Colors.white.withValues(alpha: 0.03)
-                              : Colors.green.withValues(alpha: 0.03))
+                              : AppColors.success.withValues(alpha: 0.03))
                           : Colors.transparent,
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -433,42 +394,30 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                               flex: 1,
                               child: Text(
                                 "${e.month}",
-                                style: TextStyle(
-                                  color: isPast
+                                style: AppType.bodySmall(isPast
                                       ? AppColors.success
-                                      : textSecondary,
-                                  fontSize: 12.sp,
-                                ),
+                                      : textSecondary),
                               ),
                             ),
                             Expanded(
                               flex: 2,
                               child: Text(
                                 "$symbol${e.principalPaid.toStringAsFixed(0)}",
-                                style: TextStyle(
-                                  color: textPrimary,
-                                  fontSize: 12.sp,
-                                ),
+                                style: AppType.bodySmall(textPrimary),
                               ),
                             ),
                             Expanded(
                               flex: 2,
                               child: Text(
                                 "$symbol${e.interestPaid.toStringAsFixed(0)}",
-                                style: TextStyle(
-                                  color: AppColors.error.withValues(alpha: 0.8),
-                                  fontSize: 12.sp,
-                                ),
+                                style: AppType.bodySmall(AppColors.error.withValues(alpha: 0.8)),
                               ),
                             ),
                             Expanded(
                               flex: 2,
                               child: Text(
                                 "$symbol${e.outstanding.toStringAsFixed(0)}",
-                                style: TextStyle(
-                                  color: textSecondary,
-                                  fontSize: 12.sp,
-                                ),
+                                style: AppType.bodySmall(textSecondary),
                               ),
                             ),
                           ],
@@ -491,11 +440,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
       flex: flex,
       child: Text(
         label,
-        style: TextStyle(
-          color: textSecondary,
-          fontSize: 11.sp,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppType.labelSmall(textSecondary),
       ),
     );
   }
@@ -651,11 +596,7 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                 SizedBox(height: 20.h),
                 Text(
                   AppLocalizations.of(context)!.addLoan,
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                  ),
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
                 ),
                 SizedBox(height: 20.h),
 
@@ -751,11 +692,7 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                         SizedBox(width: 8.w),
                         Text(
                           "Monthly EMI: $symbol${_calculatedEmi!.toStringAsFixed(0)}",
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14.sp,
-                          ),
+                          style: AppType.titleSmall(AppColors.primary),
                         ),
                       ],
                     ),
@@ -792,12 +729,9 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                         SizedBox(width: 10.w),
                         Text(
                           "Loan started: ${DateFormat('d MMM yyyy').format(_startDate)}",
-                          style: TextStyle(
-                            color: isDark
+                          style: AppType.bodyMedium(isDark
                                 ? Colors.white
-                                : AppColors.lightTextPrimary,
-                            fontSize: 14.sp,
-                          ),
+                                : AppColors.lightTextPrimary),
                         ),
                       ],
                     ),
@@ -816,12 +750,9 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                     Expanded(
                       child: Text(
                         AppLocalizations.of(context)!.createRecurringPaymentEMI,
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: isDark
+                        style: AppType.bodySmall(isDark
                               ? Colors.white70
-                              : AppColors.lightTextSecondary,
-                        ),
+                              : AppColors.lightTextSecondary),
                       ),
                     ),
                   ],
@@ -845,11 +776,7 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                             color: Colors.white, strokeWidth: 2)
                         : Text(
                             AppLocalizations.of(context)!.addLoan,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: AppType.titleMedium(Colors.white),
                           ),
                   ),
                 )),

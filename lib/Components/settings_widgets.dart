@@ -15,12 +15,7 @@ class SectionHeader extends StatelessWidget {
         alignment: Alignment.centerLeft,
         child: Text(
           title.toUpperCase(),
-          style: TextStyle(
-            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-            fontSize: 12.sp,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
+          style: AppType.labelMedium(isDark ? Colors.white54 : AppColors.lightTextSecondary),
         ),
       ),
     );
@@ -111,10 +106,7 @@ class SettingsTile extends StatelessWidget {
                         SizedBox(height: 3.h),
                         Text(
                           subtitle!,
-                          style: TextStyle(
-                            color: isDark ? Colors.white54 : AppColors.lightTextSecondary,
-                            fontSize: 12.sp,
-                          ),
+                          style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
                         ),
                       ],
                     ],
