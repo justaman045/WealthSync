@@ -829,6 +829,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get a11ySavingsChallenges => 'Savings challenges';
 
   @override
+  String get a11yMoreActions => 'More actions';
+
+  @override
   String get a11yScanQrToPay => 'Scan a QR code to pay';
 
   @override

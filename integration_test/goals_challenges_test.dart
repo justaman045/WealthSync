@@ -13,10 +13,10 @@ void main() {
       await launchAndSignIn(tester, account: TestAccount.pro);
       final isPro = await probePro(tester);
 
-      // ── 1. Goals (pro-gated home icon) ──────────────────────────────────────
-      await tapUntilMarker(
+      // ── 1. Goals (pro-gated, in the home AppBar's ⋮ menu) ───────────────────
+      await tapHomeOverflowItem(tester, Icons.flag_outlined);
+      await waitFor(
         tester,
-        find.byIcon(Icons.flag_outlined),
         isPro ? find.text(AppStrings.goals) : find.text(AppStrings.monthly),
       );
 
@@ -109,26 +109,17 @@ void main() {
 
       // ── 2. Savings Challenges (gated by the `challenges` kill-switch) ───────
       // Make sure we are truly back on the home screen and no overlay (SnackBar
-      // from the goal deletion, etc.) is swallowing the AppBar tap. The emoji
-      // icon lives only on the home AppBar and the Challenges screen itself.
+      // from the goal deletion, etc.) is swallowing the AppBar tap.
       await waitFor(tester, find.text(AppStrings.totalBalance));
       await dismissDialogs(tester);
-      if (!await isVisible(tester, find.byIcon(Icons.emoji_events_outlined))) {
+      if (!await tapHomeOverflowItem(tester, Icons.emoji_events_outlined)) {
         // An admin has `challenges` hidden, so the entry point is removed for
         // everyone. Skip rather than hang for the file timeout — the app is
         // behaving per the feature-flag contract. Re-enable it from Settings →
         // Admin Utils → Feature Flags to exercise this section.
         return;
       }
-      // The challenges button is the rightmost AppBar action; on the narrow
-      // CI emulator its center sits within 24px of the screen edge, which the
-      // default tap margin rejects. Use a tighter margin for this tap.
-      await tapUntilMarker(
-        tester,
-        find.byIcon(Icons.emoji_events_outlined).first,
-        find.text('Savings Challenges'),
-        tapMargin: 8,
-      );
+      await waitFor(tester, find.text('Savings Challenges'));
       expect(find.text('Active'), findsWidgets);
       expect(find.text('Library'), findsWidgets);
 

@@ -18,25 +18,25 @@ void main() {
   ) async {
     await launchAndSignIn(tester, account: TestAccount.pro);
 
-    await tapWhenVisible(tester, find.byIcon(Icons.event_repeat));
+    await tapHomeOverflowItem(tester, Icons.event_repeat);
     await waitFor(tester, find.text(AppStrings.subscriptions));
     expect(find.text(AppStrings.subscriptions), findsWidgets);
     await popScreen(tester);
     await waitForHome(tester);
 
-    await tapWhenVisible(tester, find.byIcon(Icons.handshake_outlined));
+    await tapHomeOverflowItem(tester, Icons.handshake_outlined);
     await waitFor(tester, find.text(AppStrings.lentMoneyTracker));
     expect(find.text(AppStrings.lentMoneyTracker), findsWidgets);
     await popScreen(tester);
     await waitForHome(tester);
 
-    await tapWhenVisible(tester, find.byIcon(Icons.flag_outlined));
+    await tapHomeOverflowItem(tester, Icons.flag_outlined);
     await waitFor(tester, find.text(AppStrings.goals));
     expect(find.text(AppStrings.goals), findsWidgets);
     await popScreen(tester);
     await waitForHome(tester);
 
-    await tapWhenVisible(tester, find.byIcon(Icons.trending_up));
+    await tapHomeOverflowItem(tester, Icons.trending_up);
     await waitFor(tester, find.text('Monthly Forecast'));
     expect(find.text('Monthly Forecast'), findsWidgets);
     await popScreen(tester);

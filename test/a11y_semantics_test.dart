@@ -60,9 +60,13 @@ String _callAt(String source, int openIndex) {
 
 void main() {
   group('home AppBar action buttons', () {
-    test('every action button passes a semantic label', () {
-      final source = File('lib/Screens/homescreen.dart').readAsStringSync();
+    late String source;
 
+    setUpAll(() {
+      source = File('lib/Screens/homescreen.dart').readAsStringSync();
+    });
+
+    test('every action button passes a semantic label', () {
       // Everything before the helper's own definition is the call sites.
       final body = source.split('Widget _buildActionButton(').first;
 
@@ -75,7 +79,10 @@ void main() {
       }
 
       expect(calls, isNotEmpty, reason: 'no call sites found');
-      expect(calls.length, greaterThanOrEqualTo(7));
+      // Pro status + search. The five feature shortcuts moved into the overflow
+      // menu (they left ~28 pt for the greeting on a 390 pt screen), so this is
+      // now a small, deliberately-kept-short row.
+      expect(calls.length, greaterThanOrEqualTo(2));
 
       for (final call in calls) {
         expect(
@@ -84,6 +91,48 @@ void main() {
           reason:
               'an AppBar action button has no semanticLabel — a screen '
               'reader would announce it as an anonymous button:\n$call',
+        );
+      }
+    });
+
+    test('the overflow menu keeps a per-feature kill-switch', () {
+      // Each shortcut used to be its own FeatureVisible-wrapped pill. Collapsing
+      // them into a menu must not lose that: the entry builder has to check the
+      // flag, and the button itself is wrapped in a FeatureSection so it cannot
+      // survive as an empty affordance when every entry is hidden.
+      final menu = source.split('Widget _buildOverflowMenu(').last;
+
+      for (final flagKey in [
+        'recurring',
+        'lent_money',
+        'forecast',
+        'goals',
+        'challenges',
+      ]) {
+        expect(
+          menu,
+          contains("flagKey: '$flagKey'"),
+          reason: '$flagKey is no longer gated in the overflow menu',
+        );
+      }
+
+      expect(menu, contains('isHidden(flagKey)'));
+      expect(source, contains('FeatureSection('));
+    });
+
+    test('every menu action has a navigation handler', () {
+      // A PopupMenuItem whose value has no matching case silently does nothing.
+      for (final action in [
+        'recurring',
+        'lentMoney',
+        'forecast',
+        'goals',
+        'challenges',
+      ]) {
+        expect(
+          source,
+          contains('case _HomeAction.$action:'),
+          reason: 'no _runHomeAction branch for $action',
         );
       }
     });

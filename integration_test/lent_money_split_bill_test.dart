@@ -13,10 +13,10 @@ void main() {
     await launchAndSignIn(tester, account: TestAccount.pro);
     final isPro = await probePro(tester);
 
-    // Pro-gated home icon.
-    await tapUntilMarker(
+    // Pro-gated entry point, in the home AppBar's ⋮ menu.
+    await tapHomeOverflowItem(tester, Icons.handshake_outlined);
+    await waitFor(
       tester,
-      find.byIcon(Icons.handshake_outlined),
       isPro
           ? find.text(AppStrings.lentMoneyTracker)
           : find.text(AppStrings.monthly),

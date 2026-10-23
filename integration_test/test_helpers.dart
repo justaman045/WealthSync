@@ -392,6 +392,45 @@ Future<void> tapWhenVisible(
   fail('Timed out waiting for ${finder.toString()}');
 }
 
+/// Opens the home AppBar's ⋮ menu.
+///
+/// The five Pro shortcuts (recurring, lent money, forecast, goals, challenges)
+/// used to be individual AppBar pills; they now live in this menu, because seven
+/// 38 pt pills left the greeting about 28 pt of width on a 390 pt screen.
+///
+/// Returns false when the button is absent — an admin can hide all five, and the
+/// `FeatureSection` wrapping it then removes the button entirely.
+Future<bool> openHomeOverflow(WidgetTester tester) async {
+  final button = find.byIcon(Icons.more_vert);
+  if (!await isVisible(tester, button, seconds: 10)) return false;
+  await tester.tap(button.first, warnIfMissed: false);
+  await pumpAndSettleSafe(tester);
+  await pumpReal(tester);
+  return true;
+}
+
+/// Taps [icon] inside the home overflow menu, opening the menu first.
+///
+/// Returns false (and closes the menu) when the entry is absent, so a caller can
+/// skip a feature an admin has hidden instead of hanging on an entry point the
+/// kill-switch deliberately deleted.
+Future<bool> tapHomeOverflowItem(WidgetTester tester, IconData icon) async {
+  if (!await openHomeOverflow(tester)) return false;
+  final item = find.byIcon(icon);
+  if (item.evaluate().isEmpty) {
+    // A corner tap lands on the popup route's modal barrier — never on a page
+    // widget — so the menu cannot stay open and swallow the next tap.
+    await tester.tapAt(const Offset(2, 2));
+    await pumpAndSettleSafe(tester);
+    await pumpReal(tester);
+    return false;
+  }
+  await tester.tap(item.first, warnIfMissed: false);
+  await pumpAndSettleSafe(tester);
+  await pumpReal(tester);
+  return true;
+}
+
 /// True when [finder] is present within [seconds] (real time), without failing.
 ///
 /// Admin feature flags can set a surface to `hidden`, which removes its entry

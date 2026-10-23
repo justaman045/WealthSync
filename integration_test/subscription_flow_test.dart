@@ -15,11 +15,11 @@ void main() {
 
     final isPro = await probePro(tester);
 
-    // 4. Navigate to Subscriptions (Recurring Payments) screen via AppBar icon.
+    // 4. Navigate to Subscriptions (Recurring Payments) via the AppBar's ⋮ menu.
     // Pro/trial accounts open the feature; free accounts hit the upgrade gate.
-    await tapUntilMarker(
+    await tapHomeOverflowItem(tester, Icons.event_repeat);
+    await waitFor(
       tester,
-      find.byIcon(Icons.event_repeat),
       isPro ? find.text(AppStrings.subscriptions) : find.text(AppStrings.monthly),
     );
 

@@ -14,11 +14,12 @@ void main() {
     await launchAndSignIn(tester);
 
     // ── 1. Home AppBar Pro-gated shortcuts all route to the paywall ─────────
-    // Each of these is behind its own admin kill-switch (recurring,
-    // lent_money, forecast, goals). When an admin sets one to `hidden` the
-    // button is removed for everyone, so requiring it unconditionally hung the
-    // test on the full timeout. Assert the paywall for whichever are present
-    // and skip the hidden ones — the gate can only be tested where it exists.
+    // They now live behind the AppBar's ⋮ menu (see openHomeOverflow). Each is
+    // still behind its own admin kill-switch (recurring, lent_money, forecast,
+    // goals). When an admin sets one to `hidden` the entry is removed, so
+    // requiring it unconditionally hung the test on the full timeout. Assert the
+    // paywall for whichever are present and skip the hidden ones — the gate can
+    // only be tested where it exists.
     var gatedChecked = 0;
     for (final icon in <IconData>[
       Icons.event_repeat, // Subscriptions (recurring payments)
@@ -26,8 +27,7 @@ void main() {
       Icons.trending_up, // Forecast
       Icons.flag_outlined, // Goals
     ]) {
-      if (!await isVisible(tester, find.byIcon(icon))) continue;
-      await tapWhenVisible(tester, find.byIcon(icon));
+      if (!await tapHomeOverflowItem(tester, icon)) continue;
       await assertUpgradeScreen(tester); // asserts paywall, closes back home
       gatedChecked++;
     }

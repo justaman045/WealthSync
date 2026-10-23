@@ -1575,6 +1575,12 @@ abstract class AppLocalizations {
   /// **'Savings challenges'**
   String get a11ySavingsChallenges;
 
+  /// No description provided for @a11yMoreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get a11yMoreActions;
+
   /// No description provided for @a11yScanQrToPay.
   ///
   /// In en, this message translates to:

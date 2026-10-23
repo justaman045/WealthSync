@@ -46,6 +46,10 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/platform_support.dart';
 import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Services/feature_flag_service.dart';
+
+/// The Pro shortcuts that live behind the home AppBar's overflow menu.
+enum _HomeAction { recurring, lentMoney, forecast, goals, challenges }
 
 class BankingHomeScreen extends StatefulWidget {
   final bool showNavigation;
@@ -241,13 +245,15 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   : Icons.diamond_outlined,
               onTap: () => gotoPage(const SubscriptionScreen()),
               theme: theme,
-              color: ctrl.isPro ? Colors.cyanAccent : null,
+              color: ctrl.isPro ? AppColors.success : AppColors.primary,
               semanticLabel: AppLocalizations.of(context)!.a11yProStatus,
             );
           }),
-          SizedBox(width: 4.w),
 
-          // 🔍 NEW SEARCH BUTTON
+          // 🔍 SEARCH — the one shortcut that stays in the bar. The five Pro
+          // feature entries moved into the overflow menu: seven 38-w pills plus
+          // the avatar left ~28 pt for the greeting on a 390 pt screen, so the
+          // name was being clipped to nothing.
           FeatureVisible(
             flagKey: 'transaction_search',
             child: _buildActionButton(
@@ -264,106 +270,21 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   .a11ySearchTransactions,
             ),
           ),
-          SizedBox(width: 4.w),
 
-          // 📅 SUBSCRIPTIONS BUTTON
-          FeatureVisible(
-            flagKey: 'recurring',
-            child: _buildActionButton(
-              icon: Icons.event_repeat,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() ||
-                    !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                if (!ensureFeatureVisible(context, 'recurring')) return;
-                gotoPage(const RecurringPaymentsScreen());
-              },
-              theme: theme,
-              semanticLabel: AppLocalizations.of(context)!
-                  .a11yRecurringPayments,
-            ),
+          // 📂 Pro feature shortcuts. FeatureSection drops the whole menu when
+          // an admin has hidden every entry, so the bar never keeps an empty
+          // affordance.
+          FeatureSection(
+            flagKeys: const [
+              'recurring',
+              'lent_money',
+              'forecast',
+              'goals',
+              'challenges',
+            ],
+            child: _buildOverflowMenu(context, theme),
           ),
-          SizedBox(width: 4.w),
-
-          // 🤝 LENT MONEY TRACKER BUTTON
-          FeatureVisible(
-            flagKey: 'lent_money',
-            child: _buildActionButton(
-              icon: Icons.handshake_outlined,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() ||
-                    !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                if (!ensureFeatureVisible(context, 'lent_money')) return;
-                gotoPage(const LentMoneyScreen());
-              },
-              theme: theme,
-              color: Colors.greenAccent,
-              semanticLabel: AppLocalizations.of(context)!.a11yLentMoney,
-            ),
-          ),
-          SizedBox(width: 4.w),
-
-          // 📈 FORECAST BUTTON
-          FeatureVisible(
-            flagKey: 'forecast',
-            child: _buildActionButton(
-              icon: Icons.trending_up,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() ||
-                    !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                if (!ensureFeatureVisible(context, 'forecast')) return;
-                gotoPage(const ForecastScreen());
-              },
-              theme: theme,
-              semanticLabel: AppLocalizations.of(context)!.a11ySpendingForecast,
-            ),
-          ),
-          SizedBox(width: 4.w),
-
-          // 🎯 GOALS BUTTON
-          FeatureVisible(
-            flagKey: 'goals',
-            child: _buildActionButton(
-              icon: Icons.flag_outlined,
-              onTap: () {
-                if (!Get.isRegistered<SubscriptionController>() ||
-                    !Get.find<SubscriptionController>().isPro) {
-                  gotoPage(const SubscriptionScreen());
-                  return;
-                }
-                if (!ensureFeatureVisible(context, 'goals')) return;
-                gotoPage(const GoalsScreen());
-              },
-              theme: theme,
-              color: Colors.amberAccent,
-              semanticLabel: AppLocalizations.of(context)!.a11ySavingsGoals,
-            ),
-          ),
-          SizedBox(width: 4.w),
-          // 🏆 CHALLENGES BUTTON
-          FeatureVisible(
-            flagKey: 'challenges',
-            child: _buildActionButton(
-              icon: Icons.emoji_events_outlined,
-              onTap: () {
-                if (!ensureFeatureVisible(context, 'challenges')) return;
-                gotoPage(const SavingsChallengesScreen());
-              },
-              theme: theme,
-              color: Colors.greenAccent,
-              semanticLabel: AppLocalizations.of(context)!
-                  .a11ySavingsChallenges,
-            ),
-          ),
-          SizedBox(width: 6.w),
+          SizedBox(width: AppSpace.s4.w),
         ],
 
         toolbarHeight: 64.h,
@@ -605,6 +526,8 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     }
   }
 
+  /// The visual pill stays 38x36, but the tappable area is a full 48x48 so the
+  /// AppBar shortcuts meet the minimum touch target (they were 38x36).
   Widget _buildActionButton({
     required IconData icon,
     required VoidCallback onTap,
@@ -624,22 +547,152 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     }
 
     // Every one of these is an icon-only button, so without a label a screen
-    // reader announces seven identical "button"s in a row.
+    // reader announces them all as the same anonymous "button".
     return Semantics(
       button: true,
       label: semanticLabel,
-      child: GlassContainer(
-        padding: EdgeInsets.zero,
-        borderRadius: BorderRadius.circular(22.r),
-        width: 38.w,
-        height: 36.h,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           HapticFeedback.lightImpact();
           onTap();
         },
-        child: content,
+        child: SizedBox(
+          width: 48.w,
+          height: 48.h,
+          child: Center(
+            child: GlassContainer(
+              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(AppRadius.xl.r),
+              width: 38.w,
+              height: 36.h,
+              child: Center(child: content),
+            ),
+          ),
+        ),
       ),
     );
+  }
+
+  /// Secondary shortcuts. Rebuilt on open, so an admin flipping a flag is
+  /// reflected the next time the menu is opened without restarting the app.
+  Widget _buildOverflowMenu(BuildContext context, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return PopupMenuButton<_HomeAction>(
+      tooltip: l10n.a11yMoreActions,
+      icon: Icon(
+        Icons.more_vert,
+        size: 22.sp,
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+      ),
+      onOpened: () => HapticFeedback.selectionClick(),
+      onSelected: _runHomeAction,
+      itemBuilder: (context) {
+        final flags = FeatureFlagService.to;
+        final entries = <PopupMenuEntry<_HomeAction>>[];
+
+        void add({
+          required _HomeAction action,
+          required IconData icon,
+          required String label,
+          required String flagKey,
+        }) {
+          if (flags.isHidden(flagKey)) return;
+          entries.add(
+            PopupMenuItem<_HomeAction>(
+              value: action,
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 20.sp,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(width: AppSpace.s12.w),
+                  Text(label, style: theme.textTheme.bodyLarge),
+                ],
+              ),
+            ),
+          );
+        }
+
+        add(
+          action: _HomeAction.recurring,
+          icon: Icons.event_repeat,
+          label: l10n.a11yRecurringPayments,
+          flagKey: 'recurring',
+        );
+        add(
+          action: _HomeAction.lentMoney,
+          icon: Icons.handshake_outlined,
+          label: l10n.a11yLentMoney,
+          flagKey: 'lent_money',
+        );
+        add(
+          action: _HomeAction.forecast,
+          icon: Icons.trending_up,
+          label: l10n.a11ySpendingForecast,
+          flagKey: 'forecast',
+        );
+        add(
+          action: _HomeAction.goals,
+          icon: Icons.flag_outlined,
+          label: l10n.a11ySavingsGoals,
+          flagKey: 'goals',
+        );
+        add(
+          action: _HomeAction.challenges,
+          icon: Icons.emoji_events_outlined,
+          label: l10n.a11ySavingsChallenges,
+          flagKey: 'challenges',
+        );
+
+        return entries;
+      },
+    );
+  }
+
+  /// Every entry except Challenges is Pro-only: tapping it while on the free
+  /// plan opens the paywall instead, exactly as the old AppBar pills did.
+  bool _requirePro() {
+    if (!Get.isRegistered<SubscriptionController>() ||
+        !Get.find<SubscriptionController>().isPro) {
+      gotoPage(const SubscriptionScreen());
+      return false;
+    }
+    return true;
+  }
+
+  void _runHomeAction(_HomeAction action) {
+    if (!mounted) return;
+    HapticFeedback.lightImpact();
+    switch (action) {
+      case _HomeAction.recurring:
+        if (!_requirePro()) return;
+        if (!ensureFeatureVisible(context, 'recurring')) return;
+        gotoPage(const RecurringPaymentsScreen());
+        return;
+      case _HomeAction.lentMoney:
+        if (!_requirePro()) return;
+        if (!ensureFeatureVisible(context, 'lent_money')) return;
+        gotoPage(const LentMoneyScreen());
+        return;
+      case _HomeAction.forecast:
+        if (!_requirePro()) return;
+        if (!ensureFeatureVisible(context, 'forecast')) return;
+        gotoPage(const ForecastScreen());
+        return;
+      case _HomeAction.goals:
+        if (!_requirePro()) return;
+        if (!ensureFeatureVisible(context, 'goals')) return;
+        gotoPage(const GoalsScreen());
+        return;
+      case _HomeAction.challenges:
+        if (!ensureFeatureVisible(context, 'challenges')) return;
+        gotoPage(const SavingsChallengesScreen());
+        return;
+    }
   }
 
   Widget shimmerText(ThemeData theme) => Text(

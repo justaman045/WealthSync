@@ -324,6 +324,7 @@
   "a11ySpendingForecast": "Spending forecast",
   "a11ySavingsGoals": "Savings goals",
   "a11ySavingsChallenges": "Savings challenges",
+  "a11yMoreActions": "More actions",
   "a11yScanQrToPay": "Scan a QR code to pay",
   "a11yQuickSendUpi": "Send money with UPI",
   "a11yQuickSendTo": "Send money with UPI to {name}",
