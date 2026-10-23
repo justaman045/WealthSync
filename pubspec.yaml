@@ -111,6 +111,26 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/
+    # Bundled so the OFL attribution is shipped with the app (see
+    # main.dart's LicenseRegistry registration) and visible on the licenses
+    # page. The .ttf files themselves are declared under `fonts:` below.
+    - assets/fonts/OFL.txt
+
+  # UI typeface. Inter 4.1, SIL Open Font License 1.1 (assets/fonts/OFL.txt).
+  # Static weights rather than the variable font: Flutter's variable-font
+  # support does not apply a weight axis from a pubspec declaration, and R8
+  # minification has already produced release-only crashes in this project.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

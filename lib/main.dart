@@ -1,6 +1,7 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
@@ -172,6 +173,13 @@ void main() {
 
 Future<void> mainCommon({bool isTest = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // The bundled Inter typeface is redistributed under the SIL Open Font
+  // License, which requires its license text to travel with it. Registering it
+  // here also lists Inter on the app's licenses page.
+  LicenseRegistry.addLicense(() async* {
+    final license = await rootBundle.loadString('assets/fonts/OFL.txt');
+    yield LicenseEntryWithLineBreaks(['Inter'], license);
+  });
   await LocalCacheService.init();
   // Firebase must be initialized BEFORE any controller touches
   // FirebaseAuth.instance — ThemeController.onInit subscribes to
