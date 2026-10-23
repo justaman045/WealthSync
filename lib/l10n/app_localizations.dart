@@ -868,6 +868,84 @@ abstract class AppLocalizations {
   /// **'No bank data imported'**
   String get bankDataImported;
 
+  /// No description provided for @balanceAddLent.
+  ///
+  /// In en, this message translates to:
+  /// **'+ Add Lent'**
+  String get balanceAddLent;
+
+  /// No description provided for @balanceDeductDues.
+  ///
+  /// In en, this message translates to:
+  /// **'Deduct this month\'s dues from the total balance'**
+  String get balanceDeductDues;
+
+  /// No description provided for @balanceDuesDeducted.
+  ///
+  /// In en, this message translates to:
+  /// **'Dues Deducted'**
+  String get balanceDuesDeducted;
+
+  /// No description provided for @balanceDuesDue.
+  ///
+  /// In en, this message translates to:
+  /// **'- {amount} due'**
+  String balanceDuesDue(String amount);
+
+  /// No description provided for @balanceDuesHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'- •••• due'**
+  String get balanceDuesHidden;
+
+  /// No description provided for @balanceHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'••••'**
+  String get balanceHidden;
+
+  /// No description provided for @balanceHiddenAnnouncement.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}. Hidden'**
+  String balanceHiddenAnnouncement(String title);
+
+  /// No description provided for @balanceIncludeLent.
+  ///
+  /// In en, this message translates to:
+  /// **'Include lent money in the total balance'**
+  String get balanceIncludeLent;
+
+  /// No description provided for @balanceLentIncluded.
+  ///
+  /// In en, this message translates to:
+  /// **'Lent Included'**
+  String get balanceLentIncluded;
+
+  /// No description provided for @balanceNoDues.
+  ///
+  /// In en, this message translates to:
+  /// **'- No Dues'**
+  String get balanceNoDues;
+
+  /// No description provided for @balanceStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} day streak'**
+  String balanceStreak(int days);
+
+  /// No description provided for @balanceTapToHide.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}. Tap to hide'**
+  String balanceTapToHide(String title);
+
+  /// No description provided for @balanceVersusLastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% vs last month'**
+  String balanceVersusLastMonth(String percent);
+
   /// No description provided for @bankTransactionsFound.
   ///
   /// In en, this message translates to:

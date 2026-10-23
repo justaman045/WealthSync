@@ -295,6 +295,10 @@ class AppMotion {
   /// One-shot entrance of a screen's content.
   static const Duration entrance = Duration(milliseconds: 600);
 
+  /// The count-up runs for long enough to read as a settle, and its digits are
+  /// tabular (see `AppType.money`) so the headline never shifts mid-animation.
+  static const Duration countUp = Duration(milliseconds: 800);
+
   /// Delay step between staggered entrance items.
   static const Duration stagger = Duration(milliseconds: 80);
 

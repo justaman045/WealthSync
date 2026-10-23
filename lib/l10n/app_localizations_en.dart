@@ -441,6 +441,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bankDataImported => 'No bank data imported';
 
   @override
+  String get balanceAddLent => '+ Add Lent';
+
+  @override
+  String get balanceDeductDues =>
+      'Deduct this month\'s dues from the total balance';
+
+  @override
+  String get balanceDuesDeducted => 'Dues Deducted';
+
+  @override
+  String balanceDuesDue(String amount) {
+    return '- $amount due';
+  }
+
+  @override
+  String get balanceDuesHidden => '- •••• due';
+
+  @override
+  String get balanceHidden => '••••';
+
+  @override
+  String balanceHiddenAnnouncement(String title) {
+    return '$title. Hidden';
+  }
+
+  @override
+  String get balanceIncludeLent => 'Include lent money in the total balance';
+
+  @override
+  String get balanceLentIncluded => 'Lent Included';
+
+  @override
+  String get balanceNoDues => '- No Dues';
+
+  @override
+  String balanceStreak(int days) {
+    return '$days day streak';
+  }
+
+  @override
+  String balanceTapToHide(String title) {
+    return '$title. Tap to hide';
+  }
+
+  @override
+  String balanceVersusLastMonth(String percent) {
+    return '$percent% vs last month';
+  }
+
+  @override
   String get bankTransactionsFound => 'No bank transactions found.';
 
   @override

@@ -124,6 +124,10 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
     // Lite mode: skip entrance animations entirely (reduced jank + battery).
     final liteMode = PerformanceController.to.liteMode.value;
+    // Shared translucent card fill for the home sections.
+    final cardTint = isDark
+        ? AppColors.darkSurface.withValues(alpha: 0.5)
+        : AppColors.lightSurface.withValues(alpha: 0.6);
 
     return AdaptiveScaffold(
       currentTab: 'home',
@@ -170,65 +174,50 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
             ),
           ),
         ),
+        // The greeting is a header, not a second profile button: tapping the
+        // avatar already opens the profile, and giving two adjacent controls the
+        // same label made a screen reader announce the name as a duplicate.
         title: Semantics(
-          button: true,
-          label: AppLocalizations.of(context)!.a11yProfilePhoto,
-          child: GestureDetector(
-            onTap: () {
-              if (!ensureFeatureUsable(context, 'profile')) return;
-              gotoPage(const EditProfileScreen());
-            },
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                AppLocalizations.of(context)!.welcomeBack,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontSize: 13.sp,
-                  letterSpacing: 0.3,
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
+          header: true,
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              AppLocalizations.of(context)!.welcomeBack,
+              style: theme.textTheme.bodySmall?.copyWith(letterSpacing: 0.3),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: AppSpace.s2.h),
+            Obx(() {
+              final userModel = _profileController.userProfile.value;
+              if (userModel == null) {
+                return shimmerText(theme);
+              }
+              final displayName =
+                  FirebaseAuth.instance.currentUser?.displayName;
+              final name =
+                  (userModel.firstName != null &&
+                      userModel.firstName!.isNotEmpty)
+                  ? userModel.firstName!
+                  : (displayName != null && displayName.isNotEmpty
+                        ? displayName
+                        : 'User');
+              // No ShaderMask: it renders the child through an offscreen layer
+              // on every frame. A solid on-surface colour is the same visual
+              // hierarchy for a name that never animates.
+              return Text(
+                name,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: 2.h),
-              Obx(() {
-                final userModel = _profileController.userProfile.value;
-                if (userModel == null) {
-                  return shimmerText(theme);
-                }
-                final displayName =
-                    FirebaseAuth.instance.currentUser?.displayName;
-                final name =
-                    (userModel.firstName != null &&
-                        userModel.firstName!.isNotEmpty)
-                    ? userModel.firstName!
-                    : (displayName != null && displayName.isNotEmpty
-                          ? displayName
-                          : 'User');
-                return ShaderMask(
-                  shaderCallback: (bounds) => LinearGradient(
-                    colors: isDark
-                        ? const [AppColors.secondary, AppColors.accent]
-                        : const [AppColors.primary, AppColors.secondary],
-                  ).createShader(bounds),
-                  blendMode: BlendMode.srcIn,
-                  child: Text(
-                    name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }),
-            ],
-            ),
+              );
+            }),
+          ],
           ),
         ),
         actions: [
@@ -314,117 +303,70 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      !liteMode
-                              ? BalanceCard().animate().fadeIn(duration: 600.ms).slideY(
-                                  begin: -0.1,
-                                  end: 0,
-                                  curve: Curves.easeOutBack,
-                                )
-                              : BalanceCard(),
-                      SizedBox(height: 12.h), // Added some spacing after card
+                      _entrance(
+                        liteMode: liteMode,
+                        duration: const Duration(milliseconds: 600),
+                        begin: const Offset(0, -0.1),
+                        curve: Curves.easeOutBack,
+                        child: BalanceCard(),
+                      ),
+                      SizedBox(height: AppSpace.s12.h),
                       FeatureVisible(
                         flagKey: 'category',
-                        child:
-                            !liteMode
-                                  ? SectionTitle(
-                                      title: AppStrings.categoryHistoryTitle,
-                                      color: scheme.onSurface,
-                                      accentColor: AppColors.primary,
-                                      onTap: () => gotoPage(
-                                        const CategoriesHistoryScreen(),
-                                      ),
-                                    ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideX(
-                                      begin: -0.1,
-                                      end: 0,
-                                      curve: Curves.easeOut,
-                                    )
-                                  : SectionTitle(
-                                      title: AppStrings.categoryHistoryTitle,
-                                      color: scheme.onSurface,
-                                      accentColor: AppColors.primary,
-                                      onTap: () => gotoPage(
-                                        const CategoriesHistoryScreen(),
-                                      ),
-                                    ),
+                        child: _entrance(
+                          liteMode: liteMode,
+                          delay: const Duration(milliseconds: 200),
+                          begin: const Offset(-0.1, 0),
+                          child: SectionTitle(
+                            title: AppStrings.categoryHistoryTitle,
+                            color: scheme.onSurface,
+                            accentColor: AppColors.primary,
+                            onTap: () =>
+                                gotoPage(const CategoriesHistoryScreen()),
+                          ),
+                        ),
                       ),
-                      SizedBox(height: 12.h),
+                      SizedBox(height: AppSpace.s12.h),
                       FeatureVisible(
                         flagKey: 'upi_pay',
-                        child:
-                            !liteMode
-                                  ? QuickSendRow(
-                                      cardColor: isDark
-                                          ? AppColors.darkSurface.withValues(
-                                              alpha: 0.5,
-                                            )
-                                          : AppColors.lightSurface.withValues(
-                                              alpha: 0.6,
-                                            ),
-                                      textColor: scheme.onSurface,
-                                    ).animate().fadeIn(delay: 300.ms, duration: 500.ms).slideX(
-                                      begin: 0.1,
-                                      end: 0,
-                                      curve: Curves.easeOut,
-                                    )
-                                  : QuickSendRow(
-                                      cardColor: isDark
-                                          ? AppColors.darkSurface.withValues(
-                                              alpha: 0.5,
-                                            )
-                                          : AppColors.lightSurface.withValues(
-                                              alpha: 0.6,
-                                            ),
-                                      textColor: scheme.onSurface,
-                                    ),
+                        child: _entrance(
+                          liteMode: liteMode,
+                          delay: const Duration(milliseconds: 300),
+                          begin: const Offset(0.1, 0),
+                          child: QuickSendRow(
+                            cardColor: cardTint,
+                            textColor: scheme.onSurface,
+                          ),
+                        ),
                       ),
-                      SizedBox(height: 18.h),
-                      !liteMode
-                            ? SectionTitle(
-                                title: AppLocalizations.of(
-                                  context,
-                                )!.recentTransactions,
-                                color: scheme.onSurface,
-                                accentColor: AppColors.primary,
-                                onTap: () =>
-                                    gotoPage(TransactionHistoryScreen()),
-                              ).animate().fadeIn(delay: 400.ms, duration: 500.ms).slideY(
-                                begin: 0.2,
-                                end: 0,
-                                curve: Curves.easeOut,
-                              )
-                            : SectionTitle(
-                                title: AppLocalizations.of(
-                                  context,
-                                )!.recentTransactions,
-                                color: scheme.onSurface,
-                                accentColor: AppColors.primary,
-                                onTap: () =>
-                                    gotoPage(TransactionHistoryScreen()),
-                              ),
-                      SizedBox(height: 12.h),
-                      !liteMode
-                            ? RecentPaymentList(
-                                key: _keyTransactionList,
-                                cardColor: isDark
-                                    ? AppColors.darkSurface.withValues(alpha: 0.5)
-                                    : AppColors.lightSurface.withValues(alpha: 0.6),
-                                textColor: scheme.onSurface,
-                                receivedColor: AppColors.success,
-                                sentColor: AppColors.error,
-                              ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideY(
-                                begin: 0.1,
-                                end: 0,
-                                curve: Curves.easeOut,
-                              )
-                            : RecentPaymentList(
-                                key: _keyTransactionList,
-                                cardColor: isDark
-                                    ? AppColors.darkSurface.withValues(alpha: 0.5)
-                                    : AppColors.lightSurface.withValues(alpha: 0.6),
-                                textColor: scheme.onSurface,
-                                receivedColor: AppColors.success,
-                                sentColor: AppColors.error,
-                              ),
+                      SizedBox(height: AppSpace.s20.h),
+                      _entrance(
+                        liteMode: liteMode,
+                        delay: const Duration(milliseconds: 400),
+                        begin: const Offset(0, 0.2),
+                        child: SectionTitle(
+                          title: AppLocalizations.of(
+                            context,
+                          )!.recentTransactions,
+                          color: scheme.onSurface,
+                          accentColor: AppColors.primary,
+                          onTap: () => gotoPage(TransactionHistoryScreen()),
+                        ),
+                      ),
+                      SizedBox(height: AppSpace.s12.h),
+                      _entrance(
+                        liteMode: liteMode,
+                        delay: const Duration(milliseconds: 500),
+                        duration: const Duration(milliseconds: 600),
+                        begin: const Offset(0, 0.1),
+                        child: RecentPaymentList(
+                          key: _keyTransactionList,
+                          cardColor: cardTint,
+                          textColor: scheme.onSurface,
+                          receivedColor: AppColors.success,
+                          sentColor: AppColors.error,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -524,6 +466,28 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     if (open == true && mounted) {
       await openAppSettings();
     }
+  }
+
+  /// Home section entrance; a no-op in lite mode.
+  ///
+  /// Each section used to repeat the same `!liteMode ? child.animate()… : child`
+  /// ternary, which duplicated every child's argument list twice and had already
+  /// drifted (200/300/400/500 ms delays, two different slide axes, easeOut vs
+  /// easeOutBack). The fade keeps the default curve — an overshoot curve on
+  /// opacity would push alpha past 1.
+  Widget _entrance({
+    required Widget child,
+    required bool liteMode,
+    Duration delay = Duration.zero,
+    Duration duration = const Duration(milliseconds: 500),
+    Offset begin = const Offset(0, 0.1),
+    Curve curve = Curves.easeOut,
+  }) {
+    if (liteMode) return child;
+    return child
+        .animate()
+        .fadeIn(delay: delay, duration: duration)
+        .slide(begin: begin, end: Offset.zero, curve: curve);
   }
 
   /// The visual pill stays 38x36, but the tappable area is a full 48x48 so the

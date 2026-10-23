@@ -129,6 +129,54 @@
   "autoTagRules": "Auto-Tag Rules",
   "back": "Back",
   "bankDataImported": "No bank data imported",
+  "balanceAddLent": "+ Add Lent",
+  "balanceDeductDues": "Deduct this month's dues from the total balance",
+  "balanceDuesDeducted": "Dues Deducted",
+  "balanceDuesDue": "- {amount} due",
+  "@balanceDuesDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceDuesHidden": "- \u2022\u2022\u2022\u2022 due",
+  "balanceHidden": "\u2022\u2022\u2022\u2022",
+  "balanceHiddenAnnouncement": "{title}. Hidden",
+  "@balanceHiddenAnnouncement": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceIncludeLent": "Include lent money in the total balance",
+  "balanceLentIncluded": "Lent Included",
+  "balanceNoDues": "- No Dues",
+  "balanceStreak": "{days} day streak",
+  "@balanceStreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "balanceTapToHide": "{title}. Tap to hide",
+  "@balanceTapToHide": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "balanceVersusLastMonth": "{percent}% vs last month",
+  "@balanceVersusLastMonth": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
   "bankTransactionsFound": "No bank transactions found.",
   "bestVALUE": "BEST VALUE",
   "borrowedFriend": "Borrowed from Friend",

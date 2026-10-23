@@ -6,6 +6,7 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Utils/wealth_math.dart';
 
 import 'package:money_control/Screens/add_transaction.dart';
@@ -95,18 +96,17 @@ class _BalanceCardState extends State<BalanceCard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final user = FirebaseAuth.instance.currentUser;
+    final l10n = AppLocalizations.of(context)!;
 
-    // Use AppColors.primary/secondary for a premium look, or keep the specific card gradient
-    // Let's align with the app's theme but make it pop
     final gradientColors = isDark
-        ? [AppColors.primary, const Color(0xFF4A148C)]
+        ? [AppColors.primary, AppColors.primaryPress]
         : [AppColors.primary, AppColors.secondary];
 
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8.h),
+      margin: EdgeInsets.symmetric(vertical: AppSpace.s8.h),
       child: GlassContainer(
         padding: EdgeInsets.zero,
-        borderRadius: BorderRadius.circular(32.r),
+        borderRadius: BorderRadius.circular(AppRadius.xxl.r),
         // Overriding GlassContainer default color/gradient to have the strong card brand color
         // But keeping the glass border effect
         child: Container(
@@ -116,7 +116,7 @@ class _BalanceCardState extends State<BalanceCard> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(32.r),
+            borderRadius: BorderRadius.circular(AppRadius.xxl.r),
           ),
           child: Stack(
             children: [
@@ -127,54 +127,16 @@ class _BalanceCardState extends State<BalanceCard> {
               Positioned(
                 right: -60.w,
                 top: -60.w,
-                child: IgnorePointer(
-                  child: RepaintBoundary(
-                    child: SizedBox(
-                      width: 250.w,
-                      height: 250.w,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              Color(0x26FFFFFF),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                child: _blob(size: 250, opacity: 0.15),
               ),
               Positioned(
                 left: -60.w,
                 bottom: -60.w,
-                child: IgnorePointer(
-                  child: RepaintBoundary(
-                    child: SizedBox(
-                      width: 200.w,
-                      height: 200.w,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              Color(0x1AFFFFFF),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                child: _blob(size: 200, opacity: 0.10),
               ),
 
               Padding(
-                padding: EdgeInsets.all(
-                  24.r,
-                ), // Restore padding inside the custom container
+                padding: EdgeInsets.all(AppSpace.s24.r),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -183,62 +145,32 @@ class _BalanceCardState extends State<BalanceCard> {
                       children: [
                         Text(
                           AppStrings.totalBalance,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.5,
-                          ),
+                          style: AppType.labelLarge(
+                            Colors.white.withValues(alpha: 0.8),
+                          ).copyWith(letterSpacing: 0.5),
                         ),
                         Wrap(
-                          spacing: 8.w,
+                          spacing: AppSpace.s8.w,
                           children: [
                             FeatureVisible(
                               flagKey: 'lent_money',
                               child: Obx(
-                                () => Semantics(
-                                  button: true,
+                                () => _overlayChip(
                                   toggled: _includeLentMoney.value,
-                                  label:
-                                      'Include lent money in the total balance',
-                                  child: GestureDetector(
+                                  label: l10n.balanceIncludeLent,
+                                  text: _includeLentMoney.value
+                                      ? l10n.balanceLentIncluded
+                                      : l10n.balanceAddLent,
                                   onTap: () {
                                     HapticFeedback.lightImpact();
-                                    if (_privacyController.isPrivacyMode.value) {
+                                    if (_privacyController
+                                        .isPrivacyMode
+                                        .value) {
                                       return; // Prevent toggle if hidden
                                     }
                                     _includeLentMoney.value =
                                         !_includeLentMoney.value;
                                   },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10.w,
-                                      vertical: 4.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _includeLentMoney.value
-                                          ? Colors.white.withValues(alpha: 0.2)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12.r),
-                                      border: Border.all(
-                                        color: _includeLentMoney.value
-                                            ? Colors.white.withValues(alpha: 0.4)
-                                            : Colors.white.withValues(alpha: 0.1),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _includeLentMoney.value
-                                          ? "Lent Included"
-                                          : "+ Add Lent",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10.sp,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  ),
                                 ),
                               ),
                             ),
@@ -248,56 +180,32 @@ class _BalanceCardState extends State<BalanceCard> {
                             FeatureVisible(
                               flagKey: 'recurring',
                               child: Obx(() {
-                                final committed =
-                                    _recurringPaymentController
-                                        .pendingSubscriptions.value;
-                                return Semantics(
-                                  button: true,
+                                final committed = _recurringPaymentController
+                                    .pendingSubscriptions
+                                    .value;
+                                return _overlayChip(
                                   toggled: _includeDues.value,
-                                  label:
-                                      "Deduct this month's dues from the total balance",
-                                  child: GestureDetector(
+                                  label: l10n.balanceDeductDues,
+                                  text: _includeDues.value
+                                      ? l10n.balanceDuesDeducted
+                                      : committed <= 0
+                                      ? l10n.balanceNoDues
+                                      : _privacyController
+                                                .isPrivacyMode
+                                                .value
+                                        ? l10n.balanceDuesHidden
+                                        : l10n.balanceDuesDue(
+                                            '- ${CurrencyController.to.currencySymbol.value}${committed.toStringAsFixed(0)}',
+                                          ),
                                   onTap: () {
                                     HapticFeedback.lightImpact();
-                                    if (_privacyController.isPrivacyMode.value) {
+                                    if (_privacyController
+                                        .isPrivacyMode
+                                        .value) {
                                       return; // Never move a hidden number
                                     }
                                     _includeDues.value = !_includeDues.value;
                                   },
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10.w,
-                                      vertical: 4.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _includeDues.value
-                                          ? Colors.white.withValues(alpha: 0.2)
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12.r),
-                                      border: Border.all(
-                                        color: _includeDues.value
-                                            ? Colors.white.withValues(alpha: 0.4)
-                                            : Colors.white.withValues(alpha: 0.1),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _includeDues.value
-                                          ? "Dues Deducted"
-                                          : committed <= 0
-                                              ? "- No Dues"
-                                              : _privacyController
-                                                    .isPrivacyMode.value
-                                                ? "- •••• due"
-                                                : "- ${CurrencyController.to.currencySymbol.value}${committed.toStringAsFixed(0)} due",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10.sp,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  ),
                                 );
                               }),
                             ),
@@ -305,15 +213,18 @@ class _BalanceCardState extends State<BalanceCard> {
                         ),
                       ],
                     ),
-                    SizedBox(height: 12.h),
+                    SizedBox(height: AppSpace.s12.h),
                     if (user != null)
                       Obx(() {
                         if (_transactionController.isLoading.value) {
                           return _balanceShimmer(Theme.of(context).colorScheme);
                         }
-                        final label = _privacyController.isPrivacyMode.value
-                            ? '${AppStrings.totalBalance}. Hidden'
-                            : '${AppStrings.totalBalance}. Tap to hide';
+                        final label =
+                            _privacyController.isPrivacyMode.value
+                            ? l10n.balanceHiddenAnnouncement(
+                                AppStrings.totalBalance,
+                              )
+                            : l10n.balanceTapToHide(AppStrings.totalBalance);
                         return Semantics(
                           button: true,
                           label: label,
@@ -326,21 +237,12 @@ class _BalanceCardState extends State<BalanceCard> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Obx(() {
-                                final style = TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 36.sp,
+                                final style = AppType.money(
                                   color: Colors.white,
-                                  letterSpacing: -1.0,
-                                  shadows: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      blurRadius: 10.w,
-                                      offset: Offset(0.w, 4.w),
-                                    ),
-                                  ],
+                                  size: 36.sp,
                                 );
                                 if (_privacyController.isPrivacyMode.value) {
-                                  return Text("••••", style: style);
+                                  return Text(l10n.balanceHidden, style: style);
                                 } else if (PerformanceController
                                     .to
                                     .liteMode
@@ -356,10 +258,8 @@ class _BalanceCardState extends State<BalanceCard> {
                                       begin: _lastAnimatedValue.value,
                                       end: _computeTotal(),
                                     ),
-                                    duration: const Duration(
-                                      milliseconds: 800,
-                                    ),
-                                    curve: Curves.easeOutExpo,
+                                    duration: AppMotion.countUp,
+                                    curve: AppMotion.emphasized,
                                     builder: (context, value, child) {
                                       return Text(
                                         '${CurrencyController.to.currencySymbol.value} ${value.toStringAsFixed(2)}',
@@ -373,7 +273,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                   );
                                 }
                               }),
-                              SizedBox(width: 12.w),
+                              SizedBox(width: AppSpace.s12.w),
                               Obx(
                                 () => Icon(
                                   _privacyController.isPrivacyMode.value
@@ -389,7 +289,10 @@ class _BalanceCardState extends State<BalanceCard> {
                         );
                       })
                     else
-                      _balanceLabel('--', Theme.of(context).colorScheme),
+                      _balanceLabel(
+                        '--',
+                        Theme.of(context).colorScheme,
+                      ),
                     Obx(() {
                       if (_transactionController.isLoading.value) return const SizedBox.shrink();
                       if (_privacyController.isPrivacyMode.value) return const SizedBox.shrink();
@@ -419,7 +322,7 @@ class _BalanceCardState extends State<BalanceCard> {
                       final pct = ((thisMonth - lastMonth) / lastMonth.abs() * 100);
                       final isUp = pct >= 0;
                       return Padding(
-                        padding: EdgeInsets.only(bottom: 6.h),
+                        padding: EdgeInsets.only(bottom: AppSpace.s4.h),
                         child: Row(
                           children: [
                             Icon(
@@ -429,15 +332,13 @@ class _BalanceCardState extends State<BalanceCard> {
                                   : AppColors.error,
                               size: 14.sp,
                             ),
-                            SizedBox(width: 4.w),
+                            SizedBox(width: AppSpace.s4.w),
                             Text(
-                              '${isUp ? '+' : ''}${pct.toStringAsFixed(1)}% vs last month',
-                              style: TextStyle(
-                                color: isUp
-                                    ? AppColors.success
-                                    : AppColors.error,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
+                              l10n.balanceVersusLastMonth(
+                                '${isUp ? '+' : ''}${pct.toStringAsFixed(1)}',
+                              ),
+                              style: AppType.labelMedium(
+                                isUp ? AppColors.success : AppColors.error,
                               ),
                             ),
                           ],
@@ -448,22 +349,16 @@ class _BalanceCardState extends State<BalanceCard> {
                       final streak = _transactionController.streakCount.value;
                       if (streak < 2) return const SizedBox.shrink();
                       return Padding(
-                        padding: EdgeInsets.only(bottom: 4.h),
-                        child: Row(
-                          children: [
-                            Text(
-                              '🔥 $streak day streak',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                        padding: EdgeInsets.only(bottom: AppSpace.s4.h),
+                        child: Text(
+                          '🔥 ${l10n.balanceStreak(streak)}',
+                          style: AppType.labelMedium(
+                            Colors.white.withValues(alpha: 0.85),
+                          ),
                         ),
                       );
                     }),
-                    SizedBox(height: 24.h),
+                    SizedBox(height: AppSpace.s24.h),
                     FeatureVisible(
                       flagKey: 'transactions',
                       child: Row(
@@ -514,6 +409,65 @@ class _BalanceCardState extends State<BalanceCard> {
     );
   }
 
+  /// Decorative radial wash, in its own repaint layer so a balance change never
+  /// repaints it, and behind an IgnorePointer so it can never swallow a tap.
+  Widget _blob({required double size, required double opacity}) {
+    return IgnorePointer(
+      child: RepaintBoundary(
+        child: SizedBox(
+          width: size.w,
+          height: size.w,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Colors.white.withValues(alpha: opacity),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// A temporary view toggle on the card. Both overlays share this chrome so
+  /// they cannot drift apart (they had: the two copies had different animation
+  /// durations and each hardcoded its own copy).
+  Widget _overlayChip({
+    required bool toggled,
+    required String label,
+    required String text,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      toggled: toggled,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpace.s12.w,
+            vertical: AppSpace.s8.h,
+          ),
+          decoration: BoxDecoration(
+            color: toggled ? Colors.white.withValues(alpha: 0.2) : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadius.xs.r),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: toggled ? 0.4 : 0.1),
+            ),
+          ),
+          child: Text(text, style: AppType.labelSmall(Colors.white)),
+        ),
+      ),
+    );
+  }
+
   Widget _glassActionButton({
     required String label,
     required IconData icon,
@@ -530,7 +484,7 @@ class _BalanceCardState extends State<BalanceCard> {
           height: 54.h,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(18.r),
+            borderRadius: BorderRadius.circular(AppRadius.lg.r),
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.15),
               width: 1.5,
@@ -540,15 +494,8 @@ class _BalanceCardState extends State<BalanceCard> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: color, size: 18.sp),
-              SizedBox(width: 8.w),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14.sp,
-                ),
-              ),
+              SizedBox(width: AppSpace.s8.w),
+              Text(label, style: AppType.labelLarge(Colors.white)),
             ],
           ),
         ),
@@ -558,15 +505,7 @@ class _BalanceCardState extends State<BalanceCard> {
 
   // Keep helpers but ensure they return valid widgets for new style
   Widget _balanceLabel(String text, ColorScheme scheme) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 36.sp,
-        color: Colors.white,
-        letterSpacing: -1.0,
-      ),
-    );
+    return Text(text, style: AppType.money(color: Colors.white, size: 36.sp));
   }
 
   Widget _balanceShimmer(ColorScheme scheme) => Container(
@@ -574,8 +513,8 @@ class _BalanceCardState extends State<BalanceCard> {
     height: 36.h,
     decoration: BoxDecoration(
       color: scheme.onSurface.withValues(alpha: 0.16),
-      borderRadius: BorderRadius.circular(12.r),
+      borderRadius: BorderRadius.circular(AppRadius.sm.r),
     ),
-    margin: EdgeInsets.symmetric(vertical: 4.h),
+    margin: EdgeInsets.symmetric(vertical: AppSpace.s4.h),
   );
 }
