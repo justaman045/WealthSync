@@ -1210,6 +1210,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordPayment => 'Record Payment';
 
   @override
+  String get recurringAutoPayHint =>
+      'When due, a transaction is created automatically.';
+
+  @override
+  String get recurringCategoryLabel => 'Category';
+
+  @override
+  String get recurringFrequencyLabel => 'Frequency';
+
+  @override
+  String get recurringManualPayHint =>
+      'Remind me when due — I\'ll mark it paid manually.';
+
+  @override
+  String get recurringNameLabel => 'Name (e.g. Netflix)';
+
+  @override
+  String get recurringRequired => 'Required';
+
+  @override
+  String get recurringSaveFailed => 'Failed to save. Please try again.';
+
+  @override
+  String get recurringEditSubscription => 'Edit Subscription';
+
+  @override
+  String get recurringEditTooltip => 'Edit subscription';
+
+  @override
+  String get recurringNewSubscription => 'New Subscription';
+
+  @override
+  String get recurringNextPaymentLabel => 'Next Payment:';
+
+  @override
+  String get recurringPaidLabel => 'PAID';
+
+  @override
+  String get recurringPausedLabel => 'PAUSED';
+
+  @override
+  String get recurringPendingLabel => 'PENDING';
+
+  @override
   String get referralCODE => 'YOUR REFERRAL CODE';
 
   @override

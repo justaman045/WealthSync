@@ -21,6 +21,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/adaptive_panel.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Components/empty_state.dart';
+import 'package:money_control/Services/performance_controller.dart';
 
 class RecurringPaymentsScreen extends StatefulWidget {
   const RecurringPaymentsScreen({super.key});
@@ -91,49 +93,20 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text(
-            AppStrings.subscriptions,
-            style: AppType.titleLarge(textColor),
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+          title: Text(AppStrings.subscriptions),
           leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: textColor,
-              size: 20.sp,
-            ),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        floatingActionButton: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
-            gradient: const LinearGradient(
-              colors: [AppColors.primary, AppColors.primary], // Cyan Gradient
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.4),
-                blurRadius: 15.w,
-                offset: Offset(0.w, 5.w),
-              ),
-            ],
-          ),
-          child: FloatingActionButton.extended(
-            onPressed: () => _showAddDialog(context, isDark),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            label: Text(
-              AppLocalizations.of(context)!.addSubscription,
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            icon: const Icon(Icons.add_rounded, color: Colors.black),
-          ),
+        // The theme owns the FAB fill, foreground and shape. This used to be a
+        // GradientContainer (both stops primary) around a transparent FAB with a
+        // black label — the same indigo-on-black contrast bug the palette wave
+        // fixed elsewhere, at 3.1:1.
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _showAddDialog(context, isDark),
+          icon: const Icon(Icons.add_rounded),
+          label: Text(AppLocalizations.of(context)!.addSubscription),
         ),
         body: AdaptivePanel(
           master: RefreshIndicator(
@@ -197,9 +170,10 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                                   Text(
                                     AppLocalizations.of(context)!.couldnTLoadSubscriptionsCheck,
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: textColor.withValues(alpha: 0.6),
-                                      fontSize: 14,
+                                    style: AppType.bodySmall(
+                                      isDark
+                                          ? AppColors.darkTextSecondary
+                                          : AppColors.lightTextSecondary,
                                     ),
                                   ),
                                 ],
@@ -208,62 +182,20 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                           );
                         }
                         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return SizedBox(
-                            height: 500.h,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                        padding: EdgeInsets.all(30.w),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: isDark
-                                              ? Colors.white.withValues(
-                                                  alpha: 0.05,
-                                                )
-                                              : AppColors.lightSurfaceCard,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.primary.withValues(alpha: 0.1),
-                                              blurRadius: 30.w,
-                                              spreadRadius: 5.w,
-                                            ),
-                                          ],
-                                        ),
-                                        child: Icon(
-                                          Icons.subscriptions_outlined,
-                                          size: 60.sp,
-                                          color: textColor.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                        ),
-                                      )
-                                      .animate(
-                                        onPlay: (c) => c.repeat(reverse: true),
-                                      )
-                                      .scale(
-                                        begin: const Offset(1, 1),
-                                        end: const Offset(1.05, 1.05),
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                  SizedBox(height: 24.h),
-                                  Text(
-                                        AppLocalizations.of(context)!.subscriptionsYet,
-                                        style: AppType.bodyLarge(textColor.withValues(
-                                            alpha: 0.6,
-                                          )),
-                                      )
-                                      .animate()
-                                      .fadeIn(delay: 200.ms)
-                                      .slideY(begin: 0.2, end: 0),
-                                  SizedBox(height: 8.h),
-                                  Text(
-                                    AppLocalizations.of(context)!.trackNetflixRentSpotifyEtc,
-                                    style: AppType.bodySmall(textColor.withValues(alpha: 0.4)),
-                                  ).animate().fadeIn(delay: 400.ms),
-                                ],
-                              ),
+                          return Padding(
+                            padding: EdgeInsets.only(top: AppSpace.s48.h),
+                            child: EmptyStateWidget(
+                              icon: Icons.subscriptions_outlined,
+                              title: AppLocalizations.of(
+                                context,
+                              )!.subscriptionsYet,
+                              subtitle: AppLocalizations.of(
+                                context,
+                              )!.trackNetflixRentSpotifyEtc,
+                              actionLabel: AppLocalizations.of(
+                                context,
+                              )!.addSubscription,
+                              onAction: () => _showAddDialog(context, isDark),
                             ),
                           );
                         }
@@ -278,26 +210,29 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                           itemBuilder: (context, index) {
                             final item = list[index];
                             return animatedItem(
-                              GestureDetector(
-                                onTap: () {
-                                  final isSplit =
-                                      Responsive.isTablet(context) &&
-                                      Responsive.isLandscape(context);
-                                  if (isSplit) {
-                                    setState(() => _selectedPayment = item);
-                                  } else {
-                                    Get.to(
-                                      () => SubscriptionDetailsScreen(
-                                        payment: item,
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: _buildCard(
-                                  item,
-                                  isDark,
-                                  textColor,
-                                  context,
+                              Semantics(
+                                button: true,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    final isSplit =
+                                        Responsive.isTablet(context) &&
+                                        Responsive.isLandscape(context);
+                                    if (isSplit) {
+                                      setState(() => _selectedPayment = item);
+                                    } else {
+                                      Get.to(
+                                        () => SubscriptionDetailsScreen(
+                                          payment: item,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  child: _buildCard(
+                                    item,
+                                    isDark,
+                                    textColor,
+                                    context,
+                                  ),
                                 ),
                               ),
                               index,
@@ -339,87 +274,42 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
     final isAutoMissed =
         item.isActive && item.autoPay && !item.nextDueDate.isAfter(now);
 
+    // One status colour drives the tile, badge and border: paid/pending/paused
+    // were previously three hand-mixed gradients (two of which had both stops
+    // equal, so they were not gradients) plus three ad-hoc box shadows.
+    final statusColor = isPaused
+        ? (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary)
+        : (isPending
+              ? AppColors.warning
+              : (isPaid ? AppColors.success : AppColors.primary));
+    final m = AppLocalizations.of(context)!;
+
     return Opacity(
       opacity: isPaused ? 0.6 : (isPaid ? 0.8 : 1.0),
       child: Container(
-        padding: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(AppSpace.s20.w),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.white.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(24.r),
+          color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+          borderRadius: BorderRadius.circular(AppRadius.lg.r),
           border: Border.all(
-            color: isPaid
-                ? AppColors.success.withValues(
-                    alpha: 0.3,
-                  ) // Green glow for paid
-                : (isPending
-                      ? AppColors.warning.withValues(alpha: 0.3)
-                      : (isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.white.withValues(alpha: 0.5))),
+            color: (isPaid || isPending)
+                ? statusColor.withValues(alpha: 0.3)
+                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
             width: (isPaid || isPending) ? 1.5 : 1,
           ),
-          gradient: isDark
-              ? LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.05),
-                    Colors.white.withValues(alpha: 0.01),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: isPaid
-                  ? AppColors.success.withValues(alpha: 0.1)
-                  : (isPending
-                        ? AppColors.warning.withValues(alpha: 0.12)
-                        : Colors.black.withValues(alpha: isDark ? 0.2 : 0.05)),
-              blurRadius: 15.w,
-              offset: Offset(0.w, 8.w),
-            ),
-          ],
+          boxShadow: AppElevation.raised(isDark: isDark),
         ),
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(14.w),
+              padding: EdgeInsets.all(AppSpace.s12.w),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isPaused
-                      ? [Colors.grey.shade700, Colors.grey.shade800]
-                      : (isPending
-                            ? [AppColors.warning, AppColors.warning]
-                            : (isPaid
-                                  ? [
-                                      AppColors.success,
-                                      AppColors.success,
-                                    ]
-                                  : [
-                                      AppColors.primary,
-                                      AppColors.primaryPress,
-                                    ])),
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                color: statusColor,
+                borderRadius: BorderRadius.circular(AppRadius.md.r),
+                boxShadow: AppElevation.floating(
+                  isDark: isDark,
+                  tint: statusColor,
                 ),
-                borderRadius: BorderRadius.circular(18.r),
-                boxShadow: [
-                  BoxShadow(
-                    color:
-                        (isPaused
-                                ? Colors.grey
-                                : (isPending
-                                      ? AppColors.warning
-                                      : (isPaid
-                                            ? AppColors.success
-                                            : AppColors.primary)))
-                            .withValues(alpha: 0.3),
-                    blurRadius: 10.w,
-                    offset: Offset(0.w, 4.w),
-                  ),
-                ],
               ),
               child: Icon(
                 isPaused
@@ -443,11 +333,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                       Flexible(
                         child: Text(
                           item.title,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                            letterSpacing: 0.3,
+                          style: AppType.titleMedium(textColor).copyWith(
                             decoration: isPaused
                                 ? TextDecoration.lineThrough
                                 : null,
@@ -463,14 +349,10 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                             vertical: 2.h,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF00B8D4,
-                            ).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6.r),
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.xs.r),
                             border: Border.all(
-                              color: const Color(
-                                0xFF00B8D4,
-                              ).withValues(alpha: 0.35),
+                              color: AppColors.primary.withValues(alpha: 0.35),
                             ),
                           ),
                           child: Text(
@@ -481,56 +363,40 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                       ],
                     ],
                   ),
-                  SizedBox(height: 6.h),
+                  SizedBox(height: AppSpace.s4.h),
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 4.h,
+                      horizontal: AppSpace.s8.w,
+                      vertical: AppSpace.s4.h,
                     ),
                     decoration: BoxDecoration(
-                      color: isPaused
-                          ? AppColors.warning.withValues(alpha: 0.1)
-                          : (isPending
-                                ? AppColors.warning.withValues(alpha: 0.12)
-                                : (isPaid
-                                      ? const Color(
-                                          0xFF00E676,
-                                        ).withValues(alpha: 0.1)
-                                      : textColor.withValues(alpha: 0.06))),
-                      borderRadius: BorderRadius.circular(6.r),
-                      border: isPaused
+                      color: statusColor.withValues(
+                        alpha: isPaused || isPending || isPaid ? 0.10 : 0.06,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.xs.r),
+                      border: (isPaused || isPending || isPaid)
                           ? Border.all(
-                              color: AppColors.warning.withValues(alpha: 0.3),
-                              width: 1,
+                              color: statusColor.withValues(alpha: 0.3),
                             )
-                          : (isPending
-                                ? Border.all(
-                                    color: AppColors.warning.withValues(alpha: 0.4),
-                                    width: 1,
-                                  )
-                                : (isPaid
-                                      ? Border.all(
-                                          color: const Color(
-                                            0xFF00E676,
-                                          ).withValues(alpha: 0.3),
-                                        )
-                                      : null)),
+                          : null,
                     ),
                     child: Text(
+                      // These three labels were English literals inside string
+                      // interpolation, which is why no audit saw them.
                       isPaused
-                          ? "PAUSED"
-                          : (isPending
-                                ? "PENDING • Due ${DateFormat('MMM dd').format(item.nextDueDate)}"
-                                : (isPaid
-                                      ? "PAID • Due ${DateFormat('MMM dd').format(item.nextDueDate)}"
-                                      : "${item.frequency.name.capitalizeFirst} • Due ${DateFormat('MMM dd').format(item.nextDueDate)}")),
-                      style: AppType.labelSmall(isPaused
-                            ? AppColors.warning
-                            : (isPending
-                                  ? AppColors.warning
-                                  : (isPaid
-                                        ? AppColors.success
-                                        : textColor.withValues(alpha: 0.6)))),
+                          ? m.recurringPausedLabel
+                          : isPending
+                          ? "${m.recurringPendingLabel} \u2022 ${m.due} ${DateFormat('MMM dd').format(item.nextDueDate)}"
+                          : isPaid
+                          ? "${m.recurringPaidLabel} \u2022 ${m.due} ${DateFormat('MMM dd').format(item.nextDueDate)}"
+                          : "${item.frequency.name.capitalizeFirst} \u2022 ${m.due} ${DateFormat('MMM dd').format(item.nextDueDate)}",
+                      style: AppType.labelSmall(
+                        (isPaused || isPending || isPaid)
+                            ? statusColor
+                            : (isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary),
+                      ),
                     ),
                   ),
                   if (isAutoMissed) ...[
@@ -564,21 +430,19 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                   "${CurrencyController.to.currencySymbol.value}${item.amount.toStringAsFixed(0)}",
                   style: AppType.titleMedium(textColor),
                 ),
-                SizedBox(height: 8.h),
-                // Edit only
-                GestureDetector(
-                  onTap: () => _showAddDialog(context, isDark, payment: item),
-                  child: Container(
-                    padding: EdgeInsets.all(6.w),
-                    decoration: BoxDecoration(
-                      color: textColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.edit_rounded,
-                      color: textColor.withValues(alpha: 0.7),
-                      size: 16.sp,
-                    ),
+                SizedBox(height: AppSpace.s4.h),
+                // Was a 28 dp GestureDetector: below the 48 dp guideline, with
+                // no ripple, no tooltip and nothing for a screen reader.
+                IconButton(
+                  onPressed: () => _showAddDialog(context, isDark, payment: item),
+                  tooltip: m.recurringEditTooltip,
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    Icons.edit_rounded,
+                    size: 18.sp,
+                    color: isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
                   ),
                 ),
               ],
@@ -591,7 +455,8 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
 
   Widget _buildDetailPlaceholder() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : AppColors.darkBackground;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -601,10 +466,15 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
             size: 64.sp,
             color: textColor.withValues(alpha: 0.2),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: AppSpace.s16.h),
           Text(
             AppLocalizations.of(context)!.selectSubscriptionViewDetails,
-            style: AppType.bodyLarge(textColor.withValues(alpha: 0.4)),
+            textAlign: TextAlign.center,
+            style: AppType.bodyLarge(
+              isDark
+                  ? AppColors.darkTextTertiary
+                  : AppColors.lightTextTertiary,
+            ),
           ),
         ],
       ),
@@ -738,7 +608,9 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
       } catch (e) {
         if (mounted) {
           setState(() => _saving = false);
-          ErrorHandler.showError("Failed to save. Please try again.");
+          ErrorHandler.showError(
+            AppLocalizations.of(context)!.recurringSaveFailed,
+          );
         }
       }
     }
@@ -764,24 +636,30 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
             children: [
               Text(
                 widget.payment == null
-                    ? "New Subscription"
-                    : "Edit Subscription",
-                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+                    ? AppLocalizations.of(context)!.recurringNewSubscription
+                    : AppLocalizations.of(context)!.recurringEditSubscription,
+                style: AppType.titleLarge(textColor),
               ),
-              SizedBox(height: 20.h),
+              SizedBox(height: AppSpace.s20.h),
               TextFormField(
                 controller: _titleCtrl,
-                decoration: const InputDecoration(
-                  labelText: "Name (e.g. Netflix)",
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.recurringNameLabel,
                 ),
-                validator: (v) => v!.isEmpty ? "Required" : null,
+                validator: (v) => v!.isEmpty
+                    ? AppLocalizations.of(context)!.recurringRequired
+                    : null,
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: AppSpace.s16.h),
               TextFormField(
                 controller: _amountCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Amount"),
-                validator: (v) => v!.isEmpty ? "Required" : null,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.amount,
+                ),
+                validator: (v) => v!.isEmpty
+                    ? AppLocalizations.of(context)!.recurringRequired
+                    : null,
               ),
               SizedBox(height: 16.h),
 
@@ -797,7 +675,9 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                     )
                     .toList(),
                 onChanged: (v) => setState(() => _freq = v!),
-                decoration: const InputDecoration(labelText: "Frequency"),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.recurringFrequencyLabel,
+                ),
               ),
 
               SizedBox(height: 16.h),
@@ -809,7 +689,9 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                     .toList(),
                 onChanged: (v) => setState(() => _category = v!),
-                decoration: const InputDecoration(labelText: "Category"),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(context)!.recurringCategoryLabel,
+                ),
               ),
 
               SizedBox(height: 16.h),
@@ -823,15 +705,19 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                     vertical: 16.h,
                   ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(4.r),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.xs.r),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Next Payment: ${DateFormat('MMM dd, yyyy').format(_nextPaymentDate)}",
-                        style: TextStyle(fontSize: 16.sp),
+                        "${AppLocalizations.of(context)!.recurringNextPaymentLabel} ${DateFormat('MMM dd, yyyy').format(_nextPaymentDate)}",
+                        style: AppType.bodyLarge(textColor),
                       ),
                       Icon(Icons.calendar_today, size: 20.sp),
                     ],
@@ -870,9 +756,13 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                     ),
                     subtitle: Text(
                       _autoPay
-                          ? "When due, a transaction is created automatically."
-                          : "Remind me when due — I'll mark it paid manually.",
-                      style: AppType.bodySmall(textColor.withValues(alpha: 0.6)),
+                          ? AppLocalizations.of(context)!.recurringAutoPayHint
+                          : AppLocalizations.of(context)!.recurringManualPayHint,
+                      style: AppType.bodySmall(
+                        isDark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                      ),
                     ),
                     secondary: Icon(
                       _autoPay
@@ -883,7 +773,7 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
                     activeColor: AppColors.primary,
-                    checkColor: Colors.black,
+                    checkColor: Colors.white,
                   ),
                 ),
               ),
@@ -933,53 +823,74 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final lite = PerformanceController.to.liteMode.value;
     return StreamBuilder<double>(
       stream: _monthlyStream ??= _service.getMonthlyTotal(),
       builder: (context, snapshot) {
         final total = snapshot.data ?? 0;
-        return Container(
+        final amount = Text(
+          "${CurrencyController.to.currencySymbol.value}${total.toStringAsFixed(0)}",
+          style: AppType.displaySmall(widget.textColor),
+        );
+        final card = Container(
           width: double.infinity,
-          margin: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 10.h),
-          padding: EdgeInsets.all(24.w),
+          margin: EdgeInsets.fromLTRB(
+            AppSpace.s20.w,
+            AppSpace.s8.h,
+            AppSpace.s20.w,
+            AppSpace.s8.h,
+          ),
+          padding: EdgeInsets.all(AppSpace.s24.w),
           decoration: BoxDecoration(
             color: widget.isDark
-                ? AppColors.darkSurface.withValues(alpha: 0.6)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(24.r),
+                ? AppColors.darkSurfaceCard
+                : AppColors.lightSurfaceCard,
+            borderRadius: BorderRadius.circular(AppRadius.xl.r),
             border: Border.all(
               color: widget.isDark
-                  ? Colors.white.withValues(alpha: 0.1)
+                  ? AppColors.darkBorder
                   : AppColors.lightBorder,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.15),
-                blurRadius: 20.w,
-                offset: Offset(0.w, 10.w),
-              ),
-            ],
+            boxShadow: AppElevation.floating(
+              isDark: widget.isDark,
+              tint: AppColors.primary,
+            ),
           ),
           child: Column(
             children: [
               Text(
                 AppLocalizations.of(context)!.monthlyCommitment,
-                style: AppType.bodyMedium(widget.textColor.withValues(alpha: 0.6)),
+                style: AppType.bodyMedium(
+                  widget.isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
               ),
-              SizedBox(height: 12.h),
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: total),
-                duration: const Duration(milliseconds: 1500),
-                curve: Curves.easeOutExpo,
-                builder: (context, value, child) {
-                  return Text(
-                    "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
-                    style: AppType.displaySmall(widget.textColor),
-                  );
-                },
-              ),
+              SizedBox(height: AppSpace.s12.h),
+              // The count-up used to run unconditionally, including in lite mode.
+              if (lite)
+                amount
+              else
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: total),
+                  duration: AppMotion.countUp,
+                  curve: AppMotion.emphasized,
+                  builder: (context, value, child) {
+                    return Text(
+                      "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
+                      style: AppType.displaySmall(widget.textColor),
+                    );
+                  },
+                ),
             ],
           ),
-        ).animate().fadeIn().slideY(begin: -0.2, end: 0);
+        );
+        if (lite) return card;
+        return card.animate().fadeIn(duration: AppMotion.slow).slideY(
+          begin: -0.2,
+          end: 0,
+          curve: AppMotion.standard,
+        );
       },
     );
   }

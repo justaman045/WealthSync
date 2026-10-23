@@ -2253,6 +2253,90 @@ abstract class AppLocalizations {
   /// **'Record Payment'**
   String get recordPayment;
 
+  /// No description provided for @recurringAutoPayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When due, a transaction is created automatically.'**
+  String get recurringAutoPayHint;
+
+  /// No description provided for @recurringCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get recurringCategoryLabel;
+
+  /// No description provided for @recurringFrequencyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency'**
+  String get recurringFrequencyLabel;
+
+  /// No description provided for @recurringManualPayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me when due — I\'ll mark it paid manually.'**
+  String get recurringManualPayHint;
+
+  /// No description provided for @recurringNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (e.g. Netflix)'**
+  String get recurringNameLabel;
+
+  /// No description provided for @recurringRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get recurringRequired;
+
+  /// No description provided for @recurringSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save. Please try again.'**
+  String get recurringSaveFailed;
+
+  /// No description provided for @recurringEditSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Subscription'**
+  String get recurringEditSubscription;
+
+  /// No description provided for @recurringEditTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit subscription'**
+  String get recurringEditTooltip;
+
+  /// No description provided for @recurringNewSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'New Subscription'**
+  String get recurringNewSubscription;
+
+  /// No description provided for @recurringNextPaymentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Payment:'**
+  String get recurringNextPaymentLabel;
+
+  /// No description provided for @recurringPaidLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PAID'**
+  String get recurringPaidLabel;
+
+  /// No description provided for @recurringPausedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PAUSED'**
+  String get recurringPausedLabel;
+
+  /// No description provided for @recurringPendingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'PENDING'**
+  String get recurringPendingLabel;
+
   /// No description provided for @referralCODE.
   ///
   /// In en, this message translates to:
