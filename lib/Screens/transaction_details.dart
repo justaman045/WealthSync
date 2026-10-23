@@ -287,21 +287,12 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                 height: 54.h,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF6A11CB),
-                      Color(0xFF2575FC),
-                    ], // Neon Blue/Purple
+                    colors: [AppColors.primary, AppColors.secondary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(28.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2575FC).withValues(alpha: 0.4),
-                      blurRadius: 12.w,
-                      offset: Offset(0, 4.w),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(AppRadius.pill.r),
+                  boxShadow: AppElevation.floating(isDark: isDark),
                 ),
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -309,16 +300,14 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28.r),
+                      borderRadius: BorderRadius.circular(AppRadius.pill.r),
                     ),
                   ),
+                  // White on the brand gradient: the foreground used to be
+                  // near-black in light mode on a saturated purple-blue.
                   child: Text(
                     AppLocalizations.of(context)!.back,
-                    style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16.sp,
-                    ),
+                    style: AppType.labelLarge(Colors.white),
                   ),
                 ),
               ),
@@ -336,68 +325,51 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
     final t = widget.type;
 
     if (t == TransactionResultType.failed) {
-      return _buildIconContainer(
-        Icons.close_rounded,
-        [const Color(0xFFE53935), AppColors.error], // Red for Failure
-      );
-    } else if (t == TransactionResultType.inProgress) {
+      return _buildIconContainer(Icons.close_rounded, AppColors.error);
+    }
+    if (t == TransactionResultType.inProgress) {
       return _buildIconContainer(
         Icons.hourglass_empty_rounded,
-        [
-          const Color(0xFFFFA726),
-          const Color(0xFFF57C00),
-        ], // Orange for Progress
+        AppColors.warning,
       );
     }
 
-    // Success Case
     if (isReceived) {
       return _buildIconContainer(
         Icons.arrow_downward_rounded,
-        [
-          AppColors.primary,
-          const Color(0xFF00BFA5),
-        ], // Neon Cyan/Green for Received
-      );
-    } else {
-      return _buildIconContainer(
-        Icons.check_rounded,
-        [
-          AppColors.error,
-          const Color(0xFFC2185B),
-        ], // Neon Pink/Red for Sent
+        AppColors.success,
       );
     }
+    return _buildIconContainer(Icons.check_rounded, AppColors.primary);
   }
 
-  Widget _buildIconContainer(IconData icon, List<Color> colors) {
+  /// One saturated circle per outcome.
+  ///
+  /// The four outcomes used to each hand-pick a two-stop gradient from a
+  /// different colour family (neon cyan/green, neon pink/red, orange), so the
+  /// same screen spoke four visual languages. The second stop is now derived
+  /// from the semantic colour.
+  Widget _buildIconContainer(IconData icon, Color color) {
     return Container(
       width: 90.r,
       height: 90.r,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: colors,
+          colors: [color, color.withValues(alpha: 0.72)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 20.w,
-            offset: Offset(0, 8.w),
-            color: colors.first.withValues(alpha: 0.4),
-          ),
-          BoxShadow(blurRadius: 10.w, color: Colors.black.withValues(alpha: 0.2)),
-        ],
+        boxShadow: AppElevation.floating(isDark: isDark, tint: color),
       ),
       child: Center(
         child: Container(
           padding: EdgeInsets.all(4.r),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: isDark ? Colors.white : AppColors.lightTextPrimary, width: 2),
+            border: Border.all(color: Colors.white, width: 2),
           ),
-          child: Icon(icon, size: 40.sp, color: isDark ? Colors.white : AppColors.lightTextPrimary),
+          child: Icon(icon, size: 40.sp, color: Colors.white),
         ),
       ),
     );
@@ -480,7 +452,7 @@ class _TransactionResultScreenState extends State<TransactionResultScreen> {
             children: [
               Icon(
                 icon,
-                color: const Color(0xFF8E99F3),
+                color: AppColors.primary,
                 size: 20.sp,
               ),
               SizedBox(width: 8.w),

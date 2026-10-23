@@ -138,7 +138,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     width: 1,
                   ),
                 ),
-                color: isDark ? const Color(0xFF25253B) : Colors.white,
+                color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurface,
                 elevation: 10.w,
                 onSelected: (value) {
                   if (value == 'toggle') {

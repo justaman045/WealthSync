@@ -46,7 +46,9 @@ class _TransactionAuditScreenState extends State<TransactionAuditScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0E21) : Colors.grey[50],
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
       appBar: AppBar(
         title: Text(
           AppLocalizations.of(context)!.transactionAudit,

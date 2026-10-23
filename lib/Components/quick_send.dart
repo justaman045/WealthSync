@@ -125,12 +125,13 @@ class _QuickSendRowState extends State<QuickSendRow> {
                 ],
               );
             } else {
-              // Assign neon colors cyclically
+              // Cycle the semantic series so two adjacent shortcuts never
+              // share a hue.
               final colors = [
-                AppColors.primary, // Cyan
-                const Color(0xFFEA80FC), // Purple
-                AppColors.error, // Pink
-                const Color(0xFFFDD835), // Yellow
+                AppColors.primary,
+                AppColors.accent,
+                AppColors.error,
+                AppColors.warning,
               ];
 
               return Row(

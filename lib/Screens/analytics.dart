@@ -1599,14 +1599,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     int i = 0;
-    final List<Color> colors = [
-      AppColors.primary,
-      const Color(0xFF2979FF),
-      const Color(0xFF651FFF),
-      AppColors.error,
-      AppColors.warning,
-      Colors.grey,
-    ];
+    // One shared series so an allocation slice and a chart line for the same
+    // category never disagree on hue.
+    const List<Color> colors = AppColors.chartSeries;
 
     final isDark = _cachedIsDark;
     final sections = finalMap.entries.map((e) {
@@ -2212,7 +2207,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           description: l10n.analyticsPersonalityFoodieDesc(
             (topPct * 100).toStringAsFixed(0),
           ),
-          color: const Color(0xFFFF8A65),
+          color: AppColors.chartSeries[1],
         );
       }
 
@@ -2230,7 +2225,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           description: l10n.analyticsPersonalityCommuterDesc(
             (topPct * 100).toStringAsFixed(0),
           ),
-          color: const Color(0xFF4FC3F7),
+          color: AppColors.chartSeries[4],
         );
       }
 
@@ -2246,7 +2241,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           description: l10n.analyticsPersonalityShopaholicDesc(
             (topPct * 100).toStringAsFixed(0),
           ),
-          color: const Color(0xFFE040FB),
+          color: AppColors.chartSeries[5],
         );
       }
 
@@ -2261,7 +2256,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           label: l10n.analyticsPersonalityFunSeeker,
           emoji: '🎉',
           description: l10n.analyticsPersonalityFunSeekerDesc,
-          color: const Color(0xFFFFD54F),
+          color: AppColors.chartSeries[2],
         );
       }
     }
@@ -2291,7 +2286,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           emoji: '⚡',
           description:
               l10n.analyticsPersonalityFrequentSpenderDesc(recentCount),
-          color: const Color(0xFFFFB300),
+          color: AppColors.chartSeries[2],
         );
       }
     }
@@ -2301,7 +2296,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         label: l10n.analyticsPersonalityJustStarting,
         emoji: '🌱',
         description: l10n.analyticsPersonalityJustStartingDesc,
-        color: const Color(0xFFA5D6A7),
+        color: AppColors.chartSeries[1],
       );
     }
 
@@ -2309,7 +2304,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       label: l10n.analyticsPersonalityBalanced,
       emoji: '⚖️',
       description: l10n.analyticsPersonalityBalancedDesc,
-      color: const Color(0xFF80CBC4),
+      color: AppColors.chartSeries[4],
     );
   }
 

@@ -220,7 +220,7 @@ class _NotificationTile extends StatelessWidget {
         break;
       case 'sms_import':
         icon = Icons.smart_toy_outlined;
-        color = const Color(0xFF7C4DFF);
+        color = AppColors.accent;
         break;
       case 'insight':
       case 'weekly_digest':

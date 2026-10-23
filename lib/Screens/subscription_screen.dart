@@ -75,7 +75,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         gradient: LinearGradient(
           colors: [
             ...(isDark ? AppColors.darkGradient : AppColors.lightGradient),
-            isDark ? AppColors.darkSurface : const Color(0xFFCBD5E1),
+            isDark ? AppColors.darkSurface : AppColors.lightBorder,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

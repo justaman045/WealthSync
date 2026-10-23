@@ -451,7 +451,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     AppColors.primary,
                     AppColors.success,
                     AppColors.error,
-                    Color(0xFFFFD740),
+                    AppColors.warning,
                   ],
                 ),
         ),

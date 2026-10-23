@@ -434,7 +434,7 @@ class _ImportScreenState extends State<ImportScreen> {
       height: 55.h,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.primary, Color(0xFF7B2CBF)],
+          colors: [AppColors.primary, AppColors.primaryPress],
         ),
         borderRadius: BorderRadius.circular(30.r),
         boxShadow: [

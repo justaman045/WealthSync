@@ -223,7 +223,7 @@ class _InsurancePolicyScreenState extends State<InsurancePolicyScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFAD1457), Color(0xFFE91E63)],
+          colors: [AppColors.accent, AppColors.primary],
         ),
         borderRadius: BorderRadius.circular(20.r),
       ),

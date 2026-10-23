@@ -338,7 +338,19 @@ class AppElevation {
   }
 
   /// Overlay / floating element (sheet, FAB, popover).
-  static List<BoxShadow> floating({required bool isDark}) {
+  ///
+  /// Pass [tint] for a coloured glow instead of a neutral one — a saturated
+  /// status circle should cast its own hue, not a grey smudge.
+  static List<BoxShadow> floating({required bool isDark, Color? tint}) {
+    if (tint != null) {
+      return [
+        BoxShadow(
+          color: tint.withValues(alpha: isDark ? 0.45 : 0.30),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
+        ),
+      ];
+    }
     return [
       BoxShadow(
         color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.10),

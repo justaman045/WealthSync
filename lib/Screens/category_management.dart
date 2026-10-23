@@ -150,7 +150,9 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                       value: currentSelected.isEmpty ? null : currentSelected,
                       hint: Text(AppLocalizations.of(context)!.selectCategory2,
                           style: TextStyle(color: isDark ? Colors.white54 : AppColors.lightTextSecondary)),
-                      dropdownColor: Theme.of(ctx).brightness == Brightness.dark ? const Color(0xFF2A2A3E) : AppColors.lightSurface,
+                      dropdownColor: Theme.of(ctx).brightness == Brightness.dark
+                          ? AppColors.darkSurfaceCard
+                          : AppColors.lightSurface,
                       style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
                       isExpanded: true,
                       items: otherCategories

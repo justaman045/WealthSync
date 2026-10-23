@@ -19,7 +19,7 @@ class AnimatedSplashScreen extends StatefulWidget {
 class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
   static const List<SplashData> splashPages = [
     SplashData(
-      bgColor: Color(0xFF2B2B8E), // Legacy color kept for model compatibility
+      bgColor: AppColors.primary,
       image: 'assets/salary.png',
       headline: 'Save your Money',
       subtitle:
@@ -27,7 +27,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
       buttonText: AppStrings.getStarted,
     ),
     SplashData(
-      bgColor: Color(0xFF347EA3),
+      bgColor: AppColors.primaryPress,
       image: 'assets/accounting.png',
       headline: 'Track Your Expenses',
       subtitle:
@@ -35,7 +35,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
       buttonText: AppStrings.continueLabel,
     ),
     SplashData(
-      bgColor: Color(0xFF89BCE6),
+      bgColor: AppColors.secondary,
       image: 'assets/wallet.png',
       headline: 'Fill Your Wallet',
       subtitle:
@@ -84,7 +84,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
         : [
             AppColors.lightBackground, // Premium Light
             AppColors.lightBorder,
-            const Color(0xFFE3F2FD),
+            AppColors.lightActionSurface,
           ];
 
     final textColor = isDark ? Colors.white : AppColors.darkBackground;

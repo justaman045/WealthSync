@@ -97,7 +97,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.primary, Color(0xFF3B39C4)],
+          colors: [AppColors.primary, AppColors.primaryPress],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -267,7 +267,7 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                 value: loan.progressPercent,
                 minHeight: 6.h,
                 backgroundColor:
-                    isDark ? Colors.white12 : const Color(0xFFE0E0E0),
+                    isDark ? Colors.white12 : AppColors.lightBorder,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   _progressColor(loan.progressPercent),
                 ),
@@ -541,13 +541,13 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
   Color _loanColor(LoanType type) {
     switch (type) {
       case LoanType.home:
-        return const Color(0xFF00BCD4);
+        return AppColors.accent;
       case LoanType.car:
-        return const Color(0xFFFF9800);
+        return AppColors.warning;
       case LoanType.personal:
         return AppColors.primary;
       case LoanType.education:
-        return const Color(0xFF4CAF50);
+        return AppColors.success;
       case LoanType.other:
         return Colors.grey;
     }

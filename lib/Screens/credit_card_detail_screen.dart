@@ -218,7 +218,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.error, Color(0xFFD32F2F)],
+          colors: [AppColors.error, AppColors.warning],
         ),
         borderRadius: BorderRadius.circular(20.r),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Services/connectivity_controller.dart';
 
 /// Slim full-width banner shown while the device has no network. Renders
@@ -18,7 +19,7 @@ class OfflineBanner extends StatelessWidget {
         return const SizedBox.shrink();
       }
       return Material(
-        color: const Color(0xFFB3261E),
+        color: AppColors.error,
         child: SafeArea(
           bottom: false,
           child: Padding(

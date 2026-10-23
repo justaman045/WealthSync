@@ -40,7 +40,7 @@ class BottomNavBar extends StatelessWidget {
     if (destinations.isEmpty) return const SizedBox.shrink();
 
     final containerColor = isDark
-        ? const Color(0xFF161622).withValues(alpha: 0.8)
+        ? AppColors.darkSurfaceCard.withValues(alpha: 0.8)
         : Colors.white.withValues(alpha: 0.95);
 
     final borderColor = isDark
