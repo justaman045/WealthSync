@@ -45,18 +45,12 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(AppLocalizations.of(context)!.loanTracker),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
         ),
+        // The theme already paints the FAB primary with an on-primary label.
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _showAddLoanSheet(context),
-          backgroundColor: AppColors.primary,
-          icon: const Icon(Icons.add, color: Colors.white),
-          label: Text(
-            AppLocalizations.of(context)!.addLoan,
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
+          icon: const Icon(Icons.add),
+          label: Text(AppLocalizations.of(context)!.addLoan),
         ),
         body: Obx(() {
           if (ctrl.isLoading.value) {
@@ -75,9 +69,13 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                   SizedBox(height: 20.h),
                   Text(
                     AppLocalizations.of(context)!.activeLoans,
-                    style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+                    style: AppType.titleMedium(
+                      isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                    ),
                   ),
-                  SizedBox(height: 12.h),
+                  SizedBox(height: AppSpace.s12.h),
                   ...ctrl.loans.map((loan) => _buildLoanCard(context, loan, ctrl, isDark)),
                 ],
               ),
@@ -90,22 +88,26 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
 
   Widget _buildSummaryCard(LoanController ctrl, bool isDark) {
     final symbol = CurrencyController.to.currencySymbol.value;
+    final l10n = AppLocalizations.of(context)!;
+    // `onPrimary` is what the theme pairs with the primary fill; the labels
+    // used to hard-code white at 70% and 24%, which is the same value but not
+    // tied to the fill it sits on.
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
+    final onPrimaryMuted = onPrimary.withValues(alpha: 0.8);
+
     return Container(
-      padding: EdgeInsets.all(20.w),
+      padding: EdgeInsets.all(AppSpace.s20.w),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.primary, AppColors.primaryPress],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 16.w,
-            offset: Offset(0, 6.w),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadius.lg.r),
+        boxShadow: AppElevation.floating(
+          isDark: isDark,
+          tint: AppColors.primary,
+        ),
       ),
       child: Row(
         children: [
@@ -114,31 +116,34 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppLocalizations.of(context)!.totalOutstanding,
-                  style: AppType.bodySmall(Colors.white70),
+                  l10n.totalOutstanding,
+                  style: AppType.bodySmall(onPrimaryMuted),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: AppSpace.s4.h),
                 Text(
                   "$symbol${ctrl.totalOutstanding.toStringAsFixed(0)}",
-                  style: AppType.titleLarge(Colors.white),
+                  style: AppType.titleLarge(onPrimary),
                 ),
               ],
             ),
           ),
-          Container(width: 1, height: 40.h, color: Colors.white24),
-          SizedBox(width: 16.w),
+          Container(
+            width: 1,
+            height: 40.h,
+            color: onPrimary.withValues(alpha: 0.24),
+          ),
+          SizedBox(width: AppSpace.s16.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(l10n.monthlyEMI, style: AppType.bodySmall(onPrimaryMuted)),
+                SizedBox(height: AppSpace.s4.h),
                 Text(
-                  AppLocalizations.of(context)!.monthlyEMI,
-                  style: AppType.bodySmall(Colors.white70),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  "$symbol${ctrl.totalMonthlyEmi.toStringAsFixed(0)}/mo",
-                  style: AppType.titleLarge(Colors.white),
+                  l10n.loanMonthlyAmount(
+                    "$symbol${ctrl.totalMonthlyEmi.toStringAsFixed(0)}",
+                  ),
+                  style: AppType.titleLarge(onPrimary),
                 ),
               ],
             ),
@@ -155,122 +160,148 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
     bool isDark,
   ) {
     final symbol = CurrencyController.to.currencySymbol.value;
-    final surfaceColor = isDark
-        ? Colors.white.withValues(alpha: 0.05)
-        : Colors.white;
-    final textPrimary = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final textSecondary = isDark ? Colors.white60 : AppColors.lightTextSecondary;
+    final l10n = AppLocalizations.of(context)!;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
-    return GestureDetector(
-      onTap: () => _showAmortizationSheet(context, loan, isDark),
-      child: Container(
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: () => _showAmortizationSheet(context, loan, isDark),
+        child: Container(
+          margin: EdgeInsets.only(bottom: AppSpace.s12.h),
+          padding: EdgeInsets.all(AppSpace.s16.w),
+          decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.lightBorder,
+                ? AppColors.darkSurfaceCard
+                : AppColors.lightSurfaceCard,
+            borderRadius: BorderRadius.circular(AppRadius.md.r),
+            border: Border.all(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: _loanColor(loan.loanType).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(AppSpace.s8.w),
+                    decoration: BoxDecoration(
+                      color: _loanColor(loan.loanType).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppRadius.sm.r),
+                    ),
+                    child: Icon(
+                      _loanIcon(loan.loanType),
+                      color: _loanColor(loan.loanType),
+                      size: 20.sp,
+                    ),
                   ),
-                  child: Icon(
-                    _loanIcon(loan.loanType),
-                    color: _loanColor(loan.loanType),
-                    size: 20.sp,
+                  SizedBox(width: AppSpace.s12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(loan.name, style: AppType.labelLarge(textPrimary)),
+                        Text(
+                          l10n.loanRatePerAnnum(
+                            loan.loanType.name.capitalize ??
+                                loan.loanType.name,
+                            loan.interestRate.toStringAsFixed(1),
+                          ),
+                          style: AppType.bodySmall(textSecondary),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        loan.name,
-                        style: AppType.labelLarge(textPrimary),
+                        l10n.loanMonthlyAmount(
+                          "$symbol${loan.emiAmount.toStringAsFixed(0)}",
+                        ),
+                        style: AppType.titleSmall(AppColors.primary),
                       ),
                       Text(
-                        "${loan.loanType.name.capitalize} • ${loan.interestRate.toStringAsFixed(1)}% p.a.",
-                        style: AppType.bodySmall(textSecondary),
+                        l10n.loanMonthsPaidOf(
+                          loan.monthsPaid,
+                          loan.tenureMonths,
+                        ),
+                        style: AppType.labelSmall(textSecondary),
                       ),
                     ],
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      "$symbol${loan.emiAmount.toStringAsFixed(0)}/mo",
-                      style: AppType.titleSmall(AppColors.primary),
-                    ),
-                    Text(
-                      "${loan.monthsPaid}/${loan.tenureMonths} mo paid",
-                      style: AppType.labelSmall(textSecondary),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 12.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Outstanding: $symbol${loan.outstandingBalance.toStringAsFixed(0)}",
-                  style: AppType.bodySmall(textSecondary),
-                ),
-                Text(
-                  "${(loan.progressPercent * 100).toStringAsFixed(0)}% paid",
-                  style: AppType.bodySmall(_progressColor(loan.progressPercent)),
-                ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4.r),
-              child: LinearProgressIndicator(
-                value: loan.progressPercent,
-                minHeight: 6.h,
-                backgroundColor:
-                    isDark ? Colors.white12 : AppColors.lightBorder,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  _progressColor(loan.progressPercent),
-                ),
+                ],
               ),
-            ),
-            SizedBox(height: 8.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Started ${DateFormat('MMM yyyy').format(loan.startDate)}",
-                  style: AppType.labelSmall(textSecondary),
-                ),
-                GestureDetector(
-                  onTap: () async {
-                    final confirm = await _confirmDelete(context);
-                    if (confirm == true) ctrl.deleteLoan(loan.id);
-                  },
-                  child: Text(
-                    AppLocalizations.of(context)!.remove,
-                    style: AppType.labelSmall(AppColors.error),
+              SizedBox(height: AppSpace.s12.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.loanOutstanding(
+                      "$symbol${loan.outstandingBalance.toStringAsFixed(0)}",
+                    ),
+                    style: AppType.bodySmall(textSecondary),
+                  ),
+                  Text(
+                    l10n.loanPercentPaid(
+                      (loan.progressPercent * 100).toStringAsFixed(0),
+                    ),
+                    style: AppType.bodySmall(
+                      _progressColor(loan.progressPercent),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: AppSpace.s8.h),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xs.r),
+                child: LinearProgressIndicator(
+                  value: loan.progressPercent,
+                  minHeight: 6.h,
+                  backgroundColor: isDark
+                      ? AppColors.darkSurface
+                      : AppColors.lightActionSurface,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _progressColor(loan.progressPercent),
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              SizedBox(height: AppSpace.s8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.loanStartedOn(
+                      DateFormat('MMM yyyy').format(loan.startDate),
+                    ),
+                    style: AppType.labelSmall(textSecondary),
+                  ),
+                  // A bare Text inside a GestureDetector: no ripple, no button
+                  // semantics, and a tap target the height of 11 pt type.
+                  TextButton(
+                    onPressed: () async {
+                      final confirm = await _confirmDelete(context);
+                      if (confirm == true) ctrl.deleteLoan(loan.id);
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSpace.s8.w,
+                      ),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: AppType.labelSmall(AppColors.error),
+                    ),
+                    child: Text(l10n.remove),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -303,9 +334,12 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
 
   void _showAmortizationSheet(BuildContext context, LoanModel loan, bool isDark) {
     final symbol = CurrencyController.to.currencySymbol.value;
+    final l10n = AppLocalizations.of(context)!;
     final schedule = loan.buildSchedule();
-    final textPrimary = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final textSecondary = isDark ? Colors.white60 : AppColors.lightTextSecondary;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     showModalBottomSheet(
       context: context,
@@ -318,44 +352,64 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
         minChildSize: 0.4,
         builder: (_, scrollCtrl) => Container(
           decoration: BoxDecoration(
-            color: isDark ? AppColors.darkSurface : Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+            color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(AppRadius.xl.r),
+            ),
           ),
           child: Column(
             children: [
-              SizedBox(height: 8.h),
+              SizedBox(height: AppSpace.s8.h),
               Container(
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.black12,
-                  borderRadius: BorderRadius.circular(2.r),
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  borderRadius: BorderRadius.circular(AppRadius.pill.r),
                 ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: AppSpace.s16.h),
               Text(
-                "${loan.name} — Schedule",
+                l10n.loanScheduleTitle(loan.name),
                 style: AppType.titleMedium(textPrimary),
               ),
-              SizedBox(height: 4.h),
+              SizedBox(height: AppSpace.s4.h),
               Text(
-                "Total interest: $symbol${loan.totalInterestPayable.toStringAsFixed(0)}",
+                l10n.loanTotalInterest(
+                  "$symbol${loan.totalInterestPayable.toStringAsFixed(0)}",
+                ),
                 style: AppType.bodySmall(textSecondary),
               ),
-              SizedBox(height: 12.h),
+              SizedBox(height: AppSpace.s12.h),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                padding: EdgeInsets.symmetric(horizontal: AppSpace.s16.w),
                 child: Row(
                   children: [
-                    _scheduleHeader("Month", flex: 1, textSecondary: textSecondary),
-                    _scheduleHeader("Principal", flex: 2, textSecondary: textSecondary),
-                    _scheduleHeader("Interest", flex: 2, textSecondary: textSecondary),
-                    _scheduleHeader("Balance", flex: 2, textSecondary: textSecondary),
+                    _scheduleHeader(
+                      l10n.loanMonthCol,
+                      flex: 1,
+                      textSecondary: textSecondary,
+                    ),
+                    _scheduleHeader(
+                      l10n.loanPrincipalCol,
+                      flex: 2,
+                      textSecondary: textSecondary,
+                    ),
+                    _scheduleHeader(
+                      l10n.loanInterestCol,
+                      flex: 2,
+                      textSecondary: textSecondary,
+                    ),
+                    _scheduleHeader(
+                      l10n.loanBalanceCol,
+                      flex: 2,
+                      textSecondary: textSecondary,
+                    ),
                   ],
                 ),
               ),
               Divider(
-                color: isDark ? Colors.white12 : Colors.black12,
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                 height: 1,
               ),
               Expanded(
@@ -367,10 +421,10 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
                     final e = schedule[i];
                     final isPast = e.month <= loan.monthsPaid;
                     return Container(
+                      // Paid rows are tinted with the same success wash in both
+                      // modes, so the schedule reads the same either way.
                       color: isPast
-                          ? (isDark
-                              ? Colors.white.withValues(alpha: 0.03)
-                              : AppColors.success.withValues(alpha: 0.03))
+                          ? AppColors.success.withValues(alpha: 0.04)
                           : Colors.transparent,
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -480,7 +534,9 @@ class _LoanTrackerScreenState extends State<LoanTrackerScreen> {
       case LoanType.education:
         return AppColors.success;
       case LoanType.other:
-        return Colors.grey;
+        // Neutral on purpose: "Other" is the absence of a category, so it gets
+        // the tertiary text token rather than a sixth accent colour.
+        return AppColors.lightTextTertiary;
     }
   }
 
@@ -553,14 +609,17 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final symbol = CurrencyController.to.currencySymbol.value;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        padding: EdgeInsets.all(24.w),
+        padding: EdgeInsets.all(AppSpace.s24.w),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl.r),
+          ),
         ),
         child: Form(
           key: _formKey,
@@ -574,17 +633,23 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                     width: 40.w,
                     height: 4.h,
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white24 : Colors.black12,
-                      borderRadius: BorderRadius.circular(2.r),
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
+                      borderRadius: BorderRadius.circular(AppRadius.pill.r),
                     ),
                   ),
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: AppSpace.s20.h),
                 Text(
                   AppLocalizations.of(context)!.addLoan,
-                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+                  style: AppType.titleMedium(
+                    isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
+                  ),
                 ),
-                SizedBox(height: 20.h),
+                SizedBox(height: AppSpace.s20.h),
 
                 // Loan Name
                 _buildField(
@@ -701,23 +766,34 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                     margin: EdgeInsets.only(bottom: 16.h),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withValues(alpha: 0.05)
+                          ? AppColors.darkSurfaceCard
                           : AppColors.lightSurfaceCard,
-                      borderRadius: BorderRadius.circular(12.r),
+                      borderRadius: BorderRadius.circular(AppRadius.sm.r),
+                      border: Border.all(
+                        color: isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder,
+                      ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today_outlined,
-                            size: 18.sp,
-                            color: isDark
-                                ? Colors.white54
-                                : AppColors.lightTextSecondary),
-                        SizedBox(width: 10.w),
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 18.sp,
+                          color: isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
+                        ),
+                        SizedBox(width: AppSpace.s8.w),
                         Text(
-                          "Loan started: ${DateFormat('d MMM yyyy').format(_startDate)}",
-                          style: AppType.bodyMedium(isDark
-                                ? Colors.white
-                                : AppColors.lightTextPrimary),
+                          l10n.loanStartedOn(
+                            DateFormat('d MMM yyyy').format(_startDate),
+                          ),
+                          style: AppType.bodyMedium(
+                            isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
+                          ),
                         ),
                       ],
                     ),
@@ -736,9 +812,11 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                     Expanded(
                       child: Text(
                         AppLocalizations.of(context)!.createRecurringPaymentEMI,
-                        style: AppType.bodySmall(isDark
-                              ? Colors.white70
-                              : AppColors.lightTextSecondary),
+                        style: AppType.bodySmall(
+                          isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
+                        ),
                       ),
                     ),
                   ],
@@ -746,27 +824,27 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                 SizedBox(height: 20.h),
 
                 // Submit
-                Obx(() => SizedBox(
-                  width: double.infinity,
-                  height: 52.h,
-                  child: ElevatedButton(
-                    onPressed: LoanController.to.isSaving.value ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16.r),
-                      ),
+                // Indigo fill with a near-black label in light mode was 3.1:1;
+                // FilledButton takes fill and label from the theme.
+                Obx(
+                  () => SizedBox(
+                    width: double.infinity,
+                    height: 52.h,
+                    child: FilledButton(
+                      onPressed: LoanController.to.isSaving.value
+                          ? null
+                          : _submit,
+                      child: LoanController.to.isSaving.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(AppLocalizations.of(context)!.addLoan),
                     ),
-                    child: LoanController.to.isSaving.value
-                        ? const CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2)
-                        : Text(
-                            AppLocalizations.of(context)!.addLoan,
-                            style: AppType.titleMedium(Colors.white),
-                          ),
                   ),
-                )),
-                SizedBox(height: 8.h),
+                ),
+                SizedBox(height: AppSpace.s8.h),
               ],
             ),
           ),

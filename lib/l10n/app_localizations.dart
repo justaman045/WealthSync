@@ -2067,6 +2067,78 @@ abstract class AppLocalizations {
   /// **'You Owe'**
   String get lentYouOwe;
 
+  /// No description provided for @loanBalanceCol.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get loanBalanceCol;
+
+  /// No description provided for @loanInterestCol.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest'**
+  String get loanInterestCol;
+
+  /// No description provided for @loanMonthCol.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get loanMonthCol;
+
+  /// No description provided for @loanMonthlyAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount}/mo'**
+  String loanMonthlyAmount(Object amount);
+
+  /// No description provided for @loanMonthsPaidOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{paid}/{total} mo paid'**
+  String loanMonthsPaidOf(Object paid, Object total);
+
+  /// No description provided for @loanOutstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding: {amount}'**
+  String loanOutstanding(Object amount);
+
+  /// No description provided for @loanPercentPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% paid'**
+  String loanPercentPaid(Object percent);
+
+  /// No description provided for @loanPrincipalCol.
+  ///
+  /// In en, this message translates to:
+  /// **'Principal'**
+  String get loanPrincipalCol;
+
+  /// No description provided for @loanRatePerAnnum.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} • {rate}% p.a.'**
+  String loanRatePerAnnum(Object rate, Object type);
+
+  /// No description provided for @loanScheduleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} — Schedule'**
+  String loanScheduleTitle(Object name);
+
+  /// No description provided for @loanStartedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Started {date}'**
+  String loanStartedOn(Object date);
+
+  /// No description provided for @loanTotalInterest.
+  ///
+  /// In en, this message translates to:
+  /// **'Total interest: {amount}'**
+  String loanTotalInterest(Object amount);
+
   /// No description provided for @loanTracker.
   ///
   /// In en, this message translates to:

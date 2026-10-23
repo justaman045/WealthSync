@@ -1128,6 +1128,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lentYouOwe => 'You Owe';
 
   @override
+  String get loanBalanceCol => 'Balance';
+
+  @override
+  String get loanInterestCol => 'Interest';
+
+  @override
+  String get loanMonthCol => 'Month';
+
+  @override
+  String loanMonthlyAmount(Object amount) {
+    return '$amount/mo';
+  }
+
+  @override
+  String loanMonthsPaidOf(Object paid, Object total) {
+    return '$paid/$total mo paid';
+  }
+
+  @override
+  String loanOutstanding(Object amount) {
+    return 'Outstanding: $amount';
+  }
+
+  @override
+  String loanPercentPaid(Object percent) {
+    return '$percent% paid';
+  }
+
+  @override
+  String get loanPrincipalCol => 'Principal';
+
+  @override
+  String loanRatePerAnnum(Object rate, Object type) {
+    return '$type • $rate% p.a.';
+  }
+
+  @override
+  String loanScheduleTitle(Object name) {
+    return '$name — Schedule';
+  }
+
+  @override
+  String loanStartedOn(Object date) {
+    return 'Started $date';
+  }
+
+  @override
+  String loanTotalInterest(Object amount) {
+    return 'Total interest: $amount';
+  }
+
+  @override
   String get loanTracker => 'Loan Tracker';
 
   @override
