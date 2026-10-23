@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:money_control/Components/glass_container.dart';
+import 'package:money_control/Components/settings_widgets.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Services/update_checker.dart';
@@ -126,7 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     SizedBox(height: 30.h),
 
                     // -- CATEGORIZED MENU --
-                    _SectionHeader("Menu"),
+                    const SectionHeader("Menu"),
 
                     // Subscription Card — hidden for admins (they are always Pro)
                     Obx(() {
@@ -390,9 +391,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     SizedBox(height: 2.h),
                                     Text(
                                       _webUrl.replaceAll("https://", ""),
-                                      style: TextStyle(
-                                        fontSize: 11.sp,
-                                        color: AppColors.primary,
+                                      style: AppType.labelSmall(
+                                        AppColors.primary,
+                                      ).copyWith(
                                         decoration: TextDecoration.underline,
                                       ),
                                     ),
@@ -504,33 +505,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: EdgeInsets.symmetric(vertical: 16.h),
           backgroundColor: AppColors.error.withValues(alpha: 0.1),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(AppRadius.lg.r),
           ),
         ),
         child: Text(
           AppStrings.signOut,
           style: AppType.titleMedium(AppColors.error),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 15.h, top: 10.h, left: 5.w),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title.toUpperCase(),
-          style: AppType.labelMedium(Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.5)),
         ),
       ),
     );
@@ -555,49 +535,47 @@ class _SettingsCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return GlassContainer(
       onTap: onTap,
-      child: GlassContainer(
-        padding: EdgeInsets.all(20.w),
-        borderRadius: BorderRadius.circular(20.r),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(14.r),
-              ),
-              child: Icon(icon, color: color, size: 28.sp),
+      padding: EdgeInsets.all(AppSpace.s20.w),
+      borderRadius: BorderRadius.circular(AppRadius.lg.r),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14.r),
             ),
-            SizedBox(width: 16.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppType.titleMedium(Theme.of(context).colorScheme.onSurface),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    subtitle,
-                    style: AppType.bodySmall(Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.5)),
-                  ),
-                ],
-              ),
+            child: Icon(icon, color: color, size: 28.sp),
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppType.titleMedium(Theme.of(context).colorScheme.onSurface),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  subtitle,
+                  style: AppType.bodySmall(Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5)),
+                ),
+              ],
             ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.3),
-              size: 16.sp,
-            ),
-          ],
-        ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.3),
+            size: 16.sp,
+          ),
+        ],
       ),
     );
   }
@@ -723,10 +701,10 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
                       children: [
                         Text(
                           AppLocalizations.of(context)!.inviteFriends,
-                          style: TextStyle(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w700,
-                            color: theme.textTheme.bodyLarge?.color,
+                          style: AppType.titleMedium(
+                            isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
                           ),
                         ),
                         SizedBox(height: 2.h),

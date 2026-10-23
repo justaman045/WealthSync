@@ -10,12 +10,20 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.only(bottom: 15.h, top: 10.h, left: 5.w),
+      padding: EdgeInsets.only(
+        bottom: AppSpace.s16.h,
+        top: AppSpace.s8.h,
+        left: AppSpace.s4.w,
+      ),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           title.toUpperCase(),
-          style: AppType.labelMedium(isDark ? Colors.white54 : AppColors.lightTextSecondary),
+          style: AppType.labelMedium(
+            isDark
+                ? AppColors.darkTextSecondary
+                : AppColors.lightTextSecondary,
+          ),
         ),
       ),
     );
@@ -29,8 +37,14 @@ class SectionDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 10.h),
-      child: Divider(color: isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1)),
+      padding: EdgeInsets.symmetric(vertical: AppSpace.s8.h),
+      // A hairline, not a 10%-alpha border: the light-mode 0.1 alpha of an
+      // already-pale border rendered as nothing at all.
+      child: Divider(
+        height: 1,
+        thickness: 1,
+        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+      ),
     );
   }
 }
@@ -59,19 +73,23 @@ class SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
+      padding: EdgeInsets.only(bottom: AppSpace.s12.h),
       child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16.r),
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+        borderRadius: BorderRadius.circular(AppRadius.lg.r),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16.r),
+          borderRadius: BorderRadius.circular(AppRadius.lg.r),
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpace.s16.w,
+              vertical: AppSpace.s16.h,
+            ),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.035),
-              borderRadius: BorderRadius.circular(16.r),
-              border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.lightBorder.withValues(alpha: 0.05)),
+              borderRadius: BorderRadius.circular(AppRadius.lg.r),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              ),
             ),
             child: Row(
               children: [
@@ -96,17 +114,22 @@ class SettingsTile extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          color: textColor ?? (isDark ? Colors.white : AppColors.lightTextPrimary),
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w600,
+                        style: AppType.titleSmall(
+                          textColor ??
+                              (isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.lightTextPrimary),
                         ),
                       ),
                       if (subtitle != null) ...[
-                        SizedBox(height: 3.h),
+                        SizedBox(height: AppSpace.s4.h),
                         Text(
                           subtitle!,
-                          style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextSecondary),
+                          style: AppType.bodySmall(
+                            isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
                         ),
                       ],
                     ],
@@ -117,7 +140,9 @@ class SettingsTile extends StatelessWidget {
                 else
                   Icon(
                     Icons.arrow_forward_ios_rounded,
-                    color: isDark ? Colors.white24 : Colors.black.withValues(alpha: 0.2),
+                    color: isDark
+                        ? AppColors.darkTextTertiary
+                        : AppColors.lightTextTertiary,
                     size: 16.sp,
                   ),
               ],

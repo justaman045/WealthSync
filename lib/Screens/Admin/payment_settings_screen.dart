@@ -176,65 +176,63 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
   }) {
     final selected = _mode == mode;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
+    return GlassContainer(
       onTap: () => setState(() => _mode = mode),
-      child: GlassContainer(
-        padding: EdgeInsets.all(16.w),
-        borderRadius: BorderRadius.circular(16.r),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12.w),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: selected ? 0.2 : 0.05),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: selected
-                    ? color
-                    : isDark
-                        ? Colors.white38
-                        : AppColors.lightTextTertiary,
-                size: 24.sp,
-              ),
+      padding: EdgeInsets.all(16.w),
+      borderRadius: BorderRadius.circular(16.r),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: selected ? 0.2 : 0.05),
+              shape: BoxShape.circle,
             ),
-            SizedBox(width: 16.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: AppType.labelLarge(selected
-                              ? isDark
-                                  ? Colors.white
-                                  : AppColors.lightTextPrimary
-                              : isDark
-                                  ? Colors.white60
-                                  : AppColors.lightTextSecondary)),
-                  SizedBox(height: 4.h),
-                  Text(subtitle,
-                      style: AppType.bodySmall(isDark
-                              ? Colors.white38
-                              : AppColors.lightTextTertiary)),
-                ],
-              ),
+            child: Icon(
+              icon,
+              color: selected
+                  ? color
+                  : isDark
+                      ? Colors.white38
+                      : AppColors.lightTextTertiary,
+              size: 24.sp,
             ),
-            SizedBox(width: 8.w),
-            Container(
-              width: 22.w,
-              height: 22.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: selected ? color : isDark ? Colors.white24 : AppColors.lightBorder,
-                    width: 2),
-                color: selected ? color : Colors.transparent,
-              ),
-              child: selected ? Icon(Icons.check, color: Colors.black, size: 14.sp) : null,
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: AppType.labelLarge(selected
+                            ? isDark
+                                ? Colors.white
+                                : AppColors.lightTextPrimary
+                            : isDark
+                                ? Colors.white60
+                                : AppColors.lightTextSecondary)),
+                SizedBox(height: 4.h),
+                Text(subtitle,
+                    style: AppType.bodySmall(isDark
+                            ? Colors.white38
+                            : AppColors.lightTextTertiary)),
+              ],
             ),
-          ],
-        ),
+          ),
+          SizedBox(width: 8.w),
+          Container(
+            width: 22.w,
+            height: 22.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                  color: selected ? color : isDark ? Colors.white24 : AppColors.lightBorder,
+                  width: 2),
+              color: selected ? color : Colors.transparent,
+            ),
+            child: selected ? Icon(Icons.check, color: Colors.black, size: 14.sp) : null,
+          ),
+        ],
       ),
     );
   }

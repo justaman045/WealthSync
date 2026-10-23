@@ -215,58 +215,56 @@ class _AdminMenuState extends State<AdminMenu> {
     bool loading = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
+    return GlassContainer(
       onTap: onTap,
-      child: GlassContainer(
-        padding: EdgeInsets.all(20.w),
-        borderRadius: BorderRadius.circular(20.r),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(16.w),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: loading
-                  ? SizedBox(
-                      width: 32.sp,
-                      height: 32.sp,
-                      child: CircularProgressIndicator(
-                        color: color,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  : Icon(icon, color: color, size: 32.sp),
+      padding: EdgeInsets.all(20.w),
+      borderRadius: BorderRadius.circular(20.r),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            SizedBox(width: 20.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    loading ? 'Scanning SMS...' : subtitle,
-                    style: AppType.bodyMedium(isDark
-                          ? Colors.white54
-                          : AppColors.lightTextSecondary),
-                  ),
-                ],
-              ),
+            child: loading
+                ? SizedBox(
+                    width: 32.sp,
+                    height: 32.sp,
+                    child: CircularProgressIndicator(
+                      color: color,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Icon(icon, color: color, size: 32.sp),
+          ),
+          SizedBox(width: 20.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  loading ? 'Scanning SMS...' : subtitle,
+                  style: AppType.bodyMedium(isDark
+                        ? Colors.white54
+                        : AppColors.lightTextSecondary),
+                ),
+              ],
             ),
-            loading
-                ? const SizedBox.shrink()
-                : Icon(
-                    Icons.arrow_forward_ios,
-                    color: isDark ? Colors.white24 : AppColors.lightTextTertiary,
-                    size: 16.sp,
-                  ),
-          ],
-        ),
+          ),
+          loading
+              ? const SizedBox.shrink()
+              : Icon(
+                  Icons.arrow_forward_ios,
+                  color: isDark ? Colors.white24 : AppColors.lightTextTertiary,
+                  size: 16.sp,
+                ),
+        ],
       ),
     );
   }
