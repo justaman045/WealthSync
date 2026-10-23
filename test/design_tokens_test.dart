@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -197,6 +198,40 @@ void main() {
       expect(AppMotion.fast, lessThan(AppMotion.base));
       expect(AppMotion.base, lessThan(AppMotion.slow));
       expect(AppMotion.slow, lessThan(AppMotion.entrance));
+    });
+  });
+
+  group('palette contract', () {
+    // Material's 100%-saturation accent swatches (cyanAccent, redAccent, …) were
+    // used 190 times across 31 files as ad-hoc semantic colours. They cannot be
+    // themed, they clash with the indigo brand, and they signal nothing —
+    // `redAccent` meant "delete" in one place and "danger" in another. Every one
+    // now resolves to an AppColors token.
+    //
+    // The one exception is asset identity colours: a portfolio chart needs 28
+    // distinguishable hues, which is data, not UI chrome.
+    const allowed = {'lib/Config/wealth_asset_registry.dart'};
+    final accentPattern = RegExp(r'Colors\.[a-zA-Z]+Accent');
+
+    test('no Material accent swatch is used as a UI colour', () {
+      final offenders = <String>[];
+      for (final entity in Directory('lib').listSync(recursive: true)) {
+        if (entity is! File || !entity.path.endsWith('.dart')) continue;
+        final relative = entity.path.replaceAll(r'\', '/');
+        if (allowed.contains(relative)) continue;
+        final source = entity.readAsStringSync();
+        for (final match in accentPattern.allMatches(source)) {
+          final line = source.substring(0, match.start).split('\n').length;
+          offenders.add('$relative:$line ${match.group(0)}');
+        }
+      }
+      expect(
+        offenders,
+        isEmpty,
+        reason:
+            'Use an AppColors token instead of a Material accent swatch:\n'
+            '${offenders.join('\n')}',
+      );
     });
   });
 }

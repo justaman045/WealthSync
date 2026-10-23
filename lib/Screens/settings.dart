@@ -150,7 +150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         icon: isPro
                             ? Icons.verified_user_rounded
                             : Icons.diamond_outlined,
-                        color: isPro ? Colors.greenAccent : Colors.cyanAccent,
+                        color: isPro ? AppColors.success : AppColors.primary,
                         onTap: () => Get.to(() => const SubscriptionScreen()),
                       );
                     }),
@@ -179,7 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: "Data & Support",
                       subtitle: "Backup, Feedback, Legal",
                       icon: Icons.help_outline_rounded,
-                      color: Colors.orangeAccent,
+                      color: AppColors.warning,
                       onTap: () =>
                           Get.to(() => const DataSupportSettingsScreen()),
                     ),
@@ -192,7 +192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: "Automation",
                         subtitle: "Import SMS",
                         icon: Icons.auto_mode_rounded,
-                        color: Colors.greenAccent,
+                        color: AppColors.success,
                         onTap: () {
                           if (!ensureFeatureVisible(context, 'sms_tracking')) {
                             return;
@@ -219,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         title: "Future Money Tracker",
                         subtitle: "Track money you lent and borrowed",
                         icon: Icons.handshake_rounded,
-                        color: Colors.orangeAccent,
+                        color: AppColors.warning,
                         onTap: () {
                           if (!Get.isRegistered<SubscriptionController>()) {
                             return;
@@ -252,7 +252,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             title: "Admin Utils",
                             subtitle: "Manage Data & Approvals",
                             icon: Icons.admin_panel_settings_rounded,
-                            color: Colors.redAccent,
+                            color: AppColors.error,
                             onTap: () => Get.to(() => const AdminMenu()),
                           ),
                           SizedBox(height: 40.h),
@@ -526,7 +526,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
         style: TextButton.styleFrom(
           padding: EdgeInsets.symmetric(vertical: 16.h),
-          backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+          backgroundColor: AppColors.error.withValues(alpha: 0.1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),
           ),
@@ -534,7 +534,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Text(
           AppStrings.signOut,
           style: TextStyle(
-            color: Colors.redAccent,
+            color: AppColors.error,
             fontWeight: FontWeight.bold,
             fontSize: 16.sp,
           ),
@@ -829,7 +829,7 @@ class _InviteFriendsCardState extends State<_InviteFriendsCard> {
                             "You've referred $_count friend${_count > 1 ? 's' : ''} — $_count month${_count > 1 ? 's' : ''} earned 🎉",
                             style: TextStyle(
                               fontSize: 11.sp,
-                              color: Colors.greenAccent,
+                              color: AppColors.success,
                             ),
                           ),
                       ],

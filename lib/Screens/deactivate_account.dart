@@ -127,7 +127,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                   color: cardColor,
                   borderRadius: BorderRadius.circular(20.r),
                   border: Border.all(
-                    color: Colors.redAccent.withValues(alpha: 0.3),
+                    color: AppColors.error.withValues(alpha: 0.3),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -144,12 +144,12 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                     Container(
                       padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withValues(alpha: 0.1),
+                        color: AppColors.error.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.delete_forever_rounded,
-                        color: Colors.redAccent,
+                        color: AppColors.error,
                         size: 40.sp,
                       ),
                     ),
@@ -178,7 +178,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                       Text(
                         error!,
                         style: TextStyle(
-                          color: Colors.redAccent,
+                          color: AppColors.error,
                           fontSize: 13.sp,
                         ),
                       ),
@@ -188,7 +188,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                       Text(
                         success!,
                         style: TextStyle(
-                          color: Colors.greenAccent,
+                          color: AppColors.success,
                           fontSize: 13.sp,
                         ),
                       ),
@@ -199,13 +199,13 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                       height: 52.h,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
+                          backgroundColor: AppColors.error,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(26.r),
                           ),
-                          shadowColor: Colors.redAccent.withValues(alpha: 0.4),
+                          shadowColor: AppColors.error.withValues(alpha: 0.4),
                         ),
                         onPressed: processing
                             ? null
@@ -244,7 +244,7 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
                                         child: const Text(
                                           "DELETE",
                                           style: TextStyle(
-                                            color: Colors.redAccent,
+                                            color: AppColors.error,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),

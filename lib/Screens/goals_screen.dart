@@ -417,7 +417,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               Navigator.pop(context);
               ctrl.deleteGoal(goal.id);
             },
-            child: const Text("Delete", style: TextStyle(color: Colors.redAccent)),
+            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -426,7 +426,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -454,7 +453,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             label: Text(AppLocalizations.of(context)!.addFirstGoal),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              foregroundColor: isDark ? Colors.white : AppColors.lightTextPrimary,
+              foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 14.h),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
             ),

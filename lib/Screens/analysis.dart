@@ -686,16 +686,16 @@ child: loading
 
     if (overshootPercent > 25) {
       warningText = "Overshooting by ~${overshootPercent.toStringAsFixed(1)}%";
-      warningColor = Colors.redAccent.shade100;
+      warningColor = AppColors.error;
       statusIcon = Icons.warning_rounded;
     } else if (overshootPercent > 10) {
       warningText =
           "Projected +${overshootPercent.toStringAsFixed(1)}% vs usual.";
-      warningColor = Colors.orangeAccent.shade100;
+      warningColor = AppColors.warning;
       statusIcon = Icons.info_outline_rounded;
     } else {
       warningText = "On track with usual spending.";
-      warningColor = Colors.greenAccent.shade100;
+      warningColor = AppColors.success;
       statusIcon = Icons.check_circle_outline_rounded;
     }
 
@@ -747,7 +747,7 @@ child: loading
                   letterSpacing: 0.5,
                 ),
               ),
-              Icon(Icons.auto_awesome, color: Colors.amberAccent, size: 20.sp),
+              Icon(Icons.auto_awesome, color: AppColors.warning, size: 20.sp),
             ],
           ),
           SizedBox(height: 8.h),
@@ -936,7 +936,7 @@ child: loading
       Color statusColor;
       if (today > daily * 1.5) {
         statusText = "Stop! You're well above today's safe limit.";
-        statusColor = Colors.redAccent;
+        statusColor = AppColors.error;
       } else if (today > daily * 1.1) {
         statusText = "Careful, you're slightly above today's safe limit.";
         statusColor = Colors.orange.shade700;
@@ -961,7 +961,7 @@ child: loading
             _limitTile(
               "Today",
               "$sym${today.toStringAsFixed(0)}",
-              today > daily ? Colors.redAccent : Colors.green.shade700,
+              today > daily ? AppColors.error : Colors.green.shade700,
             ),
           ],
         ),
@@ -1276,7 +1276,7 @@ child: loading
                     color: bgColor,
                     borderRadius: BorderRadius.circular(8.r),
                     border: isToday
-                        ? Border.all(color: Colors.blueAccent, width: 1.5)
+                        ? Border.all(color: AppColors.primary, width: 1.5)
                         : Border.all(
                             color: scheme.brightness == Brightness.dark
                                 ? Colors.white.withValues(alpha: 0.05)
@@ -1325,7 +1325,7 @@ child: loading
   Widget _buildInsightCard(CategoryInsight c, ColorScheme scheme) {
     final lite = PerformanceController.to.liteMode.value;
     final trendColor = c.trendPercent >= 0
-        ? Colors.redAccent
+        ? AppColors.error
         : Colors.green.shade700;
     final trendIcon = c.trendPercent >= 0
         ? Icons.arrow_upward
@@ -1338,7 +1338,7 @@ child: loading
 
     Color healthColor;
     if (c.currentSoFar > budget) {
-      healthColor = Colors.redAccent;
+      healthColor = AppColors.error;
     } else if (c.currentSoFar > budget * 0.85) {
       healthColor = Colors.orange.shade700;
     } else {

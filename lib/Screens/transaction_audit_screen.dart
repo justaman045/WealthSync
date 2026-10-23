@@ -122,7 +122,7 @@ class _IssuesTab extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.check_circle_outline,
-                  color: Colors.greenAccent, size: 48.sp),
+                  color: AppColors.success, size: 48.sp),
               SizedBox(height: 12.h),
               Text(
                 AppLocalizations.of(context)!.issuesFound,
@@ -171,7 +171,7 @@ class _IssuesTab extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 8.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
-          side: BorderSide(color: Colors.orangeAccent.withValues(alpha: 0.3)),
+          side: BorderSide(color: AppColors.warning.withValues(alpha: 0.3)),
         ),
         child: Padding(
           padding: EdgeInsets.all(12.w),
@@ -180,7 +180,7 @@ class _IssuesTab extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.content_copy, color: Colors.orangeAccent, size: 16.sp),
+                  Icon(Icons.content_copy, color: AppColors.warning, size: 16.sp),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
@@ -195,7 +195,7 @@ class _IssuesTab extends StatelessWidget {
                   Text(
                     '${group.transactions.length}×',
                     style: TextStyle(
-                        color: Colors.orangeAccent,
+                        color: AppColors.warning,
                         fontWeight: FontWeight.bold,
                         fontSize: 13.sp),
                   ),
@@ -214,12 +214,12 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 6.h),
               Row(
                 children: [
-                  Icon(Icons.touch_app, size: 12.sp, color: Colors.orangeAccent.withValues(alpha: 0.6)),
+                  Icon(Icons.touch_app, size: 12.sp, color: AppColors.warning.withValues(alpha: 0.6)),
                   SizedBox(width: 4.w),
                   Text(
                     AppLocalizations.of(context)!.tapResolve,
                     style: TextStyle(
-                      color: Colors.orangeAccent.withValues(alpha: 0.6),
+                      color: AppColors.warning.withValues(alpha: 0.6),
                       fontSize: 10.sp,
                       fontStyle: FontStyle.italic,
                     ),
@@ -241,7 +241,7 @@ class _IssuesTab extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 8.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
-          side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.3)),
+          side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
         ),
         child: Padding(
           padding: EdgeInsets.all(12.w),
@@ -251,7 +251,7 @@ class _IssuesTab extends StatelessWidget {
               Row(
                 children: [
                   Icon(Icons.warning_amber_rounded,
-                      color: Colors.redAccent, size: 16.sp),
+                      color: AppColors.error, size: 16.sp),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
@@ -273,7 +273,7 @@ class _IssuesTab extends StatelessWidget {
                 child: Text(
                   'Expected: ${error.expected} | Got: ${error.actual}',
                   style: TextStyle(
-                      color: Colors.redAccent, fontSize: 11.sp),
+                      color: AppColors.error, fontSize: 11.sp),
                 ),
               ),
               Padding(
@@ -288,12 +288,12 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 6.h),
               Row(
                 children: [
-                  Icon(Icons.touch_app, size: 12.sp, color: Colors.redAccent.withValues(alpha: 0.6)),
+                  Icon(Icons.touch_app, size: 12.sp, color: AppColors.error.withValues(alpha: 0.6)),
                   SizedBox(width: 4.w),
                   Text(
                     AppLocalizations.of(context)!.tapResolve,
                     style: TextStyle(
-                      color: Colors.redAccent.withValues(alpha: 0.6),
+                      color: AppColors.error.withValues(alpha: 0.6),
                       fontSize: 10.sp,
                       fontStyle: FontStyle.italic,
                     ),
@@ -315,7 +315,7 @@ class _IssuesTab extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 8.h),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
-          side: BorderSide(color: Colors.purpleAccent.withValues(alpha: 0.3)),
+          side: BorderSide(color: AppColors.accent.withValues(alpha: 0.3)),
         ),
         child: Padding(
           padding: EdgeInsets.all(12.w),
@@ -324,7 +324,7 @@ class _IssuesTab extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.replay_circle_filled, color: Colors.purpleAccent, size: 16.sp),
+                  Icon(Icons.replay_circle_filled, color: AppColors.accent, size: 16.sp),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
@@ -344,7 +344,7 @@ class _IssuesTab extends StatelessWidget {
                 child: Text(
                   orphan.reason,
                   style: TextStyle(
-                      color: Colors.purpleAccent, fontSize: 11.sp),
+                      color: AppColors.accent, fontSize: 11.sp),
                 ),
               ),
               Padding(
@@ -359,12 +359,12 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 6.h),
               Row(
                 children: [
-                  Icon(Icons.touch_app, size: 12.sp, color: Colors.purpleAccent.withValues(alpha: 0.6)),
+                  Icon(Icons.touch_app, size: 12.sp, color: AppColors.accent.withValues(alpha: 0.6)),
                   SizedBox(width: 4.w),
                   Text(
                     AppLocalizations.of(context)!.tapResolve,
                     style: TextStyle(
-                      color: Colors.purpleAccent.withValues(alpha: 0.6),
+                      color: AppColors.accent.withValues(alpha: 0.6),
                       fontSize: 10.sp,
                       fontStyle: FontStyle.italic,
                     ),
@@ -414,7 +414,7 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 16.h),
               Row(
                 children: [
-                  Icon(Icons.content_copy, color: Colors.orangeAccent, size: 20.sp),
+                  Icon(Icons.content_copy, color: AppColors.warning, size: 20.sp),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
@@ -440,7 +440,7 @@ class _IssuesTab extends StatelessWidget {
                   padding: EdgeInsets.only(left: 8.w, top: 4.h),
                   child: Row(
                     children: [
-                      Icon(Icons.circle, size: 6.sp, color: Colors.orangeAccent),
+                      Icon(Icons.circle, size: 6.sp, color: AppColors.warning),
                       SizedBox(width: 8.w),
                       Expanded(
                         child: Text(
@@ -480,7 +480,7 @@ class _IssuesTab extends StatelessWidget {
                 context: sheetContext,
                 icon: Icons.history,
                 label: 'Keep oldest, delete others',
-                color: Colors.orangeAccent,
+                color: AppColors.warning,
                 isDark: isDark,
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -503,7 +503,7 @@ class _IssuesTab extends StatelessWidget {
                 context: sheetContext,
                 icon: Icons.delete_sweep_outlined,
                 label: 'Delete all in this group',
-                color: Colors.redAccent,
+                color: AppColors.error,
                 isDark: isDark,
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -580,7 +580,7 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 16.h),
               Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20.sp),
+                  Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 20.sp),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
@@ -602,7 +602,7 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 4.h),
               Text(
                 'Expected: ${error.expected}  •  Got: ${error.actual}',
-                style: TextStyle(color: Colors.redAccent, fontSize: 11.sp),
+                style: TextStyle(color: AppColors.error, fontSize: 11.sp),
               ),
               SizedBox(height: 16.h),
               _resolutionButton(
@@ -631,7 +631,7 @@ class _IssuesTab extends StatelessWidget {
                 context: sheetContext,
                 icon: Icons.edit_outlined,
                 label: 'Edit transaction manually',
-                color: Colors.orangeAccent,
+                color: AppColors.warning,
                 isDark: isDark,
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -693,7 +693,7 @@ class _IssuesTab extends StatelessWidget {
               SizedBox(height: 16.h),
               Row(
                 children: [
-                  Icon(Icons.replay_circle_filled, color: Colors.purpleAccent, size: 20.sp),
+                  Icon(Icons.replay_circle_filled, color: AppColors.accent, size: 20.sp),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
@@ -744,7 +744,7 @@ class _IssuesTab extends StatelessWidget {
                 context: sheetContext,
                 icon: Icons.skip_next,
                 label: 'Skip this cycle (advance due date only)',
-                color: Colors.orangeAccent,
+                color: AppColors.warning,
                 isDark: isDark,
                 onTap: () async {
                   Navigator.pop(sheetContext);
@@ -837,7 +837,7 @@ Future<bool> _confirmDestructive(
         ),
         TextButton(
           onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(true),
-          child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+          child: const Text('Delete', style: TextStyle(color: AppColors.error)),
         ),
       ],
     ),
@@ -879,7 +879,7 @@ class _BankCompareTab extends StatelessWidget {
                     style: TextStyle(fontSize: 13.sp)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.black,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.r),
                   ),
@@ -895,9 +895,9 @@ class _BankCompareTab extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             child: Row(
               children: [
-                _pill('Matched: ${matched.length}', Colors.greenAccent, isDark),
+                _pill('Matched: ${matched.length}', AppColors.success, isDark),
                 SizedBox(width: 8.w),
-                _pill('Bank-only: ${bankOnly.length}', Colors.orangeAccent, isDark),
+                _pill('Bank-only: ${bankOnly.length}', AppColors.warning, isDark),
                 const Spacer(),
                 TextButton.icon(
                   onPressed: () => controller.importBankCsv(),
@@ -1095,7 +1095,7 @@ class _LedgerTab extends StatelessWidget {
                         child: Text(
                           e.debit != null ? '-${e.debit!.toStringAsFixed(0)}' : '',
                           style: TextStyle(
-                              color: Colors.redAccent, fontSize: 11.sp),
+                              color: AppColors.error, fontSize: 11.sp),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -1104,7 +1104,7 @@ class _LedgerTab extends StatelessWidget {
                         child: Text(
                           e.credit != null ? '+${e.credit!.toStringAsFixed(0)}' : '',
                           style: TextStyle(
-                              color: Colors.greenAccent, fontSize: 11.sp),
+                              color: AppColors.success, fontSize: 11.sp),
                           textAlign: TextAlign.right,
                         ),
                       ),
@@ -1165,21 +1165,21 @@ class _SummaryTab extends StatelessWidget {
             SizedBox(height: 8.h),
             _summaryCard('Duplicate Groups', '$dupes',
                 Icons.content_copy, isDark,
-                color: dupes > 0 ? Colors.orangeAccent : null),
+                color: dupes > 0 ? AppColors.warning : null),
             SizedBox(height: 8.h),
             _summaryCard('Sign Errors', '$signs',
                 Icons.warning_amber_rounded, isDark,
-                color: signs > 0 ? Colors.redAccent : null),
+                color: signs > 0 ? AppColors.error : null),
             SizedBox(height: 8.h),
             _summaryCard(
                 'Total Debits', '-${totalDebit.toStringAsFixed(2)}',
                 Icons.arrow_downward, isDark,
-                color: Colors.redAccent),
+                color: AppColors.error),
             SizedBox(height: 8.h),
             _summaryCard(
                 'Total Credits', '+${totalCredit.toStringAsFixed(2)}',
                 Icons.arrow_upward, isDark,
-                color: Colors.greenAccent),
+                color: AppColors.success),
             SizedBox(height: 16.h),
             _summaryCard(
                 'Final Balance', finalBalance.toStringAsFixed(2),

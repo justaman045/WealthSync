@@ -89,7 +89,7 @@ class _AdminMenuState extends State<AdminMenu> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
+              Icon(Icons.lock_outline, size: 64.sp, color: AppColors.error),
               SizedBox(height: 16.h),
               Text(AppLocalizations.of(context)!.accessDenied, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
@@ -103,7 +103,7 @@ class _AdminMenuState extends State<AdminMenu> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
+              Icon(Icons.lock_outline, size: 64.sp, color: AppColors.error),
               SizedBox(height: 16.h),
               Text(AppLocalizations.of(context)!.accessDenied, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
@@ -153,7 +153,7 @@ class _AdminMenuState extends State<AdminMenu> {
                 title: "Pending Approvals",
                 subtitle: "Review upgrade requests",
                 icon: Icons.checklist_rtl_rounded,
-                color: Colors.orangeAccent,
+                color: AppColors.warning,
                 onTap: () => Get.to(() => const AdminDashboard()),
               ),
               SizedBox(height: 16.h),
@@ -162,7 +162,7 @@ class _AdminMenuState extends State<AdminMenu> {
                 title: "Manage Users",
                 subtitle: "View all users & set expiry",
                 icon: Icons.people_alt_rounded,
-                color: Colors.cyanAccent,
+                color: AppColors.primary,
                 onTap: () => Get.to(() => const AdminUserListScreen()),
               ),
               SizedBox(height: 16.h),
@@ -171,7 +171,7 @@ class _AdminMenuState extends State<AdminMenu> {
                 title: "Payment Settings",
                 subtitle: "Toggle Google Play / Manual UPI mode",
                 icon: Icons.payment_rounded,
-                color: Colors.purpleAccent,
+                color: AppColors.accent,
                 onTap: () => Get.to(() => const PaymentSettingsScreen()),
               ),
               SizedBox(height: 16.h),
@@ -191,7 +191,7 @@ class _AdminMenuState extends State<AdminMenu> {
                   title: "SMS Auto-Import",
                   subtitle: "Import transactions from last 7 days",
                   icon: Icons.sms_rounded,
-                  color: Colors.greenAccent,
+                  color: AppColors.success,
                   loading: _isImporting,
                   onTap: _isImporting ? null : _triggerSmsImport,
                 ),

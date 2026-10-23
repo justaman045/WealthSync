@@ -506,18 +506,18 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
           child: OutlinedButton(
             onPressed: deletingData ? null : _requestDataDeletion,
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.redAccent, width: 1.5),
+              side: const BorderSide(color: AppColors.error, width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(26.r),
               ),
-              foregroundColor: Colors.redAccent,
+              foregroundColor: AppColors.error,
             ),
             child: deletingData
                 ? SizedBox(
                     width: 24.w,
                     height: 24.w,
                     child: const CircularProgressIndicator(
-                      color: Colors.redAccent,
+                      color: AppColors.error,
                       strokeWidth: 2,
                     ),
                   )
@@ -536,16 +536,16 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
           Container(
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
-              color: Colors.redAccent.withValues(alpha: 0.1),
+              color: AppColors.error.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
-                color: Colors.redAccent.withValues(alpha: 0.3),
+                color: AppColors.error.withValues(alpha: 0.3),
               ),
             ),
             child: Text(
               message!,
               style: TextStyle(
-                color: Colors.redAccent,
+                color: AppColors.error,
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w500,
               ),

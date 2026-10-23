@@ -229,7 +229,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
                 child: Text(AppLocalizations.of(context)!.importAnyway),
               ),
             ],
@@ -395,7 +395,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                   _selectedIndices.length == _transactions.length
                       ? "Deselect All"
                       : "Select All",
-                  style: TextStyle(color: Colors.cyan),
+                  style: TextStyle(color: AppColors.primary),
                 ),
               );
             }
@@ -529,8 +529,8 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                     "${tx.isDebit ? '-' : '+'} ${CurrencyController.to.currencySymbol.value}${tx.amount.toStringAsFixed(0)}",
                                     style: TextStyle(
                                       color: tx.isDebit
-                                          ? Colors.redAccent
-                                          : Colors.greenAccent,
+                                          ? AppColors.error
+                                          : AppColors.success,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -587,7 +587,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                                 _selectedIndices.add(index);
                                               });
                                             },
-                                            style: FilledButton.styleFrom(backgroundColor: Colors.cyan),
+                                            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
                                             child: Text(AppLocalizations.of(context)!.importAnyway),
                                           ),
                                         ],

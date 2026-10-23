@@ -117,7 +117,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
   Widget _buildSummaryMetric(ThemeData theme, {required bool isReceivable}) {
     final title = isReceivable ? "Owed to You" : "You Owe";
     final icon = isReceivable ? Icons.arrow_downward : Icons.arrow_upward;
-    final color = isReceivable ? Colors.greenAccent : Colors.orangeAccent;
+    final color = isReceivable ? AppColors.success : AppColors.warning;
 
     return Container(
           decoration: BoxDecoration(
@@ -207,7 +207,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
       }
 
       final isPositive = netBalance >= 0;
-      final color = isPositive ? Colors.greenAccent : Colors.orangeAccent;
+      final color = isPositive ? AppColors.success : AppColors.warning;
       final label = isPositive ? "Net Owed to You" : "Net You Owe";
       final icon = isPositive ? Icons.trending_up : Icons.trending_down;
       final currency = _currencyController.currencyCode.value;
@@ -320,7 +320,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
     final isReceivable = entry.type == 'lent';
 
     // Status visual traits
-    final activeColor = isReceivable ? Colors.greenAccent : Colors.orangeAccent;
+    final activeColor = isReceivable ? AppColors.success : AppColors.warning;
     final iconData = isReceivable ? Icons.arrow_downward : Icons.arrow_upward;
     final typeLabel = isReceivable ? "Lent to" : "Borrowed from";
     final actionLabel = isReceivable ? "Receive" : "Repay";
@@ -365,7 +365,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                 onPressed: (context) {
                   _controller.deleteEntry(entry.id);
                 },
-                backgroundColor: Colors.redAccent,
+                backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
                 icon: Icons.delete_outline,
                 label: 'Delete',

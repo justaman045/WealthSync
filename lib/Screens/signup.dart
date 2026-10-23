@@ -307,7 +307,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 padding: EdgeInsets.only(bottom: 12.h),
                 child: Text(
                   _errorMessage!,
-                  style: TextStyle(color: Colors.redAccent, fontSize: 13.sp),
+                  style: TextStyle(color: AppColors.error, fontSize: 13.sp),
                 ),
               ),
 

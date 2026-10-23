@@ -164,10 +164,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       child: ElevatedButton(
                         onPressed: _buySubscription,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyanAccent,
-                          foregroundColor: Colors.black,
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
                           elevation: 10.w,
-                          shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
+                          shadowColor: AppColors.primary.withValues(alpha: 0.4),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16.r),
                           ),
@@ -194,7 +194,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.warning_amber_rounded, size: 40.sp, color: Colors.redAccent),
+                                    Icon(Icons.warning_amber_rounded, size: 40.sp, color: AppColors.error),
                                     SizedBox(height: 16.h),
                                     Text(
                                       AppLocalizations.of(context)!.endFreeTrial,
@@ -222,12 +222,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                               messenger.showSnackBar(
                                                 SnackBar(
                                                   content: Text(message),
-                                                  backgroundColor: Colors.redAccent,
+                                                  backgroundColor: AppColors.error,
                                                   behavior: SnackBarBehavior.floating,
                                                 ),
                                               );
                                             },
-                                            child: Text(AppLocalizations.of(context)!.endTrial, style: TextStyle(color: Colors.redAccent, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                                            child: Text(AppLocalizations.of(context)!.endTrial, style: TextStyle(color: AppColors.error, fontSize: 16.sp, fontWeight: FontWeight.w600)),
                                           ),
                                         ),
                                         SizedBox(width: 16.w),
@@ -235,8 +235,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                           child: ElevatedButton(
                                             onPressed: () => Navigator.of(ctx).pop(),
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.cyanAccent,
-                                              foregroundColor: Colors.black,
+                                              backgroundColor: AppColors.primary,
+                                              foregroundColor: Colors.white,
                                               padding: EdgeInsets.symmetric(vertical: 14.h),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                                             ),
@@ -291,7 +291,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       child: Icon(
                         Icons.verified_user_rounded,
                         size: 60.sp,
-                        color: Colors.cyanAccent,
+                        color: AppColors.primary,
                       ),
                     ),
                     SizedBox(height: 24.h),
@@ -336,7 +336,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             return Text(
                               plan.isNotEmpty ? "Pro ($plan)" : "Pro",
                               style: TextStyle(
-                                color: Colors.cyanAccent,
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20.sp,
                               ),
@@ -379,7 +379,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     Container(
                                       padding: EdgeInsets.all(16.w),
                                       decoration: BoxDecoration(
-                                        color: Colors.redAccent.withValues(
+                                        color: AppColors.error.withValues(
                                           alpha: 0.1,
                                         ),
                                         shape: BoxShape.circle,
@@ -387,7 +387,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                       child: Icon(
                                         Icons.warning_amber_rounded,
                                         size: 40.sp,
-                                        color: Colors.redAccent,
+                                        color: AppColors.error,
                                       ),
                                     ),
                                     SizedBox(height: 24.h),
@@ -425,7 +425,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                               messenger.showSnackBar(
                                                 SnackBar(
                                                   content: Text(message),
-                                                  backgroundColor: Colors.redAccent,
+                                                  backgroundColor: AppColors.error,
                                                   behavior: SnackBarBehavior.floating,
                                                 ),
                                               );
@@ -438,7 +438,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                             child: Text(
                                               AppLocalizations.of(context)!.cancelPlan,
                                               style: TextStyle(
-                                                color: Colors.redAccent,
+                                                color: AppColors.error,
                                                 fontSize: 16.sp,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -452,8 +452,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                                 Navigator.of(context).pop(),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor:
-                                                  Colors.cyanAccent,
-                                              foregroundColor: Colors.black,
+                                                  AppColors.primary,
+                                              foregroundColor: Colors.white,
                                               padding: EdgeInsets.symmetric(
                                                 vertical: 14.h,
                                               ),
@@ -481,10 +481,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent.withValues(
+                        backgroundColor: AppColors.error.withValues(
                           alpha: 0.2,
                         ),
-                        foregroundColor: Colors.redAccent,
+                        foregroundColor: AppColors.error,
                         elevation: 0,
                         padding: EdgeInsets.symmetric(
                           horizontal: 24.w,
@@ -493,7 +493,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12.r),
                           side: BorderSide(
-                            color: Colors.redAccent.withValues(alpha: 0.5),
+                            color: AppColors.error.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
@@ -517,11 +517,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Container(
                       padding: EdgeInsets.all(20.w),
                       decoration: BoxDecoration(
-                        color: Colors.orangeAccent.withValues(alpha: 0.1),
+                        color: AppColors.warning.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.orangeAccent.withValues(alpha: 0.2),
+                            color: AppColors.warning.withValues(alpha: 0.2),
                             blurRadius: 20.w,
                             spreadRadius: 5.w,
                           ),
@@ -530,7 +530,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       child: Icon(
                         Icons.hourglass_top_rounded,
                         size: 60.sp,
-                        color: Colors.orangeAccent,
+                        color: AppColors.warning,
                       ),
                     ),
                     SizedBox(height: 32.h),
@@ -606,7 +606,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     child: Icon(
                       Icons.diamond_outlined,
                       size: 60.sp,
-                      color: Colors.cyanAccent,
+                      color: AppColors.primary,
                     ),
                   ),
                   SizedBox(height: 24.h),
@@ -662,18 +662,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         margin: EdgeInsets.only(bottom: 20.h),
                         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
                         decoration: BoxDecoration(
-                          color: Colors.redAccent.withValues(alpha: 0.1),
+                          color: AppColors.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4), width: 1),
+                          border: Border.all(color: AppColors.error.withValues(alpha: 0.4), width: 1),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.timer_off_outlined, color: Colors.redAccent, size: 20.sp),
+                            Icon(Icons.timer_off_outlined, color: AppColors.error, size: 20.sp),
                             SizedBox(width: 8.w),
                             Text(
                               AppLocalizations.of(context)!.freeTrialEnded,
                               style: TextStyle(
-                                color: Colors.redAccent,
+                                color: AppColors.error,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14.sp,
                               ),
@@ -790,10 +790,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           Container(
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              color: Colors.greenAccent.withValues(alpha: 0.1),
+              color: AppColors.success.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Icon(Icons.check, color: Colors.greenAccent, size: 16.sp),
+            child: Icon(Icons.check, color: AppColors.success, size: 16.sp),
           ),
           SizedBox(width: 16.w),
           Expanded(
@@ -842,7 +842,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isSelected
-                ? Colors.cyanAccent
+                ? AppColors.primary
                 : (isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.5)),
             width: isSelected ? 2 : 1,
           ),
@@ -854,7 +854,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                 margin: EdgeInsets.only(bottom: 4.h),
                 decoration: BoxDecoration(
-                  color: Colors.cyanAccent,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 child: Text(
@@ -942,10 +942,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ? null
                   : (canStartTrial ? ctrl.startTrial : _buySubscription),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyanAccent,
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
                 elevation: 10.w,
-                shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
+                shadowColor: AppColors.primary.withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
               ),
               child: loading
@@ -979,14 +979,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             width: double.infinity,
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
-              color: Colors.cyanAccent.withValues(alpha: 0.07),
+              color: AppColors.primary.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(AppLocalizations.of(context)!.payViaUPI, style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                Text(AppLocalizations.of(context)!.payViaUPI, style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 15.sp)),
                 SizedBox(height: 8.h),
                 Text('Send ${CurrencyController.to.currencySymbol.value}$amount to:', style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary, fontSize: 14.sp)),
                 SizedBox(height: 4.h),
@@ -995,7 +995,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Expanded(child: Text(upiId.isNotEmpty ? upiId : '—', style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary, fontWeight: FontWeight.bold, fontSize: 16.sp))),
                     if (upiId.isNotEmpty)
                       IconButton(
-                        icon: Icon(Icons.copy, color: Colors.cyanAccent, size: 18.sp),
+                        icon: Icon(Icons.copy, color: AppColors.primary, size: 18.sp),
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: upiId));
                           ErrorHandler.showSuccess('UPI ID copied to clipboard.');
@@ -1019,8 +1019,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 icon: const Icon(Icons.account_balance_wallet_rounded),
                 label: Text(AppLocalizations.of(context)!.openUPIApp, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyanAccent,
-                  foregroundColor: Colors.black,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
                 ),
               ),
@@ -1039,7 +1039,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 border: InputBorder.none,
                 hintText: _upiTxnId ?? 'Paste UPI transaction ID here',
                 hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary, fontSize: 14.sp),
-                prefixIcon: const Icon(Icons.receipt_long_rounded, color: Colors.cyanAccent),
+                prefixIcon: const Icon(Icons.receipt_long_rounded, color: AppColors.primary),
               ),
               onChanged: (_) => setLocal(() {}),
             ),
@@ -1054,10 +1054,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             child: ElevatedButton(
               onPressed: (_upiSubmitting || _txnController.text.trim().isEmpty) ? null : () => _submitUpiPayment(setLocal),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyanAccent,
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
                 elevation: 10.w,
-                shadowColor: Colors.cyanAccent.withValues(alpha: 0.4),
+                shadowColor: AppColors.primary.withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
               ),
               child: _upiSubmitting
@@ -1132,17 +1132,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (e.code == 'APP_NOT_FOUND' && pkg.isNotEmpty) {
         _initiateUpiPayment('', amount, upiId, setLocal);
       } else if (e.code == 'TIMEOUT') {
-        _showMessengerSnackBar('Payment Timed Out', 'UPI app did not respond. Please try again.', Colors.redAccent);
+        _showMessengerSnackBar('Payment Timed Out', 'UPI app did not respond. Please try again.', AppColors.error);
       } else if (e.code == 'MISSING_VPA' || e.code == 'INVALID_AMOUNT') {
-        _showMessengerSnackBar('Payment Failed', 'Could not start UPI payment. Please try again.', Colors.redAccent);
+        _showMessengerSnackBar('Payment Failed', 'Could not start UPI payment. Please try again.', AppColors.error);
       } else {
-        _showMessengerSnackBar('No UPI App Found', 'Please install a UPI app and try again.', Colors.redAccent);
+        _showMessengerSnackBar('No UPI App Found', 'Please install a UPI app and try again.', AppColors.error);
       }
     } on MissingPluginException {
       // UPI is Android-only; no native handler on iOS/desktop/web.
-      _showMessengerSnackBar('UPI Unavailable', 'UPI payments are only available on Android.', Colors.redAccent);
+      _showMessengerSnackBar('UPI Unavailable', 'UPI payments are only available on Android.', AppColors.error);
     } catch (e) {
-      _showMessengerSnackBar('Payment Failed', 'Could not start UPI payment. Please try again.', Colors.redAccent);
+      _showMessengerSnackBar('Payment Failed', 'Could not start UPI payment. Please try again.', AppColors.error);
     }
   }
 
@@ -1163,9 +1163,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         Colors.green,
       );
     } else if (result.isPending) {
-      _showMessengerSnackBar('Payment Pending', 'Enter the transaction ID manually once confirmed.', Colors.orangeAccent);
+      _showMessengerSnackBar('Payment Pending', 'Enter the transaction ID manually once confirmed.', AppColors.warning);
     } else {
-      _showMessengerSnackBar('Payment Failed', 'Please try again or enter the transaction ID manually.', Colors.redAccent);
+      _showMessengerSnackBar('Payment Failed', 'Please try again or enter the transaction ID manually.', AppColors.error);
     }
   }
 

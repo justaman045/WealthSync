@@ -10,6 +10,7 @@ import 'package:money_control/main.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:money_control/Components/colors.dart';
 
 enum SubscriptionStatus { free, pending, pro }
 
@@ -314,7 +315,7 @@ class SubscriptionController extends GetxController {
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
           content: Text("Your upgrade request was rejected."),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 5),
         ),
@@ -343,7 +344,7 @@ class SubscriptionController extends GetxController {
       rootScaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
           content: Text("Subscription Ended ⚠️\nYou are now on the Free plan."),
-          backgroundColor: Colors.orangeAccent,
+          backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
           duration: Duration(seconds: 5),
         ),

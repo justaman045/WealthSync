@@ -228,7 +228,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                           ),
                           child: Icon(
                             Icons.delete_outline_rounded,
-                            color: Colors.redAccent,
+                            color: AppColors.error,
                             size: 18.sp,
                           ),
                         ),
@@ -236,7 +236,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                         const Text(
                           'Delete',
                           style: TextStyle(
-                            color: Colors.redAccent,
+                            color: AppColors.error,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -437,7 +437,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     : "Paused",
                 textColor,
                 isHighlight: payment.isActive,
-                highlightColor: _isPending(payment) ? Colors.redAccent : null,
+                highlightColor: _isPending(payment) ? AppColors.error : null,
               ),
             ],
           ),
@@ -1146,7 +1146,7 @@ class _LinkTransactionSheetState extends State<_LinkTransactionSheet> {
                                 ),
                                 child: Icon(
                                   Icons.arrow_upward_rounded,
-                                  color: Colors.redAccent,
+                                  color: AppColors.error,
                                   size: 16.sp,
                                 ),
                               ),

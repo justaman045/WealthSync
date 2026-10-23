@@ -130,7 +130,7 @@ class _FeatureFlagsScreenState extends State<FeatureFlagsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
+              Icon(Icons.lock_outline, size: 64.sp, color: AppColors.error),
               SizedBox(height: 16.h),
               Text(
                 'Access Denied',

@@ -33,7 +33,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 64.sp, color: Colors.redAccent),
+              Icon(Icons.lock_outline, size: 64.sp, color: AppColors.error),
               SizedBox(height: 16.h),
               Text(AppLocalizations.of(context)!.accessDenied, style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold)),
             ],
@@ -79,7 +79,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(color: Colors.cyanAccent),
+                child: CircularProgressIndicator(color: AppColors.primary),
               );
             }
             if (snapshot.hasError) {
@@ -137,12 +137,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             Container(
                               padding: EdgeInsets.all(10.w),
                               decoration: BoxDecoration(
-                                color: Colors.cyan.withValues(alpha: 0.1),
+                                color: AppColors.primary.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.person,
-                                color: Colors.cyanAccent,
+                                color: AppColors.primary,
                                 size: 24.sp,
                               ),
                             ),
@@ -182,7 +182,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                       child: SelectableText(
                                         "Txn ID: ${data['transactionId']}",
                                         style: TextStyle(
-                                          color: Colors.cyanAccent,
+                                          color: AppColors.primary,
                                           fontSize: 13.sp,
                                           fontFamily: 'Courier',
                                         ),
@@ -207,14 +207,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 icon: Icon(
                                    Icons.close,
                                    size: 18.sp,
-                                   color: Colors.redAccent,
+                                   color: AppColors.error,
                                  ),
                                 label: Text(
                                   AppLocalizations.of(context)!.reject,
-                                  style: TextStyle(color: Colors.redAccent),
+                                  style: TextStyle(color: AppColors.error),
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Colors.redAccent),
+                                  side: BorderSide(color: AppColors.error),
                                   padding: EdgeInsets.symmetric(vertical: 12.h),
                                 ),
                               ),
@@ -241,7 +241,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                   ),
                                 ),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.cyanAccent,
+                                  backgroundColor: AppColors.primary,
                                   padding: EdgeInsets.symmetric(vertical: 12.h),
                                 ),
                               ),
@@ -259,7 +259,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       },
     ),
         floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.error,
           child: const Icon(Icons.bug_report, color: Colors.white),
           onPressed: () => _showDebugDialog(context),
         ),
@@ -332,7 +332,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 if (context.mounted) Navigator.pop(context);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: Text(AppLocalizations.of(context)!.expireNow),
           ),
         ],

@@ -525,7 +525,7 @@ class _UpdateDialogState extends State<_UpdateDialog> {
               ] else if (_state == _DownloadState.error) ...[
                 Text(
                   _errorMsg ?? "Something went wrong.",
-                  style: const TextStyle(fontSize: 13, color: Colors.redAccent),
+                  style: const TextStyle(fontSize: 13, color: AppColors.error),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -550,7 +550,7 @@ class _UpdateDialogState extends State<_UpdateDialog> {
                         onPressed: _startDownload,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.black,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

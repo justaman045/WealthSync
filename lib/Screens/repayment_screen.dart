@@ -135,7 +135,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
     final theme = Theme.of(context);
     final currency = _currencyController.currencyCode.value;
     final isReceivable = widget.entry.type == 'lent';
-    final color = isReceivable ? Colors.greenAccent : Colors.orangeAccent;
+    final color = isReceivable ? AppColors.success : AppColors.warning;
 
     return Obx(() {
       final live = _controller.entries.firstWhereOrNull(
@@ -246,8 +246,8 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
             (Set<WidgetState> states) {
               if (states.contains(WidgetState.selected)) {
                 return _selectedDirection == 'received'
-                    ? Colors.greenAccent.withValues(alpha: 0.2)
-                    : Colors.orangeAccent.withValues(alpha: 0.2);
+                    ? AppColors.success.withValues(alpha: 0.2)
+                    : AppColors.warning.withValues(alpha: 0.2);
               }
               return Colors.transparent;
             },

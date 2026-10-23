@@ -101,7 +101,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 label: 'Google Play Billing',
                 subtitle: 'Users pay via Google Play Store. Requires Play Console setup.',
                 icon: Icons.shop_rounded,
-                color: Colors.greenAccent,
+                color: AppColors.success,
               ),
               SizedBox(height: 12.h),
               _buildModeCard(
@@ -109,7 +109,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 label: 'Manual UPI',
                 subtitle: 'Users pay to your UPI ID and submit the transaction ID for manual approval.',
                 icon: Icons.account_balance_wallet_rounded,
-                color: Colors.cyanAccent,
+                color: AppColors.primary,
               ),
               SizedBox(height: 32.h),
               if (_mode == 'upi') ...[
@@ -136,7 +136,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                               ? Colors.white38
                               : AppColors.lightTextTertiary,
                           fontSize: 16.sp),
-                      prefixIcon: const Icon(Icons.alternate_email, color: Colors.cyanAccent),
+                      prefixIcon: const Icon(Icons.alternate_email, color: AppColors.primary),
                     ),
                   ),
                 ),
@@ -157,8 +157,8 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyanAccent,
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
                   ),
                   child: _saving

@@ -564,7 +564,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6.r),
                         border: Border.all(
-                          color: Colors.redAccent.withValues(alpha: 0.4),
+                          color: AppColors.error.withValues(alpha: 0.4),
                           width: 1,
                         ),
                       ),
@@ -573,7 +573,7 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                         style: TextStyle(
                           fontSize: 10.sp,
                           fontWeight: FontWeight.w800,
-                          color: Colors.redAccent,
+                          color: AppColors.error,
                           letterSpacing: 0.5,
                         ),
                       ),

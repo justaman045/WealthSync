@@ -547,7 +547,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 label: Text(AppLocalizations.of(context)!.goProfile),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.black,
+                  foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14.r),
@@ -1595,7 +1595,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.black,
+                                foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(vertical: 12.h),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12.r),
@@ -1844,7 +1844,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.black,
+                                foregroundColor: Colors.white,
                                 padding: EdgeInsets.symmetric(vertical: 12.h),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12.r),
@@ -2320,7 +2320,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           iconData = Icons.warning_amber_rounded;
           bgColor = Colors.orange.withValues(alpha: 0.1);
         } else if (type == 'alert') {
-          iconColor = Colors.redAccent;
+          iconColor = AppColors.error;
           iconData = Icons.dangerous_outlined;
           bgColor = Colors.red.withValues(alpha: 0.1);
         } else if (type == 'success') {

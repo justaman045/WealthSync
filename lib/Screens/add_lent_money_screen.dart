@@ -185,8 +185,8 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
           ) {
             if (states.contains(WidgetState.selected)) {
               return _selectedType == 'lent'
-                  ? Colors.greenAccent.withValues(alpha: 0.2)
-                  : Colors.orangeAccent.withValues(alpha: 0.2);
+                  ? AppColors.success.withValues(alpha: 0.2)
+                  : AppColors.warning.withValues(alpha: 0.2);
             }
             return Colors.transparent;
           }),
@@ -330,7 +330,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
         final repaid = repayments.fold(0.0, (s, r) => s + r.amount);
         final isReceivable = (live?.type ?? widget.existingEntry!.type) == 'lent';
         final actionColor =
-            isReceivable ? Colors.greenAccent : Colors.orangeAccent;
+            isReceivable ? AppColors.success : AppColors.warning;
         final actionLabel = isReceivable ? "Receive" : "Repay";
         final actionIcon =
             isReceivable ? Icons.call_received : Icons.currency_rupee;
@@ -460,7 +460,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
           IconButton(
             icon: const Icon(
               Icons.delete_outline,
-              color: Colors.redAccent,
+              color: AppColors.error,
               size: 20,
             ),
             onPressed: () => _controller.deleteRepayment(entryId, index),

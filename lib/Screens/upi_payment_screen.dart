@@ -517,7 +517,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             decoration: BoxDecoration(
-              color: (_pending ? Colors.amber : Colors.greenAccent)
+              color: (_pending ? Colors.amber : AppColors.success)
                   .withValues(alpha: isDark ? 0.15 : 0.2),
               borderRadius: BorderRadius.circular(16.r),
             ),
@@ -530,7 +530,7 @@ class _UpiPaymentScreenState extends State<UpiPaymentScreen> {
                       _pending
                           ? Icons.access_time_rounded
                           : Icons.check_circle_rounded,
-                      color: _pending ? Colors.amber : Colors.greenAccent,
+                      color: _pending ? Colors.amber : AppColors.success,
                       size: 22.sp,
                     ),
                     SizedBox(width: 8.w),

@@ -1926,7 +1926,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                   height: 4.w,
                                   margin: EdgeInsets.only(right: 1.w),
                                   decoration: const BoxDecoration(
-                                    color: Colors.cyanAccent,
+                                    color: AppColors.primary,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -1967,7 +1967,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),
               AnalyticsHeatmapLegendItem(
-                color: Colors.cyanAccent,
+                color: AppColors.primary,
                 label: AppLocalizations.of(context)!.analyticsHeatmapSalary,
                 textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
               ),

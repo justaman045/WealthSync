@@ -312,7 +312,7 @@ class _SavingsChallengesScreenState extends State<SavingsChallengesScreen>
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w700,
                   color: percent >= 1.0
-                      ? Colors.greenAccent
+                      ? AppColors.success
                       : AppColors.primary,
                 ),
               ),

@@ -197,7 +197,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
     final progressColor = progress > 0.9
         ? AppColors.error
         : (progress > 0.7
-              ? Colors.orangeAccent
+              ? AppColors.warning
               : AppColors.primary);
 
     return Container(

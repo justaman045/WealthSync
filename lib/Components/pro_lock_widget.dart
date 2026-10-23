@@ -24,7 +24,7 @@ class ProLockWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.lock_outline, size: 80.sp, color: Colors.cyan),
+            Icon(Icons.lock_outline, size: 80.sp, color: AppColors.primary),
             SizedBox(height: 24.h),
             Text(
               title,
@@ -46,8 +46,8 @@ class ProLockWidget extends StatelessWidget {
                 Get.to(() => const SubscriptionScreen());
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyan,
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12.r),

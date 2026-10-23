@@ -107,7 +107,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
                       child: CircularProgressIndicator(
-                        color: Colors.cyanAccent,
+                        color: AppColors.primary,
                       ),
                     );
                   }
@@ -179,7 +179,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
               padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
                 color: isPro
-                    ? Colors.greenAccent.withValues(alpha: 0.1)
+                    ? AppColors.success.withValues(alpha: 0.1)
                     : isDark
                         ? Colors.white.withValues(alpha: 0.1)
                         : AppColors.lightSurfaceCard,
@@ -188,7 +188,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
               child: Icon(
                 isPro ? Icons.verified_user : Icons.person_outline,
                 color: isPro
-                    ? Colors.greenAccent
+                    ? AppColors.success
                     : isDark
                         ? Colors.white54
                         : AppColors.lightTextTertiary,
@@ -215,7 +215,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                         : "Free Plan",
                     style: TextStyle(
                       color: isPro
-                          ? Colors.greenAccent
+                          ? AppColors.success
                           : isDark
                               ? Colors.white54
                               : AppColors.lightTextSecondary,
@@ -226,7 +226,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.edit_calendar, color: Colors.cyanAccent),
+              icon: const Icon(Icons.edit_calendar, color: AppColors.primary),
               onPressed: () => _openEditDialog(email, isPro, expiry),
             ),
           ],
@@ -273,7 +273,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                     const Spacer(),
                     Switch(
                       value: isPro,
-                      activeThumbColor: Colors.greenAccent,
+                      activeThumbColor: AppColors.success,
                       onChanged: (val) {
                         setState(() => isPro = val);
                       },
@@ -302,7 +302,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                           return Theme(
                             data: ThemeData.dark().copyWith(
                               colorScheme: ColorScheme.dark(
-                                primary: Colors.cyanAccent,
+                                primary: AppColors.primary,
                                 onPrimary: Colors.black,
                                 surface: isDark ? AppColors.darkBackground : AppColors.lightBackground,
                                 onSurface: isDark ? Colors.white : AppColors.lightTextPrimary,
@@ -340,7 +340,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                           ),
                           Icon(
                             Icons.calendar_today,
-                            color: Colors.cyanAccent,
+                            color: AppColors.primary,
                             size: 16.sp,
                           ),
                         ],
@@ -368,7 +368,7 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                   if (context.mounted) Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyanAccent,
+                  backgroundColor: AppColors.primary,
                 ),
                 child: const Text(
                   "Save Changes",

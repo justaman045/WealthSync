@@ -147,7 +147,7 @@ class NotificationHistoryScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               AppLocalizations.of(context)!.clear,
-              style: TextStyle(color: Colors.redAccent),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],

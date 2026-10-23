@@ -145,8 +145,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 SettingsTile(
                   icon: Icons.delete_forever_outlined,
                   title: "Delete Account",
-                  iconColor: Colors.redAccent,
-                  textColor: Colors.redAccent,
+                  iconColor: AppColors.error,
+                  textColor: AppColors.error,
                   onTap: () => Get.to(() => const DeactivateAccountScreen()),
                 ),
                   ],

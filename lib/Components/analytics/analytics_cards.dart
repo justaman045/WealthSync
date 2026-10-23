@@ -500,7 +500,7 @@ class AnalyticsPersonalityCard extends StatelessWidget {
     final rawRate = income > 0 ? (income - expense) / income : 0.0;
     final isDeficit = rawRate < 0;
     final savingRate = rawRate.clamp(0.0, 1.0);
-    final rateColor = isDeficit ? Colors.redAccent : personality.color;
+    final rateColor = isDeficit ? AppColors.error : personality.color;
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -598,7 +598,7 @@ class AnalyticsPersonalityCard extends StatelessWidget {
                 l10n.analyticsSpendingExceedsIncome(
                   ((-rawRate) * 100).toStringAsFixed(1),
                 ),
-                style: TextStyle(fontSize: 11.sp, color: Colors.redAccent),
+                style: TextStyle(fontSize: 11.sp, color: AppColors.error),
               ),
             ],
           ],
