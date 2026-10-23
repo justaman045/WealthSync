@@ -111,6 +111,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _newCategory.clear();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     await showDialog(
       context: context,
@@ -163,17 +165,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       AppLocalizations.of(context)!.cancel,
-                      style: TextStyle(
-                        color: theme.textTheme.bodyMedium?.color?.withValues(
-                          alpha: 0.7,
-                        ),
-                        fontSize: 16.sp,
-                      ),
+                      style: AppType.bodyLarge(secondaryColor),
                     ),
                   ),
                   SizedBox(width: 12.w),
-                  GestureDetector(
-                    onTap: () async {
+                  // A FilledButton, not a GestureDetector around a painted
+                  // Container: this one also had a near-black label on the
+                  // indigo fill in light mode (3.1:1).
+                  FilledButton(
+                    onPressed: () async {
                       final success = await _transactionController.addCategory(
                         _newCategory.text.trim(),
                       );
@@ -185,28 +185,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         if (mounted) Navigator.pop(context);
                       }
                     },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.w,
-                        vertical: 12.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.4),
-                            blurRadius: 10.w,
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.add,
-                        style: AppType.titleMedium(isDark
-                              ? Colors.white
-                              : AppColors.lightTextPrimary),
-                      ),
-                    ),
+                    child: Text(AppLocalizations.of(context)!.add),
                   ),
                 ],
               ),
@@ -509,14 +488,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _amountField(TextEditingController c, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final hintColor =
+        isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
     return GlassContainer(
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpace.s12.w,
+              vertical: AppSpace.s8.h,
+            ),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8.r),
+              borderRadius: BorderRadius.circular(AppRadius.xs.r),
               border: Border.all(
                 color: AppColors.primary.withValues(alpha: 0.3),
               ),
@@ -541,18 +528,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
                 hintText: "0.00",
-                hintStyle: TextStyle(
-                  color: theme.textTheme.bodyMedium?.color?.withValues(
-                    alpha: 0.4,
-                  ),
-                  fontSize: 22.sp,
-                ),
+                hintStyle: AppType.titleLarge(hintColor),
               ),
-              style: TextStyle(
-                fontSize: 22.sp,
-                color: theme.textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
+              // The hero figure of the screen: numeric role, so the digits are
+              // tabular and the field does not shift while typing.
+              style: AppType.money(
+                color: textColor,
+                size: 22,
+                weight: FontWeight.w700,
               ),
             ),
           ),
@@ -567,6 +550,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     required ThemeData theme,
     int maxLines = 1,
   }) {
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final hintColor =
+        isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
     return GlassContainer(
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 18.h),
       child: TextField(
@@ -577,19 +565,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
           hintText: hint,
-          hintStyle: TextStyle(
-            color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.4),
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w500,
-          ),
+          hintStyle: AppType.titleMedium(hintColor),
           contentPadding: EdgeInsets.zero,
         ),
-        style: TextStyle(
-          fontSize: 18.sp,
-          color: theme.textTheme.bodyLarge?.color,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.5,
-        ),
+        style: AppType.titleMedium(textColor),
       ),
     );
   }
