@@ -280,6 +280,24 @@ abstract class AppLocalizations {
   /// **'Let\'s set up your financial goals in 2 steps.'**
   String get onboardingSubtitle;
 
+  /// No description provided for @onboardingReferralHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. AMAN05'**
+  String get onboardingReferralHint;
+
+  /// No description provided for @onboardingReferralOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Referral Code (Optional)'**
+  String get onboardingReferralOptional;
+
+  /// No description provided for @onboardingReferralPitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Have a friend’s code? Get 1 month free!'**
+  String get onboardingReferralPitch;
+
   /// No description provided for @chooseCurrencyStep.
   ///
   /// In en, this message translates to:
@@ -2540,6 +2558,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Split a Bill'**
   String get splitBill;
+
+  /// No description provided for @splashContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get splashContinue;
+
+  /// No description provided for @splashGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get splashGetStarted;
+
+  /// No description provided for @splashHeadlineFillWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill Your Wallet'**
+  String get splashHeadlineFillWallet;
+
+  /// No description provided for @splashHeadlineSaveMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your Money'**
+  String get splashHeadlineSaveMoney;
+
+  /// No description provided for @splashHeadlineTrackExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Track Your Expenses'**
+  String get splashHeadlineTrackExpenses;
+
+  /// No description provided for @splashLetsStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s Start'**
+  String get splashLetsStart;
+
+  /// No description provided for @splashSubtitleFillWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Take control of your earnings by working smarter and building your own success story.'**
+  String get splashSubtitleFillWallet;
+
+  /// No description provided for @splashSubtitleSaveMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover smart ways to manage your finances and grow your savings—start making your money work for you, effortlessly and securely.'**
+  String get splashSubtitleSaveMoney;
+
+  /// No description provided for @splashSubtitleTrackExpenses.
+  ///
+  /// In en, this message translates to:
+  /// **'Monitor your spending habits effortlessly and take control of your financial goals in real time.'**
+  String get splashSubtitleTrackExpenses;
 
   /// No description provided for @start.
   ///

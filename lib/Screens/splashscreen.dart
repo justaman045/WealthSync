@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/animated_widget.dart';
-import 'package:money_control/Components/methods.dart';
-import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Models/splash_data.dart';
 import 'package:money_control/Screens/loginscreen.dart';
 import 'package:money_control/Services/performance_controller.dart';
+import 'package:money_control/l10n/app_localizations.dart';
 
+/// First screen of the app — three onboarding pages over a themed gradient.
+///
+/// Copy comes from the ARB (the three headlines and subtitles used to be inline
+/// English, invisible to the audit because they were named arguments rather than
+/// `Text('…')`). The CTA is a [FilledButton], whose theme owns the fill, radius,
+/// padding and label — this screen used to hand-build a gradient container,
+/// a 28 px pill and a 0.3-alpha glow around a transparent button.
 class AnimatedSplashScreen extends StatefulWidget {
   const AnimatedSplashScreen({super.key});
 
@@ -17,37 +24,34 @@ class AnimatedSplashScreen extends StatefulWidget {
 }
 
 class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
-  static const List<SplashData> splashPages = [
+  int currentIndex = 0;
+
+  List<SplashData> _pages(AppLocalizations l10n) => [
     SplashData(
       bgColor: AppColors.primary,
       image: 'assets/salary.png',
-      headline: 'Save your Money',
-      subtitle:
-          'Discover smart ways to manage your finances and grow your savings—start making your money work for you, effortlessly and securely.',
-      buttonText: AppStrings.getStarted,
+      headline: l10n.splashHeadlineSaveMoney,
+      subtitle: l10n.splashSubtitleSaveMoney,
+      buttonText: l10n.splashGetStarted,
     ),
     SplashData(
       bgColor: AppColors.primaryPress,
       image: 'assets/accounting.png',
-      headline: 'Track Your Expenses',
-      subtitle:
-          'Monitor your spending habits effortlessly and take control of your financial goals in real time.',
-      buttonText: AppStrings.continueLabel,
+      headline: l10n.splashHeadlineTrackExpenses,
+      subtitle: l10n.splashSubtitleTrackExpenses,
+      buttonText: l10n.splashContinue,
     ),
     SplashData(
       bgColor: AppColors.secondary,
       image: 'assets/wallet.png',
-      headline: 'Fill Your Wallet',
-      subtitle:
-          'Take control of your earnings by working smarter and building your own success story.',
-      buttonText: AppStrings.letsStart,
+      headline: l10n.splashHeadlineFillWallet,
+      subtitle: l10n.splashSubtitleFillWallet,
+      buttonText: l10n.splashLetsStart,
     ),
   ];
 
-  int currentIndex = 0;
-
-  void _nextPage() {
-    if (currentIndex < splashPages.length - 1) {
+  void _nextPage(int pageCount) {
+    if (currentIndex < pageCount - 1) {
       setState(() => currentIndex++);
     } else {
       gotoPage(const LoginScreen());
@@ -60,43 +64,56 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
     }
   }
 
-  /// Lite mode: render statically instead of running the fade/slide-in so the
-  /// splash paints with no animation work on low-end devices.
-  Widget _fadeSlide(Widget child, {required double slideBegin}) {
+  /// Lite mode renders statically instead of running fade/slide animations.
+  Widget _entrance(Widget child, {required double slideFrom}) {
     if (PerformanceController.to.liteMode.value) return child;
     return child
         .animate()
-        .fadeIn(duration: 600.ms)
-        .slideY(begin: slideBegin, end: 0);
+        .fadeIn(duration: AppMotion.entrance)
+        .slideY(begin: slideFrom, end: 0, curve: AppMotion.standard);
   }
 
   @override
   Widget build(BuildContext context) {
-    final splashData = splashPages[currentIndex];
+    final l10n = AppLocalizations.of(context)!;
+    final pages = _pages(l10n);
+    final page = pages[currentIndex];
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final liteMode = PerformanceController.to.liteMode.value;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
-    final gradientColors = isDark
-        ? [
-            AppColors.darkBackground, // Midnight Void
-            AppColors.darkSurface.withValues(alpha: 0.95),
-            AppColors.darkSurface,
-          ]
-        : [
-            AppColors.lightBackground, // Premium Light
-            AppColors.lightBorder,
-            AppColors.lightActionSurface,
-          ];
-
-    final textColor = isDark ? Colors.white : AppColors.darkBackground;
-    final secondaryTextColor = isDark
-        ? Colors.white.withValues(alpha: 0.7)
-        : AppColors.darkBackground.withValues(alpha: 0.7);
+    Widget illustration = Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.10),
+            blurRadius: 60.w,
+            spreadRadius: 20.w,
+          ),
+        ],
+      ),
+      child: CAnimatedWidget(image: page.image),
+    );
+    if (!liteMode) {
+      illustration = illustration
+          .animate(key: ValueKey(currentIndex))
+          .scale(
+            duration: AppMotion.slow,
+            curve: AppMotion.entranceCurve,
+          );
+    }
 
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: gradientColors,
+            colors: isDark
+                ? [AppColors.darkBackground, AppColors.darkSurface]
+                : [AppColors.lightBackground, AppColors.lightActionSurface],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -111,7 +128,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                     final v = details.primaryVelocity;
                     if (v == null) return;
                     if (v < 0) {
-                      _nextPage();
+                      _nextPage(pages.length);
                     } else if (v > 0) {
                       _prevPage();
                     }
@@ -119,60 +136,33 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Image Container with Glow
-                      (PerformanceController.to.liteMode.value
-                          ? Container(
-                              decoration: BoxDecoration(shape: BoxShape.circle),
-                              child: CAnimatedWidget(image: splashData.image),
-                            )
-                          : Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: isDark
-                                            ? AppColors.primary.withValues(alpha: 0.15)
-                                            : const Color(
-                                                0xFF3F51B5,
-                                              ).withValues(alpha: 0.1),
-                                        blurRadius: 60.w,
-                                        spreadRadius: 20.w,
-                                      ),
-                                    ],
-                                  ),
-                                  child: CAnimatedWidget(
-                                    image: splashData.image,
-                                  ),
-                                )
-                                .animate(key: ValueKey(currentIndex))
-                                .scale(
-                                  duration: 600.ms,
-                                  curve: Curves.easeOutBack,
-                                )),
-                      SizedBox(height: 40.h),
+                      illustration,
+                      SizedBox(height: AppSpace.s40.h),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpace.pageGutter.w,
+                        ),
                         child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 500),
+                          duration: AppMotion.base,
                           child: Column(
-                            key: ValueKey(splashData.headline),
+                            key: ValueKey(page.headline),
                             children: [
-                              _fadeSlide(
+                              _entrance(
                                 Text(
-                                  splashData.headline,
+                                  page.headline,
                                   textAlign: TextAlign.center,
                                   style: AppType.headlineMedium(textColor),
                                 ),
-                                slideBegin: 0.3,
+                                slideFrom: 0.3,
                               ),
-                              SizedBox(height: 16.h),
-                              _fadeSlide(
+                              SizedBox(height: AppSpace.s16.h),
+                              _entrance(
                                 Text(
-                                  splashData.subtitle,
+                                  page.subtitle,
                                   textAlign: TextAlign.center,
-                                  style: AppType.bodyLarge(secondaryTextColor),
+                                  style: AppType.bodyLarge(secondaryColor),
                                 ),
-                                slideBegin: 0.1,
+                                slideFrom: 0.1,
                               ),
                             ],
                           ),
@@ -182,93 +172,49 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen> {
                   ),
                 ),
               ),
-
-              // Bottom Section: Indicators + Button
               Expanded(
                 flex: 1,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpace.pageGutter.w,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Page Indicators
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(
-                          splashPages.length,
+                          pages.length,
                           (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            margin: EdgeInsets.symmetric(horizontal: 4.w),
+                            duration: AppMotion.fast,
+                            curve: AppMotion.standard,
+                            margin: EdgeInsets.symmetric(
+                              horizontal: AppSpace.s4.w,
+                            ),
                             height: 8.h,
                             width: currentIndex == index ? 24.w : 8.w,
                             decoration: BoxDecoration(
                               color: currentIndex == index
-                                  ? (isDark
-                                        ? AppColors.primary
-                                        : AppColors.accent)
-                                  : (isDark
-                                        ? Colors.white.withValues(alpha: 0.2)
-                                        : Colors.black.withValues(alpha: 0.1)),
-                              borderRadius: BorderRadius.circular(4.r),
+                                  ? AppColors.primary
+                                  : isDark
+                                  ? AppColors.darkBorder
+                                  : AppColors.lightBorder,
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.pill.r),
                             ),
                           ),
                         ),
                       ),
                       const Spacer(),
-
-                      // Action Button
-                      Container(
-                            width: double.infinity,
-                            height: 56.h,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(28.r),
-                              gradient: LinearGradient(
-                                colors: isDark
-                                    ? [
-                                        AppColors.primary,
-                                        AppColors.primaryPress,
-                                      ]
-                                    : [
-                                        AppColors.primary.withValues(alpha: 0.9),
-                                        AppColors.primaryPress.withValues(alpha: 0.9),
-                                      ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                  blurRadius: 15.w,
-                                  offset: Offset(0, 8.w),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: _nextPage,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(28.r),
-                                ),
-                              ),
-                              child: Text(
-                                splashData.buttonText,
-                                style: AppType.titleMedium(Colors.white),
-                              ),
-                            ),
-                          )
-                          .animate(
-                            target: currentIndex == splashPages.length - 1
-                                ? 1
-                                : 0,
-                          )
-                          .fadeIn(duration: 500.ms)
-                          .scale(
-                            begin: const Offset(0.9, 0.9),
-                            end: const Offset(1, 1),
-                          ),
-                      SizedBox(height: 30.h),
+                      SizedBox(
+                        height: 56.h,
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () => _nextPage(pages.length),
+                          child: Text(page.buttonText),
+                        ),
+                      ),
+                      SizedBox(height: AppSpace.s32.h),
                     ],
                   ),
                 ),

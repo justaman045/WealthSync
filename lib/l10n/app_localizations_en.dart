@@ -108,6 +108,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Let\'s set up your financial goals in 2 steps.';
 
   @override
+  String get onboardingReferralHint => 'e.g. AMAN05';
+
+  @override
+  String get onboardingReferralOptional => 'Referral Code (Optional)';
+
+  @override
+  String get onboardingReferralPitch =>
+      'Have a friend’s code? Get 1 month free!';
+
+  @override
   String get chooseCurrencyStep => '1. Choose Currency';
 
   @override
@@ -1359,6 +1369,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get splitBill => 'Split a Bill';
+
+  @override
+  String get splashContinue => 'Continue';
+
+  @override
+  String get splashGetStarted => 'Get Started';
+
+  @override
+  String get splashHeadlineFillWallet => 'Fill Your Wallet';
+
+  @override
+  String get splashHeadlineSaveMoney => 'Save your Money';
+
+  @override
+  String get splashHeadlineTrackExpenses => 'Track Your Expenses';
+
+  @override
+  String get splashLetsStart => 'Let\'s Start';
+
+  @override
+  String get splashSubtitleFillWallet =>
+      'Take control of your earnings by working smarter and building your own success story.';
+
+  @override
+  String get splashSubtitleSaveMoney =>
+      'Discover smart ways to manage your finances and grow your savings—start making your money work for you, effortlessly and securely.';
+
+  @override
+  String get splashSubtitleTrackExpenses =>
+      'Monitor your spending habits effortlessly and take control of your financial goals in real time.';
 
   @override
   String get start => 'Start';

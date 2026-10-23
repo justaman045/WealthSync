@@ -153,8 +153,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final theme = Theme.of(context);
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final hintColor =
+        isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
@@ -181,7 +185,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 40.h),
+                        SizedBox(height: AppSpace.s40.h),
                         Center(
                           child: Container(
                             padding: EdgeInsets.all(20.r),
@@ -196,21 +200,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 30.h),
+                        SizedBox(height: AppSpace.s32.h),
                         Text(
                           l10n.welcomeUser(_userName ?? '...'),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontSize: 28.sp,
-                          ),
+                          style: AppType.headlineMedium(textColor),
                         ),
-                        SizedBox(height: 8.h),
+                        SizedBox(height: AppSpace.s8.h),
                         Text(
                           l10n.onboardingSubtitle,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 16.sp,
-                          ),
+                          style: AppType.bodyLarge(secondaryColor),
                         ),
-                        SizedBox(height: 40.h),
+                        SizedBox(height: AppSpace.s40.h),
 
                         Form(
                           key: _formKey,
@@ -220,11 +220,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               // Step 1: Currency
                               Text(
                                 l10n.chooseCurrencyStep,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: AppType.titleMedium(textColor),
                               ),
-                              SizedBox(height: 12.h),
+                              SizedBox(height: AppSpace.s12.h),
                               GlassContainer(
                                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                                 child: DropdownButtonHideUnderline(
@@ -232,8 +230,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     value: _selectedCurrency,
                                     isExpanded: true,
                                     dropdownColor: isDark
-                                        ? AppColors.darkSurface
-                                        : Colors.white,
+                                        ? AppColors.darkSurfaceCard
+                                        : AppColors.lightSurface,
                                     icon: Icon(
                                       Icons.arrow_drop_down_rounded,
                                       color: AppColors.primary,
@@ -256,16 +254,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 ),
                               ),
 
-                              SizedBox(height: 24.h),
+                              SizedBox(height: AppSpace.s24.h),
 
                               // Step 2: Budget
                               Text(
                                 l10n.setBudgetStep,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: AppType.titleMedium(textColor),
                               ),
-                              SizedBox(height: 12.h),
+                              SizedBox(height: AppSpace.s12.h),
                               GlassContainer(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 16.w,
@@ -280,10 +276,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,
                                     hintText: l10n.budgetHint,
-                                    hintStyle: TextStyle(
-                                      color: textColor.withValues(alpha: 0.4),
-                                      fontWeight: FontWeight.normal,
-                                    ),
+                                    hintStyle: AppType.bodyLarge(hintColor),
                                     filled: false,
                                   ),
                                   validator: (v) {
@@ -297,24 +290,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   },
                                 ),
                               ),
-                              SizedBox(height: 24.h),
+                              SizedBox(height: AppSpace.s24.h),
 
                               // Step 3: Referral Code (optional)
                               Text(
-                                "Referral Code (Optional)",
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                l10n.onboardingReferralOptional,
+                                style: AppType.titleMedium(textColor),
                               ),
-                              SizedBox(height: 8.h),
+                              SizedBox(height: AppSpace.s8.h),
                               Text(
-                                "Have a friend's code? Get 1 month free!",
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 13.sp,
-                                  color: AppColors.primary,
-                                ),
+                                l10n.onboardingReferralPitch,
+                                style: AppType.bodySmall(AppColors.primary),
                               ),
-                              SizedBox(height: 10.h),
+                              SizedBox(height: AppSpace.s12.h),
                               GlassContainer(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 16.w,
@@ -329,12 +317,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,
-                                    hintText: "e.g. AMAN05",
-                                    hintStyle: TextStyle(
-                                      color: textColor.withValues(alpha: 0.4),
-                                      fontWeight: FontWeight.normal,
-                                      letterSpacing: 1,
-                                    ),
+                                    hintText: l10n.onboardingReferralHint,
+                                    hintStyle: AppType.bodyLarge(hintColor),
                                     filled: false,
                                   ),
                                 ),
@@ -343,43 +327,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
 
-                        SizedBox(height: 60.h),
+                        SizedBox(height: AppSpace.s48.h),
 
-                        GestureDetector(
-                          onTap: _isLoading ? null : _finishSetup,
-                          child: Container(
-                            width: double.infinity,
-                            height: 56.h,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  AppColors.primary,
-                                  AppColors.secondary,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                  blurRadius: 12.w,
-                                  offset: Offset(0, 4.w),
-                                ),
-                              ],
-                            ),
-                            alignment: Alignment.center,
+                        SizedBox(
+                          height: 56.h,
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: _isLoading ? null : _finishSetup,
                             child: _isLoading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
+                                ? SizedBox(
+                                    height: 22.r,
+                                    width: 22.r,
+                                    child: const CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                    ),
                                   )
-                                : Text(
-                                    l10n.startTracking,
-                                    style: AppType.titleMedium(Colors.white),
-                                  ),
+                                : Text(l10n.startTracking),
                           ),
                         ),
-                        SizedBox(height: 30.h),
+                        SizedBox(height: AppSpace.s32.h),
                       ],
                     ),
                   ),
