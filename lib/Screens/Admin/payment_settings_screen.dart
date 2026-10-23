@@ -149,13 +149,22 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md.r),
+                    ),
                   ),
+                  // The spinner was black on the indigo fill (3.1:1); the label
+                  // size now comes from the button theme.
                   child: _saving
                       ? SizedBox(
-                          width: 22.w, height: 22.h,
-                          child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5))
-                      : Text(AppLocalizations.of(context)!.saveSettings, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                          width: 22.w,
+                          height: 22.h,
+                          child: const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : Text(AppLocalizations.of(context)!.saveSettings),
                 ),
               ),
             ],

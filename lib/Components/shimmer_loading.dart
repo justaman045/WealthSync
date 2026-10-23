@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/performance_controller.dart';
 
@@ -22,10 +23,10 @@ class ShimmerLoading extends StatelessWidget {
       return Shimmer.fromColors(
         baseColor: isDark
             ? Colors.white.withValues(alpha: 0.05)
-            : Colors.grey[300]!,
+            : AppColors.lightBorder,
         highlightColor: isDark
             ? Colors.white.withValues(alpha: 0.1)
-            : Colors.grey[100]!,
+            : AppColors.lightSurfaceCard,
         child: child,
       );
     });

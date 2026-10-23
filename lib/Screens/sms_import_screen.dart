@@ -414,7 +414,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
         final freshCount = _transactions.length - _importedIndices.length;
 
         return _loading && !_scanned
-            ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
             : _transactions.isEmpty
             ? Center(
                 child: Column(
@@ -472,7 +472,7 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                             borderRadius: BorderRadius.circular(12.r),
                             border: Border.all(
                               color: isSelected
-                                  ? Colors.cyan
+                                  ? AppColors.primary
                                   : isImported
                                       ? isDark
                                           ? Colors.white10
@@ -486,8 +486,8 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                               type: MaterialType.transparency,
                               child: CheckboxListTile(
                               value: isSelected,
-                              activeColor: Colors.cyan,
-                              checkColor: Colors.black,
+                              activeColor: AppColors.primary,
+                              checkColor: Colors.white,
                               title: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -509,12 +509,12 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                                           Container(
                                             padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                                             decoration: BoxDecoration(
-                                              color: Colors.cyan.withValues(alpha: 0.15),
+                                              color: AppColors.primary.withValues(alpha: 0.15),
                                               borderRadius: BorderRadius.circular(4.r),
                                             ),
                                             child: Text(
                                               AppLocalizations.of(context)!.imported,
-                                              style: AppType.labelSmall(Colors.cyan),
+                                              style: AppType.labelSmall(AppColors.primary),
                                             ),
                                           ),
                                         ],
@@ -622,8 +622,8 @@ class _SmsImportScreenState extends State<SmsImportScreen> {
                             ? null
                             : _importSelected,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyan,
-                          foregroundColor: Colors.black,
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
                           minimumSize: Size(double.infinity, 50.h),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.r),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/shimmer_loading.dart'; // Reuse base ShimmerLoading
@@ -13,7 +14,7 @@ class SkeletonBlock extends StatelessWidget {
     super.key,
     required this.width,
     required this.height,
-    this.radius = 8,
+    this.radius = AppRadius.xs,
   });
 
   @override
@@ -44,7 +45,7 @@ class SkeletonCard extends StatelessWidget {
       width: width,
       height: height,
       padding: EdgeInsets.all(20.w),
-      borderRadius: BorderRadius.circular(24.r),
+      borderRadius: BorderRadius.circular(AppRadius.xl.r),
       child: child ?? const SizedBox.shrink(),
     );
   }
