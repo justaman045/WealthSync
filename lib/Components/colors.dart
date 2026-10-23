@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:money_control/Components/design_tokens.dart';
+
+// Layout, typography, motion and radius tokens live in design_tokens.dart.
+// Re-exported here so the ~60 files that already import colors.dart keep
+// resolving `AppRadius` / `AppSpace` without a second import.
+export 'package:money_control/Components/design_tokens.dart';
 
 //
 // ────────────────────────────────────────────────
@@ -43,7 +49,10 @@ class AppColors {
   static const Color darkSurfaceCard = Color(0xFF17171B);
   static const Color darkTextPrimary = Color(0xFFFAFAFA);
   static const Color darkTextSecondary = Color(0xFFA1A1AA);
-  static const Color darkTextTertiary = Color(0xFF71717A);
+
+  /// ≥4.5:1 against `darkSurfaceCard`, the lightest dark surface it can land
+  /// on. The previous 0xFF71717A measured 4.05:1 and failed WCAG AA.
+  static const Color darkTextTertiary = Color(0xFF8A8A94);
   static const Color darkBorder = Color(0xFF26262B);
   static const Color darkDivider = Color(0xFF1E1E22);
 
@@ -54,7 +63,10 @@ class AppColors {
   static const Color lightActionSurface = Color(0xFFF4F4F5);
   static const Color lightTextPrimary = Color(0xFF18181B);
   static const Color lightTextSecondary = Color(0xFF52525B);
-  static const Color lightTextTertiary = Color(0xFFA1A1AA);
+
+  /// ≥4.5:1 against `lightActionSurface`, the darkest light surface it can land
+  /// on. The previous 0xFFA1A1AA measured 2.41:1 and failed WCAG AA.
+  static const Color lightTextTertiary = Color(0xFF6B6B74);
   static const Color lightBorder = Color(0xFFE4E4E7);
   static const Color lightDivider = Color(0xFFEFEFF1);
   static const Color lightGlassBg = Colors.white; // opaque now
@@ -68,33 +80,6 @@ class AppColors {
     Color(0xFFF43F5E), // rose
     Color(0xFF0EA5E9), // sky
     Color(0xFF8B5CF6), // violet
-  ];
-}
-
-//
-// ────────────────────────────────────────────────
-//  RADIUS / SPACING / SHADOW TOKENS
-//  (plain doubles only — ScreenUtil is not initialized at theme-build time)
-// ────────────────────────────────────────────────
-//
-
-class AppRadius {
-  AppRadius._();
-  static const double xs = 8;
-  static const double sm = 10;
-  static const double md = 14;
-  static const double lg = 18;
-  static const double xl = 24;
-  static const double pill = 100;
-}
-
-class AppShadows {
-  AppShadows._();
-  static const List<BoxShadow> cardLight = [
-    BoxShadow(color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
-  ];
-  static const List<BoxShadow> cardDark = [
-    BoxShadow(color: Color(0x40000000), blurRadius: 10, offset: Offset(0, 3)),
   ];
 }
 
