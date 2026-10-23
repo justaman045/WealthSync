@@ -44,6 +44,9 @@ fi
 : "${CAP_BACKDROP_SITES:=999999}"
 : "${CAP_INTEG_LITERALS:=999999}"
 : "${CAP_HARDCODED_SCREENS:=999999}"
+: "${CAP_FONT_SIZES:=999999}"
+: "${CAP_FONT_SIZE_VALUES:=999999}"
+: "${CAP_RADIUS_VALUES:=999999}"
 
 RAW_COLORS=$(grep -rEc 'Color\(0x' lib/Screens lib/Components lib/Config --include='*.dart' 2>/dev/null | awk -F: '{s+=$NF} END {print s+0}' || true)
 GLASS_FILES=$(grep -rl 'GlassContainer' lib --include='*.dart' 2>/dev/null | wc -l || true)
@@ -63,6 +66,16 @@ INTEG_LITERALS=$(grep -rhoE "find\.text\('[^']+'\)" integration_test 2>/dev/null
 #
 # The literal is normalized (quote char and `Text(` stripped) before dedup so
 # the same word is not counted twice just because one site uses ' and another ".
+# Typography / geometry drift. `fontSize:` at a call site bypasses the TextTheme,
+# so the app accumulated 22 distinct sizes (8 -> 60) and 19 distinct corner radii
+# (2 -> 50). A screen that uses `AppType.*` / `AppRadius.*` adds nothing to these
+# counts; a new ad-hoc literal does. Both must only ever go DOWN.
+FONT_SIZES=$(grep -rho 'fontSize:' lib/Screens lib/Components lib/Config --include='*.dart' 2>/dev/null | wc -l || true)
+FONT_SIZE_VALUES=$(grep -rhoE 'fontSize:[[:space:]]*[0-9]+' lib/Screens lib/Components lib/Config --include='*.dart' 2>/dev/null \
+  | grep -oE '[0-9]+$' | sort -u | wc -l || true)
+RADIUS_VALUES=$(grep -rhoE 'BorderRadius\.circular\([0-9]+' lib/Screens lib/Components lib/Config --include='*.dart' 2>/dev/null \
+  | grep -oE '[0-9]+$' | sort -u | wc -l || true)
+
 HARDCODED_SCREENS=$(grep -rhoE "Text\(\s*'[^'\\$]{3,}'|Text\(\s*\"[^\"\\$]{3,}\"" \
   lib/Screens lib/Components --include='*.dart' 2>/dev/null \
   | grep -viE "AppStrings\.|AppLocalizations" \
@@ -76,6 +89,9 @@ printf 'Gradient files          : %5d   (cap %s)\n' "${GRADIENT_FILES:-0}" "$CAP
 printf 'BackdropFilter sites    : %5d   (cap %s)\n' "${BACKDROP:-0}"     "$CAP_BACKDROP_SITES"
 printf 'Integration text literals (unique, should trend down): %d   (cap %s)\n' "${INTEG_LITERALS:-0}" "$CAP_INTEG_LITERALS"
 printf 'Unlocalized UI literals (unique, should trend down)  : %d   (cap %s)\n' "${HARDCODED_SCREENS:-0}" "$CAP_HARDCODED_SCREENS"
+printf 'Ad-hoc fontSize: sites  : %5d   (cap %s)\n' "${FONT_SIZES:-0}" "$CAP_FONT_SIZES"
+printf 'Distinct fontSize values: %5d   (cap %s)\n' "${FONT_SIZE_VALUES:-0}" "$CAP_FONT_SIZE_VALUES"
+printf 'Distinct corner radii   : %5d   (cap %s)\n' "${RADIUS_VALUES:-0}" "$CAP_RADIUS_VALUES"
 
 rc=0
 check() { # name value cap
@@ -90,6 +106,9 @@ check "gradient files" "$GRADIENT_FILES"     "$CAP_GRADIENT_FILES"
 check "BackdropFilter sites" "$BACKDROP"     "$CAP_BACKDROP_SITES"
 check "integration text literals" "$INTEG_LITERALS" "$CAP_INTEG_LITERALS"
 check "unlocalized UI literals" "$HARDCODED_SCREENS" "$CAP_HARDCODED_SCREENS"
+check "ad-hoc fontSize sites" "$FONT_SIZES" "$CAP_FONT_SIZES"
+check "distinct fontSize values" "$FONT_SIZE_VALUES" "$CAP_FONT_SIZE_VALUES"
+check "distinct corner radii" "$RADIUS_VALUES" "$CAP_RADIUS_VALUES"
 
 if [[ $rc -eq 0 ]]; then
   echo "OK: all caps respected."
