@@ -310,6 +310,24 @@ abstract class AppLocalizations {
   /// **'2. Set Monthly Budget'**
   String get setBudgetStep;
 
+  /// No description provided for @budgetProUpsell.
+  ///
+  /// In en, this message translates to:
+  /// **'Create budgets, track spending, and get alerts with Pro.'**
+  String get budgetProUpsell;
+
+  /// No description provided for @budgetSetLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Limit'**
+  String get budgetSetLimit;
+
+  /// No description provided for @budgetUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get budgetUpdate;
+
   /// No description provided for @budgetHint.
   ///
   /// In en, this message translates to:

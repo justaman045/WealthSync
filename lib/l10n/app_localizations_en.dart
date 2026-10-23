@@ -124,6 +124,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setBudgetStep => '2. Set Monthly Budget';
 
   @override
+  String get budgetProUpsell =>
+      'Create budgets, track spending, and get alerts with Pro.';
+
+  @override
+  String get budgetSetLimit => 'Set Limit';
+
+  @override
+  String get budgetUpdate => 'Update';
+
+  @override
   String get budgetHint => 'e.g. 20000';
 
   @override

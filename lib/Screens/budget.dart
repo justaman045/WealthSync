@@ -12,7 +12,9 @@ import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Controllers/budget_controller.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/l10n/app_localizations.dart';
 
 class CategoryBudgetScreen extends StatefulWidget {
   const CategoryBudgetScreen({super.key});
@@ -71,19 +73,6 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
           ]
         : [AppColors.lightBackground, AppColors.lightBorder]; // Premium Light
 
-    final textColor = isDark ? Colors.white : AppColors.darkBackground;
-    final secondaryTextColor = isDark
-        ? Colors.white.withValues(alpha: 0.6)
-        : AppColors.darkBackground.withValues(alpha: 0.6);
-
-    final cardColor = isDark
-        ? Colors.white.withValues(alpha: 0.05)
-        : Colors.white.withValues(alpha: 0.6);
-
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.1)
-        : Colors.white.withValues(alpha: 0.4);
-
     return AdaptiveScaffold(
       currentTab: 'wealth',
       backgroundColor: Colors.transparent,
@@ -94,16 +83,11 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
           end: Alignment.bottomCenter,
         ),
       ),
+      // Background, centring, title size and icon size come from AppBarTheme.
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          AppStrings.categoryBudgets,
-          style: AppType.titleMedium(textColor),
-        ),
+        title: Text(AppStrings.categoryBudgets),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 20.sp),
+          icon: const Icon(Icons.arrow_back_ios_new),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -111,10 +95,9 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
         builder: (_) {
           final SubscriptionController subscriptionController = Get.find();
           if (!subscriptionController.isPro) {
-            return const ProLockWidget(
+            return ProLockWidget(
               title: AppStrings.budgeting,
-              description:
-                  "Create budgets, track spending, and get alerts with Pro.",
+              description: AppLocalizations.of(context)!.budgetProUpsell,
             );
           }
 
@@ -130,7 +113,12 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20.w, 10.h, 20.w, 20.h),
+                padding: EdgeInsets.fromLTRB(
+                AppSpace.s20.w,
+                AppSpace.s8.h,
+                AppSpace.s20.w,
+                AppSpace.s20.h,
+              ),
                 child: Responsive.isWideForm(context)
                     ? GridView.builder(
                         padding: EdgeInsets.zero,
@@ -142,7 +130,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                         ),
                         itemCount: categoryBudgets.length,
                         itemBuilder: (context, index) {
-                          return _buildBudgetCard(context, categoryBudgets[index], index, isDark, textColor, secondaryTextColor, cardColor, borderColor);
+                          return _buildBudgetCard(context, categoryBudgets[index], index, isDark);
                         },
                       )
                     : ListView.separated(
@@ -150,7 +138,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                         itemCount: categoryBudgets.length,
                         separatorBuilder: (_, __) => SizedBox(height: 16.h),
                         itemBuilder: (context, index) {
-                          return _buildBudgetCard(context, categoryBudgets[index], index, isDark, textColor, secondaryTextColor, cardColor, borderColor);
+                          return _buildBudgetCard(context, categoryBudgets[index], index, isDark);
                         },
                       ),
               ),
@@ -166,10 +154,6 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
     dynamic item,
     int index,
     bool isDark,
-    Color textColor,
-    Color secondaryTextColor,
-    Color cardColor,
-    Color borderColor,
   ) {
     // Ensure controller exists and is synced
     if (!_controllers.containsKey(item.categoryName)) {
@@ -180,11 +164,11 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
     } else if (_controllers[item.categoryName]!.text !=
             item.budget.toStringAsFixed(2) &&
         !_focusNodes[item.categoryName]!.hasFocus) {
-      _controllers[item.categoryName]!.text = item.budget
-          .toStringAsFixed(2);
+      _controllers[item.categoryName]!.text = item.budget.toStringAsFixed(2);
     }
 
     final controller = _controllers[item.categoryName]!;
+    final l10n = AppLocalizations.of(context)!;
 
     final progress = item.budget > 0
         ? (item.spent / item.budget).clamp(0.0, 1.0)
@@ -192,25 +176,24 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
 
     final progressColor = progress > 0.9
         ? AppColors.error
-        : (progress > 0.7
-              ? AppColors.warning
-              : AppColors.primary);
+        : (progress > 0.7 ? AppColors.warning : AppColors.primary);
 
-    return Container(
-      padding: EdgeInsets.all(16.w),
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final secondaryTextColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    final card = Container(
+      padding: EdgeInsets.all(AppSpace.s16.w),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(
-              alpha: isDark ? 0.2 : 0.05,
-            ),
-            blurRadius: 15.w,
-            offset: Offset(0, 5.w),
-          ),
-        ],
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+        borderRadius: BorderRadius.circular(AppRadius.lg.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+        boxShadow: AppElevation.raised(isDark: isDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,11 +202,11 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                padding: EdgeInsets.all(8.w),
+                padding: EdgeInsets.all(AppSpace.s8.w),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.white.withValues(alpha: 0.4),
+                      ? AppColors.darkSurface
+                      : AppColors.lightActionSurface,
                   shape: BoxShape.circle,
                 ),
                 child: CategoryInitialsIcon(
@@ -231,7 +214,7 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                   size: 32.r,
                 ),
               ),
-              SizedBox(width: 12.w),
+              SizedBox(width: AppSpace.s12.w),
               Expanded(
                 child: Text(
                   item.categoryName,
@@ -244,19 +227,19 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
               ),
             ],
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: AppSpace.s16.h),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4.h),
+            borderRadius: BorderRadius.circular(AppRadius.xs.r),
             child: LinearProgressIndicator(
               value: progress.toDouble(),
               color: progressColor,
               backgroundColor: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : AppColors.lightSurfaceCard,
+                  ? AppColors.darkSurface
+                  : AppColors.lightActionSurface,
               minHeight: 6.h,
             ),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: AppSpace.s16.h),
           Row(
             children: [
               Expanded(
@@ -264,13 +247,12 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                   height: 44.h,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.black.withValues(alpha: 0.2)
-                        : Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12.r),
+                        ? AppColors.darkBackground
+                        : AppColors.lightSurface,
+                    borderRadius: BorderRadius.circular(AppRadius.sm.r),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : AppColors.lightBorder.withValues(alpha: 0.5),
+                      color:
+                          isDark ? AppColors.darkBorder : AppColors.lightBorder,
                     ),
                   ),
                   child: TextFormField(
@@ -280,51 +262,42 @@ class _CategoryBudgetScreenState extends State<CategoryBudgetScreen> {
                         const TextInputType.numberWithOptions(decimal: true),
                     style: AppType.bodyMedium(textColor),
                     decoration: InputDecoration(
-                      hintText: 'Set Limit',
-                      hintStyle: TextStyle(
-                        color: secondaryTextColor.withValues(alpha: 0.4),
+                      hintText: l10n.budgetSetLimit,
+                      hintStyle: AppType.bodyMedium(
+                        isDark
+                            ? AppColors.darkTextTertiary
+                            : AppColors.lightTextTertiary,
                       ),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 0),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: AppSpace.s12.w,
+                        vertical: 0,
+                      ),
                     ),
                   ),
                 ),
               ),
-              SizedBox(width: 12.w),
-              InkWell(
-                onTap: () {
-                  final amount = double.tryParse(controller.text) ?? 0;
-                  _budgetController.saveBudget(item.categoryName, amount);
-                },
-                child: Container(
-                  height: 44.h,
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.primary],
-                    ),
-                    borderRadius: BorderRadius.circular(12.r),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.4),
-                        blurRadius: 8.w,
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    "Update",
-                    style: AppType.labelMedium(Colors.white),
-                  ),
+              SizedBox(width: AppSpace.s12.w),
+              SizedBox(
+                height: 44.h,
+                child: FilledButton(
+                  onPressed: () {
+                    final amount = double.tryParse(controller.text) ?? 0;
+                    _budgetController.saveBudget(item.categoryName, amount);
+                  },
+                  child: Text(l10n.budgetUpdate),
                 ),
               ),
             ],
           ),
         ],
       ),
-    )
+    );
+
+    if (PerformanceController.to.liteMode.value) return card;
+    return card
         .animate(delay: (index * 50).ms)
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.1, end: 0, curve: Curves.easeOut);
+        .fadeIn(duration: AppMotion.slow)
+        .slideY(begin: 0.1, end: 0, curve: AppMotion.standard);
   }
 }
