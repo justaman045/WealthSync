@@ -31,7 +31,7 @@ import 'package:money_control/Screens/insurance_policy_screen.dart';
 import 'package:money_control/Screens/vehicle_detail_screen.dart';
 import 'package:money_control/Screens/real_estate_detail_screen.dart';
 import 'package:money_control/Screens/asset_detail_screen.dart';
-import 'package:money_control/Config/asset_screen_configs.dart';
+import 'package:money_control/Config/wealth_asset_registry.dart';
 import 'package:money_control/Services/geo_service.dart';
 import 'package:money_control/Screens/edit_profile.dart';
 import 'package:money_control/Utils/responsive.dart';
@@ -761,24 +761,6 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     }
     final monthlyExpense = (assetTargets['bank']?.formula ?? 0) / multiplier;
 
-    // Helper: card with detail screen
-    Widget detailCard(
-      String title,
-      double amount,
-      String key,
-      IconData icon,
-      Color color,
-      AssetScreenConfig cfg,
-    ) => _assetCard(
-      title,
-      amount,
-      key,
-      icon,
-      color,
-      scheme,
-      onTapOverride: () => Get.to(() => AssetDetailScreen(config: cfg)),
-    );
-
     // Visibility: Smart Mode follows age recommendations; Custom Mode respects manual hides
     bool isVisible(String key) {
       if (_ageBasedEnabled) return _recommendedKeys.contains(key);
@@ -793,332 +775,18 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final loanCount = loanController?.loans.length ?? 0;
 
     final allCards = <MapEntry<String, Widget>>[
-      MapEntry(
-        'bank',
-        _assetCard(
-          "Cash / Bank",
-          bankBalance,
-          'bank',
-          Icons.account_balance,
-          Colors.teal,
-          scheme,
-          readOnly: true,
-          secondaryLabel: monthlyExpense > 0 ? "Monthly Expense" : null,
-          secondaryValue: monthlyExpense > 0 ? monthlyExpense : null,
-        ),
-      ),
-      MapEntry(
-        'fd',
-        detailCard(
-          "FD / RD",
-          p.fd,
-          'fd',
-          Icons.savings,
-          Colors.orange,
-          AssetConfigs.fd,
-        ),
-      ),
-      MapEntry(
-        'ppf',
-        detailCard(
-          "PPF",
-          p.ppf,
-          'ppf',
-          Icons.savings_outlined,
-          Colors.lightBlue,
-          AssetConfigs.ppf,
-        ),
-      ),
-      MapEntry(
-        'postOffice',
-        detailCard(
-          "Post Office Schemes",
-          p.postOffice,
-          'postOffice',
-          Icons.local_post_office,
-          Colors.red.shade300,
-          AssetConfigs.postOffice,
-        ),
-      ),
-      MapEntry(
-        'bonds',
-        detailCard(
-          "Bonds (Govt/Corp)",
-          p.bonds,
-          'bonds',
-          Icons.receipt_long,
-          Colors.blueGrey,
-          AssetConfigs.bonds,
-        ),
-      ),
-      MapEntry(
-        'chitFund',
-        detailCard(
-          "Chit Fund",
-          p.chitFund,
-          'chitFund',
-          Icons.groups,
-          Colors.teal.shade300,
-          AssetConfigs.chitFund,
-        ),
-      ),
-      MapEntry(
-        'stocks',
-        detailCard(
-          "Stocks",
-          p.stocks,
-          'stocks',
-          Icons.show_chart,
-          Colors.purple,
-          AssetConfigs.stocks,
-        ),
-      ),
-      MapEntry(
-        'sip',
-        detailCard(
-          "Mutual Funds (SIP)",
-          p.sip,
-          'sip',
-          Icons.pie_chart,
-          Colors.blue,
-          AssetConfigs.sip,
-        ),
-      ),
-      MapEntry(
-        'etf',
-        detailCard(
-          "ETFs",
-          p.etf,
-          'etf',
-          Icons.stacked_line_chart,
-          Colors.cyan,
-          AssetConfigs.etf,
-        ),
-      ),
-      MapEntry(
-        'foreignStocks',
-        detailCard(
-          "Foreign Stocks",
-          p.foreignStocks,
-          'foreignStocks',
-          Icons.language,
-          Colors.deepPurple,
-          AssetConfigs.foreignStocks,
-        ),
-      ),
-      MapEntry(
-        'startupEquity',
-        detailCard(
-          "Angel / Startup",
-          p.startupEquity,
-          'startupEquity',
-          Icons.rocket_launch,
-          Colors.orange,
-          AssetConfigs.startupEquity,
-        ),
-      ),
-      MapEntry(
-        'pf',
-        detailCard(
-          "PF / EPF",
-          p.pf,
-          'pf',
-          Icons.account_balance_wallet,
-          Colors.green,
-          AssetConfigs.pf,
-        ),
-      ),
-      MapEntry(
-        'vpf',
-        detailCard(
-          "Voluntary PF",
-          p.vpf,
-          'vpf',
-          Icons.account_balance_wallet_outlined,
-          Colors.green.shade300,
-          AssetConfigs.vpf,
-        ),
-      ),
-      MapEntry(
-        'nps',
-        detailCard(
-          "NPS",
-          p.nps,
-          'nps',
-          Icons.elderly,
-          Colors.indigo,
-          AssetConfigs.nps,
-        ),
-      ),
-      MapEntry(
-        'gold',
-        detailCard(
-          "Gold / Silver",
-          p.gold,
-          'gold',
-          Icons.grid_goldenratio,
-          Colors.amber,
-          AssetConfigs.gold,
-        ),
-      ),
-      MapEntry(
-        'sgb',
-        detailCard(
-          "Sovereign Gold Bonds",
-          p.sgb,
-          'sgb',
-          Icons.monetization_on,
-          Colors.amber.shade300,
-          AssetConfigs.sgb,
-        ),
-      ),
-      MapEntry(
-        'jewelry',
-        detailCard(
-          "Jewelry / Diamonds",
-          p.jewelry,
-          'jewelry',
-          Icons.diamond,
-          Colors.pink.shade300,
-          AssetConfigs.jewelry,
-        ),
-      ),
-      MapEntry(
-        'crypto',
-        detailCard(
-          "Crypto",
-          p.crypto,
-          'crypto',
-          Icons.currency_bitcoin,
-          Colors.deepOrange,
-          AssetConfigs.crypto,
-        ),
-      ),
-      MapEntry(
-        'reit',
-        detailCard(
-          "REITs",
-          p.reit,
-          'reit',
-          Icons.apartment,
-          Colors.tealAccent.shade700,
-          AssetConfigs.reit,
-        ),
-      ),
-      MapEntry(
-        'p2p',
-        detailCard(
-          "P2P Lending",
-          p.p2p,
-          'p2p',
-          Icons.people_alt,
-          Colors.lime,
-          AssetConfigs.p2p,
-        ),
-      ),
-      MapEntry(
-        'realEstate',
-        _assetCard(
-          "Real Estate",
-          p.realEstate,
-          'realEstate',
-          Icons.domain,
-          Colors.brown,
-          scheme,
-          onTapOverride: () => Get.to(() => const RealEstateDetailScreen()),
-        ),
-      ),
-      MapEntry(
-        'agriLand',
-        detailCard(
-          "Agricultural Land",
-          p.agriLand,
-          'agriLand',
-          Icons.grass,
-          Colors.green,
-          AssetConfigs.agriLand,
-        ),
-      ),
-      MapEntry(
-        'vehicle',
-        _assetCard(
-          "Vehicle(s)",
-          p.vehicle,
-          'vehicle',
-          Icons.directions_car,
-          Colors.blueGrey.shade300,
-          scheme,
-          onTapOverride: () => Get.to(() => const VehicleDetailScreen()),
-        ),
-      ),
-      MapEntry(
-        'insurance',
-        _assetCard(
-          "Life Insurance / ULIP",
-          p.insurance,
-          'insurance',
-          Icons.health_and_safety,
-          Colors.pink,
-          scheme,
-          coverageStyle: true,
-          onTapOverride: () => Get.to(() => const InsurancePolicyScreen()),
-        ),
-      ),
-      MapEntry(
-        'business',
-        detailCard(
-          "Business Capital",
-          p.business,
-          'business',
-          Icons.business_center,
-          Colors.brown.shade300,
-          AssetConfigs.business,
-        ),
-      ),
-      MapEntry(
-        'loans',
-        FeatureVisible(
-          flagKey: 'loan_tracker',
-          child: _assetCard(
-            "Loans / Liabilities",
-            loanController?.totalOutstanding ?? 0,
-            'loans',
-            Icons.money_off,
-            Colors.red,
+      for (final asset in WealthAssetRegistry.assets)
+        MapEntry(
+          asset.key,
+          _buildAssetCard(
+            asset,
             scheme,
-            secondaryLabel: loanCount > 0
-                ? "$loanCount loan${loanCount > 1 ? 's' : ''}"
-                : null,
-            onTapOverride: () {
-              if (!ensureFeatureVisible(context, 'loan_tracker')) return;
-              Get.to(() => const LoanTrackerScreen());
-            },
+            p,
+            monthlyExpense: monthlyExpense,
+            loanTotal: loanController?.totalOutstanding ?? 0,
+            loanCount: loanCount,
           ),
         ),
-      ),
-      MapEntry(
-        'creditCard',
-        _assetCard(
-          "Credit Card Outstanding",
-          p.creditCard,
-          'creditCard',
-          Icons.credit_card,
-          Colors.red.shade700,
-          scheme,
-          onTapOverride: () => Get.to(() => const CreditCardDetailScreen()),
-        ),
-      ),
-      MapEntry(
-        'bnpl',
-        detailCard(
-          "BNPL / Pay Later",
-          p.bnpl,
-          'bnpl',
-          Icons.schedule,
-          Colors.deepOrange.shade700,
-          AssetConfigs.bnpl,
-        ),
-      ),
     ];
 
     // ── sections ─────────────────────────────────────────────────────────────
@@ -1159,31 +827,15 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       }
     } else {
       // Custom Mode: grouped by asset class
-      const groups = <(String, List<String>)>[
-        (
-          "Liquid & Fixed Income",
-          ['bank', 'fd', 'ppf', 'postOffice', 'bonds', 'chitFund'],
-        ),
-        (
-          "Equity & Growth",
-          ['stocks', 'sip', 'etf', 'foreignStocks', 'startupEquity'],
-        ),
-        ("Retirement", ['pf', 'vpf', 'nps']),
-        (
-          "Alternative Assets",
-          ['gold', 'sgb', 'jewelry', 'crypto', 'reit', 'p2p'],
-        ),
-        ("Physical Assets", ['realEstate', 'agriLand', 'vehicle']),
-        ("Protection & Business", ['insurance', 'business']),
-        ("Liabilities", ['loans', 'creditCard', 'bnpl']),
-      ];
-      for (final group in groups) {
-        final groupCards = group.$2
-            .where(isVisible)
-            .map((key) => allCards.firstWhere((e) => e.key == key).value)
+      for (final group in WealthAssetRegistry.groupOrder) {
+        final groupCards = WealthAssetRegistry.inGroup(group)
+            .where((a) => isVisible(a.key))
+            .map((a) => allCards.firstWhere((e) => e.key == a.key).value)
             .toList();
         if (groupCards.isEmpty) continue;
-        sections.add(header(_sectionHeader(group.$1, scheme)));
+        sections.add(
+          header(_sectionHeader(_groupLabel(group), scheme)),
+        );
         sections.add(
           SliverGrid(
             gridDelegate: gridDelegate(),
@@ -1337,7 +989,101 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     );
   }
 
-  // ... (Keep existing _assetCard and helpers)
+  /// The heading a Custom Mode section is drawn under.
+  String _groupLabel(WealthAssetGroup group) => switch (group) {
+    WealthAssetGroup.liquidAndFixedIncome => "Liquid & Fixed Income",
+    WealthAssetGroup.equityAndGrowth => "Equity & Growth",
+    WealthAssetGroup.retirement => "Retirement",
+    WealthAssetGroup.alternativeAssets => "Alternative Assets",
+    WealthAssetGroup.physicalAssets => "Physical Assets",
+    WealthAssetGroup.protectionAndBusiness => "Protection & Business",
+    WealthAssetGroup.liabilities => "Liabilities",
+  };
+
+  /// Builds one asset card from its descriptor.
+  ///
+  /// The routing, the read-only flag, the coverage style and the secondary
+  /// figures all come from [WealthAssetDescriptor], so adding an asset type is
+  /// one entry in the registry rather than a card spelled out here.
+  Widget _buildAssetCard(
+    WealthAssetDescriptor asset,
+    ColorScheme scheme,
+    WealthPortfolio p, {
+    required double monthlyExpense,
+    required double loanTotal,
+    required int loanCount,
+  }) {
+    final amount = switch (asset.key) {
+      'bank' => bankBalance,
+      'loans' => loanTotal,
+      _ => wealthAssetValue(p, asset.key),
+    };
+
+    // The cash card shows what it is being saved towards; the loan card shows
+    // how many loans are behind the figure.
+    String? secondaryLabel;
+    double? secondaryValue;
+    if (asset.key == 'bank' && monthlyExpense > 0) {
+      secondaryLabel = "Monthly Expense";
+      secondaryValue = monthlyExpense;
+    } else if (asset.key == 'loans' && loanCount > 0) {
+      secondaryLabel = "$loanCount loan${loanCount > 1 ? 's' : ''}";
+    }
+
+    final card = _assetCard(
+      asset.label,
+      amount,
+      asset.key,
+      asset.icon,
+      asset.color,
+      scheme,
+      readOnly: asset.readOnly,
+      coverageStyle: asset.coverageStyle,
+      secondaryLabel: secondaryLabel,
+      secondaryValue: secondaryValue,
+      // A card with nowhere to go keeps the default tap, which opens the
+      // target editor — the cash card is read-only but its target is not.
+      onTapOverride: asset.destination == WealthAssetDestination.none
+          ? null
+          : () => _openAssetDetail(asset),
+    );
+
+    if (asset.destination == WealthAssetDestination.loans) {
+      // The loan tracker has its own kill-switch: hiding it removes the card,
+      // it must not leave a button that does nothing.
+      return FeatureVisible(flagKey: 'loan_tracker', child: card);
+    }
+    return card;
+  }
+
+  /// Opens the screen behind an asset card.
+  void _openAssetDetail(WealthAssetDescriptor asset) {
+    switch (asset.destination) {
+      case WealthAssetDestination.none:
+        return;
+      case WealthAssetDestination.config:
+        final cfg = asset.config;
+        if (cfg != null) Get.to(() => AssetDetailScreen(config: cfg));
+        return;
+      case WealthAssetDestination.realEstate:
+        Get.to(() => const RealEstateDetailScreen());
+        return;
+      case WealthAssetDestination.vehicle:
+        Get.to(() => const VehicleDetailScreen());
+        return;
+      case WealthAssetDestination.insurance:
+        Get.to(() => const InsurancePolicyScreen());
+        return;
+      case WealthAssetDestination.creditCard:
+        Get.to(() => const CreditCardDetailScreen());
+        return;
+      case WealthAssetDestination.loans:
+        if (!ensureFeatureVisible(context, 'loan_tracker')) return;
+        Get.to(() => const LoanTrackerScreen());
+        return;
+    }
+  }
+
   Widget _assetCard(
     String title,
     double amount,
@@ -1886,41 +1632,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   Future<void> _showVisibilityDialog() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final Map<String, String> assets = {
-      // Liquid & Fixed Income
-      'bank': "Cash / Bank",
-      'fd': "FD / RD",
-      'ppf': "PPF",
-      'postOffice': "Post Office Schemes",
-      'bonds': "Bonds (Govt/Corp)",
-      'chitFund': "Chit Fund",
-      // Equity & Growth
-      'stocks': "Stocks",
-      'sip': "Mutual Funds (SIP)",
-      'etf': "ETFs",
-      'foreignStocks': "Foreign Stocks",
-      'startupEquity': "Angel / Startup Equity",
-      // Retirement
-      'pf': "PF / EPF",
-      'vpf': "Voluntary PF (VPF)",
-      'nps': "NPS",
-      // Alternative Assets
-      'gold': "Gold / Silver",
-      'sgb': "Sovereign Gold Bonds",
-      'jewelry': "Jewelry / Diamonds",
-      'crypto': "Crypto",
-      'reit': "REITs",
-      'p2p': "P2P Lending",
-      // Physical Assets
-      'realEstate': "Real Estate",
-      'agriLand': "Agricultural Land",
-      'vehicle': "Vehicle(s)",
-      // Protection
-      'insurance': "Life Insurance / ULIP",
-      'business': "Business Capital",
-      // Liabilities
-      'loans': "Loans / Liabilities",
-      'creditCard': "Credit Card Outstanding",
-      'bnpl': "BNPL / Pay Later",
+      for (final a in WealthAssetRegistry.assets) a.key: a.label,
     };
 
     // Custom assets — standard keys take precedence on a name collision.
@@ -2169,8 +1881,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     final p = portfolio!;
     final hidden = _ageBasedEnabled
-        ? WealthAgeRecommendations.allCards
-              .map((c) => c.key)
+        ? WealthAssetRegistry.assets
+              .map((a) => a.key)
               .where((k) => !_recommendedKeys.contains(k))
               .toSet()
         : p.hiddenKeys;
@@ -2190,42 +1902,21 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       }
     }
 
-    // All 26 asset classes (liabilities excluded — allocation shows assets
-    // only), mirroring the net-worth card's full set plus custom assets.
+    // Every asset the allocation chart counts (liabilities excluded — an
+    // allocation is a picture of what you own), mirroring the net-worth
+    // card's full set plus custom assets.
     final assetSections = <MapEntry<String, (double, Color, String)>>[
-      MapEntry('bank', (bankBalance, Colors.teal, 'Bank')),
-      MapEntry('sip', (p.sip, Colors.blue, 'SIP')),
-      MapEntry('fd', (p.fd, Colors.orange, 'FD')),
-      MapEntry('stocks', (p.stocks, Colors.purple, 'Stocks')),
-      MapEntry('pf', (p.pf, Colors.green, 'PF')),
-      MapEntry('crypto', (p.crypto, Colors.amber, 'Crypto')),
-      MapEntry('gold', (p.gold, Colors.yellow[700]!, 'Gold')),
-      MapEntry('realEstate', (p.realEstate, Colors.brown, 'RE')),
-      MapEntry('nps', (p.nps, Colors.indigo, 'NPS')),
-      MapEntry('etf', (p.etf, Colors.cyan, 'ETF')),
-      MapEntry('reit', (p.reit, Colors.tealAccent.shade700, 'REIT')),
-      MapEntry('p2p', (p.p2p, Colors.lime, 'P2P')),
-      MapEntry('ppf', (p.ppf, Colors.lightBlue, 'PPF')),
-      MapEntry('sgb', (p.sgb, Colors.amber.shade300, 'SGB')),
-      MapEntry('bonds', (p.bonds, Colors.blueGrey, 'Bonds')),
-      MapEntry(
-        'foreignStocks',
-        (p.foreignStocks, Colors.deepPurple, 'Foreign'),
-      ),
-      MapEntry('vpf', (p.vpf, Colors.green.shade300, 'VPF')),
-      MapEntry(
-        'postOffice',
-        (p.postOffice, Colors.red.shade300, 'Post Office'),
-      ),
-      MapEntry('chitFund', (p.chitFund, Colors.teal.shade300, 'Chit Fund')),
-      MapEntry(
-        'startupEquity',
-        (p.startupEquity, Colors.deepOrange, 'Startup'),
-      ),
-      MapEntry('business', (p.business, Colors.brown.shade300, 'Business')),
-      MapEntry('vehicle', (p.vehicle, Colors.blueGrey.shade300, 'Vehicle')),
-      MapEntry('jewelry', (p.jewelry, Colors.pink.shade300, 'Jewelry')),
-      MapEntry('agriLand', (p.agriLand, Colors.green, 'Agri Land')),
+      for (final asset in WealthAssetRegistry.allocationAssets)
+        MapEntry(
+          asset.key,
+          (
+            asset.key == 'bank'
+                ? bankBalance
+                : wealthAssetValue(p, asset.key),
+            asset.color,
+            asset.shortLabel,
+          ),
+        ),
     ];
 
     for (final section in assetSections) {
@@ -2501,8 +2192,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     if (portfolio != null) {
       final p = portfolio!;
       final hidden = _ageBasedEnabled
-          ? WealthAgeRecommendations.allCards
-                .map((c) => c.key)
+          ? WealthAssetRegistry.assets
+                .map((a) => a.key)
                 .where((k) => !_recommendedKeys.contains(k))
                 .toSet()
           : p.hiddenKeys;
@@ -2515,30 +2206,16 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         if (!hidden.contains(key)) total -= val;
       }
 
+      // The cash balance comes from the transaction stream, not from the
+      // portfolio document.
       add('bank', bankBalance);
-      add('realEstate', p.realEstate);
-      add('stocks', p.stocks);
-      add('sip', p.sip);
-      add('fd', p.fd);
-      add('pf', p.pf);
-      add('nps', p.nps);
-      add('gold', p.gold);
-      add('crypto', p.crypto);
-      add('etf', p.etf);
-      add('reit', p.reit);
-      add('p2p', p.p2p);
-      add('ppf', p.ppf);
-      add('sgb', p.sgb);
-      add('bonds', p.bonds);
-      add('foreignStocks', p.foreignStocks);
-      add('vpf', p.vpf);
-      add('postOffice', p.postOffice);
-      add('chitFund', p.chitFund);
-      add('startupEquity', p.startupEquity);
-      add('business', p.business);
-      add('vehicle', p.vehicle);
-      add('jewelry', p.jewelry);
-      add('agriLand', p.agriLand);
+
+      // Every asset the allocation chart counts. Insurance is in neither:
+      // a policy's sum assured is a cover, not an asset.
+      for (final asset in WealthAssetRegistry.allocationAssets) {
+        if (asset.key == 'bank') continue;
+        add(asset.key, wealthAssetValue(p, asset.key));
+      }
 
       // Customs
       p.custom.forEach((key, val) {
@@ -2550,9 +2227,15 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       final loanController = Get.isRegistered<LoanController>()
           ? Get.find<LoanController>()
           : null;
-      sub('loans', loanController?.totalOutstanding ?? p.loans);
-      sub('creditCard', p.creditCard);
-      sub('bnpl', p.bnpl);
+      for (final asset in WealthAssetRegistry.assets) {
+        if (!asset.isLiability) continue;
+        sub(
+          asset.key,
+          asset.key == 'loans'
+              ? loanController?.totalOutstanding ?? p.loans
+              : wealthAssetValue(p, asset.key),
+        );
+      }
     }
 
     final symbol = CurrencyController.to.currencySymbol.value;
