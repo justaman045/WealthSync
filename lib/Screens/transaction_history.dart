@@ -162,38 +162,25 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        // Transparent background, centred title, title size and icon size all
+        // come from the AppBar theme; this screen re-declared every one of them.
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
           title: Text(
             widget.filterDate != null
                 ? DateFormat('d MMM yyyy').format(widget.filterDate!)
                 : widget.filterMonth != null
                 ? DateFormat('MMMM yyyy').format(widget.filterMonth!)
                 : l10n.transactionHistoryTitle,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 18.sp,
-            ),
           ),
-          centerTitle: true,
           leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new,
-              color: theme.iconTheme.color,
-              size: 20.sp,
-            ),
+            icon: const Icon(Icons.arrow_back_ios_new),
             onPressed: () => goBack(),
           ),
           actions: [
             FeatureVisible(
               flagKey: 'sms_import',
               child: IconButton(
-                icon: Icon(
-                  Icons.sms_rounded,
-                  color: theme.iconTheme.color,
-                  size: 24.sp,
-                ),
+                icon: const Icon(Icons.sms_rounded),
                 tooltip: l10n.importSmsTooltip,
                 onPressed: () async {
                   if (!ensureFeatureVisible(context, 'sms_import')) return;
@@ -255,38 +242,49 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: GlassContainer(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
-                  borderRadius: BorderRadius.circular(30.r),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpace.s4.w,
+                    vertical: AppSpace.s4.h,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.pill.r),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(tabs.length, (i) {
                       final isSelected = i == selectedTab;
-                      return GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          setState(() => selectedTab = i);
-                          _regroup();
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 24.w,
-                            vertical: 10.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(30.r),
-                          ),
-                          child: Text(
-                            tabs[i],
-                            style: TextStyle(
+                      return Semantics(
+                        button: true,
+                        selected: isSelected,
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            setState(() => selectedTab = i);
+                            _regroup();
+                          },
+                          child: AnimatedContainer(
+                            duration: AppMotion.base,
+                            curve: AppMotion.standard,
+                            constraints: BoxConstraints(minHeight: 44.h),
+                            alignment: Alignment.center,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpace.s24.w,
+                            ),
+                            decoration: BoxDecoration(
                               color: isSelected
-                                  ? Colors.white
-                                  : theme.textTheme.bodyMedium?.color,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14.sp,
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill.r,
+                              ),
+                            ),
+                            child: Text(
+                              tabs[i],
+                              style: AppType.titleSmall(
+                                isSelected
+                                    ? Colors.white
+                                    : isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
+                              ),
                             ),
                           ),
                         ),
