@@ -560,7 +560,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           title: Text(
             AppLocalizations.of(context)!.analyticsReports,
             style: TextStyle(
-              color: isDark ? Colors.white : AppColors.lightTextPrimary,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -568,18 +568,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           elevation: 0,
           centerTitle: true,
           iconTheme: IconThemeData(
-            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
           ),
           actions: [
             PopupMenuButton<String>(
               icon: Icon(
                 Icons.more_vert,
-                color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
               ),
               color: isDark
                   ? AppColors.darkBackground
                   : AppColors.lightBackground,
-              surfaceTintColor: isDark ? AppColors.darkSurface : Colors.white,
+              surfaceTintColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
               onSelected: (v) {
                 if (v == "csv") {
                   if (!ensureFeatureVisible(context, 'export_csv')) return;
@@ -596,7 +596,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 }
               },
               itemBuilder: (ctx) {
-                final c = isDark ? Colors.white : AppColors.lightTextPrimary;
+                final c = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
                 final showShare = !FeatureFlagService.to.isHidden(
                   'share_report',
                 );
@@ -724,24 +724,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       vertical: 20.h,
                     ),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.05)
-                          : AppColors.lightSurface,
+                      color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
                       borderRadius: BorderRadius.circular(24.r),
                       border: Border.all(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.1)
-                            : AppColors.lightBorder,
+                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isDark
-                              ? Colors.black.withValues(alpha: 0.1)
-                              : Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 15.r,
-                          offset: Offset(0, 8.h),
-                        ),
-                      ],
+                      boxShadow: AppElevation.raised(isDark: isDark),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,9 +739,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           children: [
                             Text(
                               AppLocalizations.of(context)!.dataFilters,
-                              style: AppType.titleMedium(isDark
-                                    ? Colors.white
-                                    : AppColors.lightTextPrimary),
+                              style: AppType.titleMedium(isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                             ),
                             Container(
                               padding: EdgeInsets.all(8.w),
@@ -858,9 +844,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       delay: 100,
                       child: Text(
                         AppLocalizations.of(context)!.financialSummary,
-                        style: AppType.titleMedium(isDark
-                              ? Colors.white
-                              : AppColors.lightTextPrimary),
+                        style: AppType.titleMedium(isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                       ),
                     ),
                     SizedBox(height: 16.h),
@@ -948,45 +932,49 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       child: Semantics(
                         button: true,
                         child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24.w,
-                          vertical: 12.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(30.r),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.5),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpace.s24.w,
+                            vertical: AppSpace.s12.h,
                           ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.insights,
-                                color: AppColors.primary,
-                                size: 18.sp,
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                AppLocalizations.of(context)!.viewAdvancedCategoryTrends,
-                                style: AppType.titleSmall(isDark
-                                      ? Colors.white
-                                      : AppColors.lightTextPrimary),
-                              ),
-                              SizedBox(width: 8.w),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 14.sp,
-                                color: isDark
-                                    ? Colors.white54
-                                    : AppColors.lightTextSecondary,
-                              ),
-                            ],
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(AppRadius.pill.r),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.5),
+                            ),
                           ),
-                        ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.insights,
+                                  color: AppColors.primary,
+                                  size: 18.sp,
+                                ),
+                                SizedBox(width: AppSpace.s8.w),
+                                Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.viewAdvancedCategoryTrends,
+                                  style: AppType.titleSmall(
+                                    isDark
+                                        ? AppColors.darkTextPrimary
+                                        : AppColors.lightTextPrimary,
+                                  ),
+                                ),
+                                SizedBox(width: AppSpace.s8.w),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 14.sp,
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextSecondary,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1130,22 +1118,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Text(
           label,
-          style: AppType.labelSmall(isDark
-                ? Colors.white.withValues(alpha: 0.6)
-                : AppColors.lightTextSecondary),
+          style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
         ),
         SizedBox(height: 6.h),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : AppColors.lightSurface,
+            color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
             borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : AppColors.lightBorder,
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             ),
           ),
           child: DropdownButtonHideUnderline(
@@ -1158,9 +1140,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icon(
                 Icons.keyboard_arrow_down,
                 size: 18.sp,
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.5)
-                    : AppColors.lightTextTertiary,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
               ),
               items: items
                   .map(
@@ -1169,9 +1149,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       child: Text(
                         format?.call(e) ?? e.toString(),
                         overflow: TextOverflow.ellipsis,
-                        style: AppType.bodySmall(isDark
-                              ? Colors.white
-                              : AppColors.lightTextPrimary),
+                        style: AppType.bodySmall(isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                       ),
                     ),
                   )
@@ -1209,23 +1187,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       height: 300.h,
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : AppColors.lightSurface,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : AppColors.lightBorder,
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
-            blurRadius: 15.r,
-            spreadRadius: -2,
-            offset: Offset(0, 8.h),
-          ),
-        ],
+        boxShadow: AppElevation.raised(isDark: isDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1235,24 +1202,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Text(
                 AppStrings.monthlyTrend,
-                style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
+                style: AppType.labelLarge(isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
               ),
               Row(
                 children: [
                   AnalyticsLegendDot(color: AppColors.primary),
                   Text(
                     " In ",
-                    style: AppType.labelSmall(isDark
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : AppColors.lightTextSecondary),
+                    style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                   ),
                   SizedBox(width: 8.w),
                   AnalyticsLegendDot(color: AppColors.error),
                   Text(
                     AppLocalizations.of(context)!.out,
-                    style: AppType.labelSmall(isDark
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : AppColors.lightTextSecondary),
+                    style: AppType.labelSmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                   ),
                 ],
               ),
@@ -1271,7 +1234,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   horizontalInterval: maxY / 4,
                   getDrawingHorizontalLine: (value) => FlLine(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.05)
+                        ? AppColors.darkDivider
                         : AppColors.lightBorder.withValues(alpha: 0.3),
                     strokeWidth: 1,
                     dashArray: [5, 5],
@@ -1292,9 +1255,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           padding: EdgeInsets.only(top: 8.0.h),
                           child: Text(
                             parts.first,
-                            style: AppType.labelSmall(isDark
-                                  ? Colors.white.withValues(alpha: 0.6)
-                                  : AppColors.lightTextTertiary),
+                            style: AppType.labelSmall(
+                              isDark
+                                  ? AppColors.darkTextTertiary
+                                  : AppColors.lightTextTertiary,
+                            ),
                           ),
                         );
                       },
@@ -1377,9 +1342,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             .withValues(alpha: 0.9),
                     tooltipPadding: const EdgeInsets.all(8),
                     tooltipBorder: BorderSide(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.2)
-                          : AppColors.lightBorder,
+                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                       width: 1,
                     ),
                     getTooltipItems: (touchedSpots) {
@@ -1387,9 +1350,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         return LineTooltipItem(
                           "${CurrencyController.to.currencySymbol.value}${spot.y.toStringAsFixed(0)}",
                           TextStyle(
-                            color: isDark
-                                ? Colors.white
-                                : AppColors.lightTextPrimary,
+                            color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                         );
@@ -1414,23 +1375,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       height: 280.h,
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : AppColors.lightSurface,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.1)
-              : AppColors.lightBorder,
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
-            blurRadius: 15.r,
-            spreadRadius: -2,
-            offset: Offset(0, 8.h),
-          ),
-        ],
+        boxShadow: AppElevation.raised(isDark: isDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1443,13 +1393,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 children: [
                   Text(
                     AppStrings.currentPeriod,
-                    style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
+                    style: AppType.labelLarge(isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                   ),
                   Text(
                     point.label,
-                    style: AppType.bodySmall(isDark
-                          ? Colors.white.withValues(alpha: 0.6)
-                          : AppColors.lightTextSecondary),
+                    style: AppType.bodySmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                   ),
                 ],
               ),
@@ -1486,9 +1434,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                 ? AppLocalizations.of(context)!.tabIncome
                                 : AppLocalizations.of(context)!
                                     .analyticsExpense,
-                            style: AppType.labelMedium(isDark
-                                  ? Colors.white
-                                  : AppColors.lightTextPrimary),
+                            style: AppType.labelMedium(isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
                           ),
                         );
                       },
@@ -1563,7 +1509,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       final color = colors[i % colors.length];
 
       final isTouched = i == _touchedIndex;
-      final fontSize = isTouched ? 14.sp : 10.sp;
       final radius = isTouched ? 60.r : 50.r;
 
       i++;
@@ -1572,12 +1517,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         title: isTouched ? "$pct%" : "$pct%",
         color: color,
         radius: radius,
-        titleStyle: TextStyle(
-          fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: const [Shadow(color: Colors.black45, blurRadius: 2)],
-        ),
+        // Sits on a saturated slice, so it takes the on-primary label style
+        // rather than a hand-written 10/14 sp white.
+        titleStyle: (isTouched
+                ? AppType.labelMedium(Theme.of(context).colorScheme.onPrimary)
+                : AppType.labelSmall(Theme.of(context).colorScheme.onPrimary))
+            .copyWith(
+              shadows: [
+                Shadow(
+                  color: AppColors.darkBackground.withValues(alpha: 0.45),
+                  blurRadius: 2,
+                ),
+              ],
+            ),
       );
     }).toList();
 
@@ -1588,7 +1540,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         children: [
           Text(
             AppStrings.expenseBreakdown,
-            style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+            style: AppType.titleMedium(isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
           ),
           SizedBox(height: 24.h),
           Row(
@@ -1648,9 +1600,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           Expanded(
                             child: Text(
                               _bucketLabel(entry.key),
-                              style: AppType.bodySmall(isDark
-                                    ? Colors.white70
-                                    : AppColors.lightTextSecondary),
+                              style: AppType.bodySmall(isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1703,9 +1653,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : AppColors.lightSurface,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isDark ? Colors.transparent : AppColors.lightBorder,
@@ -1744,10 +1692,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               SizedBox(width: 4.w),
               Text(
                 DateFormat('MMM yyyy').format(displayMonth),
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.bodyMedium?.color,
+                style: AppType.titleSmall(
+                  theme.textTheme.bodyMedium?.color ?? AppColors.darkTextPrimary,
                 ),
               ),
               SizedBox(width: 4.w),
@@ -1766,9 +1712,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     size: 22.sp,
                     color: _calendarMonthOffset < 0
                         ? theme.textTheme.bodySmall?.color
-                        : (isDark
-                              ? Colors.white24
-                              : AppColors.lightTextTertiary),
+                        : (isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary),
                   ),
                 ),
               ),
@@ -1807,11 +1751,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               final day = index - firstDayOffset + 1;
               final spend = daySpend[day] ?? 0;
               final intensity = maxSpend > 0 ? (spend / maxSpend) : 0.0;
+              // Spending is an accent, not a success: the heat ramp runs from
+              // the deep indigo container to the accent itself instead of a
+              // hand-picked Material green.
               final bgColor = spend == 0
                   ? AppColors.success.withValues(alpha: 0.08)
                   : Color.lerp(
-                      Colors.green.shade200,
-                      Colors.green.shade900,
+                      AppColors.primaryContainerDark,
+                      AppColors.primary,
                       intensity,
                     )!;
               final isToday = _calendarMonthOffset == 0 && day == now.day;
@@ -1852,7 +1799,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           style: TextStyle(
                             fontSize: 8.sp,
                             color: intensity > 0.6
-                                ? Colors.white
+                                ? Theme.of(context).colorScheme.onPrimary
                                 : theme.textTheme.bodySmall?.color,
                             fontWeight: FontWeight.w500,
                           ),
@@ -1896,26 +1843,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             runSpacing: 4.h,
             children: [
               AnalyticsHeatmapLegendItem(
-                color: Colors.green.shade200,
+                color: AppColors.primaryContainerDark,
                 label:
                     AppLocalizations.of(context)!.analyticsHeatmapLowSpend,
-                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
+                textColor: theme.textTheme.bodySmall?.color ?? AppColors.darkTextPrimary,
               ),
               AnalyticsHeatmapLegendItem(
-                color: Colors.green.shade900,
+                color: AppColors.primary,
                 label:
                     AppLocalizations.of(context)!.analyticsHeatmapHighSpend,
-                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
+                textColor: theme.textTheme.bodySmall?.color ?? AppColors.darkTextPrimary,
               ),
               AnalyticsHeatmapLegendItem(
                 color: AppColors.primary,
                 label: AppLocalizations.of(context)!.analyticsHeatmapSalary,
-                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
+                textColor: theme.textTheme.bodySmall?.color ?? AppColors.darkTextPrimary,
               ),
               AnalyticsHeatmapLegendItem(
                 color: AppColors.warning,
                 label: AppLocalizations.of(context)!.analyticsHeatmapBillDue,
-                textColor: theme.textTheme.bodySmall?.color ?? Colors.white,
+                textColor: theme.textTheme.bodySmall?.color ?? AppColors.darkTextPrimary,
               ),
             ],
           ),
@@ -1957,9 +1904,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : AppColors.lightSurface,
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
         borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: isDark ? Colors.transparent : AppColors.lightBorder,
@@ -2080,7 +2025,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             child: Icon(
               Icons.account_balance_wallet_outlined,
-              color: Colors.black,
+              color: AppColors.darkBackground,
               size: 20.sp,
             ),
           ),
