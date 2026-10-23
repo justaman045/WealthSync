@@ -1462,6 +1462,36 @@ abstract class AppLocalizations {
   /// **'Goal name is required'**
   String get goalNameRequired;
 
+  /// No description provided for @goalsAddTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to {name}'**
+  String goalsAddTo(Object name);
+
+  /// No description provided for @goalsAmountToAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount to add'**
+  String get goalsAmountToAdd;
+
+  /// No description provided for @goalsDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days left'**
+  String goalsDaysLeft(Object count);
+
+  /// No description provided for @goalsDaysOverdue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days overdue'**
+  String goalsDaysOverdue(Object count);
+
+  /// No description provided for @goalsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"? This cannot be undone.'**
+  String goalsDeleteConfirm(Object name);
+
   /// No description provided for @goalsYet.
   ///
   /// In en, this message translates to:

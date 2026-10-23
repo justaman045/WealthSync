@@ -142,130 +142,131 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
-  Widget _buildGoalCard(BuildContext context, GoalModel goal, GoalsController ctrl, ThemeData theme) {
+  Widget _buildGoalCard(
+    BuildContext context,
+    GoalModel goal,
+    GoalsController ctrl,
+    ThemeData theme,
+  ) {
     final sym = CurrencyController.to.currencySymbol.value;
     final isDark = theme.brightness == Brightness.dark;
     final pct = formatPercent(goal.progress * 100, capBelowHundred: true);
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: 14.h),
-      child: GestureDetector(
-        onTap: () => _showAddProgressSheet(context, goal, ctrl),
-        onLongPress: () {
-          HapticFeedback.mediumImpact();
-          _showDeleteDialog(context, goal, ctrl);
-        },
-        child: Container(
-          padding: EdgeInsets.all(18.w),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.white.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(
-              color: goal.isCompleted
-                  ? AppColors.success.withValues(alpha: 0.4)
-                  : isDark ? Colors.white.withValues(alpha: 0.1) : AppColors.lightBorder.withValues(alpha: 0.1),
+      padding: EdgeInsets.only(bottom: AppSpace.s12.h),
+      child: Semantics(
+        button: true,
+        child: GestureDetector(
+          onTap: () => _showAddProgressSheet(context, goal, ctrl),
+          onLongPress: () {
+            HapticFeedback.mediumImpact();
+            _showDeleteDialog(context, goal, ctrl);
+          },
+          child: Container(
+            padding: EdgeInsets.all(AppSpace.s20.w),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.darkSurfaceCard
+                  : AppColors.lightSurfaceCard,
+              borderRadius: BorderRadius.circular(AppRadius.lg.r),
+              border: Border.all(
+                color: goal.isCompleted
+                    ? AppColors.success.withValues(alpha: 0.4)
+                    : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              ),
+              boxShadow: AppElevation.raised(isDark: isDark),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12.w,
-                offset: Offset(0, 4.w),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(goal.emoji, style: TextStyle(fontSize: 28.sp)),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          goal.name,
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w700,
-                            color: theme.textTheme.bodyLarge?.color,
-                          ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(goal.emoji, style: AppType.headlineSmall(textColor)),
+                    SizedBox(width: AppSpace.s12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(goal.name, style: AppType.titleMedium(textColor)),
+                          if (goal.description != null &&
+                              goal.description!.isNotEmpty)
+                            Text(
+                              goal.description!,
+                              style: AppType.bodySmall(secondaryColor),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (goal.isCompleted)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpace.s8.w,
+                          vertical: AppSpace.s4.h,
                         ),
-                        if (goal.description != null && goal.description!.isNotEmpty)
-                          Text(
-                            goal.description!,
-                            style: TextStyle(fontSize: 12.sp, color: theme.textTheme.bodyMedium?.color),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(AppRadius.xs.r),
+                        ),
+                        child: Text(
+                          AppLocalizations.of(context)!.done,
+                          style: AppType.labelMedium(AppColors.success),
+                        ),
+                      )
+                    else
+                      Text("$pct%", style: AppType.titleSmall(AppColors.primary)),
+                    _buildGoalMenu(context, goal, ctrl, theme),
+                  ],
+                ),
+                SizedBox(height: AppSpace.s12.h),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.xs.r),
+                  child: LinearProgressIndicator(
+                    value: goal.progress,
+                    minHeight: 8.h,
+                    backgroundColor: isDark
+                        ? AppColors.darkSurface
+                        : AppColors.lightActionSurface,
+                    valueColor: AlwaysStoppedAnimation(
+                      goal.isCompleted ? AppColors.success : AppColors.primary,
                     ),
-                  ),
-                  if (goal.isCompleted)
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.done,
-                        style: AppType.labelMedium(AppColors.success),
-                      ),
-                    )
-                  else
-                    Text(
-                      "$pct%",
-                      style: AppType.titleSmall(AppColors.primary),
-                    ),
-                  _buildGoalMenu(context, goal, ctrl, theme),
-                ],
-              ),
-              SizedBox(height: 14.h),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8.r),
-                child: LinearProgressIndicator(
-                  value: goal.progress,
-                  minHeight: 8.h,
-                  backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                  valueColor: AlwaysStoppedAnimation(
-                    goal.isCompleted ? AppColors.success : AppColors.primary,
                   ),
                 ),
-              ),
-              SizedBox(height: 10.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "$sym${NumberFormat('#,##0.##').format(goal.currentAmount)} of $sym${NumberFormat('#,##0.##').format(goal.targetAmount)}",
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: theme.textTheme.bodyMedium?.color,
-                      fontWeight: FontWeight.w500,
+                SizedBox(height: AppSpace.s8.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "$sym${NumberFormat('#,##0.##').format(goal.currentAmount)} of $sym${NumberFormat('#,##0.##').format(goal.targetAmount)}",
+                      style: AppType.labelMedium(secondaryColor),
                     ),
-                  ),
-                  if (goal.daysLeft != null)
-                    Builder(builder: (context) {
-                      final days = goal.daysLeft!;
-                      return Text(
-                        days >= 0
-                            ? "$days days left"
-                            : "${-days} days overdue",
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: days < 0
-                              ? AppColors.error
-                              : theme.textTheme.bodySmall?.color,
-                        ),
-                      );
-                    }),
-                ],
-              ),
-            ],
+                    if (goal.daysLeft != null)
+                      Builder(
+                        builder: (context) {
+                          final days = goal.daysLeft!;
+                          final l10n = AppLocalizations.of(context)!;
+                          // These two labels were English literals built by
+                          // string interpolation, so no copy audit could see
+                          // them.
+                          return Text(
+                            days >= 0
+                                ? l10n.goalsDaysLeft(days)
+                                : l10n.goalsDaysOverdue(-days),
+                            style: AppType.labelSmall(
+                              days < 0 ? AppColors.error : secondaryColor,
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -290,17 +291,14 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final pct = formatPercent(summary.progress * 100, capBelowHundred: true);
     final fmt = NumberFormat('#,##0.##');
 
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     return Container(
-      padding: EdgeInsets.all(18.w),
+      padding: EdgeInsets.all(AppSpace.s20.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [AppColors.primary.withValues(alpha: 0.28), AppColors.primary.withValues(alpha: 0.08)]
-              : [AppColors.primary.withValues(alpha: 0.16), AppColors.primary.withValues(alpha: 0.05)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20.r),
+        color: AppColors.primary.withValues(alpha: isDark ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg.r),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -311,40 +309,35 @@ class _GoalsScreenState extends State<GoalsScreen> {
             children: [
               Text(
                 AppStrings.totalProgress,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.bodyMedium?.color,
-                ),
+                style: AppType.titleSmall(secondaryColor),
               ),
               const Spacer(),
-              Text(
-                "$pct%",
-                style: AppType.headlineSmall(AppColors.primary),
-              ),
+              Text("$pct%", style: AppType.headlineSmall(AppColors.primary)),
             ],
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: AppSpace.s12.h),
           ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
+            borderRadius: BorderRadius.circular(AppRadius.xs.r),
             child: LinearProgressIndicator(
               value: summary.progress,
               minHeight: 8.h,
-              backgroundColor: Colors.grey.withValues(alpha: 0.2),
+              backgroundColor: isDark
+                  ? AppColors.darkSurface
+                  : AppColors.lightActionSurface,
               valueColor: AlwaysStoppedAnimation(AppColors.primary),
             ),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: AppSpace.s12.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 "${AppStrings.saved}  $sym${fmt.format(summary.totalSaved)}",
-                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color),
+                style: AppType.labelMedium(secondaryColor),
               ),
               Text(
                 "${AppStrings.target}  $sym${fmt.format(summary.totalTarget)}",
-                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600, color: theme.textTheme.bodyMedium?.color),
+                style: AppType.labelMedium(secondaryColor),
               ),
             ],
           ),
@@ -389,12 +382,23 @@ class _GoalsScreenState extends State<GoalsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text(AppLocalizations.of(context)!.deleteGoal, style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary)),
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : AppColors.lightSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg.r),
+        ),
+        title: Text(
+          AppLocalizations.of(context)!.deleteGoal,
+          style: AppType.titleMedium(
+            isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+          ),
+        ),
         content: Text(
-          "Delete \"${goal.name}\"? This cannot be undone.",
-          style: TextStyle(color: isDark ? Colors.white70 : AppColors.lightTextSecondary),
+          AppLocalizations.of(context)!.goalsDeleteConfirm(goal.name),
+          style: AppType.bodyMedium(
+            isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+          ),
         ),
         actions: [
           TextButton(
@@ -406,7 +410,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
               Navigator.pop(context);
               ctrl.deleteGoal(goal.id);
             },
-            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
+            child: Text(
+              AppStrings.delete,
+              style: AppType.labelLarge(AppColors.error),
+            ),
           ),
         ],
       ),
@@ -473,42 +480,68 @@ class _AddProgressSheetState extends State<_AddProgressSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Add to ${widget.goal.emoji} ${widget.goal.name}",
-                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+                AppLocalizations.of(context)!.goalsAddTo(
+                  "${widget.goal.emoji} ${widget.goal.name}",
+                ),
+                style: AppType.titleMedium(
+                  isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
+                ),
               ),
-              SizedBox(height: 16.h),
+              SizedBox(height: AppSpace.s16.h),
               TextField(
                 controller: _amtCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 autofocus: true,
-                style: TextStyle(color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                style: AppType.titleMedium(
+                  isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
+                ),
                 decoration: InputDecoration(
                   prefixText: "$sym ",
-                  prefixStyle: AppType.bodyLarge(isDark ? Colors.white70 : AppColors.lightTextSecondary),
-                  hintText: "Amount to add",
-                  hintStyle: TextStyle(color: isDark ? Colors.white38 : AppColors.lightTextTertiary),
+                  prefixStyle: AppType.bodyLarge(
+                    isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
+                  hintText: AppLocalizations.of(context)!.goalsAmountToAdd,
+                  hintStyle: AppType.bodyLarge(
+                    isDark
+                        ? AppColors.darkTextTertiary
+                        : AppColors.lightTextTertiary,
+                  ),
                   filled: true,
-                  fillColor: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.black.withValues(alpha: 0.049),
+                  fillColor: isDark
+                      ? AppColors.darkSurface
+                      : AppColors.lightSurface,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14.r),
+                    borderRadius: BorderRadius.circular(AppRadius.sm.r),
                     borderSide: BorderSide.none,
                   ),
                 ),
               ),
-              SizedBox(height: 20.h),
+              SizedBox(height: AppSpace.s20.h),
               SizedBox(
                 width: double.infinity,
                 height: 50.h,
-                child: Obx(() => ElevatedButton(
-                  onPressed: widget.ctrl.isSaving.value ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+                // The fill was primary with a near-black label in light mode
+                // (3.1:1). FilledButton takes both from the theme.
+                child: Obx(
+                  () => FilledButton(
+                    onPressed: widget.ctrl.isSaving.value ? null : _submit,
+                    child: widget.ctrl.isSaving.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(AppLocalizations.of(context)!.addProgress),
                   ),
-                  child: widget.ctrl.isSaving.value
-                      ? SizedBox(width: 20.w, height: 20.h, child: CircularProgressIndicator(color: isDark ? Colors.white : AppColors.lightTextPrimary, strokeWidth: 2))
-                      : Text(AppLocalizations.of(context)!.addProgress, style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary)),
-                )),
+                ),
               ),
             ],
           ),

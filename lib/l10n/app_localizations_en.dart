@@ -761,6 +761,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goalNameRequired => 'Goal name is required';
 
   @override
+  String goalsAddTo(Object name) {
+    return 'Add to $name';
+  }
+
+  @override
+  String get goalsAmountToAdd => 'Amount to add';
+
+  @override
+  String goalsDaysLeft(Object count) {
+    return '$count days left';
+  }
+
+  @override
+  String goalsDaysOverdue(Object count) {
+    return '$count days overdue';
+  }
+
+  @override
+  String goalsDeleteConfirm(Object name) {
+    return 'Delete \"$name\"? This cannot be undone.';
+  }
+
+  @override
   String get goalsYet => 'No goals yet';
 
   @override
