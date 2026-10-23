@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_io/io.dart';
 import 'package:money_control/Utils/op_queue.dart';
@@ -79,6 +80,17 @@ class OfflineQueueService {
 
   static Future<void> savePending(Map<String, dynamic> tx) {
     return _enqueue(() async {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        final email = user?.email;
+        final uid = user?.uid;
+        if (email != null) {
+          tx['ownerEmail'] = email;
+        }
+        if (uid != null) {
+          tx['ownerUid'] = uid;
+        }
+      } catch (_) {}
       final raw = await _readData();
       final list = _safeDecodeList(raw);
       list.add(_sanitize(tx));

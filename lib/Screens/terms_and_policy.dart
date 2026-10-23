@@ -114,13 +114,41 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       /// resurrect — an explicit data-erasure request must remove it as well.
       await LocalBackupService.clearUserBackup(email);
 
-      /// DO NOT DELETE MAIN USER DOC
-      /// Just clear fields except email.
-      await userDoc.update({
-        "createdAt": FieldValue.serverTimestamp(),
-        "consent_data": false,
-        "consent_marketing": false,
-      });
+      /// Erase PII from user document; keep only minimal tombstone fields.
+      try {
+        await userDoc.update({
+          'name': FieldValue.delete(),
+          'displayName': FieldValue.delete(),
+          'phone': FieldValue.delete(),
+          'phoneNumber': FieldValue.delete(),
+          'photoUrl': FieldValue.delete(),
+          'photoURL': FieldValue.delete(),
+          'address': FieldValue.delete(),
+          'dob': FieldValue.delete(),
+          'dateOfBirth': FieldValue.delete(),
+          'provider': FieldValue.delete(),
+          'providerData': FieldValue.delete(),
+          'uid': FieldValue.delete(),
+          'isPro': FieldValue.delete(),
+          'subscriptionStatus': FieldValue.delete(),
+          'planType': FieldValue.delete(),
+          'expiryDate': FieldValue.delete(),
+          'trialEndDate': FieldValue.delete(),
+          'trialUsed': FieldValue.delete(),
+          'referredBy': FieldValue.delete(),
+          'referralCount': FieldValue.delete(),
+          'consent_data': false,
+          'consent_marketing': false,
+          'dataDeletedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (_) {
+        await userDoc.set({
+          'email': email,
+          'consent_data': false,
+          'consent_marketing': false,
+          'dataDeletedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: false));
+      }
 
       if (mounted) {
         setState(() {

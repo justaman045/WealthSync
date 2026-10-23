@@ -157,7 +157,13 @@ class DataSupportSettingsScreen extends StatelessWidget {
 
     // The canonical account-deletion list, shared with UserService so "export
     // all" and "delete all" can never drift apart.
-    const collections = UserService.subcollections;
+    final collections = <String>{
+      ...UserService.subcollections,
+      'backups',
+      'insights',
+      'preferences',
+      'logs',
+    }.toList();
 
     final nav = Navigator.of(context, rootNavigator: true);
     showDialog<void>(

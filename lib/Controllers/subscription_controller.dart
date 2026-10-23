@@ -79,6 +79,11 @@ class SubscriptionController extends GetxController {
 
   Future<void> _fetchSubscriptionOnce(String email) async {
     try {
+      final currentEmail = _auth.currentUser?.email;
+      if (currentEmail == null || currentEmail != email) {
+        resetForSignOut();
+        return;
+      }
       final snapshot = await _firestore.collection('users').doc(email).get();
       _onSubscriptionSnapshot(snapshot, email);
     } catch (e) {
@@ -140,6 +145,11 @@ class SubscriptionController extends GetxController {
 
   void _onSubscriptionSnapshot(DocumentSnapshot snapshot, String email) {
     try {
+      final currentEmail = _auth.currentUser?.email;
+      if (currentEmail == null || currentEmail != email) {
+        debugPrint('SubscriptionController: ignoring snapshot for different account ($email vs $currentEmail)');
+        return;
+      }
       if (snapshot.exists) {
         final data = snapshot.data() as Map<String, dynamic>?;
         if (data != null) {
@@ -211,6 +221,9 @@ class SubscriptionController extends GetxController {
         subscriptionStatus.value = SubscriptionStatus.free;
         isAdmin.value = false;
         expiryDate.value = null;
+        trialEndDate.value = null;
+        trialUsed.value = false;
+        planType.value = '';
       }
     } catch (e) {
       debugPrint('SubscriptionController listener error: $e');

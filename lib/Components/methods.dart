@@ -59,13 +59,23 @@ Future<void> syncPendingTransactions() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null || user.email == null) return;
 
+  final currentEmail = user.email!;
+  final currentUid = user.uid;
+
   final txCollection = FirebaseFirestore.instance
       .collection("users")
-      .doc(user.email)
+      .doc(currentEmail)
       .collection("transactions");
 
   for (var tx in pending) {
     try {
+      final ownerEmail = tx['ownerEmail'] as String?;
+      final ownerUid = tx['ownerUid'] as String?;
+      if ((ownerEmail != null && ownerEmail != currentEmail) ||
+          (ownerUid != null && ownerUid != currentUid)) {
+        await OfflineQueueService.removeFirst();
+        continue;
+      }
       final operation = tx['_operation'] as String? ?? 'add';
       final id = tx['id'] as String?;
 

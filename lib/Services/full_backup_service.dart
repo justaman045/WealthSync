@@ -285,22 +285,18 @@ class FullBackupService {
   static Future<BackupRestoreResult> restore(BackupArchive archive) async {
     // The restore writes into the account that is signed in NOW, not the one
     // the archive was taken from.
-    //
-    // That is what makes the feature able to rebuild a deleted account: the
-    // user signs up again (possibly with the same address, possibly not) and
-    // restores their old file into the new account. Writing to the archived
-    // address instead would be denied by `firestore.rules` — an owner can
-    // only write their own document — so the restore would silently write
-    // nothing at all.
-    final signedIn = _currentUserEmail();
-    final email = signedIn.isNotEmpty ? signedIn : archive.email;
+    final signedInEmail = _currentUserEmail();
+    final signedInUid = _currentUserUid();
+    final email = signedInEmail.isNotEmpty ? signedInEmail : archive.email;
+    final uid = signedInUid;
     if (email.isEmpty) {
       throw Exception('No signed-in account to restore into.');
     }
-    if (archive.email.isNotEmpty && archive.email != email) {
+    final archivedEmail = archive.email;
+    if (archivedEmail.isNotEmpty && archivedEmail != email) {
       debugPrint(
-        '[FullBackupService] restoring a backup taken by ${archive.email} '
-        'into $email',
+        '[FullBackupService] restoring a backup taken by $archivedEmail '
+        'into $email - remapping identity fields',
       );
     }
 
@@ -318,9 +314,12 @@ class FullBackupService {
     // merge.
     if (archive.profile != null && archive.profile!.isNotEmpty) {
       try {
-        final data = BackupArchive.stripServerAuthoritativeFields(
+        var data = BackupArchive.stripServerAuthoritativeFields(
           _revive(archive.profile!),
         );
+        data = _remapIdentity(data, email, uid, archivedEmail, '');
+        if (uid.isNotEmpty) data['uid'] = uid;
+        if (email.isNotEmpty) data['email'] = email;
         await _writeDoc('users/$email', data);
         written['profile'] = 1;
       } catch (e, s) {
@@ -332,7 +331,8 @@ class FullBackupService {
 
     if (archive.wealthPortfolio != null && archive.wealthPortfolio!.isNotEmpty) {
       try {
-        final data = _revive(archive.wealthPortfolio!);
+        var data = _revive(archive.wealthPortfolio!);
+        data = _remapIdentity(data, email, uid, archivedEmail, '');
         await _writeDoc('users/$email/wealth/portfolio', data);
         written['wealth_portfolio'] = 1;
       } catch (e, s) {
@@ -369,7 +369,9 @@ class FullBackupService {
               ? FirebaseFirestore.instance.collection('_').doc().id
               : id;
           try {
-            pending.add({'_docId': docId, '_data': _revive(data)});
+            var revived = _revive(data);
+            revived = _remapIdentity(revived, email, uid, archivedEmail, '');
+            pending.add({'_docId': docId, '_data': revived});
           } catch (e, s) {
             // One unreadable document must not cost the whole collection.
             rejected.add(docId);
@@ -486,6 +488,45 @@ class FullBackupService {
       // archive's own address.
       return '';
     }
+  }
+
+  static String _currentUserUid() {
+    try {
+      return FirebaseAuth.instance.currentUser?.uid ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static Map<String, dynamic> _remapIdentity(Map<String, dynamic> data, String currentEmail, String currentUid, String archivedEmail, String archivedUid) {
+    final out = Map<String, dynamic>.from(data);
+    if (out.containsKey('uid')) {
+      if (archivedUid.isNotEmpty && out['uid'] == archivedUid) {
+        out['uid'] = currentUid;
+      } else if (currentUid.isNotEmpty) {
+        out['uid'] = currentUid;
+      }
+    }
+    if (out.containsKey('email')) {
+      if (archivedEmail.isNotEmpty && out['email'] == archivedEmail) {
+        out['email'] = currentEmail;
+      } else if (currentEmail.isNotEmpty) {
+        out['email'] = currentEmail;
+      }
+    }
+    if (out.containsKey('senderId')) {
+      if (archivedUid.isNotEmpty && out['senderId'] == archivedUid) {
+        out['senderId'] = currentUid.isNotEmpty ? currentUid : currentEmail;
+      } else if (currentUid.isNotEmpty) {
+        // Only remap if it looks like owner id
+      }
+    }
+    if (out.containsKey('recipientId')) {
+      if (archivedUid.isNotEmpty && out['recipientId'] == archivedUid) {
+        out['recipientId'] = currentUid.isNotEmpty ? currentUid : currentEmail;
+      }
+    }
+    return out;
   }
 
   /// Cache keys keyed by user email, matching the controllers' `_cacheKey`

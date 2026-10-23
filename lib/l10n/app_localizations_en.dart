@@ -2064,6 +2064,206 @@ class AppLocalizationsEn extends AppLocalizations {
   String get visibleAssets => 'No visible assets';
 
   @override
+  String get wealthAddCustomAsset => 'Add Custom Asset';
+
+  @override
+  String get wealthAutoCalculated => 'Auto-calculated';
+
+  @override
+  String get wealthCalculatedBasis => 'Calculated based on expenses & age';
+
+  @override
+  String wealthCoverage(Object amount) {
+    return 'Coverage: $amount';
+  }
+
+  @override
+  String get wealthCurrentBankBalance => 'Current Bank Balance';
+
+  @override
+  String get wealthCurrentMonthlyExpense => 'Current monthly expense';
+
+  @override
+  String get wealthCurrentValue => 'Current Value';
+
+  @override
+  String get wealthCustomAsset => 'Custom Asset';
+
+  @override
+  String get wealthCustomAssets => 'Custom Assets';
+
+  @override
+  String wealthCustomModeAge(Object age) {
+    return 'Custom Mode · Age $age';
+  }
+
+  @override
+  String get wealthEnterExpense => 'Enter expense';
+
+  @override
+  String get wealthGroupAlternativeAssets => 'Alternative Assets';
+
+  @override
+  String get wealthGroupEquityAndGrowth => 'Equity & Growth';
+
+  @override
+  String get wealthGroupLiabilities => 'Liabilities';
+
+  @override
+  String get wealthGroupLiquidAndFixedIncome => 'Liquid & Fixed Income';
+
+  @override
+  String get wealthGroupPhysicalAssets => 'Physical Assets';
+
+  @override
+  String get wealthGroupProtectionAndBusiness => 'Protection & Business';
+
+  @override
+  String get wealthGroupRetirement => 'Retirement';
+
+  @override
+  String get wealthIdealAnnualIncome => 'Ideal Annual Income';
+
+  @override
+  String get wealthIdealMonthlyIncome => 'Ideal Monthly Income';
+
+  @override
+  String wealthIncludesSavings(String amount) {
+    return 'incl. savings of $amount /mo';
+  }
+
+  @override
+  String get wealthLeaveEmptyAutoAverage =>
+      'Leave empty to use auto-calculated average';
+
+  @override
+  String wealthManualTarget(Object amount) {
+    return 'Manual target: $amount';
+  }
+
+  @override
+  String wealthLoanCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count loans',
+      one: '1 loan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get wealthMonthlyExpense => 'Monthly Expense';
+
+  @override
+  String get wealthMonthlyExpenseBasis => 'Monthly Expense Basis';
+
+  @override
+  String wealthPhaseHeading(Object name, Object phase) {
+    return 'Phase $phase · $name';
+  }
+
+  @override
+  String get wealthPhaseAdvanced => 'Advanced';
+
+  @override
+  String get wealthPhaseBuildWealth => 'Build wealth';
+
+  @override
+  String get wealthPhaseStartHere => 'Start here';
+
+  @override
+  String get wealthPhaseStartHereSubtitle =>
+      'Emergency fund, protection and paying off debt come first.';
+
+  @override
+  String get wealthPhaseBuildWealthSubtitle =>
+      'Long-term growth and retirement accumulation for the long run.';
+
+  @override
+  String get wealthPhaseAdvancedSubtitle =>
+      'Diversifiers for when your foundation is solid.';
+
+  @override
+  String get wealthRecommendedForYou => 'Recommended for You';
+
+  @override
+  String get wealthSetOwnGoal => 'Set your own goal — leave empty for formula';
+
+  @override
+  String wealthSmartModeAge(Object age) {
+    return 'Smart Mode · Age $age';
+  }
+
+  @override
+  String wealthSuggested(Object amount) {
+    return 'Suggested: $amount';
+  }
+
+  @override
+  String wealthSuggestedCoverage(Object amount) {
+    return 'Suggested coverage: $amount';
+  }
+
+  @override
+  String wealthTarget(Object amount) {
+    return 'Target: $amount';
+  }
+
+  @override
+  String get wealthTargetGoalFormula => 'Target Goal (Formula)';
+
+  @override
+  String get wealthTargetGoalManual => 'Target Goal (Manual)';
+
+  @override
+  String get wealthTapToManage => 'Tap to manage';
+
+  @override
+  String get wealthTapToUpdate => 'Tap to update';
+
+  @override
+  String get wealthTypicalIncomeArea => 'Typical income in your area';
+
+  @override
+  String get wealthUpdateExpense => 'Update Expense';
+
+  @override
+  String get wealthUpdateMonthlyExpense => 'Update Monthly Expense';
+
+  @override
+  String wealthUpdateTitle(Object title) {
+    return 'Update $title';
+  }
+
+  @override
+  String get wealthValue => 'Value';
+
+  @override
+  String get wealthYouEarnToday => 'You earn today';
+
+  @override
+  String get wealthYourAssets => 'Your Assets';
+
+  @override
+  String get saveChanges => 'Save Changes';
+
+  @override
+  String get recommended => 'Recommended';
+
+  @override
+  String get notRecommended => 'Not recommended';
+
+  @override
+  String get name => 'Name';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get dismiss => 'Dismiss';
+
+  @override
   String get wealthBuilder => 'Wealth Builder';
 
   @override

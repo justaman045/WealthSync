@@ -109,6 +109,8 @@ class UserService {
         throw Exception(_reauthRequiredMessage);
       }
       throw Exception("Failed to delete auth account: $e");
+    } catch (e) {
+      throw Exception("Failed to delete auth account: $e");
     }
   }
 

@@ -38,19 +38,17 @@ android {
 
     signingConfigs {
         create("release") {
-            // Fall back to debug keystore when env vars aren't set
             val keystorePass = System.getenv("KEYSTORE_PASSWORD")
-            if (!keystorePass.isNullOrBlank()) {
-                storeFile = file("../upload-keystore.jks")
-                storePassword = keystorePass
-                keyAlias = System.getenv("KEY_ALIAS") ?: ""
-                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
-            } else {
-                storeFile = file("../debug-keystore.jks")
-                storePassword = "android"
-                keyAlias = "debug"
-                keyPassword = "android"
+            if (keystorePass.isNullOrBlank()) {
+                throw GradleException(
+                    "Release signing requires KEYSTORE_PASSWORD (and KEY_ALIAS/KEY_PASSWORD). " +
+                    "Debug keystore fallback is disabled for release builds."
+                )
             }
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../upload-keystore.jks")
+            storePassword = keystorePass
+            keyAlias = System.getenv("KEY_ALIAS") ?: throw GradleException("KEY_ALIAS must be set for release signing")
+            keyPassword = System.getenv("KEY_PASSWORD") ?: throw GradleException("KEY_PASSWORD must be set for release signing")
             // Sign with every scheme: v1 (JAR) keeps the APK installable by
             // older/OEM package installers and file managers that don't verify
             // v2/v3, and v3 enables future key rotation. minSdk 24 makes AGP

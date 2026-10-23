@@ -3683,6 +3683,342 @@ abstract class AppLocalizations {
   /// **'No visible assets'**
   String get visibleAssets;
 
+  /// No description provided for @wealthAddCustomAsset.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Custom Asset'**
+  String get wealthAddCustomAsset;
+
+  /// No description provided for @wealthAutoCalculated.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-calculated'**
+  String get wealthAutoCalculated;
+
+  /// No description provided for @wealthCalculatedBasis.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculated based on expenses & age'**
+  String get wealthCalculatedBasis;
+
+  /// No description provided for @wealthCoverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Coverage: {amount}'**
+  String wealthCoverage(Object amount);
+
+  /// No description provided for @wealthCurrentBankBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Bank Balance'**
+  String get wealthCurrentBankBalance;
+
+  /// No description provided for @wealthCurrentMonthlyExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Current monthly expense'**
+  String get wealthCurrentMonthlyExpense;
+
+  /// No description provided for @wealthCurrentValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Value'**
+  String get wealthCurrentValue;
+
+  /// No description provided for @wealthCustomAsset.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Asset'**
+  String get wealthCustomAsset;
+
+  /// No description provided for @wealthCustomAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Assets'**
+  String get wealthCustomAssets;
+
+  /// No description provided for @wealthCustomModeAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Mode · Age {age}'**
+  String wealthCustomModeAge(Object age);
+
+  /// No description provided for @wealthEnterExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter expense'**
+  String get wealthEnterExpense;
+
+  /// No description provided for @wealthGroupAlternativeAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternative Assets'**
+  String get wealthGroupAlternativeAssets;
+
+  /// No description provided for @wealthGroupEquityAndGrowth.
+  ///
+  /// In en, this message translates to:
+  /// **'Equity & Growth'**
+  String get wealthGroupEquityAndGrowth;
+
+  /// No description provided for @wealthGroupLiabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Liabilities'**
+  String get wealthGroupLiabilities;
+
+  /// No description provided for @wealthGroupLiquidAndFixedIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid & Fixed Income'**
+  String get wealthGroupLiquidAndFixedIncome;
+
+  /// No description provided for @wealthGroupPhysicalAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Physical Assets'**
+  String get wealthGroupPhysicalAssets;
+
+  /// No description provided for @wealthGroupProtectionAndBusiness.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection & Business'**
+  String get wealthGroupProtectionAndBusiness;
+
+  /// No description provided for @wealthGroupRetirement.
+  ///
+  /// In en, this message translates to:
+  /// **'Retirement'**
+  String get wealthGroupRetirement;
+
+  /// No description provided for @wealthIdealAnnualIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Ideal Annual Income'**
+  String get wealthIdealAnnualIncome;
+
+  /// No description provided for @wealthIdealMonthlyIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Ideal Monthly Income'**
+  String get wealthIdealMonthlyIncome;
+
+  /// No description provided for @wealthIncludesSavings.
+  ///
+  /// In en, this message translates to:
+  /// **'incl. savings of {amount} /mo'**
+  String wealthIncludesSavings(String amount);
+
+  /// No description provided for @wealthLeaveEmptyAutoAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to use auto-calculated average'**
+  String get wealthLeaveEmptyAutoAverage;
+
+  /// No description provided for @wealthManualTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual target: {amount}'**
+  String wealthManualTarget(Object amount);
+
+  /// No description provided for @wealthLoanCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 loan} other{{count} loans}}'**
+  String wealthLoanCount(num count);
+
+  /// No description provided for @wealthMonthlyExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Expense'**
+  String get wealthMonthlyExpense;
+
+  /// No description provided for @wealthMonthlyExpenseBasis.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Expense Basis'**
+  String get wealthMonthlyExpenseBasis;
+
+  /// No description provided for @wealthPhaseHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Phase {phase} · {name}'**
+  String wealthPhaseHeading(Object name, Object phase);
+
+  /// No description provided for @wealthPhaseAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get wealthPhaseAdvanced;
+
+  /// No description provided for @wealthPhaseBuildWealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Build wealth'**
+  String get wealthPhaseBuildWealth;
+
+  /// No description provided for @wealthPhaseStartHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Start here'**
+  String get wealthPhaseStartHere;
+
+  /// No description provided for @wealthPhaseStartHereSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency fund, protection and paying off debt come first.'**
+  String get wealthPhaseStartHereSubtitle;
+
+  /// No description provided for @wealthPhaseBuildWealthSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-term growth and retirement accumulation for the long run.'**
+  String get wealthPhaseBuildWealthSubtitle;
+
+  /// No description provided for @wealthPhaseAdvancedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Diversifiers for when your foundation is solid.'**
+  String get wealthPhaseAdvancedSubtitle;
+
+  /// No description provided for @wealthRecommendedForYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended for You'**
+  String get wealthRecommendedForYou;
+
+  /// No description provided for @wealthSetOwnGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Set your own goal — leave empty for formula'**
+  String get wealthSetOwnGoal;
+
+  /// No description provided for @wealthSmartModeAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Mode · Age {age}'**
+  String wealthSmartModeAge(Object age);
+
+  /// No description provided for @wealthSuggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested: {amount}'**
+  String wealthSuggested(Object amount);
+
+  /// No description provided for @wealthSuggestedCoverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested coverage: {amount}'**
+  String wealthSuggestedCoverage(Object amount);
+
+  /// No description provided for @wealthTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target: {amount}'**
+  String wealthTarget(Object amount);
+
+  /// No description provided for @wealthTargetGoalFormula.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Goal (Formula)'**
+  String get wealthTargetGoalFormula;
+
+  /// No description provided for @wealthTargetGoalManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Goal (Manual)'**
+  String get wealthTargetGoalManual;
+
+  /// No description provided for @wealthTapToManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to manage'**
+  String get wealthTapToManage;
+
+  /// No description provided for @wealthTapToUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to update'**
+  String get wealthTapToUpdate;
+
+  /// No description provided for @wealthTypicalIncomeArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Typical income in your area'**
+  String get wealthTypicalIncomeArea;
+
+  /// No description provided for @wealthUpdateExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Expense'**
+  String get wealthUpdateExpense;
+
+  /// No description provided for @wealthUpdateMonthlyExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Monthly Expense'**
+  String get wealthUpdateMonthlyExpense;
+
+  /// No description provided for @wealthUpdateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update {title}'**
+  String wealthUpdateTitle(Object title);
+
+  /// No description provided for @wealthValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get wealthValue;
+
+  /// No description provided for @wealthYouEarnToday.
+  ///
+  /// In en, this message translates to:
+  /// **'You earn today'**
+  String get wealthYouEarnToday;
+
+  /// No description provided for @wealthYourAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Assets'**
+  String get wealthYourAssets;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Changes'**
+  String get saveChanges;
+
+  /// No description provided for @recommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get recommended;
+
+  /// No description provided for @notRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recommended'**
+  String get notRecommended;
+
+  /// No description provided for @name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get name;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @dismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
+
   /// No description provided for @wealthBuilder.
   ///
   /// In en, this message translates to:

@@ -7,7 +7,6 @@ import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
-import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
@@ -33,6 +32,7 @@ import 'package:money_control/Screens/real_estate_detail_screen.dart';
 import 'package:money_control/Screens/asset_detail_screen.dart';
 import 'package:money_control/Config/wealth_asset_registry.dart';
 import 'package:money_control/Services/geo_service.dart';
+import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Screens/edit_profile.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/main.dart' show rootScaffoldMessengerKey;
@@ -514,7 +514,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             SizedBox(height: 32.h),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: FilledButton.icon(
                 onPressed: () async {
                   // Gated like the other profile entry points: a `hidden`
                   // profile flag must not be routable from the wealth screen.
@@ -525,13 +525,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                 },
                 icon: const Icon(Icons.edit_outlined),
                 label: Text(AppLocalizations.of(context)!.goProfile),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                style: FilledButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 14.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14.r),
-                  ),
                 ),
               ),
             ),
@@ -543,6 +538,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
   Widget _buildAgeStrategyBanner() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(bottom: 8.h),
@@ -577,8 +573,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           Expanded(
             child: Text(
               _ageBasedEnabled
-                  ? "Smart Mode · Age $userAge"
-                  : "Custom Mode · Age $userAge",
+                  ? l10n.wealthSmartModeAge('$userAge')
+                  : l10n.wealthCustomModeAge('$userAge'),
               style: AppType.labelMedium(_ageBasedEnabled
                     ? AppColors.primary
                     : isDark
@@ -663,11 +659,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Widget _buildAssetsHeader(ColorScheme scheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          _ageBasedEnabled ? "Recommended for You" : "Your Assets",
+          _ageBasedEnabled ? l10n.wealthRecommendedForYou : l10n.wealthYourAssets,
           style: AppType.titleMedium(scheme.onSurface),
         ),
         Row(
@@ -812,7 +809,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             e.value,
             e.key,
             Icons.category,
-            Colors.grey.shade500,
+            Theme.of(context).colorScheme.onSurfaceVariant,
             scheme,
             onTapOverride: () => _showCustomAssetDialog(e.key, e.value),
           ),
@@ -821,7 +818,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     if (_ageBasedEnabled) {
       // Smart Mode: custom keys are never age-recommended, so they stay hidden.
       if (customCards.isNotEmpty) {
-        sections.add(header(_sectionHeader("Custom Assets", scheme)));
+        sections.add(
+          header(
+            _sectionHeader(
+              AppLocalizations.of(context)!.wealthCustomAssets,
+              scheme,
+            ),
+          ),
+        );
         sections.add(
           SliverGrid(
             gridDelegate: gridDelegate(),
@@ -833,7 +837,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       sections.add(
         header(
           _sectionHeader(
-            "Custom Assets",
+            AppLocalizations.of(context)!.wealthCustomAssets,
             scheme,
             trailing: FeatureVisible(
               flagKey: 'custom_mode',
@@ -865,6 +869,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Widget _phaseHeader(int phase, ColorScheme scheme) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h, top: 4.h),
       child: Row(
@@ -881,12 +886,23 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Phase $phase · ${WealthAgeRecommendations.phaseName(phase)}",
+                  l10n.wealthPhaseHeading(
+                    '$phase',
+                    phase == 1
+                        ? l10n.wealthPhaseStartHere
+                        : phase == 2
+                        ? l10n.wealthPhaseBuildWealth
+                        : l10n.wealthPhaseAdvanced,
+                  ),
                   style: AppType.labelMedium(scheme.onSurface),
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  WealthAgeRecommendations.phaseSubtitle(phase),
+                  phase == 1
+                      ? l10n.wealthPhaseStartHereSubtitle
+                      : phase == 2
+                      ? l10n.wealthPhaseBuildWealthSubtitle
+                      : l10n.wealthPhaseAdvancedSubtitle,
                   style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.6)),
                 ),
               ],
@@ -935,15 +951,19 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   /// The heading a Custom Mode section is drawn under.
-  String _groupLabel(WealthAssetGroup group) => switch (group) {
-    WealthAssetGroup.liquidAndFixedIncome => "Liquid & Fixed Income",
-    WealthAssetGroup.equityAndGrowth => "Equity & Growth",
-    WealthAssetGroup.retirement => "Retirement",
-    WealthAssetGroup.alternativeAssets => "Alternative Assets",
-    WealthAssetGroup.physicalAssets => "Physical Assets",
-    WealthAssetGroup.protectionAndBusiness => "Protection & Business",
-    WealthAssetGroup.liabilities => "Liabilities",
-  };
+  String _groupLabel(WealthAssetGroup group) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (group) {
+      WealthAssetGroup.liquidAndFixedIncome => l10n.wealthGroupLiquidAndFixedIncome,
+      WealthAssetGroup.equityAndGrowth => l10n.wealthGroupEquityAndGrowth,
+      WealthAssetGroup.retirement => l10n.wealthGroupRetirement,
+      WealthAssetGroup.alternativeAssets => l10n.wealthGroupAlternativeAssets,
+      WealthAssetGroup.physicalAssets => l10n.wealthGroupPhysicalAssets,
+      WealthAssetGroup.protectionAndBusiness =>
+        l10n.wealthGroupProtectionAndBusiness,
+      WealthAssetGroup.liabilities => l10n.wealthGroupLiabilities,
+    };
+  }
 
   /// Builds one asset card from its descriptor.
   ///
@@ -958,6 +978,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     required double loanTotal,
     required int loanCount,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final amount = switch (asset.key) {
       'bank' => bankBalance,
       'loans' => loanTotal,
@@ -969,10 +990,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     String? secondaryLabel;
     double? secondaryValue;
     if (asset.key == 'bank' && monthlyExpense > 0) {
-      secondaryLabel = "Monthly Expense";
+      secondaryLabel = l10n.wealthMonthlyExpense;
       secondaryValue = monthlyExpense;
     } else if (asset.key == 'loans' && loanCount > 0) {
-      secondaryLabel = "$loanCount loan${loanCount > 1 ? 's' : ''}";
+      secondaryLabel = l10n.wealthLoanCount(loanCount);
     }
 
     final card = _assetCard(
@@ -1043,6 +1064,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     bool? recommendedOverride,
     bool coverageStyle = false,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final isRecommended = recommendedOverride ?? _recommendedKeys.contains(key);
     final currencyCode = CurrencyController.to.currencyCode.value;
     final symbol = CurrencyController.to.currencySymbol.value;
@@ -1068,173 +1090,176 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       child: Semantics(
         button: true,
         child: Container(
-        padding: EdgeInsets.all(14.w),
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          color: scheme.surface.withValues(alpha: 0.1), // Glassy background
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(
-            color: scheme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.lightBorder,
-            width: 1,
-          ),
-          gradient: LinearGradient(
-            colors: scheme.brightness == Brightness.dark
-                ? [
-                    Colors.white.withValues(alpha: 0.05),
-                    Colors.white.withValues(alpha: 0.01),
-                  ]
-                : [
-                    AppColors.lightSurfaceCard.withValues(alpha: 0.7),
-                    AppColors.lightSurfaceCard.withValues(alpha: 0.3),
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 18.sp),
-                ),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: AppType.labelMedium(scheme.onSurface.withValues(alpha: 0.9)),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (_ageBasedEnabled)
-                  Container(
-                    width: 8.w,
-                    height: 8.h,
-                    margin: EdgeInsets.only(left: 4.w),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isRecommended
-                          ? AppColors.success
-                          : scheme.brightness == Brightness.dark
-                              ? Colors.white24
-                              : AppColors.lightBorder,
-                    ),
-                  ),
-              ],
+          padding: EdgeInsets.all(14.w),
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            color: scheme.surface.withValues(alpha: 0.1), // Glassy background
+            borderRadius: BorderRadius.circular(20.r),
+            border: Border.all(
+              color: scheme.brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.lightBorder,
+              width: 1,
             ),
-            SizedBox(height: 10.h),
-            PrivacyText(
-              "$symbol${amount.toStringAsFixed(0)}",
-              style: AppType.titleLarge(scheme.onSurface),
+            gradient: LinearGradient(
+              colors: scheme.brightness == Brightness.dark
+                  ? [
+                      Colors.white.withValues(alpha: 0.05),
+                      Colors.white.withValues(alpha: 0.01),
+                    ]
+                  : [
+                      AppColors.lightSurfaceCard.withValues(alpha: 0.7),
+                      AppColors.lightSurfaceCard.withValues(alpha: 0.3),
+                    ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            if (secondaryLabel != null && secondaryValue != null) ...[
-              SizedBox(height: 8.h),
-              Text(
-                "$secondaryLabel: ${formatter.format(secondaryValue)}",
-                style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.6)),
-              ),
-            ],
-            SizedBox(height: 8.h),
-            if (target > 0) ...[
-              LinearProgressIndicator(
-                value: progress,
-                backgroundColor: color.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-                borderRadius: BorderRadius.circular(2.r),
-                minHeight: 4.h,
-              ),
-              SizedBox(height: 4.h),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Row(
                 children: [
+                  Container(
+                    padding: EdgeInsets.all(8.w),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: color, size: 18.sp),
+                  ),
+                  SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
-                      wealthTarget?.isOverridden == true
-                          ? "Manual target: ${formatter.format(target)}"
-                          : wealthTarget?.isEstimated == true
-                              ? (coverageStyle
-                                    ? "Suggested coverage: ${formatter.format(target)}"
-                                    : "Suggested: ${formatter.format(target)}")
-                              : (coverageStyle
-                                    ? "Coverage: ${formatter.format(target)}"
-                                    : "Target: ${formatter.format(target)}"),
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        color: wealthTarget?.isOverridden == true
-                            ? AppColors.primary
-                            : wealthTarget?.isEstimated == true
-                                ? color.withValues(alpha: 0.8)
-                                : scheme.onSurface.withValues(alpha: 0.5),
-                      ),
+                      title,
+                      style: AppType.labelMedium(scheme.onSurface.withValues(alpha: 0.9)),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (wealthTarget?.isEstimated == true)
-                    Text(
-                      AppLocalizations.of(context)!.est,
-                      style: TextStyle(
-                        fontSize: 9.sp,
-                        color: color.withValues(alpha: 0.6),
-                        fontStyle: FontStyle.italic,
+                  if (_ageBasedEnabled)
+                    Container(
+                      width: 8.w,
+                      height: 8.h,
+                      margin: EdgeInsets.only(left: 4.w),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isRecommended
+                            ? AppColors.success
+                            : scheme.brightness == Brightness.dark
+                                ? Colors.white24
+                                : AppColors.lightBorder,
                       ),
                     ),
-                  if (!_ageBasedEnabled) ...[
-                    SizedBox(width: 2.w),
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      iconSize: 14.sp,
-                      tooltip: AppLocalizations.of(context)!.updateValueOrTarget,
-                      onPressed: () => _showUpdateDialog(title, key, amount),
-                      icon: Icon(
-                        Icons.tune_rounded,
-                        color: scheme.onSurface.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ],
                 ],
               ),
-            ] else if (wealthTarget != null) ...[
-              Text(
-                AppLocalizations.of(context)!.trackingOnly,
-                style: TextStyle(
-                  fontSize: 10.sp,
-                  color: scheme.onSurface.withValues(alpha: 0.35),
-                  fontStyle: FontStyle.italic,
-                ),
+              SizedBox(height: 10.h),
+              PrivacyText(
+                "$symbol${amount.toStringAsFixed(0)}",
+                style: AppType.titleLarge(scheme.onSurface),
               ),
-            ],
-
-            // Show interaction hint
-            Row(
-              children: [
+              if (secondaryLabel != null && secondaryValue != null) ...[
+                SizedBox(height: 8.h),
                 Text(
-                  readOnly
-                      ? "Update Expense"
-                      : onTapOverride != null
-                      ? "Tap to manage"
-                      : "Tap to update",
-                  style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.4)),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 10.sp,
-                  color: scheme.onSurface.withValues(alpha: 0.3),
+                  "$secondaryLabel: ${formatter.format(secondaryValue)}",
+                  style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.6)),
                 ),
               ],
-            ),
-          ],
-        ),
+              SizedBox(height: 8.h),
+              if (target > 0) ...[
+                LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  borderRadius: BorderRadius.circular(2.r),
+                  minHeight: 4.h,
+                ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        wealthTarget?.isOverridden == true
+                            ? l10n.wealthManualTarget(formatter.format(target))
+                            : wealthTarget?.isEstimated == true
+                            ? (coverageStyle
+                                  ? l10n.wealthSuggestedCoverage(
+                                      formatter.format(target),
+                                    )
+                                  : l10n.wealthSuggested(
+                                      formatter.format(target),
+                                    ))
+                            : (coverageStyle
+                                  ? l10n.wealthCoverage(
+                                      formatter.format(target),
+                                    )
+                                  : l10n.wealthTarget(
+                                      formatter.format(target),
+                                    )),
+                        style: AppType.labelSmall(
+                          wealthTarget?.isOverridden == true
+                              ? AppColors.primary
+                              : wealthTarget?.isEstimated == true
+                              ? color.withValues(alpha: 0.8)
+                              : scheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                    if (wealthTarget?.isEstimated == true)
+                      Text(
+                        AppLocalizations.of(context)!.est,
+                        style: AppType.labelSmall(
+                          color.withValues(alpha: 0.6),
+                        ).copyWith(fontStyle: FontStyle.italic),
+                      ),
+                    if (!_ageBasedEnabled) ...[
+                      SizedBox(width: 2.w),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        iconSize: 14.sp,
+                        tooltip: AppLocalizations.of(context)!.updateValueOrTarget,
+                        onPressed: () => _showUpdateDialog(title, key, amount),
+                        icon: Icon(
+                          Icons.tune_rounded,
+                          color: scheme.onSurface.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ] else if (wealthTarget != null) ...[
+                Text(
+                  AppLocalizations.of(context)!.trackingOnly,
+                  style: AppType.labelSmall(
+                    scheme.onSurface.withValues(alpha: 0.35),
+                  ).copyWith(fontStyle: FontStyle.italic),
+                ),
+              ],
+
+              // Show interaction hint
+              Row(
+                children: [
+                  Text(
+                    readOnly
+                        ? l10n.wealthUpdateExpense
+                        : onTapOverride != null
+                        ? l10n.wealthTapToManage
+                        : l10n.wealthTapToUpdate,
+                    style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.4)),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 10.sp,
+                    color: scheme.onSurface.withValues(alpha: 0.3),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1248,6 +1273,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     bool readOnly = false,
   }) async {
     final symbol = CurrencyController.to.currencySymbol.value;
+    final l10n = AppLocalizations.of(context)!;
     final isBank = key == 'bank';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1284,7 +1310,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       await showGeneralDialog(
         context: context,
         barrierDismissible: true,
-        barrierLabel: "Dismiss",
+        barrierLabel: l10n.dismiss,
         barrierColor: Colors.black.withValues(alpha: 0.8),
         transitionDuration: const Duration(milliseconds: 300),
         pageBuilder: (context, anim1, anim2) {
@@ -1332,8 +1358,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        isBank ? "Update Monthly Expense" : "Update $title",
-                        style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+                        isBank
+                            ? l10n.wealthUpdateMonthlyExpense
+                            : l10n.wealthUpdateTitle(title),
+                        style: AppType.titleMedium(
+                          isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
                       ),
                       SizedBox(height: 16.h),
 
@@ -1343,21 +1375,24 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         // Bank is readOnly. Others depend on passed param.
                         readOnly: isBank || readOnly,
                         keyboardType: TextInputType.number,
-                        style: AppType.titleMedium((isBank || readOnly)
+                        style: AppType.titleMedium(
+                          (isBank || readOnly)
                               ? isDark
-                                  ? Colors.white54
-                                  : AppColors.lightTextSecondary
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary
                               : isDark
-                                  ? Colors.white
-                                  : AppColors.lightTextPrimary),
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
                         decoration: InputDecoration(
                           labelText: isBank
-                              ? "Current Bank Balance"
-                              : "Current Value",
+                              ? l10n.wealthCurrentBankBalance
+                              : l10n.wealthCurrentValue,
                           labelStyle: TextStyle(
-                              color: isDark
-                                  ? Colors.white60
-                                  : AppColors.lightTextSecondary),
+                            color: isDark
+                                ? AppColors.darkTextSecondary
+                                : AppColors.lightTextSecondary,
+                          ),
                           hintText: "0",
                           filled: true,
                           fillColor: isDark
@@ -1368,9 +1403,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                           ),
                           prefixText: symbol,
                           prefixStyle: TextStyle(
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.lightTextPrimary),
+                            color: isDark
+                                ? AppColors.darkTextPrimary
+                                : AppColors.lightTextPrimary,
+                          ),
                         ),
                       ),
                       SizedBox(height: 16.h),
@@ -1382,28 +1418,30 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         // editable in Custom Mode so targets can be overridden.
                         readOnly: !isBank && _ageBasedEnabled,
                         keyboardType: TextInputType.number,
-                        style: AppType.titleMedium(!isBank && _ageBasedEnabled
+                        style: AppType.titleMedium(
+                          (!isBank && _ageBasedEnabled)
                               ? isDark
-                                  ? Colors.white.withValues(alpha: 0.7)
-                                  : AppColors.lightTextPrimary
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextPrimary
                               : isDark
-                                  ? Colors.white
-                                  : AppColors.lightTextPrimary),
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
                         decoration: InputDecoration(
                           labelText: isBank
-                              ? "Monthly Expense Basis"
+                              ? l10n.wealthMonthlyExpenseBasis
                               : _ageBasedEnabled
-                                  ? "Target Goal (Formula)"
-                                  : "Target Goal (Manual)",
-                          labelStyle: TextStyle(color: AppColors.primary),
+                              ? l10n.wealthTargetGoalFormula
+                              : l10n.wealthTargetGoalManual,
+                          labelStyle: const TextStyle(color: AppColors.primary),
                           hintText: isBank
-                              ? "Enter expense"
-                              : "Auto-calculated",
+                              ? l10n.wealthEnterExpense
+                              : l10n.wealthAutoCalculated,
                           helperText: isBank
-                              ? "Leave empty to use auto-calculated average"
+                              ? l10n.wealthLeaveEmptyAutoAverage
                               : _ageBasedEnabled
-                                  ? "Calculated based on expenses & age"
-                                  : "Set your own goal — leave empty for formula",
+                              ? l10n.wealthCalculatedBasis
+                              : l10n.wealthSetOwnGoal,
                           helperStyle: AppType.labelSmall(AppColors.secondary.withValues(alpha: 0.5)),
                           filled: true,
                           fillColor: isDark
@@ -1421,7 +1459,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                           prefixText: symbol,
                           prefixStyle: TextStyle(
                             color: isDark
-                                ? Colors.white.withValues(alpha: 0.7)
+                                ? AppColors.darkTextSecondary
                                 : AppColors.lightTextPrimary,
                           ),
                         ),
@@ -1435,17 +1473,18 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
                               child: Text(
-                                AppLocalizations.of(context)!.cancel,
+                                l10n.cancel,
                                 style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white54
-                                        : AppColors.lightTextTertiary),
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextTertiary,
+                                ),
                               ),
                             ),
                           ),
                           SizedBox(width: 12.w),
                           Expanded(
-                            child: ElevatedButton(
+                            child: FilledButton(
                               onPressed: () async {
                                 if (isBank) {
                                   // Update Expense Override. Null or 0 means reset to auto.
@@ -1509,17 +1548,14 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                 await _loadData();
                                 if (context.mounted) Navigator.pop(context);
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
+                              style: FilledButton.styleFrom(
                                 padding: EdgeInsets.symmetric(vertical: 12.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
                               ),
-                              child: const Text(
-                                "Save Changes",
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              child: Text(
+                                l10n.saveChanges,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -1546,6 +1582,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }
 
   Future<void> _showVisibilityDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final Map<String, String> assets = {
       for (final a in WealthAssetRegistry.assets) a.key: a.label,
@@ -1559,7 +1596,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     await showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      barrierLabel: "Dismiss",
+      barrierLabel: l10n.dismiss,
       barrierColor: Colors.black.withValues(alpha: 0.8),
       transitionDuration: const Duration(milliseconds: 300),
       pageBuilder: (context, anim1, anim2) {
@@ -1608,7 +1645,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                     children: [
                       Text(
                         AppLocalizations.of(context)!.manageVisibility,
-                        style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
+                        style: AppType.titleMedium(
+                          isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
                       ),
                       SizedBox(height: 16.h),
                       if (_ageBasedEnabled)
@@ -1690,20 +1731,22 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                                       ),
                                       child: Text(
                                         isRec
-                                            ? "Recommended"
-                                            : "Not recommended",
-                                        style: AppType.labelSmall(isRec
+                                            ? l10n.recommended
+                                            : l10n.notRecommended,
+                                        style: AppType.labelSmall(
+                                          isRec
                                               ? AppColors.success
                                               : isDark
-                                                  ? Colors.white30
-                                                  : AppColors.lightTextTertiary),
+                                              ? AppColors.darkTextTertiary
+                                              : AppColors.lightTextTertiary,
+                                        ),
                                       ),
                                     ),
                                 ],
                               ),
                               value: isVisible,
                               activeColor: AppColors.primary,
-                              checkColor: Colors.black,
+                              checkColor: AppColors.darkBackground,
                               side: BorderSide(
                                 color: isDark
                                     ? Colors.white.withValues(alpha: 0.5)
@@ -1731,33 +1774,31 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
                               child: Text(
-                                AppLocalizations.of(context)!.cancel,
+                                l10n.cancel,
                                 style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white54
-                                        : AppColors.lightTextTertiary),
+                                  color: isDark
+                                      ? AppColors.darkTextSecondary
+                                      : AppColors.lightTextTertiary,
+                                ),
                               ),
                             ),
                           ),
                           SizedBox(width: 12.w),
                           Expanded(
-                            child: ElevatedButton(
+                            child: FilledButton(
                               onPressed: () async {
                                 await WealthService.updateHiddenAssets(hidden);
                                 await _loadData();
                                 if (context.mounted) Navigator.pop(context);
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
+                              style: FilledButton.styleFrom(
                                 padding: EdgeInsets.symmetric(vertical: 12.h),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
                               ),
-                              child: const Text(
-                                "Save Changes",
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                              child: Text(
+                                l10n.saveChanges,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -1801,7 +1842,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             color: color,
             radius: 50.r,
             title: title,
-            titleStyle: AppType.labelSmall(Colors.white),
+            titleStyle: AppType.labelSmall(scheme.onPrimary),
           ),
         );
       }
@@ -1831,7 +1872,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
     // Custom assets
     p.custom.forEach((key, val) {
-      add(val, key, Colors.grey.shade500, key);
+      add(val, key, scheme.onSurfaceVariant, key);
     });
 
     if (sections.isEmpty) {
@@ -1862,6 +1903,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
   Widget _buildIdealIncomeCard(ColorScheme scheme) {
     if (portfolio == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     final code = CurrencyController.to.currencyCode.value;
     final symbol = CurrencyController.to.currencySymbol.value;
@@ -1936,7 +1978,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           SizedBox(height: 16.h),
           _incomeFigure(
             scheme,
-            label: "Ideal Monthly Income",
+            label: l10n.wealthIdealMonthlyIncome,
             value: formatMonthlyIncome(
               result.idealMonthlyIncome,
               currencyCode: code,
@@ -1944,7 +1986,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             ),
             sub: Obx(
               () => Text(
-                "incl. savings of ${Get.isRegistered<PrivacyController>() && Get.find<PrivacyController>().isPrivacyMode.value ? '••••' : savingsLabel} /mo",
+                l10n.wealthIncludesSavings(
+                  Get.isRegistered<PrivacyController>() &&
+                          Get.find<PrivacyController>().isPrivacyMode.value
+                      ? '••••'
+                      : savingsLabel,
+                ),
                 style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.5)),
               ),
             ),
@@ -1953,7 +2000,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           SizedBox(height: 16.h),
           _incomeFigure(
             scheme,
-            label: "Ideal Annual Income",
+            label: l10n.wealthIdealAnnualIncome,
             value: formatAnnualIncome(
               result.idealAnnualIncome,
               currencyCode: code,
@@ -1975,7 +2022,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           _contextRow(
             scheme,
             Icons.receipt_long_outlined,
-            "Current monthly expense",
+            l10n.wealthCurrentMonthlyExpense,
             formatMonthlyIncome(
               result.monthlyExpense,
               currencyCode: code,
@@ -1986,7 +2033,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             _contextRow(
               scheme,
               Icons.payments_outlined,
-              "You earn today",
+              l10n.wealthYouEarnToday,
               formatMonthlyIncome(
                 actualMonthlyIncome,
                 currencyCode: code,
@@ -1997,7 +2044,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             _contextRow(
               scheme,
               Icons.location_city_outlined,
-              "Typical income in your area",
+              l10n.wealthTypicalIncomeArea,
               formatMonthlyIncome(
                 geoResult!.baselineMonthlyIncome.toDouble(),
                 currencyCode: code,
@@ -2067,6 +2114,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
 
   // Placeholder comment in previous edit removed the method. Restoring it.
   Widget _buildNetWorthCard(ColorScheme scheme) {
+    final lite = PerformanceController.to.liteMode.value;
     double total = 0;
     if (portfolio != null) {
       final p = portfolio!;
@@ -2123,35 +2171,43 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       width: double.infinity,
       padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.deepPurple.shade800, Colors.deepPurple.shade500],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        // Two stops of the single accent — the Material deepPurple pair was a
+        // second accent by accident. The gradient and its glow are both
+        // multi-pass blurs, so lite mode paints a flat colour instead.
+        color: lite ? AppColors.primary : null,
+        gradient: lite
+            ? null
+            : LinearGradient(
+                colors: [AppColors.primary, AppColors.primaryPress],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
         borderRadius: BorderRadius.circular(24.r),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.4),
-            blurRadius: 15.w,
-            offset: Offset(0, 8.w),
-          ),
-        ],
+        boxShadow: lite
+            ? null
+            : [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.35),
+                  blurRadius: 15.w,
+                  offset: Offset(0, 8.w),
+                ),
+              ],
       ),
       child: Column(
         children: [
           Text(
             AppLocalizations.of(context)!.totalNetWorth,
-            style: AppType.bodyMedium(Colors.white70),
+            style: AppType.bodyMedium(scheme.onPrimary.withValues(alpha: 0.8)),
           ),
           SizedBox(height: 8.h),
           PrivacyText(
             "$symbol${total.toStringAsFixed(0)}",
-            style: AppType.displaySmall(Colors.white),
+            style: AppType.displaySmall(scheme.onPrimary),
           ),
           SizedBox(height: 8.h),
           Text(
             AppLocalizations.of(context)!.assetsLiabilities,
-            style: AppType.bodySmall(Colors.white54),
+            style: AppType.bodySmall(scheme.onPrimary.withValues(alpha: 0.7)),
           ),
         ],
       ),
@@ -2291,23 +2347,21 @@ class _CustomAssetDialogState extends State<_CustomAssetDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text(_isNew ? "Add Custom Asset" : "Custom Asset"),
+      title: Text(_isNew ? l10n.wealthAddCustomAsset : l10n.wealthCustomAsset),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _nameCtrl,
-            decoration: const InputDecoration(labelText: "Name"),
-            style: TextStyle(color: isDark ? Colors.white : null),
+            decoration: InputDecoration(labelText: l10n.name),
           ),
           SizedBox(height: 8.h),
           TextField(
             controller: _valueCtrl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: "Value"),
-            style: TextStyle(color: isDark ? Colors.white : null),
+            decoration: InputDecoration(labelText: l10n.wealthValue),
           ),
         ],
       ),
@@ -2315,15 +2369,18 @@ class _CustomAssetDialogState extends State<_CustomAssetDialog> {
         if (!_isNew)
           TextButton(
             onPressed: _busy ? null : _delete,
-            child: const Text("Delete", style: TextStyle(color: AppColors.error)),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: AppColors.error),
+            ),
           ),
         TextButton(
           onPressed: _busy ? null : () => Navigator.pop(context),
-          child: Text(AppLocalizations.of(context)!.cancel),
+          child: Text(l10n.cancel),
         ),
-        TextButton(
+        FilledButton(
           onPressed: _busy ? null : _save,
-          child: const Text(AppStrings.save),
+          child: Text(l10n.save),
         ),
       ],
     );
