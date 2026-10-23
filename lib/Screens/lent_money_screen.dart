@@ -16,6 +16,9 @@ import 'package:money_control/Screens/repayment_screen.dart';
 import 'package:money_control/Screens/split_bill_screen.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/adaptive_panel.dart';
+import 'package:money_control/l10n/app_localizations.dart';
+import 'package:money_control/Services/performance_controller.dart';
+import 'package:money_control/Components/empty_state.dart';
 
 class LentMoneyScreen extends StatefulWidget {
   const LentMoneyScreen({super.key});
@@ -115,80 +118,84 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
   }
 
   Widget _buildSummaryMetric(ThemeData theme, {required bool isReceivable}) {
-    final title = isReceivable ? "Owed to You" : "You Owe";
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = theme.brightness == Brightness.dark;
+    final title = isReceivable ? l10n.lentOwedToYou : l10n.lentYouOwe;
     final icon = isReceivable ? Icons.arrow_downward : Icons.arrow_upward;
     final color = isReceivable ? AppColors.success : AppColors.warning;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
 
-    return Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 10.w,
-                offset: Offset(0, 4.w),
+    return GlassContainer(
+      padding: EdgeInsets.all(AppSpace.s16.w),
+      borderRadius: BorderRadius.circular(AppRadius.lg.r),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSpace.s8.w),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 20.sp, color: color),
+              ),
+              SizedBox(width: AppSpace.s8.w),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppType.bodySmall(
+                    isDark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.lightTextSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
-          child: GlassContainer(
-            padding: EdgeInsets.all(16.w),
-            borderRadius: BorderRadius.circular(20.r),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(8.w),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, size: 20.sp, color: color),
-                    ),
-                    SizedBox(width: 8.w),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(
-                            alpha: 0.8,
-                          )),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-                Obx(() {
-                  final total = isReceivable
-                      ? _controller.totalPendingReceivables
-                      : _controller.totalPendingPayables;
-                  final currency = _currencyController.currencyCode.value;
-                  return FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: TweenAnimationBuilder<double>(
+          SizedBox(height: AppSpace.s12.h),
+          Obx(() {
+            final total = isReceivable
+                ? _controller.totalPendingReceivables
+                : _controller.totalPendingPayables;
+            final currency = _currencyController.currencyCode.value;
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              // Lite mode renders the figure instead of counting to it.
+              child: PerformanceController.to.liteMode.value
+                  ? Text(
+                      NumberFormat.simpleCurrency(
+                        name: currency,
+                      ).format(total),
+                      style: AppType.headlineSmall(textColor),
+                    )
+                  : TweenAnimationBuilder<double>(
                       tween: Tween<double>(begin: 0, end: total),
-                      duration: const Duration(milliseconds: 1000),
-                      curve: Curves.easeOutExpo,
+                      duration: AppMotion.countUp,
+                      curve: AppMotion.emphasized,
                       builder: (context, value, child) {
                         return Text(
                           NumberFormat.simpleCurrency(
                             name: currency,
                           ).format(value),
-                          style: AppType.headlineSmall(theme.colorScheme.onSurface),
+                          style: AppType.headlineSmall(textColor),
                         );
                       },
                     ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        )
-        .animate()
-        .fadeIn(duration: 500.ms)
-        .slideY(begin: -0.1, end: 0, curve: Curves.easeOut);
+            );
+          }),
+        ],
+      ),
+    ).animate().fadeIn(duration: AppMotion.slow).slideY(
+      begin: -0.1,
+      end: 0,
+      curve: AppMotion.standard,
+    );
   }
 
   Widget _buildNetBalanceIndicator(ThemeData theme) {
@@ -200,7 +207,10 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
 
       final isPositive = netBalance >= 0;
       final color = isPositive ? AppColors.success : AppColors.warning;
-      final label = isPositive ? "Net Owed to You" : "Net You Owe";
+      final isDark = theme.brightness == Brightness.dark;
+      final l10n = AppLocalizations.of(context)!;
+      final label =
+          isPositive ? l10n.lentNetOwedToYou : l10n.lentNetYouOwe;
       final icon = isPositive ? Icons.trending_up : Icons.trending_down;
       final currency = _currencyController.currencyCode.value;
 
@@ -209,17 +219,13 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
         child: Container(
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(AppRadius.md.r),
             border: Border.all(color: color.withValues(alpha: 0.3)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8.w,
-                offset: Offset(0, 2.w),
-              ),
-            ],
           ),
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpace.s20.w,
+            vertical: AppSpace.s12.h,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -228,21 +234,20 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                   Icon(icon, color: color, size: 20.sp),
                   SizedBox(width: 8.w),
                   Text(
-                    "Grand Sum ($label)",
-                    style: AppType.bodyMedium(theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                    l10n.lentGrandSum(label),
+                    style: AppType.bodyMedium(
+                      isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
                   ),
                 ],
               ),
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: netBalance.abs()),
-                duration: const Duration(milliseconds: 1200),
-                curve: Curves.easeOutExpo,
-                builder: (context, value, child) {
-                  return Text(
-                    NumberFormat.simpleCurrency(name: currency).format(value),
-                    style: AppType.titleMedium(color),
-                  );
-                },
+              Text(
+                NumberFormat.simpleCurrency(
+                  name: currency,
+                ).format(netBalance.abs()),
+                style: AppType.titleMedium(color),
               ),
             ],
           ),
@@ -255,20 +260,10 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
     return Obx(() {
       if (_controller.entries.isEmpty) {
         return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.sentiment_satisfied_rounded,
-                size: 60.sp,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-              ),
-              SizedBox(height: 16.h),
-              Text(
-                "No active lent money records.",
-                style: AppType.bodyLarge(theme.colorScheme.onSurface.withValues(alpha: 0.5)),
-              ),
-            ],
+          child: EmptyStateWidget(
+            icon: Icons.handshake_outlined,
+            title: AppLocalizations.of(context)!.lentNoActiveRecords,
+            subtitle: AppLocalizations.of(context)!.lentEmptySubtitle,
           ),
         );
       }
@@ -299,12 +294,20 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
   Widget _buildEntryItem(LentMoneyModel entry, ThemeData theme) {
     final currency = _currencyController.currencyCode.value;
     final isReceivable = entry.type == 'lent';
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = theme.brightness == Brightness.dark;
+    final textColor =
+        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final secondaryColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final tertiaryColor =
+        isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary;
 
     // Status visual traits
     final activeColor = isReceivable ? AppColors.success : AppColors.warning;
     final iconData = isReceivable ? Icons.arrow_downward : Icons.arrow_upward;
-    final typeLabel = isReceivable ? "Lent to" : "Borrowed from";
-    final actionLabel = isReceivable ? "Receive" : "Repay";
+    final typeLabel = isReceivable ? l10n.lentLentTo : l10n.lentBorrowedFrom;
+    final actionLabel = isReceivable ? l10n.receive : l10n.lentRepay;
     final actionIcon = isReceivable ? Icons.call_received : Icons.currency_rupee;
 
     return Padding(
@@ -340,7 +343,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                 backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
                 icon: Icons.check_circle_outline,
-                label: entry.isSettled ? 'Already Settled' : 'Settle',
+                label: entry.isSettled ? l10n.lentAlreadySettled : l10n.lentSettle,
               ),
               SlidableAction(
                 onPressed: (context) {
@@ -349,17 +352,17 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                 backgroundColor: AppColors.error,
                 foregroundColor: Colors.white,
                 icon: Icons.delete_outline,
-                label: 'Delete',
+                label: AppStrings.delete,
               ),
             ],
           ),
           child: GlassContainer(
-            padding: EdgeInsets.all(16.w),
-            borderRadius: BorderRadius.circular(16.r),
+            padding: EdgeInsets.all(AppSpace.s16.w),
+            borderRadius: BorderRadius.circular(AppRadius.md.r),
             border: Border.all(
               color: entry.isSettled
                   ? AppColors.success.withValues(alpha: 0.3)
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
             ),
             child: Row(
               children: [
@@ -383,15 +386,13 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                     children: [
                       Text(
                         entry.friendName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.sp,
+                        style: AppType.titleMedium(textColor).copyWith(
                           decoration: entry.isSettled
                               ? TextDecoration.lineThrough
                               : null,
                         ),
                       ),
-                      SizedBox(height: 4.h),
+                      SizedBox(height: AppSpace.s4.h),
                       Row(
                         children: [
                           Text(
@@ -399,29 +400,29 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                             style: AppType.labelMedium(activeColor),
                           ),
                           Text(
-                            " • ${DateFormat('MMM dd, yyyy').format(entry.dateLent)}",
-                            style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              )),
+                            " \u2022 ${DateFormat('MMM dd, yyyy').format(entry.dateLent)}",
+                            style: AppType.bodySmall(tertiaryColor),
                           ),
                         ],
                       ),
                       if (entry.note.isNotEmpty) ...[
-                        SizedBox(height: 4.h),
+                        SizedBox(height: AppSpace.s4.h),
                         Text(
                           entry.note,
-                          style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(
-                              alpha: 0.7,
-                            )),
+                          style: AppType.bodySmall(secondaryColor),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                       if (entry.repaidAmount > 0) ...[
-                        SizedBox(height: 4.h),
+                        SizedBox(height: AppSpace.s4.h),
                         Text(
-                          "Repaid ${NumberFormat.simpleCurrency(name: currency).format(entry.repaidAmount)}",
-                          style: AppType.labelMedium(entry.isSettled ? AppColors.success : AppColors.success),
+                          l10n.lentRepaid(
+                            NumberFormat.simpleCurrency(
+                              name: currency,
+                            ).format(entry.repaidAmount),
+                          ),
+                          style: AppType.labelMedium(AppColors.success),
                         ),
                       ],
                     ],
@@ -434,52 +435,46 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                       NumberFormat.simpleCurrency(
                         name: currency,
                       ).format(entry.amount),
-                      style: AppType.titleMedium(entry.isSettled
-                            ? Colors.grey
-                            : theme.colorScheme.onSurface),
+                      style: AppType.titleMedium(
+                        entry.isSettled ? tertiaryColor : textColor,
+                      ),
                     ),
-                    SizedBox(height: 4.h),
+                    SizedBox(height: AppSpace.s4.h),
                     Text(
                       entry.isSettled
-                          ? "Settled"
+                          ? l10n.lentSettled
                           : entry.repaidAmount > 0
-                              ? "${_currencyController.currencySymbol.value}${entry.remainingAmount.toStringAsFixed(0)} left"
-                              : "Pending",
-                      style: AppType.labelMedium(entry.isSettled ? AppColors.success : activeColor),
+                          ? l10n.lentAmountLeft(
+                              "${_currencyController.currencySymbol.value}${entry.remainingAmount.toStringAsFixed(0)}",
+                            )
+                          : l10n.lentPending,
+                      style: AppType.labelMedium(
+                        entry.isSettled ? AppColors.success : activeColor,
+                      ),
                     ),
                     if (!entry.isSettled) ...[
-                      SizedBox(height: 6.h),
-                      GestureDetector(
-                        onTap: () =>
+                      SizedBox(height: AppSpace.s4.h),
+                      // A 26 dp tap target with no ripple: it is the primary
+                      // action on the row, so it is a real button.
+                      TextButton.icon(
+                        onPressed: () =>
                             Get.to(() => RepaymentScreen(entry: entry)),
-                        child: Container(
+                        style: TextButton.styleFrom(
+                          foregroundColor: activeColor,
+                          backgroundColor: activeColor.withValues(alpha: 0.12),
                           padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 4.h,
+                            horizontal: AppSpace.s12.w,
+                            vertical: AppSpace.s4.h,
                           ),
-                          decoration: BoxDecoration(
-                            color: activeColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(
-                              color: activeColor.withValues(alpha: 0.3),
-                            ),
+                          minimumSize: const Size(0, 36),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.xs.r),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                actionIcon,
-                                size: 12.sp,
-                                color: activeColor,
-                              ),
-                              SizedBox(width: 3.w),
-                              Text(
-                                actionLabel,
-                                style: AppType.labelSmall(activeColor),
-                              ),
-                            ],
-                          ),
+                          textStyle: AppType.labelSmall(activeColor),
                         ),
+                        icon: Icon(actionIcon, size: 14.sp),
+                        label: Text(actionLabel),
                       ),
                     ],
                   ],
@@ -494,7 +489,6 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
 
   Widget _buildDetailPlaceholder() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : AppColors.darkBackground;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -502,12 +496,19 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
           Icon(
             Icons.account_balance_wallet_outlined,
             size: 64.sp,
-            color: textColor.withValues(alpha: 0.2),
+            color: isDark
+                ? AppColors.darkTextTertiary
+                : AppColors.lightTextTertiary,
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: AppSpace.s16.h),
           Text(
-            "Select an entry to view details",
-            style: AppType.bodyLarge(textColor.withValues(alpha: 0.4)),
+            AppLocalizations.of(context)!.lentSelectEntryDetails,
+            textAlign: TextAlign.center,
+            style: AppType.bodyLarge(
+              isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
           ),
         ],
       ),

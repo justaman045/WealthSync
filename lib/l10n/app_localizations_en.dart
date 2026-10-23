@@ -1070,6 +1070,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loading => 'Loading...';
 
   @override
+  String lentAmountLeft(Object amount) {
+    return '$amount left';
+  }
+
+  @override
+  String get lentAlreadySettled => 'Already Settled';
+
+  @override
+  String get lentBorrowedFrom => 'Borrowed from';
+
+  @override
+  String lentGrandSum(Object label) {
+    return 'Grand Sum ($label)';
+  }
+
+  @override
+  String get lentEmptySubtitle =>
+      'Track what you lend to friends and what you borrow from them, and settle up in one tap.';
+
+  @override
+  String get lentLentTo => 'Lent to';
+
+  @override
+  String get lentNetOwedToYou => 'Net Owed to You';
+
+  @override
+  String get lentNetYouOwe => 'Net You Owe';
+
+  @override
+  String get lentNoActiveRecords => 'No active lent money records.';
+
+  @override
+  String get lentOwedToYou => 'Owed to You';
+
+  @override
+  String get lentPending => 'Pending';
+
+  @override
+  String get lentRepay => 'Repay';
+
+  @override
+  String lentRepaid(Object amount) {
+    return 'Repaid $amount';
+  }
+
+  @override
+  String get lentSelectEntryDetails => 'Select an entry to view details';
+
+  @override
+  String get lentSettle => 'Settle';
+
+  @override
+  String get lentSettled => 'Settled';
+
+  @override
+  String get lentYouOwe => 'You Owe';
+
+  @override
   String get loanTracker => 'Loan Tracker';
 
   @override

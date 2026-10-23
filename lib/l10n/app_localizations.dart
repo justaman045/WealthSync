@@ -1965,6 +1965,108 @@ abstract class AppLocalizations {
   /// **'Loading...'**
   String get loading;
 
+  /// No description provided for @lentAmountLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} left'**
+  String lentAmountLeft(Object amount);
+
+  /// No description provided for @lentAlreadySettled.
+  ///
+  /// In en, this message translates to:
+  /// **'Already Settled'**
+  String get lentAlreadySettled;
+
+  /// No description provided for @lentBorrowedFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Borrowed from'**
+  String get lentBorrowedFrom;
+
+  /// No description provided for @lentGrandSum.
+  ///
+  /// In en, this message translates to:
+  /// **'Grand Sum ({label})'**
+  String lentGrandSum(Object label);
+
+  /// No description provided for @lentEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track what you lend to friends and what you borrow from them, and settle up in one tap.'**
+  String get lentEmptySubtitle;
+
+  /// No description provided for @lentLentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Lent to'**
+  String get lentLentTo;
+
+  /// No description provided for @lentNetOwedToYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Net Owed to You'**
+  String get lentNetOwedToYou;
+
+  /// No description provided for @lentNetYouOwe.
+  ///
+  /// In en, this message translates to:
+  /// **'Net You Owe'**
+  String get lentNetYouOwe;
+
+  /// No description provided for @lentNoActiveRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No active lent money records.'**
+  String get lentNoActiveRecords;
+
+  /// No description provided for @lentOwedToYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Owed to You'**
+  String get lentOwedToYou;
+
+  /// No description provided for @lentPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get lentPending;
+
+  /// No description provided for @lentRepay.
+  ///
+  /// In en, this message translates to:
+  /// **'Repay'**
+  String get lentRepay;
+
+  /// No description provided for @lentRepaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Repaid {amount}'**
+  String lentRepaid(Object amount);
+
+  /// No description provided for @lentSelectEntryDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an entry to view details'**
+  String get lentSelectEntryDetails;
+
+  /// No description provided for @lentSettle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settle'**
+  String get lentSettle;
+
+  /// No description provided for @lentSettled.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get lentSettled;
+
+  /// No description provided for @lentYouOwe.
+  ///
+  /// In en, this message translates to:
+  /// **'You Owe'**
+  String get lentYouOwe;
+
   /// No description provided for @loanTracker.
   ///
   /// In en, this message translates to:
