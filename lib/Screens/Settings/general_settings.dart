@@ -1,5 +1,6 @@
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Utils/wealth_math.dart';
+import 'package:money_control/Utils/income_mode_label.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -239,7 +240,10 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                     Obx(() => SettingsTile(
                           icon: Icons.attach_money_outlined,
                           title: "Income Source",
-                          subtitle: IncomeSettings.modeLabel(),
+                          subtitle: incomeModeLabel(
+                            AppLocalizations.of(context)!,
+                            IncomeSettings.mode.value,
+                          ),
                           onTap: () => _showIncomeModeDialog(context),
                         )),
                     Obx(() {
@@ -256,10 +260,13 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                     Obx(() => Padding(
                           padding: EdgeInsets.only(left: 88.w, right: 16.w, top: 4.h),
                           child: Text(
-                            "Currently using: ${IncomeSettings.modeLabel()}",
-                            style: AppType.bodySmall(Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white54
-                                  : AppColors.lightTextSecondary),
+                            "Currently using: "
+                            "${incomeModeLabel(AppLocalizations.of(context)!, IncomeSettings.mode.value)}",
+                            style: AppType.bodySmall(
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
+                            ),
                           ),
                         )),
                     FeatureVisible(
@@ -497,9 +504,11 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             children: IncomeMode.values.map((m) {
               return RadioListTile<IncomeMode>(
                 title: Text(
-                  IncomeSettings.modeLabel(m),
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                  incomeModeLabel(AppLocalizations.of(ctx)!, m),
+                  style: AppType.bodySmall(
+                    isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.lightTextPrimary,
                   ),
                 ),
                 value: m,

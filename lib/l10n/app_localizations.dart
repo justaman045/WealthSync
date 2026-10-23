@@ -160,6 +160,12 @@ abstract class AppLocalizations {
   /// **'Library'**
   String get libraryTab;
 
+  /// No description provided for @aiInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Insights'**
+  String get aiInsights;
+
   /// No description provided for @amount.
   ///
   /// In en, this message translates to:
@@ -586,6 +592,242 @@ abstract class AppLocalizations {
   /// **'Already Imported'**
   String get alreadyImported;
 
+  /// No description provided for @analysisAddIncomeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your income (a received Salary/Income entry) to see how much you can safely spend per day.'**
+  String get analysisAddIncomeHint;
+
+  /// No description provided for @analysisBillPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'You have paid your usual {category} bill.'**
+  String analysisBillPaid(Object category);
+
+  /// No description provided for @analysisBillPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} payment seems partial.'**
+  String analysisBillPartial(Object category);
+
+  /// No description provided for @analysisBillPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending: you usually pay ~{amount}.'**
+  String analysisBillPending(Object amount);
+
+  /// No description provided for @analysisCarefulSpending.
+  ///
+  /// In en, this message translates to:
+  /// **'Careful, you\'re slightly above today\'s safe limit.'**
+  String get analysisCarefulSpending;
+
+  /// No description provided for @analysisCategoryInsightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Category Insights'**
+  String get analysisCategoryInsightsTitle;
+
+  /// No description provided for @analysisDaySpend.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day}: {amount}'**
+  String analysisDaySpend(Object amount, Object day);
+
+  /// No description provided for @analysisEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No expense transactions yet.\nAdd a \'Send\' transaction to see AI insights.'**
+  String get analysisEmpty;
+
+  /// No description provided for @analysisError.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Analysis Error: {error}'**
+  String analysisError(Object error);
+
+  /// No description provided for @analysisForecastTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month Forecast'**
+  String get analysisForecastTitle;
+
+  /// No description provided for @analysisHeatmapLegend.
+  ///
+  /// In en, this message translates to:
+  /// **'Darker boxes indicate higher spending days.'**
+  String get analysisHeatmapLegend;
+
+  /// No description provided for @analysisIncomeBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'From ~{income} income: saving {saving} ({rate}%) and {bills} for bills. Already spent {spent} on other items, leaving {remaining} over {days, plural, =1{1 day} other{{days} days}}.'**
+  String analysisIncomeBreakdown(
+    Object bills,
+    num days,
+    Object income,
+    Object rate,
+    Object remaining,
+    Object saving,
+    Object spent,
+  );
+
+  /// No description provided for @analysisItemsSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Items spent this month'**
+  String get analysisItemsSpent;
+
+  /// No description provided for @analysisItemsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} · {count, plural, =1{transaction} other{{count} transactions}}'**
+  String analysisItemsSummary(Object amount, num count);
+
+  /// No description provided for @analysisManualNotSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual not set — using Auto – Blend'**
+  String get analysisManualNotSet;
+
+  /// No description provided for @analysisMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode: {mode}'**
+  String analysisMode(Object mode);
+
+  /// No description provided for @analysisMonthlyHeatmap.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Spend Heatmap'**
+  String get analysisMonthlyHeatmap;
+
+  /// No description provided for @analysisNoOtherItems.
+  ///
+  /// In en, this message translates to:
+  /// **'No other items yet — every expense is a bill'**
+  String get analysisNoOtherItems;
+
+  /// No description provided for @analysisNoSalaryWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'No salary credits found in window (current month first week or previous month last working day)'**
+  String get analysisNoSalaryWindow;
+
+  /// No description provided for @analysisNoSpendingMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.'**
+  String get analysisNoSpendingMonth;
+
+  /// No description provided for @analysisNoSpendingYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No spending yet. Great start to saving!'**
+  String get analysisNoSpendingYet;
+
+  /// No description provided for @analysisOnTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'On track with usual spending.'**
+  String get analysisOnTrack;
+
+  /// No description provided for @analysisOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Others'**
+  String get analysisOthers;
+
+  /// No description provided for @analysisOvershooting.
+  ///
+  /// In en, this message translates to:
+  /// **'Overshooting by ~{percent}%'**
+  String analysisOvershooting(Object percent);
+
+  /// No description provided for @analysisPredicted.
+  ///
+  /// In en, this message translates to:
+  /// **'Predicted: {amount}'**
+  String analysisPredicted(Object amount);
+
+  /// No description provided for @analysisProjectedOvershoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected +{percent}% vs usual.'**
+  String analysisProjectedOvershoot(Object percent);
+
+  /// No description provided for @analysisSeeOtherItems.
+  ///
+  /// In en, this message translates to:
+  /// **'See which transactions count as other items'**
+  String get analysisSeeOtherItems;
+
+  /// No description provided for @analysisSmartDailyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Daily Limit'**
+  String get analysisSmartDailyLimit;
+
+  /// No description provided for @analysisSpendPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Spend per day'**
+  String get analysisSpendPerDay;
+
+  /// No description provided for @analysisSpendingFaster.
+  ///
+  /// In en, this message translates to:
+  /// **'Spending on {category} is faster than usual.'**
+  String analysisSpendingFaster(Object category);
+
+  /// No description provided for @analysisSpendingLower.
+  ///
+  /// In en, this message translates to:
+  /// **'Good job! {category} spending is lower than usual.'**
+  String analysisSpendingLower(Object category);
+
+  /// No description provided for @analysisSpendingNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No spending on {category} yet.'**
+  String analysisSpendingNone(Object category);
+
+  /// No description provided for @analysisSpendingOnTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} spending is on track.'**
+  String analysisSpendingOnTrack(Object category);
+
+  /// No description provided for @analysisSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent: {amount}'**
+  String analysisSpent(Object amount);
+
+  /// No description provided for @analysisStopSpending.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop! You\'re well above today\'s safe limit.'**
+  String get analysisStopSpending;
+
+  /// No description provided for @analysisTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target: {amount}'**
+  String analysisTarget(Object amount);
+
+  /// No description provided for @analysisUsual.
+  ///
+  /// In en, this message translates to:
+  /// **'Usual: {amount}'**
+  String analysisUsual(Object amount);
+
+  /// No description provided for @analysisWithinLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re within today\'s safe limit.'**
+  String get analysisWithinLimit;
+
   /// No description provided for @analyticsAdvanced.
   ///
   /// In en, this message translates to:
@@ -669,6 +911,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Net Balance'**
   String get analyticsNetBalance;
+
+  /// No description provided for @analyticsInLegend.
+  ///
+  /// In en, this message translates to:
+  /// **' In'**
+  String get analyticsInLegend;
 
   /// No description provided for @analyticsNotEnoughDataForTrend.
   ///
@@ -1952,6 +2200,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Imported'**
   String get imported;
+
+  /// No description provided for @incomeModeBlend.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto – Blend (3-month average)'**
+  String get incomeModeBlend;
+
+  /// No description provided for @incomeModeManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get incomeModeManual;
+
+  /// No description provided for @incomeModeSalaryWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto – Salary window (current month first week or previous month last working day)'**
+  String get incomeModeSalaryWindow;
 
   /// No description provided for @incomeSource.
   ///

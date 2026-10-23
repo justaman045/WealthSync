@@ -42,17 +42,6 @@ class IncomeSettings {
     }
   }
 
-  static String modeLabel([IncomeMode? m]) {
-    switch (m ?? mode.value) {
-      case IncomeMode.manual:
-        return 'Manual';
-      case IncomeMode.autoBlend:
-        return 'Auto – Blend (3-month average)';
-      case IncomeMode.autoSalaryWindow:
-        return 'Auto – Salary window (current month first week or previous month last working day)';
-    }
-  }
-
   /// Loads the persisted income settings into [mode] and [manualMonthly].
   static Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();

@@ -31,10 +31,14 @@ void main() {
     mark('transaction created');
 
     // ── 1. AI Insights tab ──────────────────────────────────────────────────
-    await tapNavTab(tester, Icons.auto_awesome_outlined, 'AI Insights');
+    await tapNavTab(
+      tester,
+      Icons.auto_awesome_outlined,
+      AppStrings.aiInsights,
+    );
     mark('AI tab tapped');
-    await waitFor(tester, find.text('This Month Forecast'));
-    expect(find.text('This Month Forecast'), findsWidgets);
+    await waitFor(tester, find.text(AppStrings.aiForecastTitle));
+    expect(find.text(AppStrings.aiForecastTitle), findsWidgets);
     mark('forecast visible');
 
     await scrollUntilVisible(tester, find.textContaining('Category Insights'));

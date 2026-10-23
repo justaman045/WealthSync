@@ -63,6 +63,12 @@ class AppStrings {
   static const String youAreAProMember = 'You are a Pro Member!';
   static const String renewsOn = 'Renews on:';
 
+  // ---- AI Insights ----
+  // The E2E suite waits on the tab marker and the forecast title, so both are
+  // asserted through here rather than retyped.
+  static const String aiInsights = 'AI Insights';
+  static const String aiForecastTitle = 'This Month Forecast';
+
   // ---- Analytics (data-dependent titles) ----
   static const String monthlyTrend = 'Monthly Trend';
   static const String currentPeriod = 'Current Period';

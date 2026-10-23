@@ -43,6 +43,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryTab => 'Library';
 
   @override
+  String get aiInsights => 'AI Insights';
+
+  @override
   String get amount => 'Amount';
 
   @override
@@ -265,6 +268,185 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadyImported => 'Already Imported';
 
   @override
+  String get analysisAddIncomeHint =>
+      'Add your income (a received Salary/Income entry) to see how much you can safely spend per day.';
+
+  @override
+  String analysisBillPaid(Object category) {
+    return 'You have paid your usual $category bill.';
+  }
+
+  @override
+  String analysisBillPartial(Object category) {
+    return '$category payment seems partial.';
+  }
+
+  @override
+  String analysisBillPending(Object amount) {
+    return 'Pending: you usually pay ~$amount.';
+  }
+
+  @override
+  String get analysisCarefulSpending =>
+      'Careful, you\'re slightly above today\'s safe limit.';
+
+  @override
+  String get analysisCategoryInsightsTitle => 'Category Insights';
+
+  @override
+  String analysisDaySpend(Object amount, Object day) {
+    return 'Day $day: $amount';
+  }
+
+  @override
+  String get analysisEmpty =>
+      'No expense transactions yet.\nAdd a \'Send\' transaction to see AI insights.';
+
+  @override
+  String analysisError(Object error) {
+    return 'AI Analysis Error: $error';
+  }
+
+  @override
+  String get analysisForecastTitle => 'This Month Forecast';
+
+  @override
+  String get analysisHeatmapLegend =>
+      'Darker boxes indicate higher spending days.';
+
+  @override
+  String analysisIncomeBreakdown(
+    Object bills,
+    num days,
+    Object income,
+    Object rate,
+    Object remaining,
+    Object saving,
+    Object spent,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return 'From ~$income income: saving $saving ($rate%) and $bills for bills. Already spent $spent on other items, leaving $remaining over $_temp0.';
+  }
+
+  @override
+  String get analysisItemsSpent => 'Items spent this month';
+
+  @override
+  String analysisItemsSummary(Object amount, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions',
+      one: 'transaction',
+    );
+    return '$amount · $_temp0';
+  }
+
+  @override
+  String get analysisManualNotSet => 'Manual not set — using Auto – Blend';
+
+  @override
+  String analysisMode(Object mode) {
+    return 'Mode: $mode';
+  }
+
+  @override
+  String get analysisMonthlyHeatmap => 'Monthly Spend Heatmap';
+
+  @override
+  String get analysisNoOtherItems =>
+      'No other items yet — every expense is a bill';
+
+  @override
+  String get analysisNoSalaryWindow =>
+      'No salary credits found in window (current month first week or previous month last working day)';
+
+  @override
+  String get analysisNoSpendingMonth =>
+      'No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.';
+
+  @override
+  String get analysisNoSpendingYet => 'No spending yet. Great start to saving!';
+
+  @override
+  String get analysisOnTrack => 'On track with usual spending.';
+
+  @override
+  String get analysisOthers => 'Others';
+
+  @override
+  String analysisOvershooting(Object percent) {
+    return 'Overshooting by ~$percent%';
+  }
+
+  @override
+  String analysisPredicted(Object amount) {
+    return 'Predicted: $amount';
+  }
+
+  @override
+  String analysisProjectedOvershoot(Object percent) {
+    return 'Projected +$percent% vs usual.';
+  }
+
+  @override
+  String get analysisSeeOtherItems =>
+      'See which transactions count as other items';
+
+  @override
+  String get analysisSmartDailyLimit => 'Smart Daily Limit';
+
+  @override
+  String get analysisSpendPerDay => 'Spend per day';
+
+  @override
+  String analysisSpendingFaster(Object category) {
+    return 'Spending on $category is faster than usual.';
+  }
+
+  @override
+  String analysisSpendingLower(Object category) {
+    return 'Good job! $category spending is lower than usual.';
+  }
+
+  @override
+  String analysisSpendingNone(Object category) {
+    return 'No spending on $category yet.';
+  }
+
+  @override
+  String analysisSpendingOnTrack(Object category) {
+    return '$category spending is on track.';
+  }
+
+  @override
+  String analysisSpent(Object amount) {
+    return 'Spent: $amount';
+  }
+
+  @override
+  String get analysisStopSpending =>
+      'Stop! You\'re well above today\'s safe limit.';
+
+  @override
+  String analysisTarget(Object amount) {
+    return 'Target: $amount';
+  }
+
+  @override
+  String analysisUsual(Object amount) {
+    return 'Usual: $amount';
+  }
+
+  @override
+  String get analysisWithinLimit => 'You\'re within today\'s safe limit.';
+
+  @override
   String get analyticsAdvanced => 'Advanced Analytics';
 
   @override
@@ -307,6 +489,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyticsNetBalance => 'Net Balance';
+
+  @override
+  String get analyticsInLegend => ' In';
 
   @override
   String get analyticsNotEnoughDataForTrend => 'Not enough data for trend.';
@@ -1079,6 +1264,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get imported => 'Imported';
+
+  @override
+  String get incomeModeBlend => 'Auto – Blend (3-month average)';
+
+  @override
+  String get incomeModeManual => 'Manual';
+
+  @override
+  String get incomeModeSalaryWindow =>
+      'Auto – Salary window (current month first week or previous month last working day)';
 
   @override
   String get incomeSource => 'Income Source';

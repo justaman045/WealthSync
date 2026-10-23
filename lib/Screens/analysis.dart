@@ -10,7 +10,10 @@ import 'package:flutter/rendering.dart' as rendering;
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/skeleton_loader.dart';
 import 'package:money_control/Components/staggered_slide_fade.dart';
+import 'package:intl/intl.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/income_mode_label.dart';
+import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Components/feature_gate.dart';
@@ -118,6 +121,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       }
       if (!mounted) return;
 
+      // Captured once, before the long compute, so every generated sentence
+      // below is in the same language as the frame that started the pass.
+      final l10n = AppLocalizations.of(context)!;
+
       // Per-category user overrides for the fixed/variable/ignored split.
       final treatmentOverrides =
           buildTreatmentOverrides(txController.categories);
@@ -148,8 +155,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       if (allTx.isEmpty) {
         setState(() {
           loading = false;
-          error =
-              "No expense transactions yet.\nAdd a 'Send' transaction to see AI insights.";
+          error = l10n.analysisEmpty;
         });
         return;
       }
@@ -173,7 +179,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       for (final tx in allTx) {
         final d = tx.date;
         final monthKey = d.year * 100 + d.month;
-        final cat = tx.category ?? "Others";
+        final cat = tx.category ?? l10n.analysisOthers;
         final role = resolveDailyLimitRole(
           cat,
           treatmentOverrides: treatmentOverrides,
@@ -388,14 +394,16 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         if (isFixed) {
           smartBudget = catHistAvg;
           if (currentSpent >= catHistAvg * 0.9 && catHistAvg > 0) {
-            msg = "✅ You have paid your usual $cat bill.";
+            msg = l10n.analysisBillPaid(cat);
             catForecast = currentSpent;
           } else if (currentSpent > 0) {
-            msg = "⚠ $cat payment seems partial.";
+            msg = l10n.analysisBillPartial(cat);
             catForecast = max(currentSpent, catHistAvg);
           } else {
-            msg =
-                "📅 Pending: You usually pay ~${CurrencyController.to.currencySymbol.value}${catHistAvg.toStringAsFixed(0)}.";
+            msg = l10n.analysisBillPending(
+              "${CurrencyController.to.currencySymbol.value}"
+              "${catHistAvg.toStringAsFixed(0)}",
+            );
             catForecast = catHistAvg;
           }
         } else {
@@ -422,13 +430,13 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           smartBudget = catHistAvg > 0 ? catHistAvg : currentSpent * 1.1;
 
           if (currentSpent > expectedSoFar * 1.25 && catHistAvg > 500) {
-            msg = "🚨 Spending on $cat is faster than usual.";
+            msg = l10n.analysisSpendingFaster(cat);
           } else if (currentSpent < expectedSoFar * 0.75 && currentSpent > 0) {
-            msg = "✨ Good job! $cat spending is lower than usual.";
+            msg = l10n.analysisSpendingLower(cat);
           } else if (currentSpent == 0) {
-            msg = "zzz No spending on $cat yet.";
+            msg = l10n.analysisSpendingNone(cat);
           } else {
-            msg = "⚖️ $cat spending is on track.";
+            msg = l10n.analysisSpendingOnTrack(cat);
           }
         }
 
@@ -461,7 +469,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        error = "AI Analysis Error: $e";
+        error = AppLocalizations.of(context)!.analysisError(e.toString());
       });
       debugPrint(e.toString());
     }
@@ -486,7 +494,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "AI Insights",
+          AppLocalizations.of(context)!.aiInsights,
           style: AppType.titleMedium(scheme.onSurface),
         ),
         centerTitle: true,
@@ -619,7 +627,9 @@ child: loading
                     StaggeredSlideFade(
                       delay: 300,
                       child: Text(
-                        "🔮 Category Insights (This Month)",
+                        AppLocalizations.of(
+                          context,
+                        )!.analysisCategoryInsightsTitle,
                         style: AppType.titleMedium(scheme.onSurface),
                       ),
                     ),
@@ -665,6 +675,7 @@ child: loading
   // ---------------- Forecast Card --------------------
 
   Widget _buildForecastCard(ColorScheme scheme) {
+    final l10n = AppLocalizations.of(context)!;
     final lite = PerformanceController.to.liteMode.value;
     final total = forecastTotal;
     final spent = currentMonthSpent;
@@ -676,16 +687,19 @@ child: loading
     IconData statusIcon;
 
     if (overshootPercent > 25) {
-      warningText = "Overshooting by ~${overshootPercent.toStringAsFixed(1)}%";
+      warningText = l10n.analysisOvershooting(
+        overshootPercent.toStringAsFixed(1),
+      );
       warningColor = AppColors.error;
       statusIcon = Icons.warning_rounded;
     } else if (overshootPercent > 10) {
-      warningText =
-          "Projected +${overshootPercent.toStringAsFixed(1)}% vs usual.";
+      warningText = l10n.analysisProjectedOvershoot(
+        overshootPercent.toStringAsFixed(1),
+      );
       warningColor = AppColors.warning;
       statusIcon = Icons.info_outline_rounded;
     } else {
-      warningText = "On track with usual spending.";
+      warningText = l10n.analysisOnTrack;
       warningColor = AppColors.success;
       statusIcon = Icons.check_circle_outline_rounded;
     }
@@ -702,10 +716,11 @@ child: loading
             : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
+                // Two stops of the one accent. The third stop was Material
+                // deepPurple, which is a second accent by accident.
                 colors: [
-                  AppColors.primary, // Blurple
-                  AppColors.primaryPress, // Deep Purple
-                  Colors.deepPurple.shade900,
+                  AppColors.primary,
+                  AppColors.primaryPress,
                 ],
               ),
         borderRadius: BorderRadius.circular(26.r),
@@ -730,8 +745,10 @@ child: loading
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "This Month Forecast",
-                style: AppType.titleSmall(Colors.white.withValues(alpha: 0.85)),
+                l10n.analysisForecastTitle,
+                style: AppType.titleSmall(
+                  scheme.onPrimary.withValues(alpha: 0.85),
+                ),
               ),
               Icon(Icons.auto_awesome, color: AppColors.warning, size: 20.sp),
             ],
@@ -746,7 +763,7 @@ child: loading
             builder: (context, value, child) {
               return Text(
                 "${CurrencyController.to.currencySymbol.value}${value.toStringAsFixed(0)}",
-                style: AppType.headlineLarge(Colors.white),
+                style: AppType.headlineLarge(scheme.onPrimary),
               );
             },
           ),
@@ -757,12 +774,22 @@ child: loading
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Spent: ${CurrencyController.to.currencySymbol.value}${spent.toStringAsFixed(0)}",
-                style: AppType.titleSmall(Colors.white.withValues(alpha: 0.95)),
+                l10n.analysisSpent(
+                  "${CurrencyController.to.currencySymbol.value}"
+                  "${spent.toStringAsFixed(0)}",
+                ),
+                style: AppType.titleSmall(
+                  scheme.onPrimary.withValues(alpha: 0.95),
+                ),
               ),
               Text(
-                "Target: ${CurrencyController.to.currencySymbol.value}${total.toStringAsFixed(0)}",
-                style: AppType.bodySmall(Colors.white.withValues(alpha: 0.7)),
+                l10n.analysisTarget(
+                  "${CurrencyController.to.currencySymbol.value}"
+                  "${total.toStringAsFixed(0)}",
+                ),
+                style: AppType.bodySmall(
+                  scheme.onPrimary.withValues(alpha: 0.7),
+                ),
               ),
             ],
           ),
@@ -778,9 +805,9 @@ child: loading
                   child: LinearProgressIndicator(
                     value: pct,
                     minHeight: 8.h,
-                    backgroundColor: Colors.black12,
+                    backgroundColor: scheme.onPrimary.withValues(alpha: 0.12),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withValues(alpha: 0.9),
+                      scheme.onPrimary.withValues(alpha: 0.9),
                     ),
                   ),
                 ),
@@ -788,7 +815,7 @@ child: loading
               SizedBox(width: 12.w),
               Text(
                 "${(pct * 100).toStringAsFixed(0)}%",
-                style: AppType.titleSmall(Colors.white),
+                style: AppType.titleSmall(scheme.onPrimary),
               ),
             ],
           ),
@@ -798,9 +825,11 @@ child: loading
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: scheme.onPrimary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: scheme.onPrimary.withValues(alpha: 0.1),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -809,7 +838,7 @@ child: loading
                 SizedBox(width: 6.w),
                 Text(
                   warningText,
-                  style: AppType.labelSmall(warningColor),
+                  style: AppType.labelSmall(scheme.onPrimary),
                 ),
               ],
             ),
@@ -822,7 +851,7 @@ child: loading
   // --------------- Daily Limit Card ------------------
 
   Widget _buildDailyLimitCard(ColorScheme scheme) {
-    final lite = PerformanceController.to.liteMode.value;
+    final l10n = AppLocalizations.of(context)!;
     final sym = CurrencyController.to.currencySymbol.value;
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -848,22 +877,20 @@ child: loading
 
     final List<Widget> children = [
       Text(
-        "Smart Daily Limit",
+        l10n.analysisSmartDailyLimit,
         style: AppType.labelLarge(scheme.onSurface.withValues(alpha: 0.95)),
       ),
       SizedBox(height: 4.h),
       Obx(() {
         final m = IncomeSettings.mode.value;
         final manual = IncomeSettings.manualMonthly.value;
-        String note = "Mode: ${IncomeSettings.modeLabel(m)}";
+        var note = l10n.analysisMode(incomeModeLabel(l10n, m));
         if (m == IncomeMode.manual && manual <= 0) {
-          note += " · Manual not set — using Auto – Blend";
+          note += ' · ${l10n.analysisManualNotSet}';
         }
-        // reflect liveIncome if salary window empty
-        if (m == IncomeMode.autoSalaryWindow) {
-          if (liveIncome.salaryWindowEmpty) {
-            note += " · No salary credits found in window (current month first week or previous month last working day)";
-          }
+        // Reflect liveIncome when the salary window is empty.
+        if (m == IncomeMode.autoSalaryWindow && liveIncome.salaryWindowEmpty) {
+          note += ' · ${l10n.analysisNoSalaryWindow}';
         }
         return Text(
           note,
@@ -878,7 +905,7 @@ child: loading
       children.addAll([
         SizedBox(height: 8.h),
         Text(
-          "Add your income (a received Salary/Income entry) to see how much you can safely spend per day.",
+          l10n.analysisAddIncomeHint,
           style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
       ]);
@@ -890,17 +917,17 @@ child: loading
       String statusText;
       Color statusColor;
       if (today > daily * 1.5) {
-        statusText = "Stop! You're well above today's safe limit.";
+        statusText = l10n.analysisStopSpending;
         statusColor = AppColors.error;
       } else if (today > daily * 1.1) {
-        statusText = "Careful, you're slightly above today's safe limit.";
-        statusColor = Colors.orange.shade700;
+        statusText = l10n.analysisCarefulSpending;
+        statusColor = AppColors.warning;
       } else if (today == 0) {
-        statusText = "No spending yet. Great start to saving!";
-        statusColor = Colors.blueGrey;
+        statusText = l10n.analysisNoSpendingYet;
+        statusColor = scheme.onSurface.withValues(alpha: 0.6);
       } else {
-        statusText = "You're within today's safe limit.";
-        statusColor = Colors.green.shade700;
+        statusText = l10n.analysisWithinLimit;
+        statusColor = AppColors.success;
       }
 
       children.addAll([
@@ -909,25 +936,30 @@ child: loading
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _limitTile(
-              "Spend per day",
+              l10n.analysisSpendPerDay,
               "$sym${daily.toStringAsFixed(0)}",
               scheme.onSurface,
             ),
             _limitTile(
-              "Today",
+              l10n.today,
               "$sym${today.toStringAsFixed(0)}",
-              today > daily ? AppColors.error : Colors.green.shade700,
+              today > daily ? AppColors.error : AppColors.success,
             ),
           ],
         ),
         SizedBox(height: 8.h),
         Text(
-          "From ~$sym${limit.expectedIncome.toStringAsFixed(0)} income: saving "
-          "$sym${limit.savingsReserved.toStringAsFixed(0)} ($ratePct%) and "
-          "$sym${limit.fixedForecast.toStringAsFixed(0)} for bills. Already "
-          "spent $sym${limit.variableSpent.toStringAsFixed(0)} on other items, "
-          "leaving $sym${limit.remainingVariable.toStringAsFixed(0)} over "
-          "${limit.remainingDays} day${limit.remainingDays == 1 ? '' : 's'}.",
+          // gen-l10n orders positional placeholders alphabetically, not in
+          // sentence order: bills, days, income, rate, remaining, saving, spent.
+          l10n.analysisIncomeBreakdown(
+            "$sym${limit.fixedForecast.toStringAsFixed(0)}",
+            limit.remainingDays,
+            "$sym${limit.expectedIncome.toStringAsFixed(0)}",
+            '$ratePct',
+            "$sym${limit.remainingVariable.toStringAsFixed(0)}",
+            "$sym${limit.savingsReserved.toStringAsFixed(0)}",
+            "$sym${limit.variableSpent.toStringAsFixed(0)}",
+          ),
           style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
         SizedBox(height: 6.h),
@@ -938,36 +970,7 @@ child: loading
       ]);
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.8), // Glass-like base
-        borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(
-            color: scheme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.lightBorder),
-        gradient: lite
-            ? null
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  scheme.surface.withValues(alpha: 0.9),
-                  scheme.surface.withValues(alpha: 0.6),
-                ],
-              ),
-        boxShadow: lite
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 15.w,
-                  offset: Offset(0, 8.w),
-                ),
-              ],
-      ),
+    return _InsightCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: children,
@@ -982,44 +985,14 @@ child: loading
   // each transaction so the number is auditable (and shows the excluded fixed
   // bills alongside it).
   Widget _buildOtherItemsCard(ColorScheme scheme) {
-    final lite = PerformanceController.to.liteMode.value;
+    final l10n = AppLocalizations.of(context)!;
     final sym = CurrencyController.to.currencySymbol.value;
     final count = currentVariableTxCount;
     final total = currentVariableSpent;
 
     return GestureDetector(
       onTap: () => Get.to(() => const OtherItemsScreen()),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: EdgeInsets.all(20.w),
-        decoration: BoxDecoration(
-          color: scheme.surface.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(22.r),
-          border: Border.all(
-            color: scheme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.lightBorder,
-          ),
-          gradient: lite
-              ? null
-              : LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    scheme.surface.withValues(alpha: 0.9),
-                    scheme.surface.withValues(alpha: 0.6),
-                  ],
-                ),
-          boxShadow: lite
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 15.w,
-                    offset: Offset(0, 8.w),
-                  ),
-                ],
-        ),
+      child: _InsightCard(
         child: Row(
           children: [
             Expanded(
@@ -1027,20 +1000,24 @@ child: loading
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Items spent this month",
-                    style: AppType.labelLarge(scheme.onSurface.withValues(alpha: 0.95)),
+                    l10n.analysisItemsSpent,
+                    style: AppType.labelLarge(
+                      scheme.onSurface.withValues(alpha: 0.95),
+                    ),
                   ),
                   SizedBox(height: 4.h),
                   Text(
                     count == 0
-                        ? "No other items yet — every expense is a bill"
-                        : "$sym${total.toStringAsFixed(0)} · "
-                            "$count transaction${count == 1 ? '' : 's'}",
+                        ? l10n.analysisNoOtherItems
+                        : l10n.analysisItemsSummary(
+                            "$sym${total.toStringAsFixed(0)}",
+                            count,
+                          ),
                     style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.75)),
                   ),
                   SizedBox(height: 2.h),
                   Text(
-                    "See which transactions count as other items",
+                    l10n.analysisSeeOtherItems,
                     style: AppType.labelSmall(scheme.primary),
                   ),
                 ],
@@ -1062,7 +1039,9 @@ child: loading
       children: [
         Text(
           label,
-          style: AppType.labelSmall(Colors.grey.withValues(alpha: 0.9)),
+          style: AppType.labelSmall(
+            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
         ),
         SizedBox(height: 2.h),
         Text(
@@ -1076,19 +1055,24 @@ child: loading
   // ---------------- Calendar Heatmap -----------------
 
   Widget _buildHeatmapCard(ColorScheme scheme) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final lite = PerformanceController.to.liteMode.value;
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
 
     if (dailySpending.isEmpty) {
       return Container(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(AppSpace.s16.w),
         decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(18.r),
+          color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+          borderRadius: BorderRadius.circular(AppRadius.lg.r),
+          border: Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
         ),
         child: Text(
-          "No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.",
+          l10n.analysisNoSpendingMonth,
           style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
       );
@@ -1099,56 +1083,35 @@ child: loading
       (prev, v) => v > prev ? v : prev,
     );
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: EdgeInsets.all(20.w),
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.8), // Glass-like base
-        borderRadius: BorderRadius.circular(22.r),
-        border: Border.all(
-            color: scheme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.08)
-                : AppColors.lightBorder),
-        gradient: lite
-            ? null
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  scheme.surface.withValues(alpha: 0.95),
-                  scheme.surface.withValues(alpha: 0.8),
-                ],
-              ),
-        boxShadow: lite
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 15.w,
-                  offset: Offset(0, 8.w),
-                ),
-              ],
-      ),
+    return _InsightCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Monthly Spend Heatmap",
+            l10n.analysisMonthlyHeatmap,
             style: AppType.labelLarge(scheme.onSurface.withValues(alpha: 0.95)),
           ),
           SizedBox(height: 8.h),
-          // Weekday header row
+          // Weekday initials come from the locale, not a hard-coded "S M T W
+          // T F S" that only reads correctly in English.
           Row(
-            children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label) {
+            children: List.generate(7, (i) {
+              // 2024-01-07 is a Sunday, so the grid stays Sunday-first.
+              final label = DateFormat(
+                'EEEEE',
+                Localizations.localeOf(context).toLanguageTag(),
+              ).format(DateTime(2024, 1, 7 + i));
               return Expanded(
                 child: Center(
                   child: Text(
                     label,
-                    style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.5)),
+                    style: AppType.labelSmall(
+                      scheme.onSurface.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ),
           SizedBox(height: 6.h),
           GridView.builder(
@@ -1173,9 +1136,11 @@ child: loading
               double intensity = maxDaily > 0
                   ? (spent / maxDaily).clamp(0.0, 1.0)
                   : 0.0;
+              // Spending is the accent, not a success: the ramp runs from the
+              // card surface to the accent instead of a Material green.
               final bgColor = Color.lerp(
                 scheme.surface,
-                Colors.green.shade600,
+                AppColors.primary,
                 intensity,
               )!;
 
@@ -1185,8 +1150,11 @@ child: loading
                   date.day == now.day;
 
               return Tooltip(
-                message:
-                    "Day $day: ${CurrencyController.to.currencySymbol.value}${spent.toStringAsFixed(0)}",
+                message: l10n.analysisDaySpend(
+                  day,
+                  "${CurrencyController.to.currencySymbol.value}"
+                  "${spent.toStringAsFixed(0)}",
+                ),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   decoration: BoxDecoration(
@@ -1195,14 +1163,14 @@ child: loading
                     border: isToday
                         ? Border.all(color: AppColors.primary, width: 1.5)
                         : Border.all(
-                            color: scheme.brightness == Brightness.dark
-                                ? Colors.white.withValues(alpha: 0.05)
+                            color: isDark
+                                ? AppColors.darkBorder
                                 : AppColors.lightBorder,
                           ),
                     boxShadow: [
                       if (!lite && intensity > 0.3)
                         BoxShadow(
-                          color: AppColors.success.withValues(alpha: 0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           blurRadius: 4.w,
                           offset: Offset(0, 2.w),
                         ),
@@ -1211,9 +1179,11 @@ child: loading
                   child: Center(
                     child: Text(
                       "$day",
-                      style: AppType.labelMedium(intensity > 0.5
-                            ? Colors.white
-                            : scheme.onSurface),
+                      style: AppType.labelMedium(
+                        intensity > 0.5
+                            ? scheme.onPrimary
+                            : scheme.onSurface,
+                      ),
                     ),
                   ),
                 ),
@@ -1222,7 +1192,7 @@ child: loading
           ),
           SizedBox(height: 8.h),
           Text(
-            "Darker boxes indicate higher spending days.",
+            l10n.analysisHeatmapLegend,
             style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.7)),
           ),
         ],
@@ -1233,10 +1203,8 @@ child: loading
   // ---------------- Category Insight Card ------------
 
   Widget _buildInsightCard(CategoryInsight c, ColorScheme scheme) {
-    final lite = PerformanceController.to.liteMode.value;
-    final trendColor = c.trendPercent >= 0
-        ? AppColors.error
-        : Colors.green.shade700;
+    final l10n = AppLocalizations.of(context)!;
+    final trendColor = c.trendPercent >= 0 ? AppColors.error : AppColors.success;
     final trendIcon = c.trendPercent >= 0
         ? Icons.arrow_upward
         : Icons.arrow_downward;
@@ -1250,9 +1218,9 @@ child: loading
     if (c.currentSoFar > budget) {
       healthColor = AppColors.error;
     } else if (c.currentSoFar > budget * 0.85) {
-      healthColor = Colors.orange.shade700;
+      healthColor = AppColors.warning;
     } else {
-      healthColor = Colors.green.shade600;
+      healthColor = AppColors.success;
     }
 
     return GestureDetector(
@@ -1268,23 +1236,8 @@ child: loading
           ),
         );
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: EdgeInsets.only(bottom: 12.h),
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(20.r),
-          boxShadow: lite
-              ? null
-              : [
-                  BoxShadow(
-                    color: scheme.onSurface.withValues(alpha: 0.03),
-                    blurRadius: 10.w,
-                    offset: Offset(0, 4.w),
-                  ),
-                ],
-        ),
+      child: _InsightCard(
+        margin: EdgeInsets.only(bottom: AppSpace.s12.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1341,12 +1294,18 @@ child: loading
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Spent: ${CurrencyController.to.currencySymbol.value}${c.currentSoFar.toStringAsFixed(0)}",
+                      l10n.analysisSpent(
+                        "${CurrencyController.to.currencySymbol.value}"
+                        "${c.currentSoFar.toStringAsFixed(0)}",
+                      ),
                       style: AppType.labelMedium(healthColor),
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      "Predicted: ${CurrencyController.to.currencySymbol.value}${c.forecastMonthTotal.toStringAsFixed(0)}",
+                      l10n.analysisPredicted(
+                        "${CurrencyController.to.currencySymbol.value}"
+                        "${c.forecastMonthTotal.toStringAsFixed(0)}",
+                      ),
                       style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.8)),
                     ),
                   ],
@@ -1355,13 +1314,18 @@ child: loading
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "Usual: ${CurrencyController.to.currencySymbol.value}${c.smartBudget.toStringAsFixed(0)}",
+                      l10n.analysisUsual(
+                        "${CurrencyController.to.currencySymbol.value}"
+                        "${c.smartBudget.toStringAsFixed(0)}",
+                      ),
                       style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.6)),
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      "Limit",
-                      style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.4)),
+                      l10n.limit,
+                      style: AppType.labelSmall(
+                        scheme.onSurface.withValues(alpha: 0.4),
+                      ),
                     ),
                   ],
                 ),
@@ -1428,3 +1392,37 @@ class CategoryInsight {
 // ============================================
 // ANIMATION HELPERS
 // ============================================
+
+/// The one surface behind the AI Insight cards.
+///
+/// It used to be three copies of the same `AnimatedContainer` — a surface
+/// gradient between two alphas, a white-at-8% hairline, a black-at-20% shadow —
+/// each gated on lite mode by hand. The gradient and the shadow are what made
+/// this screen heavy under software GL, so the lite-mode branch stays, but the
+/// surface, border and radius come from the tokens.
+class _InsightCard extends StatelessWidget {
+  const _InsightCard({required this.child, this.margin});
+
+  final Widget child;
+  final EdgeInsetsGeometry? margin;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lite = PerformanceController.to.liteMode.value;
+    return AnimatedContainer(
+      duration: AppMotion.base,
+      margin: margin,
+      padding: EdgeInsets.all(AppSpace.s20.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+        borderRadius: BorderRadius.circular(AppRadius.xl.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+        boxShadow: lite ? null : AppElevation.raised(isDark: isDark),
+      ),
+      child: child,
+    );
+  }
+}
