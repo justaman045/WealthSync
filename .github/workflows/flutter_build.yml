@@ -119,17 +119,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # The Firestore emulator is a JVM process.
+      # The Firestore emulator is a JVM process, and firebase-tools 15 refuses to
+      # start it on anything older than Java 21 ("no longer supports Java
+      # version before 21"). Java 17 — the pin the Android build needs — would
+      # fail here, so this job pins 21 independently.
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
+      # firebase@13 (and @firebase/rules-unit-testing@6) declare
+      # `node >=24.12.0`; the runner's default Node 22 installs with
+      # EBADENGINE warnings and is not a supported runtime.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
           cache-dependency-path: tool/rules_tests/package-lock.json
 

@@ -14,7 +14,7 @@ bash tool/check_ui_strings.sh --strict # fail if debts exceed tool/revamp_baseli
 flutter test                       # unit/widget tests ONLY (test/); integration tests never run here
 flutter test test/<file>_test.dart # single file
 bash tool/run_integration_tests.sh # canonical E2E runner: whole suite, internally one file at a time, fresh emulator per file — no args (needs env creds + booted emulator-5554; single-file runs use the flutter test block below)
-bash tool/rules_tests/run.sh       # Firestore + Storage rules against the emulators (needs Node 20+ and a JDK; `npm ci` on first run)
+bash tool/rules_tests/run.sh       # Firestore + Storage rules against the emulators (needs Node 24.12+ and JDK 21+; `npm ci` on first run)
 bash tool/smoke_release_apk.sh     # installs + launches a release APK on emulator-5554 (R8/startup-crash gate)
 flutter gen-l10n                   # after editing lib/l10n/*.arb (l10n.yaml + generate: true)
 flutter run
