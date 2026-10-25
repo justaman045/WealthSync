@@ -5,9 +5,11 @@ description: >
   sure the pinned NDK is installed.
 
   Centralised so the `build` and `integration_test` jobs cannot drift. The
-  secret is always passed through the environment, never interpolated into a
-  shell command: `echo '${{ secrets.X }}'` breaks on quotes and renders the
-  value into the step script.
+  secret is always passed through the environment and read as a shell variable,
+  never interpolated into the command itself: going through a secret expression
+  breaks on quotes and renders the value into the step script. (Do not put a
+  secret-expression example in this file — action.yml is itself a template and
+  every expression in it is evaluated, including inside this description.)
 
 inputs:
   google_services_json:

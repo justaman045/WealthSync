@@ -207,6 +207,15 @@ void main() {
       final setupAction =
           File('.github/actions/android-setup/action.yml').readAsStringSync();
       expect(setupAction, contains(r'$GS_JSON'));
+      // action.yml is itself a template — every `${{ … }}` in it is evaluated,
+      // including inside `description:`. A `secrets.` reference there fails the
+      // job at manifest-load time ("Unrecognized named-value: 'secrets'"), so
+      // the secret must reach this action as an input only.
+      expect(
+        setupAction,
+        isNot(contains('secrets.')),
+        reason: 'Secrets are not available in a composite action manifest.',
+      );
       expect(
         setupAction,
         contains('GS_JSON: \${{ inputs.google_services_json }}'),
