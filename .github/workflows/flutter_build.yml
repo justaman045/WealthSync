@@ -197,6 +197,27 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # Empty dart-defines surface as `[firebase_auth/channel-error] Given String
+      # is empty or null` on the login call — which reads like an auth bug and
+      # wastes a six-hour E2E run. Fail before booting the emulator instead.
+      - name: Validate E2E credentials
+        env:
+          TEST_EMAIL_V: ${{ secrets.TEST_EMAIL }}
+          TEST_PASSWORD_V: ${{ secrets.TEST_PASSWORD }}
+          PRO_TEST_EMAIL_V: ${{ secrets.PRO_TEST_EMAIL }}
+          PRO_TEST_PASSWORD_V: ${{ secrets.PRO_TEST_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in TEST_EMAIL TEST_PASSWORD PRO_TEST_EMAIL PRO_TEST_PASSWORD; do
+            eval "value=\${${name}_V:-}"
+            if [ -z "$value" ]; then
+              echo "::error::secret $name is empty — E2E cannot sign in without it."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+
       - name: Run integration tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -255,7 +276,7 @@ jobs:
     name: Build release artifacts
     runs-on: ubuntu-latest
     needs: [test, rules, integration_test]
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.test.result == 'success' && needs.rules.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.test.result == 'success' && needs.rules.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
     timeout-minutes: 60
     permissions:
       # Read-only: this job no longer commits the version bump. The version is
@@ -464,7 +485,7 @@ jobs:
     name: Publish GitHub release
     runs-on: ubuntu-latest
     needs: [build, android_smoke, integration_test]
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.build.result == 'success' && needs.android_smoke.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.build.result == 'success' && needs.android_smoke.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
     timeout-minutes: 15
     permissions:
       contents: write
@@ -558,7 +579,7 @@ jobs:
     name: Build & deploy web
     runs-on: ubuntu-latest
     needs: [test, integration_test]
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.test.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.test.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
     timeout-minutes: 30
     permissions:
       # gh-pages is a branch: pushing it needs contents: write. The Pages API

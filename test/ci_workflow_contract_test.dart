@@ -126,6 +126,26 @@ void main() {
       );
     });
 
+    test('publishing jobs refuse to run off master', () {
+      for (final name in ['build', 'release', 'build_web']) {
+        expect(
+          job(name),
+          contains("github.ref == 'refs/heads/master'"),
+          reason: '$name must not publish from a manually dispatched feature '
+              'branch.',
+        );
+      }
+    });
+
+    test('E2E fails fast when its credentials are missing', () {
+      expect(
+        job('integration_test'),
+        contains('Validate E2E credentials'),
+        reason: 'Empty dart-defines surface as a misleading '
+            'firebase_auth/channel-error after the emulator has booted.',
+      );
+    });
+
     test('rules are validated against both emulators', () {
       final rules = job('rules');
       expect(rules, contains('bash tool/rules_tests/run.sh'));

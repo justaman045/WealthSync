@@ -859,10 +859,10 @@ CI (`.github/workflows/flutter_build.yml`, Flutter **3.47.7**):
 | `test` | every push/PR | analyze → UI audit → unit/widget tests → **web release compile** (dart2js). PRs get the same gate as master. |
 | `rules` | every push/PR | `tool/rules_tests/run.sh` boots the Firestore + Storage emulators, compiles both rule sets, and runs `tool/rules_tests/run.js`. |
 | `integration_test` | nightly `schedule` **or** `workflow_dispatch` with `run_integration_tests: true` | the full E2E suite (`bash tool/run_integration_tests.sh`). Never on PRs — it mutates the shared accounts. |
-| `build` | master push / dispatch | release AAB + **one universal APK**, `apksigner verify`, plus assertions that `versionName`/`versionCode` match `2.0.<run_number>`/`<run_number>` and that the APK still carries `arm64-v8a` + `armeabi-v7a` + `x86_64`. Uploads artifacts, publishes nothing. |
+| `build` | master push / dispatch (on `master`) | release AAB + **one universal APK**, `apksigner verify`, plus assertions that `versionName`/`versionCode` match `2.0.<run_number>`/`<run_number>` and that the APK still carries `arm64-v8a` + `armeabi-v7a` + `x86_64`. Uploads artifacts, publishes nothing. |
 | `android_smoke` | after `build` | `tool/smoke_release_apk.sh` installs that exact APK on an emulator and fails on a missing pid, a startup `FATAL EXCEPTION`, or an ANR — the R8-only failure mode no debug test can see. |
 | `release` | after `build` + `android_smoke` | creates `v2.0.<run_number>` with AAB/APK/`SHA256SUMS`, **then** commits `pubspec.yaml` + `app_version.json` as one `CI:` commit. |
-| `build_web` | master push / dispatch | `flutter build web --release --base-href /WealthSync/` → GitHub Pages. |
+| `build_web` | master push / dispatch (on `master`) | `flutter build web --release --base-href /WealthSync/` → GitHub Pages. |
 
 E2E is still **skipped by default**; when opted into (or on the nightly schedule) it gates,
 because `build`/`release`/`build_web` all carry an explicit status guard
