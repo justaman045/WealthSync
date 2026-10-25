@@ -236,5 +236,24 @@ void main() {
       expect(onBlock, contains('- "pubspec.yaml"'));
       expect(onBlock, contains('- "app_version.json"'));
     });
+
+    test('the release-commit guard does not parse the commit message', () {
+      // Actions' `contains()`/`startsWith()` are case-insensitive, so a guard
+      // like `!contains(head_commit.message, 'CI:')` is false for every commit
+      // titled "ci: …" — the version bump is then silently skipped even though
+      // the release was published.
+      expect(
+        workflow,
+        isNot(contains('contains(github.event.head_commit.message')),
+      );
+      expect(
+        job('release'),
+        contains(
+          "github.event.head_commit.committer.name != 'GitHub Actions'",
+        ),
+        reason: 'The loop guard must key on the committer identity, not on a '
+            'case-insensitive message match.',
+      );
+    });
   });
 }

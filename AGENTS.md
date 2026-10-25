@@ -879,7 +879,12 @@ Two ordering rules the pipeline depends on:
 
 `paths-ignore` covers `pubspec.yaml`, `app_version.json` and `README.md`, so the `CI:` commit
 cannot re-trigger a release cycle. A real dependency edit still runs the build because it
-also rewrites the tracked `pubspec.lock`.
+also rewrites the tracked `pubspec.lock`. The release-commit step also carries a backstop
+guard keyed on the **committer identity** (`github.event.head_commit.committer.name`), not on
+the commit message: Actions' `contains()`/`startsWith()` are case-**in**sensitive, so a
+`!contains(head_commit.message, 'CI:')` guard is false for every commit titled `ci: …`. That
+exact mistake skipped the version bump for `v2.0.200` — the release published while
+`app_version.json` stayed one version behind.
 
 Workflow-level `permissions` is `contents: read`; only `release` and `build_web` opt into
 `contents: write` (the Pages API and OIDC grants the workflow used to request globally were

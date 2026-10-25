@@ -509,8 +509,16 @@ jobs:
       # The version is committed only now, after assets exist and the APK has
       # been proven to launch. A single `CI:` commit (instead of two) means one
       # push, so there is only one chance to race another merge.
+      #
+      # The guard skips a run triggered by CI's own release commit. It must NOT
+      # test the message for a "CI:" prefix: Actions' `contains()`/`startsWith()`
+      # are case-INsensitive, so every commit titled "ci: …" (including the very
+      # commit that introduced this pipeline) silently matched the guard and
+      # never bumped the version. `paths-ignore` is the primary loop guard (and
+      # a GITHUB_TOKEN push does not start a new run at all); this is the
+      # backstop, keyed on the committer created by the `git config` below.
       - name: Commit version bump and app_version.json
-        if: ${{ !contains(github.event.head_commit.message, 'CI:') }}
+        if: ${{ github.event.head_commit.committer.name != 'GitHub Actions' }}
         run: |
           set -euo pipefail
           git config --local user.email "actions@github.com"
