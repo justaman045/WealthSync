@@ -1,0 +1,12 @@
+{
+  "name": "wealthsync-rules-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Emulator-backed Firestore + Storage rules tests. Run with `bash tool/rules_tests/run.sh`.",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.1.0",
+    "firebase-tools": "15.34.1"
+  }
+}

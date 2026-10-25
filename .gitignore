@@ -58,6 +58,11 @@ local.properties
 service_account.json
 *.base64
 
+# Emulator-backed rules tests (tool/rules_tests) — dependencies are installed
+# by `npm ci` in CI and by tool/rules_tests/run.sh locally.
+node_modules/
+package-lock.json.bak
+
 # for AI Agents
 CLAUDE.md
 GEMINI.md

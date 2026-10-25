@@ -16,6 +16,10 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # Emulator-backed rules tests are Node.js. firebase-tools ships Dart
+    # templates under node_modules/ that the Dart analyzer would otherwise try
+    # (and fail) to compile after a local `npm ci`.
+    - tool/rules_tests/node_modules/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

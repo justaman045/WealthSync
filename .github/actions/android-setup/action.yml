@@ -1,0 +1,63 @@
+name: Android build setup
+description: >
+  Writes android/app/google-services.json from the repository secret — failing
+  fast with an actionable message when it is missing or malformed — and makes
+  sure the pinned NDK is installed.
+
+  Centralised so the `build` and `integration_test` jobs cannot drift. The
+  secret is always passed through the environment, never interpolated into a
+  shell command: `echo '${{ secrets.X }}'` breaks on quotes and renders the
+  value into the step script.
+
+inputs:
+  google_services_json:
+    description: Contents of android/app/google-services.json.
+    required: true
+  ndk_version:
+    description: NDK version to install when the runner does not already have it.
+    required: false
+    default: '27.3.13750724'
+
+runs:
+  using: composite
+  steps:
+    - name: Write google-services.json
+      shell: bash
+      env:
+        GS_JSON: ${{ inputs.google_services_json }}
+      run: |
+        set -euo pipefail
+        if [ -z "${GS_JSON:-}" ]; then
+          echo "::error::GOOGLE_SERVICES_JSON is empty. Add the Firebase Console file as a repository secret."
+          exit 1
+        fi
+        if ! printf '%s' "$GS_JSON" | grep -q '"project_info"'; then
+          echo "::error::GOOGLE_SERVICES_JSON does not look like a google-services.json (no project_info block)."
+          exit 1
+        fi
+        printf '%s\n' "$GS_JSON" > android/app/google-services.json
+        echo "Wrote android/app/google-services.json ($(wc -c < android/app/google-services.json) bytes)"
+
+    - name: Ensure Android NDK
+      shell: bash
+      env:
+        NDK_VERSION: ${{ inputs.ndk_version }}
+      run: |
+        set -eu
+        SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+        SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+        NDK_DIR="$SDK_ROOT/ndk/$NDK_VERSION"
+        if [ -d "$NDK_DIR" ]; then
+          echo "NDK $NDK_VERSION already present"
+          exit 0
+        fi
+        for attempt in 1 2 3; do
+          echo "Installing NDK $NDK_VERSION (attempt $attempt)"
+          if "$SDKMANAGER" --install "ndk;$NDK_VERSION" </dev/null; then
+            exit 0
+          fi
+          rm -rf "$NDK_DIR" || true
+          sleep 5
+        done
+        echo "Could not install NDK $NDK_VERSION" >&2
+        exit 1

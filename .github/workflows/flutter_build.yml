@@ -6,8 +6,9 @@ on:
     paths-ignore:
       - "README.md"
       - "app_version.json"
-      # The version-bump commit itself only changes pubspec.yaml; ignoring it
-      # here prevents the workflow from re-triggering on its own CI: commit.
+      # The release commit itself only changes pubspec.yaml + app_version.json;
+      # ignoring them here prevents the workflow from re-triggering on its own
+      # `CI:` commit and burning a whole release cycle (new run_number) for it.
       #
       # Safety: this does NOT let a real dependency change slip through — a
       # `pubspec.yaml` edit that alters dependencies also rewrites the tracked
@@ -16,23 +17,47 @@ on:
       - "pubspec.yaml"
   pull_request:
     branches: [master]
+  # Nightly end-to-end run against the live Firebase test accounts. It runs the
+  # same suite the manual dispatch does, but never builds or publishes a
+  # release (build/release/build_web all exclude `schedule`). This is what keeps
+  # the E2E coverage from rotting between opt-in release runs.
+  schedule:
+    - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       run_integration_tests:
-        description: 'Run E2E integration tests on the Android emulator (live Firebase test accounts)'
+        description: "Run E2E integration tests on the Android emulator (live Firebase test accounts)"
         type: boolean
         required: false
         default: false
 
+# Least privilege by default. Jobs that must push (release commit, gh-pages)
+# opt into `contents: write` individually — a workflow-wide write token is not
+# needed by analyze/tests/rules/build, and the Pages/OIDC grants this workflow
+# used to request globally were never required by peaceiris/actions-gh-pages.
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
+
+# Superseded PR runs are pointless; superseded master runs are not — cancelling
+# one mid-release could leave a tag without its version commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FLUTTER_VERSION: "3.47.7"
+  ANDROID_NDK_VERSION: "27.3.13750724"
 
 jobs:
-  # Run analysis and tests before building — broken code must not ship.
+  # ------------------------------------------------------------
+  # ANALYZE + AUDIT + UNIT TESTS (+ web compile)
+  # ------------------------------------------------------------
   test:
+    name: Analyze, audit & unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -40,13 +65,11 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Add google-services.json from secret
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos
@@ -59,42 +82,81 @@ jobs:
           mkdir -p build/report
           flutter test --file-reporter json:build/report/unit.json
 
-      - name: Generate unit test report
-        if: always()
-        run: dart run tool/generate_test_report.dart --unit=build/report/unit.json --out=build/report/unit_report.html
+      # dart2js is stricter than the analyzer and `flutter test` runs on the VM,
+      # so a type error that passes every other check can still fail the web
+      # build (see the `recordError`/`Map<String, Object?>` note in AGENTS.md).
+      # Compiling here — on every event, including PRs — means that class of
+      # error can never reach master, instead of only surfacing after merge in
+      # the deploy job.
+      - name: Web release compile check (dart2js)
+        run: flutter build web --release --base-href /WealthSync/
 
       - name: Upload unit test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          # Upload the whole report dir (unit.json + unit_report.html) so the
-          # integration job's combined report can embed the unit results.
+          # Just the reporter JSON: the combined HTML report is generated in the
+          # integration job, which is where the screenshot + suite data exists.
           name: unit-test-report
           path: build/report/
           if-no-files-found: warn
 
-  # End-to-end tests against the live Firebase backend on an Android emulator.
-  # These mutate the shared test account (create transactions, recurring
-  # payments, etc.), so they NEVER run automatically: the job is skipped unless
-  # a manual workflow_dispatch is fired with the `run_integration_tests` input
-  # set to true. When opted in they GATE the build: build/build_web wait on this
-  # job with a status guard, so an E2E failure still blocks the release, while a
-  # skipped run lets them proceed on analyze + unit tests alone. To re-enable a
-  # hard master-push gate later, drop the job's `if` condition (or add a master
-  # push trigger back) — the tooling and secrets are fully intact. Each test
-  # file runs under a 15-minute timeout so a single hung file can't stall the
-  # suite. A downloadable report (pass/fail, errors, screenshots) is generated
-  # and uploaded whether the suite passes or fails.
+  # ------------------------------------------------------------
+  # FIRESTORE + STORAGE RULES (emulator)
+  # ------------------------------------------------------------
+  # `firebase deploy --dry-run` is the only real rules compiler and it needs
+  # live credentials, which CI does not have. Loading the rules into the
+  # emulators compiles them and then exercises owner isolation, malformed
+  # document rejection, self-admin/self-pro escalation, and profile-picture
+  # ownership — so a rules edit cannot ship unchecked.
+  rules:
+    name: Firestore & Storage rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # The Firestore emulator is a JVM process.
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: tool/rules_tests/package-lock.json
+
+      - name: Run rules tests
+        run: bash tool/rules_tests/run.sh
+
+  # ------------------------------------------------------------
+  # E2E INTEGRATION TESTS (opt-in + nightly)
+  # ------------------------------------------------------------
+  # These mutate the shared test accounts (create transactions, recurring
+  # payments, etc.), so they never run on PRs: the job is skipped unless a
+  # manual workflow_dispatch sets `run_integration_tests` or the nightly
+  # schedule fires. When they do run they GATE the release: build/release wait
+  # on this job with a status guard, so an E2E failure blocks the release while
+  # a skipped run lets it proceed on analyze + unit tests + rules alone.
+  #
+  # Each file runs under a 15-minute timeout so one hung file cannot stall the
+  # suite, and tool/run_integration_tests.sh restarts the emulator between files
+  # (host-GL state accumulates across app launches and killed the second file).
   integration_test:
+    name: Integration tests (emulator)
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true'
+    if: ${{ !cancelled() && needs.test.result == 'success' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true')) }}
     timeout-minutes: 360
-    env:
-      # Use an NDK already on the runner instead of the 28.2.13676358 that
-      # Flutter 3.47.7 asks for (see android/app/build.gradle.kts).
-      ANDROID_NDK_VERSION: 27.3.13750724
-
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -102,13 +164,11 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Add google-services.json from secret
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
       # Pin the JDK: Gradle 9.3.1 / AGP 9.1 require JDK 17+, and relying on the
       # runner's default Java is how the local Android Studio JBR (Java 25) broke
@@ -117,31 +177,13 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      # Pin an NDK the ubuntu-24.04 runner already ships and install it only if
-      # missing, with retries: AGP would otherwise auto-download Flutter's default
-      # (28.2.13676358) and that download corrupted mid-build.
-      - name: Ensure Android NDK
-        run: |
-          set -eu
-          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
-          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          NDK_DIR="$SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
-          if [ -d "$NDK_DIR" ]; then
-            echo "NDK $ANDROID_NDK_VERSION already present"
-            exit 0
-          fi
-          for attempt in 1 2 3; do
-            echo "Installing NDK $ANDROID_NDK_VERSION (attempt $attempt)"
-            if "$SDKMANAGER" --install "ndk;$ANDROID_NDK_VERSION" </dev/null; then
-              exit 0
-            fi
-            rm -rf "$NDK_DIR" || true
-            sleep 5
-          done
-          echo "Could not install NDK $ANDROID_NDK_VERSION" >&2
-          exit 1
+      - name: Prepare Android build
+        uses: ./.github/actions/android-setup
+        with:
+          google_services_json: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          ndk_version: ${{ env.ANDROID_NDK_VERSION }}
 
       - name: Enable KVM
         run: |
@@ -173,7 +215,7 @@ jobs:
           # because the wipe is irreversible and the same code path runs
           # against the Pro account — an implicit wipe once destroyed 791 live
           # transactions. These accounts are disposable, so CI opts in.
-          E2E_ALLOW_WIPE: 'true'
+          E2E_ALLOW_WIPE: "true"
 
       - name: Download unit test report
         if: always()
@@ -194,123 +236,74 @@ jobs:
           path: build/report/report.html
           if-no-files-found: warn
 
+  # ------------------------------------------------------------
+  # ANDROID RELEASE BUILD (no publishing)
+  # ------------------------------------------------------------
+  # Release-producing build only on master pushes or manual dispatch. PRs must
+  # not bump versions, create releases, or deploy Pages — and their detached-HEAD
+  # checkout makes the release commit fail outright.
+  #
+  # Gated on the unit suite, the rules tests, and — only when an opt-in E2E run
+  # actually happens — the E2E suite.
   build:
+    name: Build release artifacts
     runs-on: ubuntu-latest
-    needs: [test, integration_test]
-    # Release-producing build only on master pushes (or manual dispatch). PRs
-    # must not bump versions, create releases, or deploy Pages — and their
-    # detached-HEAD checkout makes the CI commit step fail outright.
-    # Gated on the unit/widget suite and — only when an opt-in E2E run actually
-    # happens — on the E2E suite: the integration job is skipped by default, so
-    # this explicit status guard lets a skipped run ship while a failed one
-    # still blocks the release.
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.test.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
-
-    env:
-      # Use an NDK already on the runner instead of the 28.2.13676358 that
-      # Flutter 3.47.7 asks for (see android/app/build.gradle.kts).
-      ANDROID_NDK_VERSION: 27.3.13750724
-
+    needs: [test, rules, integration_test]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.test.result == 'success' && needs.rules.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
+    timeout-minutes: 60
+    permissions:
+      # Read-only: this job no longer commits the version bump. The version is
+      # written into the working tree so the artifact carries it, and committed
+      # only by the `release` job after the smoke test proves the APK launches.
+      contents: read
     steps:
-      # ------------------------------------------------------------
-      # CHECKOUT
-      # ------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # ------------------------------------------------------------
-      # SETUP FLUTTER
-      # ------------------------------------------------------------
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
-      # Pin the JDK: Gradle 9.3.1 / AGP 9.1 require JDK 17+; do not rely on the
-      # runner default (see the local Java 25 vs Gradle 8.14 failure).
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      # ------------------------------------------------------------
-      # AUTO VERSION BUMP: pubspec.yaml
-      # ------------------------------------------------------------
-      - name: Auto-update version in pubspec.yaml
-        run: |
-          VERSION="2.0.${{ github.run_number }}"
-          echo "Updating pubspec.yaml version to: $VERSION"
+      - name: Prepare Android build
+        uses: ./.github/actions/android-setup
+        with:
+          google_services_json: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          ndk_version: ${{ env.ANDROID_NDK_VERSION }}
 
-          sed -i "s/^version:.*/version: $VERSION+${{ github.run_number }}/" pubspec.yaml
-          echo "Updated version:"
-          grep "version:" pubspec.yaml
-
-      - name: Commit updated pubspec.yaml
-        if: "! contains(github.event.head_commit.message, 'CI:')"
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions"
-
-          if git diff --quiet pubspec.yaml; then
-            echo "No changes in pubspec.yaml"
-          else
-            git add pubspec.yaml
-            git commit -m "CI: Auto-update version to 2.0.${{ github.run_number }}"
-            # Reconcile with any commits pushed mid-build so the push stays a
-            # fast-forward (a bare push fails with "[rejected] master -> master
-            # (fetch first)" if another commit landed on master meanwhile).
-            git pull --rebase origin master
-            git push
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # ------------------------------------------------------------
-      # DEPENDENCIES
-      # ------------------------------------------------------------
       - name: Install dependencies
         run: flutter pub get
 
-      # ------------------------------------------------------------
-      # ANDROID KEYSTORE + GOOGLE SERVICES
-      # ------------------------------------------------------------
-      - name: Decode keystore from secret
-        run: echo "${{ secrets.UPLOAD_KEYSTORE }}" | base64 -d > android/upload-keystore.jks
-
-      - name: Add google-services.json from secret
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
-
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
-
-      # Pin an NDK the ubuntu-24.04 runner already ships and install it only if
-      # missing, with retries: AGP would otherwise auto-download Flutter's default
-      # (28.2.13676358) and that download corrupted mid-build.
-      - name: Ensure Android NDK
+      # Stamp the version into the working tree (not committed yet) so the
+      # built artifact carries `2.0.<run_number>+<run_number>`. Committing only
+      # after the release is verified avoids the old failure mode where a
+      # broken build still left master claiming a version that never shipped.
+      - name: Stamp release version
         run: |
-          set -eu
-          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
-          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          NDK_DIR="$SDK_ROOT/ndk/$ANDROID_NDK_VERSION"
-          if [ -d "$NDK_DIR" ]; then
-            echo "NDK $ANDROID_NDK_VERSION already present"
-            exit 0
-          fi
-          for attempt in 1 2 3; do
-            echo "Installing NDK $ANDROID_NDK_VERSION (attempt $attempt)"
-            if "$SDKMANAGER" --install "ndk;$ANDROID_NDK_VERSION" </dev/null; then
-              exit 0
-            fi
-            rm -rf "$NDK_DIR" || true
-            sleep 5
-          done
-          echo "Could not install NDK $ANDROID_NDK_VERSION" >&2
-          exit 1
+          set -euo pipefail
+          VERSION="2.0.${{ github.run_number }}"
+          sed -i "s/^version:.*/version: ${VERSION}+${{ github.run_number }}/" pubspec.yaml
+          grep "^version:" pubspec.yaml
 
-      # ------------------------------------------------------------
-      # BUILD AAB + APK (signed)
-      # ------------------------------------------------------------
+      - name: Decode release keystore
+        env:
+          UPLOAD_KEYSTORE: ${{ secrets.UPLOAD_KEYSTORE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${UPLOAD_KEYSTORE:-}" ]; then
+            echo "::error::UPLOAD_KEYSTORE is empty. Add the base64-encoded release keystore as a repository secret."
+            exit 1
+          fi
+          printf '%s' "$UPLOAD_KEYSTORE" | base64 -d > android/upload-keystore.jks
+          chmod +x android/gradlew
+
       - name: Build AAB with signing
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -320,20 +313,17 @@ jobs:
 
       # ONE universal APK, deliberately.
       #
-      # The release used to also publish split-per-ABI APKs. That created two
-      # user-visible failures, both reproduced against the published v2.0.169
-      # assets:
-      #   1. The arm64 split can't install at all on a 32-bit or x86 phone
-      #      ("app not meant for this device"), and the x86_64 split can never
-      #      install on ANY phone.
+      # Split-per-ABI builds were removed on purpose — do not re-add
+      # `--split-per-abi`. Two reproduced failures came from them:
+      #   1. An ABI split installs only on a device carrying that ABI, so the
+      #      arm64 split failed on 32-bit/x86 phones ("app not meant for this
+      #      device"), and the x86_64 split can never install on any phone.
       #   2. Flutter overrides a split's versionCode to `abiVersion * 1000 +
-      #      versionCode` (arm64 split = 2169 vs universal 169). A user who
-      #      side-loaded the arm64 split could then never be upgraded in-app:
-      #      the updater downloads the universal APK and Android rejects it with
+      #      versionCode` (FlutterPlugin.kt; arm64 split = 2169 vs universal
+      #      169), so anyone who side-loaded the arm64 split could never take
+      #      the in-app update — the updater downloads the *universal* APK and
+      #      Android rejects the lower versionCode with
       #      INSTALL_FAILED_VERSION_DOWNGRADE.
-      # A single universal APK removes both: it installs on every device and its
-      # versionCode is the one the in-app updater (lib/Services/update_checker.dart)
-      # downloads, so upgrades always apply.
       - name: Build APK with signing
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -341,19 +331,64 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release
 
-      # Guard the release: apksigner exits non-zero on any signature problem, so
-      # a broken/partial signature fails here instead of shipping an APK that
-      # Android rejects with "There was a problem parsing the package".
+      # apksigner exits non-zero on any signature problem, so a broken/partial
+      # signature fails here instead of shipping an APK that Android rejects
+      # with "There was a problem parsing the package".
+      #
+      # Note: `enableV1Signing` is a silent no-op on AGP 9.1.0 (both CI and
+      # local release APKs report v1: false because ML Kit/cupertino asset
+      # entries are omitted from the JAR manifest). That does not block installs
+      # at minSdk 24+, which validate v2/v3 and ignore v1.
       - name: Verify APK signature
         run: |
           set -eu
           APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
           echo "Using $APKSIGNER"
           "$APKSIGNER" verify --verbose build/app/outputs/flutter-apk/app-release.apk
+          "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk
 
-      # ------------------------------------------------------------
-      # UPLOAD ARTIFACTS
-      # ------------------------------------------------------------
+      # The in-app updater compares the *published* APK's versionCode against
+      # the installed one, so a versionCode that does not match the release tag
+      # breaks updates silently. Assert it, and assert the APK is still the
+      # single universal artifact (all three shipped ABIs) rather than a split.
+      - name: Verify universal APK + version
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          AAPT="$(ls "$ANDROID_HOME"/build-tools/*/aapt 2>/dev/null | sort -V | tail -1 || true)"
+          if [ -z "$AAPT" ]; then
+            AAPT="$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)"
+          fi
+          echo "Using $AAPT"
+          BADGING="$("$AAPT" dump badging "$APK")"
+          echo "$BADGING" | head -3
+
+          EXPECTED_NAME="2.0.${{ github.run_number }}"
+          EXPECTED_CODE="${{ github.run_number }}"
+
+          NAME="$(printf '%s\n' "$BADGING" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p" | head -1)"
+          CODE="$(printf '%s\n' "$BADGING" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -1)"
+          [ "$NAME" = "$EXPECTED_NAME" ] || { echo "::error::versionName '$NAME' != '$EXPECTED_NAME'"; exit 1; }
+          [ "$CODE" = "$EXPECTED_CODE" ] || { echo "::error::versionCode '$CODE' != '$EXPECTED_CODE'"; exit 1; }
+
+          NATIVE="$(printf '%s\n' "$BADGING" | sed -n 's/^native-code: //p' | head -1)"
+          echo "native-code: $NATIVE"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            case "$NATIVE" in
+              *"'$abi'"*) ;;
+              *) echo "::error::APK is missing ABI $abi — it is not the universal artifact"; exit 1 ;;
+            esac
+          done
+
+      - name: Generate checksums
+        run: |
+          set -eu
+          cd "$GITHUB_WORKSPACE"
+          sha256sum \
+            build/app/outputs/bundle/release/app-release.aab \
+            build/app/outputs/flutter-apk/app-release.apk > build/SHA256SUMS
+          cat build/SHA256SUMS
+
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
@@ -366,53 +401,156 @@ jobs:
           name: apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # ------------------------------------------------------------
-      # CREATE RELEASE (AUTO-GENERATED RELEASE NOTES)
-      # ------------------------------------------------------------
-      - name: Create GitHub Release & Upload AAB + APK
+      - name: Upload checksums artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums
+          path: build/SHA256SUMS
+
+  # ------------------------------------------------------------
+  # RELEASE SMOKE TEST (installs the *release* APK)
+  # ------------------------------------------------------------
+  # R8 minify is ON for release and every unit/integration test runs a DEBUG
+  # build, so a shrunk reflective constructor only fails when a release APK
+  # launches (the Room `WorkDatabase_Impl.<init>` crash shipped for exactly that
+  # reason). This job installs the exact artifact that will be published,
+  # launches it, and fails on a startup crash/ANR — before the release exists.
+  android_smoke:
+    name: Release APK launch smoke test
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: build/app/outputs/flutter-apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install and launch release APK
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
+          cores: 4
+          disable-animations: true
+          script: bash tool/smoke_release_apk.sh build/app/outputs/flutter-apk/app-release.apk
+
+  # ------------------------------------------------------------
+  # PUBLISH RELEASE (only after the smoke test passed)
+  # ------------------------------------------------------------
+  release:
+    name: Publish GitHub release
+    runs-on: ubuntu-latest
+    needs: [build, android_smoke, integration_test]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.build.result == 'success' && needs.android_smoke.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      VERSION: 2.0.${{ github.run_number }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release.aab
+          path: build/release-assets
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: build/release-assets
+
+      - name: Download checksums
+        uses: actions/download-artifact@v4
+        with:
+          name: checksums
+          path: build/release-assets
+
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/app/outputs/bundle/release/app-release.aab
-            build/app/outputs/flutter-apk/app-release.apk
-          tag_name: v2.0.${{ github.run_number }}
+            build/release-assets/app-release.aab
+            build/release-assets/app-release.apk
+            build/release-assets/SHA256SUMS
+          tag_name: v${{ env.VERSION }}
+          name: v${{ env.VERSION }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ------------------------------------------------------------
-      # UPDATE app_version.json (used for in-app update)
-      # ------------------------------------------------------------
-      - name: Update app_version.json
+      # The version is committed only now, after assets exist and the APK has
+      # been proven to launch. A single `CI:` commit (instead of two) means one
+      # push, so there is only one chance to race another merge.
+      - name: Commit version bump and app_version.json
+        if: ${{ !contains(github.event.head_commit.message, 'CI:') }}
         run: |
-          VERSION="2.0.${{ github.run_number }}"
-          printf '{\n  "latest_version": "%s",\n  "update_message": "A new version is available.",\n  "force": false\n}\n' "$VERSION" > app_version.json
-
-      - name: Commit app_version.json
-        if: "! contains(github.event.head_commit.message, 'CI:')"
-        run: |
-          VERSION="2.0.${{ github.run_number }}"
+          set -euo pipefail
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add app_version.json
-          git commit -m "CI: Update version JSON to $VERSION"
-          # Reconcile with any commits pushed mid-build (see pubspec step).
-          git pull --rebase origin master
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          sed -i "s/^version:.*/version: ${VERSION}+${{ github.run_number }}/" pubspec.yaml
+          printf '{\n  "latest_version": "%s",\n  "update_message": "A new version is available.",\n  "force": false\n}\n' "$VERSION" > app_version.json
+
+          git add pubspec.yaml app_version.json
+          if git diff --cached --quiet; then
+            echo "Version files already at $VERSION; nothing to commit."
+            exit 0
+          fi
+          git commit -m "CI: Release $VERSION"
+
+          # Reconcile with any commits pushed mid-build so the push stays a
+          # fast-forward (a bare push fails with "[rejected] master -> master
+          # (fetch first)" if another commit landed meanwhile).
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "Pushed $VERSION."
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt) — rebasing on origin/master."
+            git pull --rebase origin master
+          done
+          echo "::error::Could not push the version commit after 3 attempts."
+          exit 1
 
   # ------------------------------------------------------------
   # WEB BUILD & DEPLOY to GitHub Pages
   # ------------------------------------------------------------
+  # Pages deployment is master-push/manual only — never from pull requests or
+  # the nightly E2E schedule. Gated on the unit suite and (when an opt-in E2E
+  # run happens) the E2E suite, same as the Android build.
   build_web:
+    name: Build & deploy web
     runs-on: ubuntu-latest
     needs: [test, integration_test]
-    # Pages deployment is master-push/manual only — never from pull requests.
-    # Gated on the unit/widget suite and — only when an opt-in E2E run actually
-    # happens — on the E2E suite (same status guard as the `build` job).
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.test.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
-
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.test.result == 'success' && (needs.integration_test.result == 'success' || needs.integration_test.result == 'skipped') }}
+    timeout-minutes: 30
+    permissions:
+      # gh-pages is a branch: pushing it needs contents: write. The Pages API
+      # and OIDC tokens this workflow used to request globally are not used by
+      # peaceiris/actions-gh-pages.
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -420,13 +558,11 @@ jobs:
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Add google-services.json from secret
-        run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
 
       - name: Build Web (Release)
         run: flutter build web --release --base-href /WealthSync/

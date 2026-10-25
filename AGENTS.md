@@ -14,6 +14,8 @@ bash tool/check_ui_strings.sh --strict # fail if debts exceed tool/revamp_baseli
 flutter test                       # unit/widget tests ONLY (test/); integration tests never run here
 flutter test test/<file>_test.dart # single file
 bash tool/run_integration_tests.sh # canonical E2E runner: whole suite, internally one file at a time, fresh emulator per file — no args (needs env creds + booted emulator-5554; single-file runs use the flutter test block below)
+bash tool/rules_tests/run.sh       # Firestore + Storage rules against the emulators (needs Node 20+ and a JDK; `npm ci` on first run)
+bash tool/smoke_release_apk.sh     # installs + launches a release APK on emulator-5554 (R8/startup-crash gate)
 flutter gen-l10n                   # after editing lib/l10n/*.arb (l10n.yaml + generate: true)
 flutter run
 flutter build apk --release
@@ -22,16 +24,19 @@ flutter build web --release --base-href /WealthSync/   # GitHub Pages deploy
 ```
 
 **Pre-commit gate (CI's `test` job, in order):** `flutter analyze --no-fatal-infos` →
-`bash tool/check_ui_strings.sh --strict` → `flutter test`. All three must pass.
-(`run_integration_tests.sh` is mode 644 and always invoked as `bash …`.) CI runs Flutter
-**3.47.7**; `pubspec.yaml` declares `sdk: ^3.9.2`.
+`bash tool/check_ui_strings.sh --strict` → `flutter test` → `flutter build web --release`
+(dart2js check, every event). All four must pass. A second CI job, `rules`, runs
+`bash tool/rules_tests/run.sh` and is required before any release build.
+(`run_integration_tests.sh` is mode 644 and always invoked as `bash …`; `tool/smoke_release_apk.sh`
+is invoked as `bash …` for the same reason. `tool/rules_tests/run.sh` bootstraps its own
+`npm ci`.) CI runs Flutter **3.47.7**; `pubspec.yaml` declares `sdk: ^3.9.2`.
 
-**These three do NOT cover the web build** — `flutter analyze` and `flutter test` both run
-against the VM, and dart2js is stricter than the analyzer in a few places. A type error
-that passes all three locally can still fail CI's `build_web` job (see the
-`recordError`/`Map<String, Object?>` note below for a shipped example). Run
-`flutter build web --release` before pushing any change to a shared signature or a service
-that web compiles.
+**The web compile check is now in the `test` job, not only in `build_web`** — `flutter analyze`
+and `flutter test` both run against the VM, and dart2js is stricter than the analyzer in a few
+places. A type error that passes the first three can still fail the web build (see the
+`recordError`/`Map<String, Object?>` note below for a shipped example), so PRs compile the web
+release build too. Run `flutter build web --release` locally before pushing any change to a
+shared signature or a service that web compiles.
 
 **Generated l10n Dart is committed**: `lib/l10n/app_localizations.dart` +
 `app_localizations_en.dart` are tracked, so an ARB edit ships with its
@@ -768,20 +773,32 @@ and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
 
 ## Firestore Deployment
 
-`firestore.rules` and `firestore.indexes.json` are **not** deployed by CI (no credentials
-in the repo). Deploy by hand when either changes:
+`firestore.rules`, `firestore.indexes.json` and `storage.rules` are **not** deployed by CI
+(no credentials in the repo). Deploy by hand when any of them changes:
 
 ```bash
 firebase login
 firebase use moneycontroljustaman045           # .firebaserc is tracked
-firebase deploy --only firestore:rules,firestore:indexes --dry-run   # always first
-firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only firestore:rules,firestore:indexes,storage --dry-run   # always first
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
-The dry run is the only local rules linter (it COMPILES the rules — `is Map` fails; the
-compiler wants lowercase `map`, `timestamp`, `list`, `number`, …). Unit tests assert rules
-*source text* only, so they cannot catch a rules-language error. `firebase.json` and
-`.firebaserc` are tracked deliberately (public projectId/appId only).
+The dry run is a real rules compiler (`is Map` fails; the compiler wants lowercase `map`,
+`timestamp`, `list`, `number`, …), but it proves only that the file *parses*. CI's `rules`
+job is the behavioural check: `tool/rules_tests/run.sh` loads both rule sets into the
+Firestore/Storage emulators (which compiles them) and runs
+`tool/rules_tests/run.js` against owner isolation, malformed-transaction rejection,
+self-admin/self-pro escalation, and profile-picture ownership + size/content-type limits.
+Dart tests (`test/storage_rules_test.dart`, the rules sections of
+`test/firestore_indexes_test.dart`) assert *source text* only — they cannot catch a
+rules-language error. `firebase.json` and `.firebaserc` are tracked deliberately (public
+projectId/appId only; `firebase.json` also carries the `storage` entry and the emulator
+ports the rules job uses).
+
+**Storage rules are owner-only and UID-scoped** (`users/{uid}/profile.jpg`): `read`/`delete`
+for the owner, `create`/`update` additionally require an `image/*` content type, `< 5 MB`,
+and that exact filename. There is no other writable object — the user-facing backup archive
+is a *downloaded file*, never uploaded to Storage.
 
 **4 composite indexes** are required (all other queries are single-field/auto-indexed):
 `challenges{isActive,createdAt}`, `loans{isActive,createdAt}`,
@@ -835,18 +852,48 @@ dart run tool/generate_test_report.dart --unit=build/report/unit.json \
   --screenshots=build/report/screenshots --out=build/report/report.html
 ```
 
-CI (`.github/workflows/flutter_build.yml`, Flutter **3.47.7**): analyze → UI audit →
-unit/widget tests (`test` job), then `build`/`build_web`. E2E is **skipped by default** —
-the `integration_test` job runs only on a manual `workflow_dispatch` with
-`run_integration_tests: true` (live accounts via the four secrets). When opted in it still
-gates: `build`/`build_web` use an explicit status guard (success-or-skipped), so a failing
-E2E opt-in blocks the release while a skipped one proceeds. Integration tests and release
-builds never run on PRs (E2E mutates the shared accounts), so a green PR check = analyze +
-UI audit + unit tests. On merge to `master`, CI bumps `pubspec.yaml` to `2.0.<run_number>`,
-updates `app_version.json` + the README download link, creates signed release
-`v2.0.<run_number>`, and deploys web to GitHub Pages under `/WealthSync/`. Version/README
-commit loops are avoided by skipping commits whose message starts with `CI:`. Every run
-uploads a self-contained `report.html` artifact.
+CI (`.github/workflows/flutter_build.yml`, Flutter **3.47.7**):
+
+| Job | Runs on | What it proves |
+|-----|---------|----------------|
+| `test` | every push/PR | analyze → UI audit → unit/widget tests → **web release compile** (dart2js). PRs get the same gate as master. |
+| `rules` | every push/PR | `tool/rules_tests/run.sh` boots the Firestore + Storage emulators, compiles both rule sets, and runs `tool/rules_tests/run.js`. |
+| `integration_test` | nightly `schedule` **or** `workflow_dispatch` with `run_integration_tests: true` | the full E2E suite (`bash tool/run_integration_tests.sh`). Never on PRs — it mutates the shared accounts. |
+| `build` | master push / dispatch | release AAB + **one universal APK**, `apksigner verify`, plus assertions that `versionName`/`versionCode` match `2.0.<run_number>`/`<run_number>` and that the APK still carries `arm64-v8a` + `armeabi-v7a` + `x86_64`. Uploads artifacts, publishes nothing. |
+| `android_smoke` | after `build` | `tool/smoke_release_apk.sh` installs that exact APK on an emulator and fails on a missing pid, a startup `FATAL EXCEPTION`, or an ANR — the R8-only failure mode no debug test can see. |
+| `release` | after `build` + `android_smoke` | creates `v2.0.<run_number>` with AAB/APK/`SHA256SUMS`, **then** commits `pubspec.yaml` + `app_version.json` as one `CI:` commit. |
+| `build_web` | master push / dispatch | `flutter build web --release --base-href /WealthSync/` → GitHub Pages. |
+
+E2E is still **skipped by default**; when opted into (or on the nightly schedule) it gates,
+because `build`/`release`/`build_web` all carry an explicit status guard
+(`success`-or-`skipped`). The `schedule` run never publishes — all three publishing jobs
+exclude `github.event_name == 'schedule'`.
+
+Two ordering rules the pipeline depends on:
+
+- **The version is stamped before the build but committed after the smoke test.** A failed
+  build can no longer leave `master` claiming a version that never shipped, and a release
+  cannot exist for an APK that was never launched.
+- **The version commit is one commit, made last.** Two hand-maintained pushes were two
+  chances to race a merge; the push loop rebases on `origin/master` and retries three times.
+
+`paths-ignore` covers `pubspec.yaml`, `app_version.json` and `README.md`, so the `CI:` commit
+cannot re-trigger a release cycle. A real dependency edit still runs the build because it
+also rewrites the tracked `pubspec.lock`.
+
+Workflow-level `permissions` is `contents: read`; only `release` and `build_web` opt into
+`contents: write` (the Pages API and OIDC grants the workflow used to request globally were
+never used by `peaceiris/actions-gh-pages`). Secrets are never interpolated into a `run:`
+script: `GOOGLE_SERVICES_JSON`, `UPLOAD_KEYSTORE` and the store credentials are forwarded
+through `env:` and read as shell variables (the google-services write + NDK install live in
+`.github/actions/android-setup`, shared by `build` and `integration_test`, and fail fast with
+an actionable message when a secret is missing). `test`/`build_web` never touch the Android
+Firebase config at all.
+
+Every run uploads a self-contained `report.html` artifact. `test/ci_workflow_contract_test.dart`
+pins this structure (job set, the `needs:` edges that gate publishing, least-privilege
+permissions, the env-only secret handling), so dropping a guard is a red unit test rather
+than a silent release of an unverified APK.
 
 **Read `integration_test/test_helpers.dart` before writing a test.** Every test starts with
 `launchAndSignIn(account: TestAccount.free|pro)` and wraps its body in

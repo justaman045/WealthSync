@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Firebase Storage rules for WealthSync.
+//
+// The app writes exactly one object: the signed-in user's profile picture at
+// `users/{uid}/profile.jpg` (lib/Controllers/profile_controller.dart).
+//
+// The path segment is the **Firebase Auth UID**, so ownership is enforced by
+// comparing it to `request.auth.uid` — never by email, which is mutable and is
+// why the Firestore rules use `token.email` only for `users/{email}` paths.
+//
+// Reads are owner-only at the Storage API level. The app displays the image
+// through its long-lived download URL, which carries a token and does not
+// consult these rules; that token is only ever written to the owner's own
+// profile document.
+//
+// Deploy with `firebase deploy --only storage` (never from CI — see AGENTS.md;
+// CI validates the file against the Storage emulator, it cannot deploy it).
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid}/{fileName} {
+      // The app displays the picture through its tokenized download URL (which
+      // does not consult these rules); direct SDK reads stay owner-only.
+      allow read: if isOwner(uid);
+
+      // `request.resource` is null on delete, so the metadata checks below must
+      // not apply to this branch — account deletion removes the picture.
+      allow delete: if isOwner(uid);
+
+      // create/update see the incoming object's metadata.
+      allow create, update: if isOwner(uid)
+          && fileName == 'profile.jpg'
+          && request.resource.size < 5 * 1024 * 1024
+          && request.resource.contentType.matches('image/.*');
+    }
+
+    // Everything else is denied. Default-deny is implicit in Storage rules;
+    // this block exists so the intent is explicit and a future path cannot be
+    // added by accident above.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
