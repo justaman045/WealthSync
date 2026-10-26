@@ -141,6 +141,17 @@ in init — registering them in phase 1 crashes. Screens self-register via
   mid-write. `signup.dart` sets `AuthController.signupInProgress`, checked at the
   very top of `_handleAuthChange` **before** the `_handledUid` dedupe (so the
   emission isn't recorded as handled), and does its own `await signOut()` at the end.
+- **One post-sign-in destination.** `AuthController.routeAfterSignIn(user)` is the only place a
+  completed sign-in chooses `MainShell` vs `OnboardingScreen`, and it asks
+  `OnboardingStatus.isOnboardedFor` — the same check `main.dart`'s root `FutureBuilder` uses.
+  Both login paths used to hardcode `MainShell` (so a brand-new account skipped setup and then
+  met it on the next cold start) and sign-up hardcoded `OnboardingScreen` (so an existing
+  account tapping "Sign up with Google" was re-onboarded — and onboarding merge-writes
+  `monthly_budget` to 0). The Google profile write is gated on
+  `additionalUserInfo?.isNewUser`: `createdAt`/`provider` are otherwise rewritten for a
+  returning account (`googleSignupProfileFields` in `lib/Utils/`, pure and unit-tested).
+  `test/onboarding_routing_test.dart` scans for a route around it, and the E2E helper
+  `completeOnboardingIfNeeded` finishes the screen a genuinely new account lands on.
 - **Never fall through a null session.** Onboarding shows an error and stays put
   when `currentUser`/email is null instead of discarding input and navigating home.
 - `SubscriptionController.resetForSignOut()` clears `trialEndDate`/`trialUsed`/`planType`
@@ -221,7 +232,11 @@ easy-to-get-wrong rules: **unclamped** (an overlay may legitimately go negative)
 subscription is added later — intended); **hiding the chip must also clear the math**
 (`FeatureVisible` drops the control when `hidden`, so `_resetFlaggedToggles()` must
 force the `RxBool` off or the balance keeps counting an invisible feature). Both chips
-early-return in privacy mode. `pendingSubscriptions` is the one recurring figure that
+early-return in privacy mode. The chips sit in a `Wrap` that **must stay inside a
+`Flexible`**: a `Wrap` in a `Row` is laid out with unbounded width, so it can never wrap
+and the header row overflows by 11 px on a 320dp-wide device (the only guard is the E2E
+home screen, so a "harmless" layout tweak here fails the suite, not the analyzer).
+`pendingSubscriptions` is the one recurring figure that
 *does* reduce the balance — but only in the overlay-on state.
 
 **Transaction-derived Wealth values must be reactive.** Bank balance, monthly income,
@@ -695,6 +710,16 @@ and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
 
 - **Google Sign-In**: pinned to `^6.2.2`. Do NOT upgrade to v7+ — `signIn()` was replaced
   with a stream-based API that has a race condition.
+- **One client, and it deliberately signs out first.** `lib/Services/google_auth_service.dart`
+  owns the only `GoogleSignIn` instance. `signIn()` dispatches with `canSkipCall: true`, so
+  with a cached `_currentUser` it returns that same account **without any UI** (Android), and
+  the web client re-authenticates the remembered user with `prompt: ''` + `login_hint`
+  instead of `select_account`. That combination is why the app appeared to always sign in
+  the first Google account. `obtainCredential()` therefore calls `signOut()` before
+  `signIn()` on every tap — removing it silently restores the cached-account behaviour.
+  A second `GoogleSignIn` instance (sign-up used to build its own) has a second cache and is
+  cleared by a different `signOut()`. `test/google_auth_service_test.dart` pins the single
+  instantiation, the `signOut()` → `signIn()` order, and that neither screen builds a client.
 - **UPI Payments**: Kotlin MethodChannel `money_control/upi`, not `url_launcher`. Hard-coded
   package names: GPay, PhonePe, Paytm, BHIM, CRED, null (system chooser). `canLaunchUrl()`
   is unreliable on Android 11+ — show all apps and handle `APP_NOT_FOUND` via try/catch.
@@ -714,7 +739,7 @@ and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
   instant-Pro). `openfile_platform_stub.dart` returns `bool?` while native returns `Result`
   — keep the result discarded at call sites.
 - **Built-in Kotlin**: Flutter ≥3.35 plugins that apply KGP directly (`file_picker`,
-  `firebase_storage`, `home_widget`, `share_plus`, `shared_preferences_android`,
+  `home_widget`, `share_plus`, `shared_preferences_android`,
   `workmanager_android`, `package_info_plus`, `mobile_scanner`) log a migration warning.
   Track upstream; no action until Flutter drops KGP support.
 - **Android toolchain (Flutter 3.47.7)**: Gradle **9.3.1** / AGP **9.1.0** / KGP **2.4.0**
@@ -779,8 +804,11 @@ and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
 ```bash
 firebase login
 firebase use moneycontroljustaman045           # .firebaserc is tracked
-firebase deploy --only firestore:rules,firestore:indexes,storage --dry-run   # always first
-firebase deploy --only firestore:rules,firestore:indexes,storage
+firebase deploy --only firestore:rules,firestore:indexes --dry-run   # always first
+firebase deploy --only firestore:rules,firestore:indexes
+# Storage is NOT deployed: the project is on Spark, where Cloud Storage cannot
+# be provisioned, so `--only storage` always aborts with "Firebase Storage has
+# not been set up" — adding it aborts the Firestore rules deploy with it.
 ```
 
 The dry run is a real rules compiler (`is Map` fails; the compiler wants lowercase `map`,
@@ -799,6 +827,16 @@ ports the rules job uses).
 for the owner, `create`/`update` additionally require an `image/*` content type, `< 5 MB`,
 and that exact filename. There is no other writable object — the user-facing backup archive
 is a *downloaded file*, never uploaded to Storage.
+**Cloud Storage is not provisioned and cannot be on this project.** New Firebase projects
+get Storage only on the Blaze plan and this one stays on Spark, so
+`moneycontroljustaman045.firebasestorage.app` has no bucket. The profile-picture upload was
+therefore **removed** — `pickAndUploadImage`, the camera badge on Edit Profile, and the
+`firebase_storage` dependency are all gone; `AppAvatar` shows the sign-in provider's
+`photoURL` (Google-hosted) or `assets/profile.png`. `storage.rules` and its emulator tests
+stay as a dormant contract (they cost nothing and are enforced the day a Blaze upgrade
+creates the bucket), but the CI `deploy_firebase` job deploys **Firestore only** —
+`test/ci_workflow_contract_test.dart` fails if `,storage` is added back, because that abort
+takes the Firestore rules with it.
 
 **4 composite indexes** are required (all other queries are single-field/auto-indexed):
 `challenges{isActive,createdAt}`, `loans{isActive,createdAt}`,
@@ -859,7 +897,7 @@ CI (`.github/workflows/flutter_build.yml`, Flutter **3.47.7**):
 | `test` | every push/PR | analyze → UI audit → unit/widget tests → **web release compile** (dart2js). PRs get the same gate as master. |
 | `rules` | every push/PR | `tool/rules_tests/run.sh` boots the Firestore + Storage emulators, compiles both rule sets, and runs `tool/rules_tests/run.js`. |
 | `integration_test` | master push (critical subset), nightly `schedule` or `workflow_dispatch` with `run_integration_tests: true` (full suite) | `bash tool/run_integration_tests.sh`. Never on PRs — it mutates the shared accounts. |
-| `deploy_firebase` | `workflow_dispatch` with `deploy_firebase: true`, on `master` only | `--dry-run` compile then `firebase deploy --only firestore:rules,firestore:indexes,storage` using the `FIREBASE_TOKEN` secret. Never runs on a push. |
+| `deploy_firebase` | `workflow_dispatch` with `deploy_firebase: true`, on `master` only | `--dry-run` compile then `firebase deploy --only firestore:rules,firestore:indexes` using the `FIREBASE_TOKEN` secret. Never runs on a push; Storage is excluded because Spark cannot provision a bucket. |
 | `build` | master push / dispatch (on `master`) | release AAB + **one universal APK**, `apksigner verify`, plus assertions that `versionName`/`versionCode` match `2.0.<run_number>`/`<run_number>` and that the APK still carries `arm64-v8a` + `armeabi-v7a` + `x86_64`. Uploads artifacts, publishes nothing. |
 | `android_smoke` | after `build` | `tool/smoke_release_apk.sh` installs that exact APK on an emulator and fails on a missing pid, a startup `FATAL EXCEPTION`, or an ANR — the R8-only failure mode no debug test can see. |
 | `release` | after `build` + `android_smoke` | creates `v2.0.<run_number>` with AAB/APK/`SHA256SUMS`, **then** commits `pubspec.yaml` + `app_version.json` as one `CI:` commit. |
@@ -912,7 +950,9 @@ than a silent release of an unverified APK.
 **Read `integration_test/test_helpers.dart` before writing a test.** Every test starts with
 `launchAndSignIn(account: TestAccount.free|pro)` and wraps its body in
 `testWidgetsWithScreenshots`. Helpers already absorb suite flakiness:
-`handleSplashAndOnboarding`/`loginIfNeeded`, `waitForHome`/`waitFor`/`waitForGone`/
+`handleSplashAndOnboarding`/`loginIfNeeded` (plus `completeOnboardingIfNeeded`, which
+finishes the **post-login** setup screen — a brand-new fixture account lands there instead
+of home, and the pre-login walkthrough is a different screen), `waitForHome`/`waitFor`/`waitForGone`/
 `waitForCheck`/`waitForController`, `tapNavTab` (auto-reveals the auto-hiding bottom bar),
 `scrollUntilVisible`/`tapUntilMarker`/`tapWhenVisible`, `createTransaction`/
 `createReceiveTransaction`, `ensureCategoryExists`/`seedCategory`, `clearAccountData`/
