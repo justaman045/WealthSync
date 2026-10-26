@@ -104,13 +104,33 @@ more, and it cannot be re-earned once the code document is gone.
 The same trick resets `trialEndDate`, buying another 7-day first trial. That is
 the same 7 days the GDPR erase already implies.
 
-**3. The GDPR erase buys a fresh 7-day trial.** `isProfileErase` is the only
-write allowed to remove `trialEndDate`, because a plain removal would let any
-client reset `trialUsed` at will. Erasing all of one's financial data for seven
-days of Pro is a bad trade for the user, so it is not treated as an attack.
+**3. The GDPR erase buys a fresh 7-day trial** (and, if the profile is rewritten
+with a code again, a referral month — the reset removes `referredBy` too).
+`isProfileErase` is the only write allowed to remove `trialEndDate`, because a
+plain removal would let any client reset `trialUsed` at will. Erasing all of
+one's financial data for seven-to-thirty days of Pro is a bad trade for the
+user, so it is not treated as an attack.
 
 **4. Admins can grant anything.** `isAdmin` is console-only and the admin writes
 are audited (`AuditController`); this is the intended escape hatch for support.
+
+## Compatibility with installed builds
+
+Rules ship to every client at once, while installed APKs update over days. Two
+shapes the previous release (2.0.202) writes are affected:
+
+- Its referral payout writes `{referralCount, trialEndDate}` **without**
+  `referralCredited`, which `isClaimPayout` refuses (no newly credited claim ⇒
+  no extension). The payout is *deferred*, not lost: the claim is still on the
+  code document, and the next payout from an updated client includes it because
+  the client's unpaid set is the union of both ledgers.
+- Its trial start (`trialEndDate: now + 7d`, no existing key) and its
+  cancel/expire writes (a past `trialEndDate`, `isPro: false`) all satisfy the
+  new rules.
+
+Everything else 2.0.202 writes — profile fields, onboarding, transactions,
+assets, and code creation with the legacy `owner` + `ownerUid` shape — keeps
+working; the code-document rules accept both shapes.
 
 ## What would change under Blaze
 
