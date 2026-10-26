@@ -94,24 +94,33 @@ void main() {
   group('referral reward write payload', () {
     // The reward is paid into the referrer's OWN user doc. A
     // `subscriptionStatus: 'pro'` write there is denied by firestore.rules
-    // (isOwnerUpdate needs a purchaseToken; isReferralReward only allows a
-    // different-user doc), which silently broke every free referrer's reward.
-    // The reward is delivered as a trialEndDate grant instead, so the payload
-    // must never contain subscriptionStatus.
-    test('writes referralCount + trialEndDate and nothing else', () {
+    // (isOwnerUpdate needs a purchaseToken), which silently broke every free
+    // referrer's reward. The reward is delivered as a trialEndDate grant
+    // instead, gated on the credit ledger the rules can see.
+    test('writes referralCount, trialEndDate and the credit ledger', () {
       final write = ReferralService.debugReferralRewardWrite(
         currentCount: 2,
         pendingClaims: 1,
         newExpiry: now.add(const Duration(days: 30)),
+        credited: {'referee-uid': Timestamp.fromDate(now)},
       );
       expect(
         write.containsKey('subscriptionStatus'),
         isFalse,
         reason: 'a same-user subscriptionStatus write is denied by the rules',
       );
-      expect(write.keys.toSet(), {'referralCount', 'trialEndDate'});
+      expect(
+        write.keys.toSet(),
+        {'referralCount', 'trialEndDate', 'referralCredited'},
+      );
       expect(write['referralCount'], 3);
       expect(write['trialEndDate'], isA<Timestamp>());
+      expect(
+        (write['referralCredited'] as Map).keys,
+        contains('referee-uid'),
+        reason: 'without the ledger the rules cannot tell a paid claim from '
+            'an unpaid one, and the same claim pays 30 days forever',
+      );
     });
 
     test('accumulates the referral count across payouts', () {
@@ -119,6 +128,7 @@ void main() {
         currentCount: 7,
         pendingClaims: 3,
         newExpiry: now.add(const Duration(days: 45)),
+        credited: {'a': Timestamp.fromDate(now)},
       );
       expect(write['referralCount'], 10);
     });

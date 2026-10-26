@@ -213,6 +213,322 @@ async function main() {
     ),
   );
 
+  // ------------------------------------------------- Trial / referral grants
+  // Every case here is a free-Pro path a client could reach without paying.
+  // The rules are the only enforcement point (Spark plan: no Cloud Functions),
+  // so the bounds are asserted here rather than trusted.
+  console.log('Trial and referral rules');
+
+  const DAY = 24 * 60 * 60 * 1000;
+  const inDays = (n) => Timestamp.fromMillis(Date.now() + n * DAY);
+  const now = () => Timestamp.fromMillis(Date.now());
+
+  let freshSeq = 0;
+  function freshUser() {
+    freshSeq += 1;
+    const uid = `uid-fresh-${freshSeq}`;
+    const email = `fresh-${freshSeq}@example.com`;
+    const db = testEnv.authenticatedContext(uid, { email }).firestore();
+    return { uid, email, db };
+  }
+
+  await check('owner can start the 7-day trial', () =>
+    expectAllowed(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        { trialEndDate: inDays(7) },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a second free trial is rejected', () =>
+    expectDenied(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        { trialEndDate: inDays(7) },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a 45-day "first trial" is rejected', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), { email: u.email, uid: u.uid }),
+    );
+    await expectDenied(
+      setDoc(
+        doc(u.db, `users/${u.email}`),
+        { trialEndDate: inDays(45) },
+        { merge: true },
+      ),
+    );
+  });
+
+  await check('cancelling a trial (moving the end earlier) is allowed', () =>
+    expectAllowed(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        {
+          subscriptionStatus: 'free',
+          isPro: false,
+          trialEndDate: inDays(-0.001),
+        },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a made-up code cannot unlock a referral month', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), { email: u.email, uid: u.uid }),
+    );
+    // `referredBy` with no code document (and no 30-day grant attempt) is just
+    // a field, but it must not unlock a trial.
+    await expectDenied(
+      setDoc(
+        doc(u.db, `users/${u.email}`),
+        { referredBy: 'NOPE1234', trialEndDate: inDays(30) },
+        { merge: true },
+      ),
+    );
+  });
+
+  // A code the OWNER can hand out, and a referee who applies it.
+  await check('a code document can be created without the owner email', () =>
+    expectAllowed(
+      setDoc(doc(ownerDb, 'referralCodes/OWNER123'), { ownerUid: OWNER_UID }),
+    ),
+  );
+
+  await check('creating a code owned by someone else is rejected', () =>
+    expectDenied(
+      setDoc(doc(otherDb, 'referralCodes/STOLEN12'), { ownerUid: OWNER_UID }),
+    ),
+  );
+
+  await check('a referee can apply a real code', () =>
+    expectAllowed(
+      setDoc(
+        doc(otherDb, `users/${OTHER_EMAIL}`),
+        { referredBy: 'OWNER123', trialEndDate: inDays(30) },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('the same profile cannot apply a second code', () =>
+    expectDenied(
+      setDoc(
+        doc(otherDb, `users/${OTHER_EMAIL}`),
+        { referredBy: 'OWNER123', trialEndDate: inDays(45) },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('applying your own code is rejected', () =>
+    expectDenied(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        { referredBy: 'OWNER123', trialEndDate: inDays(30) },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a "referral month" longer than 30 days is rejected', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), { email: u.email, uid: u.uid }),
+    );
+    await expectDenied(
+      setDoc(
+        doc(u.db, `users/${u.email}`),
+        { referredBy: 'OWNER123', trialEndDate: inDays(40) },
+        { merge: true },
+      ),
+    );
+  });
+
+  await check('a referee appends their own claim', () =>
+    expectAllowed(
+      setDoc(
+        doc(otherDb, 'referralCodes/OWNER123'),
+        { claims: { [OTHER_UID]: now() } },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a claim cannot be appended for someone else', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), { email: u.email, uid: u.uid }),
+    );
+    await expectDenied(
+      setDoc(
+        doc(u.db, 'referralCodes/OWNER123'),
+        { claims: { [OTHER_UID]: now(), [u.uid]: now() } },
+        { merge: true },
+      ),
+    );
+  });
+
+  await check('a referrer cannot grant Pro to another user', () =>
+    expectDenied(
+      setDoc(
+        doc(otherDb, `users/${OWNER_EMAIL}`),
+        {
+          subscriptionStatus: 'pro',
+          referralCount: 5,
+          trialEndDate: inDays(45),
+        },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('an unclaimed trial extension on your own profile is rejected', () =>
+    expectDenied(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        { trialEndDate: inDays(30), referralCredited: { ghost: now() } },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('the profile records its own code', () =>
+    expectAllowed(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        { referralCode: 'OWNER123' },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a claim-backed payout is allowed', () =>
+    expectAllowed(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        {
+          referralCount: 1,
+          trialEndDate: inDays(30),
+          referralCredited: { [OTHER_UID]: now() },
+        },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('the same claim cannot be paid twice', () =>
+    expectDenied(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        {
+          referralCount: 2,
+          trialEndDate: inDays(40),
+          referralCredited: { [OTHER_UID]: now() },
+        },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('the credited marker cannot be cleared', () =>
+    expectDenied(
+      setDoc(
+        doc(ownerDb, `users/${OWNER_EMAIL}`),
+        { referralCredited: { [OTHER_UID]: now() } },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a payout can record the credit on the code document', () =>
+    expectAllowed(
+      setDoc(
+        doc(ownerDb, 'referralCodes/OWNER123'),
+        { credited: { [OTHER_UID]: now() } },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('the code document\'s credited list cannot shrink', () =>
+    expectDenied(
+      setDoc(
+        doc(ownerDb, 'referralCodes/OWNER123'),
+        { credited: {} },
+        { merge: true },
+      ),
+    ),
+  );
+
+  await check('a payout cannot outrun the claims it credits', async () => {
+    const ref = freshUser();
+    const referee = freshUser();
+    await expectAllowed(
+      setDoc(doc(ref.db, `users/${ref.email}`), { email: ref.email, uid: ref.uid }),
+    );
+    await expectAllowed(
+      setDoc(doc(referee.db, `users/${referee.email}`), {
+        email: referee.email,
+        uid: referee.uid,
+      }),
+    );
+    await expectAllowed(
+      setDoc(doc(ref.db, 'referralCodes/BIGPAY01'), { ownerUid: ref.uid }),
+    );
+    await expectAllowed(
+      setDoc(
+        doc(referee.db, 'referralCodes/BIGPAY01'),
+        { claims: { [referee.uid]: now() } },
+        { merge: true },
+      ),
+    );
+    await expectAllowed(
+      setDoc(doc(ref.db, `users/${ref.email}`), { referralCode: 'BIGPAY01' }),
+    );
+    // One claim, but 40 days requested.
+    await expectDenied(
+      setDoc(
+        doc(ref.db, `users/${ref.email}`),
+        {
+          referralCount: 1,
+          trialEndDate: inDays(40),
+          referralCredited: { [referee.uid]: now() },
+        },
+        { merge: true },
+      ),
+    );
+  });
+
+  await check('the explicit data-erase reset is allowed', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), {
+        email: u.email,
+        uid: u.uid,
+        subscriptionStatus: 'free',
+        trialEndDate: inDays(-1),
+        referralCode: 'OWNER123',
+      }),
+    );
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), {
+        email: u.email,
+        consent_data: false,
+        consent_marketing: false,
+        dataDeletedAt: now(),
+      }),
+    );
+  });
+
   // ------------------------------------------------------------------ Storage
   console.log('Storage rules');
 

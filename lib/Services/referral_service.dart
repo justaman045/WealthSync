@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:math' show Random;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -74,42 +75,45 @@ class ReferralService {
     return 'https://github.com/justaman045/WealthSync/releases/latest';
   }
 
-  /// Generates a deterministic 6-char referral code from name + uid.
-  static String generateReferralCode(String name, String uid) {
-    final namePart = name.replaceAll(RegExp(r'[^A-Za-z]'), '').toUpperCase();
-    final nameChars = namePart.length >= 4
-        ? namePart.substring(0, 4)
-        : namePart.padRight(4, 'X');
-    final uidChars = uid.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
-    final uidPart = uidChars.length >= 2
-        ? uidChars.substring(0, 2)
-        : uidChars.padRight(2, '0');
-    return '$nameChars$uidPart';
+  /// Alphabet for generated codes. No I, O, 0 or 1: a code gets read off a
+  /// screenshot and typed by hand, so the ambiguous glyphs are left out.
+  static const String _codeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  static final Random _codeRandom = Random.secure();
+
+  /// Generates a random 8-character referral code.
+  ///
+  /// It used to be derived from the first four letters of the display name plus
+  /// the first two characters of the uid, which made a code guessable from a
+  /// name (and gave two people with the same name nearly the same code). A code
+  /// is a handle: anyone who knows one can read that code document, so it must
+  /// not be derivable from public profile data.
+  static String generateReferralCode() {
+    final buffer = StringBuffer();
+    for (var i = 0; i < 8; i++) {
+      buffer.write(_codeAlphabet[_codeRandom.nextInt(_codeAlphabet.length)]);
+    }
+    return buffer.toString();
   }
 
   static CollectionReference<Map<String, dynamic>> get _codes =>
       _db.collection('referralCodes');
 
-  /// Reserves [code] for this user, extending it on collision.
+  /// Reserves a freshly generated code for this user.
   ///
   /// The write is a plain create, so a collision is detected by the failure
   /// itself — no uniqueness query is needed, and no query is possible: the
   /// rules grant per-document reads only, so a `where('referralCode', …)`
   /// collection query can never be proven and always fails.
-  static Future<String> _reserveCode(
-    String code,
-    String email,
-    String uid,
-  ) async {
-    final tail = uid.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
-    final extra = tail.length >= 4 ? tail : tail.padRight(4, '0');
+  ///
+  /// The document records `ownerUid` only. Anyone who knows a code may read it,
+  /// so storing the owner's email here handed out their address; older
+  /// documents still carry `owner` and the rules accept that shape.
+  static Future<String> _reserveCode(String uid) async {
     for (var attempt = 0; attempt < 3; attempt++) {
-      final candidate = attempt == 0
-          ? code
-          : '$code${extra.substring(attempt - 1, attempt + 1)}';
+      final candidate = generateReferralCode();
       try {
         await _codes.doc(candidate).set({
-          'owner': email,
           'ownerUid': uid,
           'createdAt': FieldValue.serverTimestamp(),
           'claims': <String, dynamic>{},
@@ -140,18 +144,14 @@ class ReferralService {
       String code = existing ?? '';
 
       if (code.isEmpty) {
-        code = await _reserveCode(
-          generateReferralCode(user.displayName ?? email, user.uid),
-          email,
-          user.uid,
-        );
+        code = await _reserveCode(user.uid);
         if (code.isEmpty) return;
         await userRef.set({
           'referralCode': code,
           'referralCount': safeToInt(doc.data()?['referralCount']),
         }, SetOptions(merge: true));
       } else {
-        await _ensureCodeDoc(code, email, user.uid);
+        await _ensureCodeDoc(code, user.uid);
       }
 
       await _drainClaims(code, email);
@@ -162,22 +162,18 @@ class ReferralService {
 
   /// Creates the `referralCodes` doc for an account that predates the
   /// collection, without ever overwriting a code owned by someone else.
-  static Future<void> _ensureCodeDoc(
-    String code,
-    String email,
-    String uid,
-  ) async {
+  static Future<void> _ensureCodeDoc(String code, String uid) async {
     final ref = _codes.doc(code);
     final snap = await ref.get();
     if (snap.exists) {
-      if (snap.data()?['owner'] != email) {
+      final ownerUid = snap.data()?['ownerUid'] as String?;
+      if (ownerUid != null && ownerUid != uid) {
         log("Referral code $code is owned by another account");
       }
       return;
     }
     try {
       await ref.set({
-        'owner': email,
         'ownerUid': uid,
         'createdAt': FieldValue.serverTimestamp(),
         'claims': <String, dynamic>{},
@@ -218,21 +214,27 @@ class ReferralService {
   ///
   /// It deliberately does NOT set `subscriptionStatus: 'pro'`. A client write
   /// that flips `subscriptionStatus` to 'pro' is rejected by `firestore.rules`
-  /// (`isOwnerUpdate` requires a `purchaseToken` via `validProClaim`), and
-  /// `isReferralReward` only permits writes to a *different* user's document —
-  /// neither matches this same-user payout. Paying the reward as a
-  /// `trialEndDate` grant keeps it rules-compliant (owner trial-cap path) and
-  /// is honored by `SubscriptionController.isTrial`/`isPro`. Extracted so the
-  /// exact keys can be unit-tested.
+  /// (`isOwnerUpdate` requires a `purchaseToken` via `validProClaim`). Paying the
+  /// reward as a `trialEndDate` grant, gated on the claims recorded here, is
+  /// what `isClaimPayout` allows, and `SubscriptionController.isTrial`/`isPro`
+  /// honour it. Extracted so the exact keys can be unit-tested.
+  ///
+  /// [credited] is the ledger of claims already paid — it is what makes a
+  /// claim payable exactly once: the rules compare this document's before and
+  /// after state, so a uid already in it cannot fund another 30 days. Keeping
+  /// the marker only on the `referralCodes` doc would leave a rule for this
+  /// document unable to see it, and a modified client could pay out repeatedly.
   @visibleForTesting
   static Map<String, dynamic> debugReferralRewardWrite({
     required int currentCount,
     required int pendingClaims,
     required DateTime newExpiry,
+    required Map<String, dynamic> credited,
   }) {
     return {
       'referralCount': currentCount + pendingClaims,
       'trialEndDate': Timestamp.fromDate(newExpiry),
+      'referralCredited': credited,
     };
   }
 
@@ -242,10 +244,12 @@ class ReferralService {
   /// touches the referrer's own trial and count — happens here, in the
   /// referrer's own document, on their next login.
   ///
-  /// The user document and the `credited` marker are written in ONE
-  /// transaction. Two separate writes left a window where the reward landed
-  /// but the marker did not, and the next login paid the same referral again
-  /// (double `referralCount`, double trial extension).
+  /// The profile write carries the credit ledger (`referralCredited`) as well
+  /// as the count and the trial end, so a claim can pay exactly once even
+  /// across retries: `isClaimPayout` validates this document's before/after
+  /// state and refuses a payout whose ledger does not grow. The `credited` list
+  /// on the code document is kept in step for older builds and because it is
+  /// the only marker that survives deleting and recreating the profile.
   static Future<void> _drainClaims(String code, String email) async {
     try {
       final codeRef = _codes.doc(code);
@@ -253,32 +257,43 @@ class ReferralService {
       final now = DateTime.now();
 
       await _db.runTransaction<void>((txn) async {
-        // Read both before writing either: Firestore transactions require it.
+        // Read both before writing either: Firestore transactions require it,
+        // and the paid set is the union of the two documents' ledgers.
         final codeSnap = await txn.get(codeRef);
         if (!codeSnap.exists) return;
-        final data = codeSnap.data() ?? {};
-        final claims = data['claims'];
-        final credited = data['credited'];
+        final userSnap = await txn.get(userRef);
+        final codeData = codeSnap.data() ?? {};
+        final userData = userSnap.data() ?? {};
+
+        final claims = codeData['claims'];
         if (claims is! Map || claims.isEmpty) return;
 
+        final credited = codeData['credited'];
         final creditedMap = credited is Map
             ? Map<String, dynamic>.from(credited)
             : <String, dynamic>{};
+        final userCredited = userData['referralCredited'];
+        final userCreditedMap = userCredited is Map
+            ? Map<String, dynamic>.from(userCredited)
+            : <String, dynamic>{};
+        for (final key in userCreditedMap.keys) {
+          creditedMap.putIfAbsent(key.toString(), () => userCreditedMap[key]);
+        }
 
         final pending = <String, dynamic>{};
         claims.forEach((uid, at) {
-          if (!creditedMap.containsKey(uid)) pending[uid.toString()] = at;
+          final key = uid.toString();
+          if (!creditedMap.containsKey(key)) pending[key] = at;
         });
         if (pending.isEmpty) return;
 
-        final userSnap = await txn.get(userRef);
-        final userData = userSnap.data() ?? {};
         final newExpiry = debugComputeTrialEnd(
           now: now,
           pendingClaims: pending.length,
           currentExpiry: (userData['trialEndDate'] as Timestamp?)?.toDate(),
         );
 
+        userCreditedMap.addAll(pending);
         creditedMap.addAll(pending);
         txn.set(
           userRef,
@@ -286,6 +301,7 @@ class ReferralService {
             currentCount: safeToInt(userData['referralCount']),
             pendingClaims: pending.length,
             newExpiry: newExpiry,
+            credited: userCreditedMap,
           ),
           SetOptions(merge: true),
         );
@@ -321,9 +337,14 @@ class ReferralService {
         if (!codeSnap.exists) return false;
 
         final codeData = codeSnap.data() ?? {};
+        final ownerUid = codeData['ownerUid'] as String?;
+        // Older code documents also carry the owner's email; either form
+        // identifies the same account, and a self-referral must be refused on
+        // both (a code is only worth anything when someone else applies it).
         final ownerEmail = codeData['owner'] as String?;
-        if (ownerEmail == null || ownerEmail == currentUser.email) {
-          return false; // no owner, or self-referral
+        if (ownerUid == null && ownerEmail == null) return false;
+        if (ownerUid == currentUser.uid || ownerEmail == currentUser.email) {
+          return false; // self-referral
         }
 
         final currentUserSnap = await txn.get(currentUserRef);

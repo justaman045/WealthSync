@@ -5,38 +5,34 @@ import 'package:money_control/Services/referral_service.dart';
 
 void main() {
   group('generateReferralCode()', () {
-    test('is deterministic for the same name and uid', () {
-      final a = ReferralService.generateReferralCode('Aditi Sharma', 'abc123DEF456');
-      final b = ReferralService.generateReferralCode('Aditi Sharma', 'abc123DEF456');
-      expect(a, b);
-      expect(a.length, 6);
+    test('is 8 characters from the unambiguous alphabet', () {
+      final code = ReferralService.generateReferralCode();
+      expect(code.length, 8);
+      expect(RegExp(r'^[A-HJ-NP-Z2-9]+$').hasMatch(code), isTrue);
+      // I/O/0/1 are excluded: a code gets read off a screenshot and typed by
+      // hand, so lookalike glyphs are left out of the alphabet.
+      expect(code.contains('I'), isFalse);
+      expect(code.contains('O'), isFalse);
+      expect(code.contains('0'), isFalse);
+      expect(code.contains('1'), isFalse);
     });
 
-    test('takes 4 name characters and 2 uid characters, uppercased', () {
-      expect(
-        ReferralService.generateReferralCode('Aditi Sharma', 'xy789'),
-        'ADITXY',
-      );
-    });
-
-    test('strips non-alphanumerics from the name', () {
-      expect(
-        ReferralService.generateReferralCode('a-d_i.t!', 'zz99'),
-        'ADITZZ',
-      );
-    });
-
-    test('pads a short name with X', () {
-      expect(ReferralService.generateReferralCode('Jo', 'zz99'), 'JOXXZZ');
-    });
-
-    test('pads a uid with no alphanumerics with zeros', () {
-      expect(ReferralService.generateReferralCode('Aditi', '----'), 'ADIT00');
+    test('is not derived from the display name or uid', () {
+      // It used to be `name.substring(0, 4) + uid.substring(0, 2)`, so a code
+      // was guessable from public profile data.
+      final codes = List.generate(200, (_) => ReferralService.generateReferralCode());
+      expect(codes.toSet().length, codes.length);
     });
   });
 
   group('firestore.rules referral access', () {
     final rules = File('firestore.rules').readAsStringSync();
+
+    String helperBlock() => rules.substring(
+      rules.indexOf('function isTrialStart'),
+      rules.indexOf('match /users/{userEmail}'),
+    );
+    String codesBlock() => rules.substring(rules.indexOf('match /referralCodes'));
 
     test('the users collection never grants a list/read-all operation', () {
       final usersBlock = rules.substring(
@@ -54,8 +50,73 @@ void main() {
       );
     });
 
+    test('a free trial is 7 days and can be granted only once', () {
+      final helpers = helperBlock();
+      expect(
+        helpers.contains("!resource.data.keys().hasAny(['trialEndDate'])"),
+        isTrue,
+        reason: 'the grant is once-only: no trialEndDate may already exist',
+      );
+      expect(
+        helpers.contains('(7 * 24 * 60 * 60 * 1000)'),
+        isTrue,
+        reason: 'a longer "first trial" is a free Pro grant',
+      );
+      // After the grant, trialEndDate may only move earlier (cancel/expire).
+      expect(helpers.contains('function isTrialShrink'), isTrue);
+    });
+
+    test('a referral month is 30 days, once, and needs a real code', () {
+      final helpers = helperBlock();
+      final application = helpers.substring(
+        helpers.indexOf('function isReferralApplication'),
+        helpers.indexOf('function isClaimPayout'),
+      );
+      expect(application.contains("!resource.data.keys().hasAny(['referredBy'])"), isTrue);
+      expect(application.contains('(30 * 24 * 60 * 60 * 1000)'), isTrue);
+      expect(
+        application.contains('referralCodes'),
+        isTrue,
+        reason: 'referredBy without an existing code document granted 30 days',
+      );
+      expect(application.contains("!= request.auth.uid"), isTrue);
+    });
+
+    test('a referral payout is claim-backed and each claim pays once', () {
+      final helpers = helperBlock();
+      final payout = helpers.substring(helpers.indexOf('function isClaimPayout'));
+      expect(
+        payout.contains('referralCredited'),
+        isTrue,
+        reason: 'the credit ledger is what makes a claim payable once',
+      );
+      expect(
+        payout.contains("affected.hasOnly(['referralCount', 'trialEndDate', 'referralCredited'])"),
+        isTrue,
+      );
+      expect(
+        payout.contains('claims.diff(before)'),
+        isTrue,
+        reason: 'a credited uid that is not a claim must not fund a payout',
+      );
+      expect(
+        payout.contains('removedKeys().size() == 0'),
+        isTrue,
+        reason: 'dropping a credit made it payable again',
+      );
+    });
+
+    test('the old cross-user Pro grant is gone', () {
+      expect(
+        rules.contains('isReferralReward'),
+        isFalse,
+        reason: 'that rule let any signed-in user grant subscriptionStatus '
+            '"pro" to any account with a referralCode, with no purchase token',
+      );
+    });
+
     test('referralCodes grants get but never list', () {
-      final block = rules.substring(rules.indexOf('match /referralCodes'));
+      final block = codesBlock();
       expect(block.contains('allow get:'), isTrue);
       expect(
         block.contains('allow list'),
@@ -64,26 +125,39 @@ void main() {
       );
     });
 
-    test('referralCodes cannot be written by creating a code you do not own', () {
-      final block = rules.substring(rules.indexOf('match /referralCodes'));
+    test('a code document is owned by uid, not by email', () {
+      final block = codesBlock();
+      expect(block.contains('request.resource.data.ownerUid == request.auth.uid'), isTrue);
+      // Anyone who knows a code can read the document, so a new code must not
+      // record the owner's address; an old document's `owner` must agree.
       expect(
-        block.contains("request.resource.data.owner == request.auth.token.email"),
+        block.contains("!request.resource.data.keys().hasAny(['owner'])"),
         isTrue,
       );
       expect(
-        block.contains("resource.data.owner == request.auth.token.email"),
+        block.contains('request.resource.data.owner == request.auth.token.email'),
         isTrue,
+      );
+      expect(
+        block.contains("resource.data.get('ownerUid', '') == request.auth.uid"),
+        isTrue,
+        reason: 'the owner (and only the owner) may delete their code',
       );
     });
 
-    test('a claim update may only append to claims', () {
-      final block = rules.substring(rules.indexOf('match /referralCodes'));
+    test('a claim update may only append to claims, never to your own code', () {
+      final block = codesBlock();
       expect(block.contains("hasOnly(['claims'])"), isTrue);
       expect(block.contains('size() == resource.data.claims.size() + 1'), isTrue);
+      expect(
+        block.contains('resource.data.ownerUid != request.auth.uid'),
+        isTrue,
+        reason: 'self-referral must be refused by the rules, not just the UI',
+      );
     });
 
     test('an appended claim must be the caller own entry', () {
-      final block = rules.substring(rules.indexOf('match /referralCodes'));
+      final block = codesBlock();
       // Otherwise a client could append claims for other users, or overwrite
       // an existing referee's entry, while still growing the map by one.
       expect(
@@ -104,25 +178,36 @@ void main() {
     });
 
     test('a code document must be created with empty claims and credits', () {
-      final block = rules.substring(rules.indexOf('match /referralCodes'));
+      final block = codesBlock();
       // The owner converts claims into trial days on their next login, so a
       // seeded claim is a self-granted referral reward.
       expect(
-        block.contains(
-          'request.resource.data.claims == null\n                        || request.resource.data.claims.size() == 0',
-        ),
+        block.contains("request.resource.data.keys().hasAny(['claims'])"),
         isTrue,
       );
       expect(
-        block.contains(
-          'request.resource.data.credited == null\n                        || request.resource.data.credited.size() == 0',
-        ),
+        block.contains("request.resource.data.keys().hasAny(['credited'])"),
         isTrue,
+      );
+      expect(block.contains('size() == 0'), isTrue);
+    });
+
+    test('the credited list may grow but never shrink', () {
+      final block = codesBlock();
+      expect(
+        block.contains("hasOnly(['credited'])"),
+        isTrue,
+        reason: 'the owner may not edit claims or re-point the code',
+      );
+      expect(
+        block.contains('.removedKeys().size() == 0'),
+        isTrue,
+        reason: 'clearing a credit made the same claim payable again',
       );
     });
 
     test('rules use only type identifiers the Firestore compiler accepts', () {
-      final block = rules.substring(rules.indexOf('match /referralCodes'));
+      final block = codesBlock();
       // `is Map` / `is Timestamp` fail to compile; the compiler only accepts
       // the lowercase names. `firebase deploy --dry-run` is what catches this.
       expect(RegExp(r'is\s+Map\b').hasMatch(block), isFalse);

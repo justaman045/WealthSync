@@ -7,11 +7,12 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      let adminDoc = get(/databases/$(database)/documents/users/$(request.auth.token.email));
+      let adminDoc = request.auth != null
+          ? get(/databases/$(database)/documents/users/$(request.auth.token.email))
+          : null;
       return request.auth != null
           && adminDoc != null
-          && adminDoc.data != null
-          && adminDoc.data.isAdmin == true;
+          && adminDoc.data.get('isAdmin', false) == true;
     }
 
     function validTrialCap(ts) {
@@ -34,21 +35,60 @@ service cloud.firestore {
           && d.date is timestamp;
     }
 
+    // The explicit "delete all my data" reset. The profile is rewritten with
+    // merge:false, so gated fields (trialEndDate, subscriptionStatus, isPro,
+    // referral bookkeeping) disappear. It is the only write allowed to remove
+    // them; a plain update could otherwise drop trialEndDate and buy another
+    // free trial, since the client derives trialUsed from the key's presence.
+    function isProfileErase(userEmail) {
+      let d = request.resource.data;
+      return request.auth != null
+          && request.auth.token.email == userEmail
+          && d.get('consent_data', true) == false
+          && d.keys().hasAny(['dataDeletedAt']);
+    }
+
+    // A free trial is granted once, for 7 days. The client derives trialUsed
+    // from the presence of trialEndDate, so "no key yet" is exactly the
+    // first-grant condition and the rule cannot drift from the UI.
+    function isTrialStart() {
+      let end = request.resource.data.get('trialEndDate', null);
+      return request.auth != null
+          && !resource.data.keys().hasAny(['trialEndDate'])
+          && end is timestamp
+          && end.toMillis() - request.time.toMillis()
+              <= (7 * 24 * 60 * 60 * 1000) + (60 * 60 * 1000);
+    }
+
+    // After the grant, trialEndDate may only move earlier — that is what the
+    // app's cancel/expire writes do. Anything later is a grant, and grants need
+    // a claim (isClaimPayout) or a referral code this profile applied
+    // (isReferralApplication).
+    function isTrialShrink() {
+      let old = resource.data.get('trialEndDate', timestamp.date(1970, 1, 1));
+      let end = request.resource.data.get('trialEndDate', null);
+      return end is timestamp && end.toMillis() <= old.toMillis();
+    }
+
     // Owner update of their own profile. Blocks self-admin and self-referral
-    // spoofing. Trial end may not be pushed unreasonably far into the future.
-    // 'pro' status can only be claimed via a recorded Google Play purchase
-    // (true purchase verification requires a Cloud Function; this closes the
-    // naive "write subscriptionStatus: pro" self-grant hole). The parallel
-    // `isPro` flag is also gated: it may only be set true alongside a valid
-    // pro claim (closing the "write isPro: true" self-grant hole), while the
-    // app's own cancel/expire writes of `isPro: false` stay allowed.
+    // spoofing. 'pro' status can only be claimed via a recorded Google Play
+    // purchase (true purchase verification requires a Cloud Function; this
+    // closes the naive "write subscriptionStatus: pro" self-grant hole). The
+    // parallel `isPro` flag is also gated: it may only be set true alongside a
+    // valid pro claim (closing the "write isPro: true" self-grant hole), while
+    // the app's own cancel/expire writes of `isPro: false` stay allowed.
     function isOwnerUpdate(userEmail) {
       let affected = request.resource.data.diff(resource.data).affectedKeys();
       let d = request.resource.data;
       return request.auth != null
           && request.auth.token.email == userEmail
-          && !affected.hasAny(['isAdmin', 'referredBy'])
-          && (!affected.hasAny(['trialEndDate']) || validTrialCap(d.trialEndDate))
+          && !affected.hasAny(['isAdmin', 'referredBy', 'referralCredited'])
+          // referralCount may be rewritten with the same value (ensuring a code
+          // doc writes it back), but a real increment goes through
+          // isClaimPayout, which needs a credited claim.
+          && (!affected.hasAny(['referralCount'])
+              || d.referralCount == resource.data.get('referralCount', 0))
+          && (!affected.hasAny(['trialEndDate']) || isTrialShrink())
           && (!affected.hasAny(['subscriptionStatus'])
               || (d.subscriptionStatus == 'pro'
                   ? validProClaim(d)
@@ -57,33 +97,75 @@ service cloud.firestore {
           && (!affected.hasAny(['isPro']) || d.isPro == false || validProClaim(d));
     }
 
-    // Owner records the referral code they applied to their own profile.
+    // The referee records the code they applied, plus their first month. The
+    // code must exist, must not be the caller's own, and a profile can apply
+    // only once: `referredBy` may not already be present. Without the once-only
+    // check any client could re-apply a code and roll the 30 days forward
+    // forever; without the code lookup, writing `referredBy` was enough.
     function isReferralApplication(userEmail) {
-      let affected = request.resource.data.diff(resource.data).affectedKeys();
       let d = request.resource.data;
+      let affected = d.diff(resource.data).affectedKeys();
+      let codeDoc = get(/databases/$(database)/documents/referralCodes/$(d.get('referredBy', 'no-such-code')));
+      let end = d.get('trialEndDate', null);
       return request.auth != null
           && request.auth.token.email == userEmail
           && affected.hasOnly(['referredBy', 'trialEndDate'])
-          && (!affected.hasAny(['trialEndDate'])
-              || (d.trialEndDate is timestamp && validTrialCap(d.trialEndDate)));
+          && !resource.data.keys().hasAny(['referredBy'])
+          && codeDoc != null
+          && codeDoc.data.get('ownerUid', '') != request.auth.uid
+          && end is timestamp
+          && end.toMillis() - request.time.toMillis()
+              <= (30 * 24 * 60 * 60 * 1000) + (60 * 60 * 1000)
+          && validTrialCap(end);
     }
 
-    // A user earns Pro by referring someone: only a write to a DIFFERENT
-    // user's doc (the referrer, which has a referralCode) that increments the
-    // referral count and grants a trial may set subscriptionStatus to 'pro'.
-    function isReferralReward(userEmail) {
-      let affected = request.resource.data.diff(resource.data).affectedKeys();
+    // The referral payout: converts claims that referees appended to the
+    // referrer's referralCodes document into trial days, on the referrer's own
+    // profile, in one write.
+    //
+    // The credited marker lives on the *user* document (`referralCredited`) on
+    // purpose. It is what makes a claim payable exactly once: the rule sees the
+    // before/after state of the document it validates, so a uid already listed
+    // there cannot fund a second extension. Recording the credit only on the
+    // code document (where a rule for the user document cannot see it) let a
+    // modified client pay out over and over without ever writing the marker.
+    function isClaimPayout(userEmail) {
       let d = request.resource.data;
+      let affected = d.diff(resource.data).affectedKeys();
+      let codeDoc = get(/databases/$(database)/documents/referralCodes/$(resource.data.get('referralCode', 'no-such-code')));
+      let claims = codeDoc == null ? {} : codeDoc.data.get('claims', {});
+      let before = resource.data.get('referralCredited', {});
+      let after = d.get('referralCredited', {});
+      let added = after.diff(before).addedKeys();
+      let old = resource.data.get('trialEndDate', timestamp.date(1970, 1, 1));
+      let base = old.toMillis() > request.time.toMillis()
+          ? old.toMillis()
+          : request.time.toMillis();
       return request.auth != null
-          && userEmail != request.auth.token.email
-          && resource.data.keys().hasAny(['referralCode'])
-          && affected.hasOnly(['referralCount', 'subscriptionStatus', 'trialEndDate'])
-          && d.subscriptionStatus == 'pro'
-          && d.trialEndDate is timestamp
+          && request.auth.token.email == userEmail
+          && codeDoc != null
+          && codeDoc.data.get('ownerUid', '') == request.auth.uid
+          && affected.hasOnly(['referralCount', 'trialEndDate', 'referralCredited'])
+          && after is map
+          // Credits are add-only: dropping one would make it payable again.
+          && after.diff(before).removedKeys().size() == 0
+          && added.size() > 0
+          // Every newly credited uid must be a real claim on this code. Adding
+          // a key that is not a claim would not shrink the outstanding set by
+          // one, so this equality only holds when added ⊆ claims.
+          && claims.diff(after).addedKeys().size()
+              == claims.diff(before).addedKeys().size() - added.size()
+          && d.get('trialEndDate', null) is timestamp
           && validTrialCap(d.trialEndDate)
-          && d.referralCount is number
-          && d.referralCount >= 0
-          && d.referralCount < 10000;
+          && d.trialEndDate.toMillis() <= base
+              + added.size() * (30 * 24 * 60 * 60 * 1000)
+              + (60 * 60 * 1000)
+          // referralCount moves by at most one per credited claim.
+          && (!affected.hasAny(['referralCount'])
+              || (d.referralCount is number
+                  && d.referralCount >= resource.data.get('referralCount', 0)
+                  && d.referralCount
+                      <= resource.data.get('referralCount', 0) + added.size()));
     }
 
     // Admins manage other users' subscriptions (approve/reject) but cannot
@@ -97,12 +179,16 @@ service cloud.firestore {
       allow read: if isOwner(userEmail) || isAdmin();
       // isAdmin must not be settable on create — otherwise a user could
       // delete + recreate their doc with isAdmin:true and read everyone's data.
-      // The trial and pro caps mirror isOwnerUpdate so a doc delete+recreate
-      // cannot bypass the 45-day trial limit or self-grant pro.
+      // A created profile may only carry the 7-day first trial (a 45-day one
+      // was a free Pro grant), and 'pro' still needs a purchase claim.
       allow create: if isOwner(userEmail)
           && !('isAdmin' in request.resource.data)
+          && !('referralCredited' in request.resource.data)
           && (!('trialEndDate' in request.resource.data)
-              || validTrialCap(request.resource.data.trialEndDate))
+              || (request.resource.data.trialEndDate is timestamp
+                  && request.resource.data.trialEndDate.toMillis()
+                      - request.time.toMillis()
+                      <= (7 * 24 * 60 * 60 * 1000) + (60 * 60 * 1000)))
           && (!('subscriptionStatus' in request.resource.data)
               || request.resource.data.subscriptionStatus == 'free'
               || request.resource.data.subscriptionStatus == 'pending'
@@ -111,8 +197,10 @@ service cloud.firestore {
               || request.resource.data.isPro == false
               || validProClaim(request.resource.data));
       allow update: if isOwnerUpdate(userEmail)
+          || isTrialStart()
+          || isProfileErase(userEmail)
           || isReferralApplication(userEmail)
-          || isReferralReward(userEmail)
+          || isClaimPayout(userEmail)
           || isAdminUpdate();
       allow delete: if isOwner(userEmail);
 
@@ -215,30 +303,44 @@ service cloud.firestore {
       // `claims`/`credited` must start empty: the owner credits themselves a
       // trial per claim on their next login, so a seeded claim would be a
       // self-granted referral reward.
+      //
+      // New documents are owned by uid only: anyone who knows a code can read
+      // it, so storing the owner's email handed out their address. Documents
+      // created by older builds still carry `owner`, and it must identify the
+      // same person.
       allow create: if request.auth != null
-                    && request.resource.data.owner == request.auth.token.email
                     && request.resource.data.ownerUid == request.auth.uid
-                    && (request.resource.data.claims == null
+                    && (!request.resource.data.keys().hasAny(['owner'])
+                        || request.resource.data.owner == request.auth.token.email)
+                    && (!request.resource.data.keys().hasAny(['claims'])
                         || request.resource.data.claims.size() == 0)
-                    && (request.resource.data.credited == null
+                    && (!request.resource.data.keys().hasAny(['credited'])
                         || request.resource.data.credited.size() == 0);
-      // A referee may append exactly one claim — their own — and nothing else;
-      // only the owner may change the rest of the document. Crediting the
-      // referrer's trial happens in the referrer's own user document on their
-      // next login, so no client ever writes to another user's document.
+      // A referee may append exactly one claim — their own — and nothing else,
+      // and never to their own code. The owner may only append to `credited`:
+      // clearing an entry would make that claim payable a second time.
       allow update: if request.auth != null && (
-        resource.data.owner == request.auth.token.email
+        (
+          resource.data.ownerUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['credited'])
+          && request.resource.data.credited is map
+          && request.resource.data.credited
+               .diff(resource.data.get('credited', {}))
+               .removedKeys().size() == 0
+        )
         || (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['claims'])
+          && resource.data.ownerUid != request.auth.uid
           && request.resource.data.claims is map
           // The appended entry must be the caller's own, or a client could
           // credit itself rewards on behalf of other users.
           && request.auth.uid in request.resource.data.claims
           && request.resource.data.claims[request.auth.uid] is timestamp
           && (
-            (resource.data.claims == null
+            (!resource.data.keys().hasAny(['claims'])
               && request.resource.data.claims.size() == 1)
-            || (resource.data.claims is map
+            || (resource.data.keys().hasAny(['claims'])
+              && resource.data.claims is map
               && request.resource.data.claims.size() == resource.data.claims.size() + 1
               && request.resource.data.claims
                    .diff(resource.data.claims)
@@ -248,7 +350,8 @@ service cloud.firestore {
         )
       );
       allow delete: if request.auth != null
-                    && resource.data.owner == request.auth.token.email;
+                    && (resource.data.get('ownerUid', '') == request.auth.uid
+                        || resource.data.get('owner', '') == request.auth.token.email);
     }
 
     // Deny everything else by default
