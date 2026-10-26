@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -98,10 +99,26 @@ class UserService {
       await _deleteCollection('users/$email/$sub');
     }
 
-    // 3. Delete the user document.
+    // 3. Release the referral code. It lives at the top level (owned by uid),
+    // not under the user document, so deleting the account used to leave a code
+    // behind that still pointed at the deleted uid and still carried the uids
+    // of everyone who had claimed it.
+    try {
+      final profile = await _db.collection('users').doc(email).get();
+      final code = profile.data()?['referralCode'];
+      if (code is String && code.isNotEmpty) {
+        await _db.collection('referralCodes').doc(code).delete();
+      }
+    } catch (e) {
+      // The profile and every subcollection are already gone; a stranded code
+      // document must not turn a completed deletion into an error.
+      debugPrint('Failed to release referral code: $e');
+    }
+
+    // 4. Delete the user document.
     await _db.collection('users').doc(email).delete();
 
-    // 4. Delete auth account only after all Firestore data is gone.
+    // 5. Delete auth account only after all Firestore data is gone.
     try {
       await user.delete();
     } on FirebaseAuthException catch (e) {

@@ -114,6 +114,24 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       /// resurrect — an explicit data-erasure request must remove it as well.
       await LocalBackupService.clearUserBackup(email);
 
+      /// Release the referral code. It lives at the top level (owned by uid),
+      /// so it is not in any of the collections deleted above and would
+      /// otherwise survive the erase, still pointing at this account and
+      /// carrying the uids of everyone who claimed it. Read before the profile
+      /// is erased.
+      try {
+        final profile = await userDoc.get();
+        final referralCode = profile.data()?['referralCode'];
+        if (referralCode is String && referralCode.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('referralCodes')
+              .doc(referralCode)
+              .delete();
+        }
+      } catch (e) {
+        debugPrint('Failed to release referral code: $e');
+      }
+
       /// Erase PII from user document; keep only minimal tombstone fields.
       try {
         await userDoc.update({
@@ -137,6 +155,10 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
           'trialUsed': FieldValue.delete(),
           'referredBy': FieldValue.delete(),
           'referralCount': FieldValue.delete(),
+          'referralCode': FieldValue.delete(),
+          // The claims ledger holds other users' uids; it must not outlive the
+          // account that earned them.
+          'referralCredited': FieldValue.delete(),
           'consent_data': false,
           'consent_marketing': false,
           'dataDeletedAt': FieldValue.serverTimestamp(),
