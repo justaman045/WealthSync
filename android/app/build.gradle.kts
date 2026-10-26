@@ -36,33 +36,56 @@ android {
         versionName = flutter.versionName
     }
 
+    // Release signing is *provisioned* here but validated only when a release
+    // artifact is actually assembled. Throwing from `signingConfigs {}` fires on
+    // EVERY Gradle configuration — including the debug APK that
+    // `flutter test integration_test` compiles — so the original fail-fast made
+    // the whole E2E suite unbuildable. The guard belongs on the release task,
+    // not on the configuration phase.
+    val releaseKeystorePass = System.getenv("KEYSTORE_PASSWORD")
+    val releaseKeyAlias = System.getenv("KEY_ALIAS")
+    val releaseKeyPassword = System.getenv("KEY_PASSWORD")
+    val hasReleaseSigning = !releaseKeystorePass.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
+    // `flutter build apk/appbundle --release` issues assembleRelease /
+    // bundleRelease; debug and profile runs never match. Matching on the task
+    // name keeps a plain `flutter test`/`flutter run` free of release secrets.
+    val buildingRelease = gradle.startParameter.taskNames.any {
+        it.contains("Release", ignoreCase = true)
+    }
+
     signingConfigs {
-        create("release") {
-            val keystorePass = System.getenv("KEYSTORE_PASSWORD")
-            if (keystorePass.isNullOrBlank()) {
-                throw GradleException(
-                    "Release signing requires KEYSTORE_PASSWORD (and KEY_ALIAS/KEY_PASSWORD). " +
-                    "Debug keystore fallback is disabled for release builds."
-                )
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../upload-keystore.jks")
+                storePassword = releaseKeystorePass
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                // Sign with every scheme: v1 (JAR) keeps the APK installable by
+                // older/OEM package installers and file managers that don't verify
+                // v2/v3, and v3 enables future key rotation. minSdk 24 makes AGP
+                // default to v2-only, which some sideload paths report as a
+                // "corrupted package".
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "../upload-keystore.jks")
-            storePassword = keystorePass
-            keyAlias = System.getenv("KEY_ALIAS") ?: throw GradleException("KEY_ALIAS must be set for release signing")
-            keyPassword = System.getenv("KEY_PASSWORD") ?: throw GradleException("KEY_PASSWORD must be set for release signing")
-            // Sign with every scheme: v1 (JAR) keeps the APK installable by
-            // older/OEM package installers and file managers that don't verify
-            // v2/v3, and v3 enables future key rotation. minSdk 24 makes AGP
-            // default to v2-only, which some sideload paths report as a
-            // "corrupted package".
-            enableV1Signing = true
-            enableV2Signing = true
-            enableV3Signing = true
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            if (buildingRelease && !hasReleaseSigning) {
+                throw GradleException(
+                    "Release signing requires KEYSTORE_PASSWORD (and KEY_ALIAS/KEY_PASSWORD). " +
+                    "Debug keystore fallback is disabled for release builds."
+                )
+            }
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             // R8 minify + resource shrink: the app only uses the Latin ML Kit
             // model and Dart-side dead code is large; shrinking cuts APK size
             // and startup JIT/AOT work on low-end devices.

@@ -113,5 +113,31 @@ void main() {
       final source = File('lib/Screens/sms_import_screen.dart').readAsStringSync();
       expect(source, contains('isAndroidPlatform'));
     });
+
+    test('release signing fail-fast never fires for debug/test builds', () {
+      final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+      // The guard used to throw inside `signingConfigs { create("release") }`,
+      // which Gradle evaluates for EVERY build. A debug APK — including the one
+      // `flutter test integration_test` compiles — then failed with "Release
+      // signing requires KEYSTORE_PASSWORD", so the whole E2E suite was
+      // unbuildable in CI. The throw must stay scoped to a release task.
+      expect(gradle, contains('val buildingRelease'));
+      expect(gradle, contains('if (buildingRelease && !hasReleaseSigning)'));
+      final throwAt = gradle.indexOf('throw GradleException');
+      expect(throwAt, isNot(-1));
+      expect(
+        throwAt,
+        greaterThan(gradle.indexOf('if (buildingRelease && !hasReleaseSigning)')),
+      );
+      expect(
+        gradle.indexOf('buildTypes {'),
+        lessThan(throwAt),
+        reason: 'A throw inside signingConfigs runs at configuration time for '
+            'debug builds too.',
+      );
+      // A release build without the keystore must still refuse to fall back to
+      // the debug key: that would ship an artifact nobody can update.
+      expect(gradle, contains('Debug keystore fallback is disabled'));
+    });
   });
 }
