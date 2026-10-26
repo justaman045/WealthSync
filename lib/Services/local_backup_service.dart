@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:money_control/Services/backup_cipher.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_io/io.dart';
@@ -395,6 +396,10 @@ class LocalBackupService {
     if (await file.exists()) await file.delete();
     final preserved = await _preservedFile(userEmail);
     if (await preserved.exists()) await preserved.delete();
+    // The plaintext export is a full copy of the same data (see
+    // [exportBackupFile]); leaving it behind would contradict the erase.
+    final exported = await _exportFile(userEmail);
+    if (await exported.exists()) await exported.delete();
   }
 
   // ============================
@@ -441,13 +446,19 @@ class LocalBackupService {
   static Future<String?> _readPreservedData(String email) async {
     final override = readOverride;
     if (override != null) return override(_preservedPrefsKey(email));
+    String? raw;
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_preservedPrefsKey(email));
+      raw = prefs.getString(_preservedPrefsKey(email));
+    } else {
+      final file = await _preservedFile(email);
+      if (!await file.exists()) return null;
+      raw = await file.readAsString();
     }
-    final file = await _preservedFile(email);
-    if (!await file.exists()) return null;
-    return file.readAsString();
+    if (raw == null) return null;
+    // Everything above this line is storage; the caller must never see the
+    // envelope. Legacy plaintext payloads pass straight through.
+    return BackupCipher.open(raw);
   }
 
   /// Writes the preserved snapshot. Routed through the same test seam as
@@ -458,42 +469,52 @@ class LocalBackupService {
   ) async {
     final override = writeOverride;
     if (override != null) return override(_preservedPrefsKey(email), data);
+    final payload = await BackupCipher.seal(data) ?? data;
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_preservedPrefsKey(email), data);
+      await prefs.setString(_preservedPrefsKey(email), payload);
       return;
     }
     final file = await _preservedFile(email);
     final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(data);
+    await tmp.writeAsString(payload);
     await tmp.rename(file.path);
   }
 
   static Future<String?> _readData(String key) async {
     final override = readOverride;
     if (override != null) return override(key);
+    String? raw;
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(key);
+      raw = prefs.getString(key);
+    } else {
+      final file = await _transactionsFile(_extractEmail(key));
+      if (!await file.exists()) return null;
+      raw = await file.readAsString();
     }
-    final file = await _transactionsFile(_extractEmail(key));
-    if (!await file.exists()) return null;
-    return file.readAsString();
+    if (raw == null) return null;
+    return BackupCipher.open(raw);
   }
 
   static Future<void> _writeData(String key, String data) async {
     final override = writeOverride;
     if (override != null) return override(key, data);
+    // Sealed before it touches the disk: the mirror is a full copy of the
+    // user's history and must not sit in the sandbox in the clear. A missing
+    // key falls back to plaintext — an unreadable backup is worse than an
+    // unencrypted one.
+    final payload = await BackupCipher.seal(data) ?? data;
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(key, data);
+      await prefs.setString(key, payload);
       return;
     }
     final file = await _transactionsFile(_extractEmail(key));
     // Write-then-rename: a kill (or a concurrent run) mid-write can no longer
     // leave a half-written backup behind for the restore path to read.
     final tmp = File('${file.path}.tmp');
-    await tmp.writeAsString(data);
+    await tmp.writeAsString(payload);
     await tmp.rename(file.path);
   }
 
@@ -649,16 +670,30 @@ class LocalBackupService {
     return dir;
   }
 
+  /// A **plaintext** copy of the most complete snapshot, for the explicit
+  /// "download my data" action.
+  ///
+  /// The live mirror is sealed at rest, so it must never be handed to the user
+  /// directly — they would get a base64 envelope instead of their data. The
+  /// export is written to its own file (and is deliberately not encrypted: it
+  /// leaves the app's sandbox, and the policy tells the user to store it
+  /// safely).
   static Future<File> exportBackupFile(String email) async {
     if (kIsWeb) {
       // Return in-memory file via universal_io (works on web)
       return File('/tmp/backup_${_sanitizeEmail(email)}.json');
     }
-    final file = await _transactionsFile(email);
-    if (!await file.exists()) {
-      await file.writeAsString("[]");
-    }
+    final transactions = await bestAvailableBackup(email);
+    final file = await _exportFile(email);
+    await file.writeAsString(jsonEncode(transactions));
     return file;
+  }
+
+  /// The plaintext export's file. Separate from [_transactionsFile] so the
+  /// erase/restore paths can never confuse the two.
+  static Future<File> _exportFile(String email) async {
+    final dir = await _backupDir();
+    return File('${dir.path}/export_tx_${_sanitizeEmail(email)}.json');
   }
 
   static String _sanitizeEmail(String email) {

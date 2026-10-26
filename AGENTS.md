@@ -542,6 +542,29 @@ Same for `BudgetService.checkBudgetExceeded` on bulk imports (the add/edit scree
 the alert, so a CSV/SMS import that blows a budget would otherwise stay silent). Only
 check categories from **expense** rows.
 
+**Both on-device copies are sealed with AES-GCM** (`lib/Services/backup_cipher.dart`): the
+transaction mirror (`LocalBackupService`) and the daily whole-account snapshot
+(`FullBackupService`), because the privacy policy promised encryption while they sat in
+the app sandbox as plain JSON. The key is generated on the device and kept in the
+platform keystore via `flutter_secure_storage`; a missing keystore **falls back to
+plaintext rather than to no backup** (an unreadable backup is the failure this whole area
+exists to prevent), and a sealed payload that will not authenticate reads as "no backup",
+never as a crash. Do not "simplify" the fallback away. `open()` also passes legacy
+plaintext through, so an existing mirror keeps restoring and is re-sealed on the next
+write. The *user-facing export* (`exportBackupFile`) is deliberately plaintext — it leaves
+the app sandbox and the user is expected to open it — so it lives in its own file, and
+`clearUserBackup()` deletes it too.
+
+**The daily snapshot keeps one dated safety copy for 7 days** (`safetyCopyTtl`). Larger-
+wins protects against shrinkage, but not against a live file that is corrupt or
+implausibly *bigger* (a bad restore that duplicated every document); when the live file
+replaces an older one, the replaced bytes are copied verbatim (still in their envelope) to
+`full_<safe>_<yyyy-MM-dd>.json`, and copies older than a week are pruned. `readLocalSnapshot`
+falls back to the newest safety copy when the live file will not parse, so one bad write
+cannot hide a week of good snapshots. Account deletion and the GDPR erase call
+`FullBackupService.clearLocalSnapshot()` + `LocalBackupService.clearUserBackup()` — a full
+copy of every collection surviving "delete all my data" would defeat the request.
+
 It is a **FULL collection read** (`col.get(Source.server)` over every `transactions`
 doc, ~260 KB for 709 items), so it coalesces: one in-flight run per account,
 `minInterval` (30 s) between successful runs, a `_dirty` flag, and a trailing `Timer`

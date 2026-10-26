@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:money_control/Models/backup_archive.dart';
 import 'package:money_control/Services/app_analytics.dart';
+import 'package:money_control/Services/backup_cipher.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/user_service.dart';
 import 'package:path_provider/path_provider.dart';
@@ -559,6 +560,23 @@ class FullBackupService {
     return File('${dir.path}/full_${_safeName(email)}.json');
   }
 
+  /// How long a dated safety copy is kept before it is pruned.
+  ///
+  /// One copy is enough: it holds the snapshot that [writeLocalSnapshot] was
+  /// about to replace, so a live file that is corrupt, unauthentic, or
+  /// implausibly *larger* (a bad restore that duplicated every document) still
+  /// leaves a version from within the last week. Keeping more would multiply
+  /// the on-device footprint of a whole-account copy for no extra reach.
+  static const Duration safetyCopyTtl = Duration(days: 7);
+
+  static Future<File> _safetyCopyFile(String email, DateTime day) async {
+    final dir = await _snapshotDir();
+    final stamp = '${day.year.toString().padLeft(4, '0')}-'
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
+    return File('${dir.path}/full_${_safeName(email)}_$stamp.json');
+  }
+
   static String _safeName(String email) =>
       email.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
 
@@ -573,6 +591,67 @@ class FullBackupService {
     return backupDir;
   }
 
+  /// Dated safety copies for [email], newest first.
+  static Future<List<File>> _safetyCopies(String email) async {
+    final dir = await _snapshotDir();
+    final prefix = 'full_${_safeName(email)}_';
+    final files = <File>[];
+    try {
+      if (!await dir.exists()) return files;
+      await for (final entity in dir.list()) {
+        if (entity is! File) continue;
+        final name = entity.uri.pathSegments.last;
+        if (name.startsWith(prefix) && name.endsWith('.json')) {
+          files.add(entity);
+        }
+      }
+    } catch (e) {
+      debugPrint('[FullBackupService] safety copy listing failed: $e');
+      return files;
+    }
+    // The name ends with the ISO date, so a reverse name sort is newest first.
+    files.sort((a, b) => b.path.compareTo(a.path));
+    return files;
+  }
+
+  /// Copies the payload being replaced into today's safety slot and prunes the
+  /// expired ones.
+  ///
+  /// The copy is a byte copy of the existing file, so it keeps whatever
+  /// envelope ([BackupCipher]) the live file had — no re-encryption, and no
+  /// chance of writing a plaintext copy of an encrypted snapshot.
+  static Future<void> _rotateSafetyCopy(
+    String email,
+    String existingPayload, {
+    required DateTime now,
+  }) async {
+    try {
+      final today = await _safetyCopyFile(email, now);
+      if (!await today.exists()) {
+        final tmp = File('${today.path}.tmp');
+        await tmp.writeAsString(existingPayload);
+        await tmp.rename(today.path);
+      }
+      final ttl = safetyCopyTtl;
+      for (final file in await _safetyCopies(email)) {
+        final name = file.uri.pathSegments.last;
+        final stamp = name.substring(
+          name.lastIndexOf('_') + 1,
+          name.length - '.json'.length,
+        );
+        final day = DateTime.tryParse(stamp);
+        if (day == null) continue;
+        if (now.difference(day) > ttl) {
+          await file.delete();
+        }
+      }
+    } catch (e) {
+      // A safety copy is an extra net, never a precondition for the backup that
+      // is about to be written.
+      debugPrint('[FullBackupService] safety copy rotation failed: $e');
+    }
+  }
+
   /// Writes the automatic snapshot for [email], keeping the *larger* of the
   /// new and the stored snapshot.
   ///
@@ -580,6 +659,11 @@ class FullBackupService {
   /// something was deleted. Overwriting then would destroy the only complete
   /// copy — the same trap the local transaction mirror fell into — so the
   /// larger snapshot wins.
+  ///
+  /// The payload is sealed with [BackupCipher] before it is written: this file
+  /// is a copy of *every* collection, which makes it the most sensitive
+  /// artifact on the device. A missing keystore degrades to plaintext rather
+  /// than to no snapshot at all.
   static Future<bool> writeLocalSnapshot(BackupArchive archive) async {
     final email = archive.email;
     if (email.isEmpty) return false;
@@ -587,7 +671,8 @@ class FullBackupService {
     final payload = archive.toJson();
     try {
       final file = await _snapshotFile(email);
-      final existing = await file.exists() ? await file.readAsString() : null;
+      final raw = await file.exists() ? await file.readAsString() : null;
+      final existing = raw == null ? null : await BackupCipher.open(raw);
 
       if (existing != null) {
         final existingCount = _documentCountOf(existing);
@@ -597,10 +682,16 @@ class FullBackupService {
         }
       }
 
+      if (raw != null) {
+        // Keep the snapshot we are about to replace, for a week.
+        await _rotateSafetyCopy(email, raw, now: DateTime.now());
+      }
+
+      final stored = await BackupCipher.seal(payload) ?? payload;
       // Write-then-rename, so a kill mid-write cannot leave a truncated
       // snapshot that parses as a valid-but-empty backup.
       final tmp = File('${file.path}.tmp');
-      await tmp.writeAsString(payload);
+      await tmp.writeAsString(stored);
       await tmp.rename(file.path);
       return true;
     } catch (e, s) {
@@ -611,14 +702,54 @@ class FullBackupService {
   }
 
   /// Reads the automatic snapshot for [email], or null when there is none.
+  ///
+  /// A sealed payload this install cannot authenticate (a corrupted file, or a
+  /// keystore key that no longer exists) reads as "no snapshot" rather than
+  /// throwing — the Firestore copy is the authoritative one. When the live file
+  /// is unreadable, the newest dated safety copy is used instead, so one bad
+  /// write cannot hide a week of good snapshots behind it.
   static Future<BackupArchive?> readLocalSnapshot(String email) async {
     try {
-      final file = await _snapshotFile(email);
-      if (!await file.exists()) return null;
-      return BackupArchive.fromJson(await file.readAsString());
+      final live = await _readArchiveFile(await _snapshotFile(email));
+      if (live != null) return live;
+      for (final file in await _safetyCopies(email)) {
+        final archive = await _readArchiveFile(file);
+        if (archive != null) return archive;
+      }
+      return null;
     } catch (e) {
       debugPrint('[FullBackupService] local snapshot read failed: $e');
       return null;
+    }
+  }
+
+  static Future<BackupArchive?> _readArchiveFile(File file) async {
+    if (!await file.exists()) return null;
+    final payload = await BackupCipher.open(await file.readAsString());
+    if (payload == null) return null;
+    try {
+      return BackupArchive.fromJson(payload);
+    } catch (e) {
+      debugPrint('[FullBackupService] unreadable snapshot ${file.path}: $e');
+      return null;
+    }
+  }
+
+  /// Deletes the automatic snapshot for [email] and every safety copy.
+  ///
+  /// Called from the account-deletion and data-erase flows: a full copy of
+  /// every collection surviving "delete all my data" would defeat the whole
+  /// request. Best-effort — the account is already gone at that point.
+  static Future<void> clearLocalSnapshot(String email) async {
+    if (email.isEmpty || kIsWeb) return;
+    try {
+      final file = await _snapshotFile(email);
+      if (await file.exists()) await file.delete();
+      for (final copy in await _safetyCopies(email)) {
+        await copy.delete();
+      }
+    } catch (e) {
+      debugPrint('[FullBackupService] local snapshot delete failed: $e');
     }
   }
 

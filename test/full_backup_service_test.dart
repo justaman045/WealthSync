@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_control/Models/backup_archive.dart';
+import 'package:money_control/Services/backup_cipher.dart';
 import 'package:money_control/Services/full_backup_service.dart';
 import 'package:money_control/Services/user_service.dart';
 
@@ -885,6 +886,120 @@ void main() {
         (await FullBackupService.readLocalSnapshot('other@b.com'))!
             .documentCount,
         1,
+      );
+    });
+
+    test('the snapshot is sealed at rest and still reads back', () async {
+      // Whole-account copy on disk: it must not be a readable JSON dump in the
+      // app sandbox (root, `adb backup`, a stolen unlocked phone).
+      BackupCipher.useKeyForTest(List<int>.generate(32, (i) => i));
+      addTearDown(BackupCipher.resetForTest);
+
+      expect(await FullBackupService.writeLocalSnapshot(archiveWith(9)), isTrue);
+
+      final files = await tempDir
+          .list()
+          .where((e) => e.path.endsWith('.json'))
+          .toList();
+      expect(files, hasLength(1));
+      final raw = await File(files.single.path).readAsString();
+      expect(raw.startsWith(BackupCipher.prefix), isTrue);
+      expect(raw.contains('transactions'), isFalse);
+      expect(raw.contains('a@b.com'), isFalse);
+
+      final read = await FullBackupService.readLocalSnapshot('a@b.com');
+      expect(read, isNotNull);
+      expect(read!.documentCount, 9);
+    });
+
+    test('a sealed snapshot whose key is gone reads as "no snapshot"',
+        () async {
+      BackupCipher.useKeyForTest(List<int>.generate(32, (i) => i));
+      await FullBackupService.writeLocalSnapshot(archiveWith(4));
+      // Simulate a wiped keystore (device restore, factory reset of the
+      // keystore entry): the file is there but unauthentic.
+      BackupCipher.useKeyForTest(List<int>.generate(32, (i) => 255 - i));
+      addTearDown(BackupCipher.resetForTest);
+
+      expect(await FullBackupService.readLocalSnapshot('a@b.com'), isNull);
+      expect(await FullBackupService.hasLocalSnapshot('a@b.com'), isFalse);
+      // And a fresh snapshot replaces it rather than being refused as a shrink.
+      expect(await FullBackupService.writeLocalSnapshot(archiveWith(6)), isTrue);
+    });
+
+    test('clearLocalSnapshot removes the live copy and its safety copy',
+        () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(3));
+      await FullBackupService.writeLocalSnapshot(archiveWith(4));
+      expect(await tempDir.list().toList(), isNotEmpty);
+
+      await FullBackupService.clearLocalSnapshot('a@b.com');
+      expect(await FullBackupService.readLocalSnapshot('a@b.com'), isNull);
+      expect(await tempDir.list().toList(), isEmpty);
+    });
+
+    List<File> safetyCopies(List<FileSystemEntity> entries) => entries
+        .whereType<File>()
+        .where(
+          (f) => RegExp(r'_\d{4}-\d{2}-\d{2}\.json$')
+              .hasMatch(f.uri.pathSegments.last),
+        )
+        .toList();
+
+    test('replacing the live snapshot keeps one dated safety copy', () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(5));
+      await FullBackupService.writeLocalSnapshot(archiveWith(20));
+
+      final entries = await tempDir.list().toList();
+      final copies = safetyCopies(entries);
+      expect(copies, hasLength(1), reason: 'live + exactly one dated copy');
+      expect(
+        (await FullBackupService.readLocalSnapshot('a@b.com'))!.documentCount,
+        20,
+      );
+
+      // The copy holds the snapshot that was replaced, not the new one.
+      final payload =
+          await BackupCipher.open(await copies.single.readAsString());
+      final decoded = jsonDecode(payload!) as Map<String, dynamic>;
+      final transactions = (decoded['collections'] as Map)['transactions'];
+      expect(transactions, hasLength(5));
+
+      // A second replace on the same day does not churn the copy.
+      await FullBackupService.writeLocalSnapshot(archiveWith(30));
+      expect(safetyCopies(await tempDir.list().toList()), hasLength(1));
+    });
+
+    test('a safety copy older than a week is pruned', () async {
+      final stale = DateTime.now().subtract(const Duration(days: 8));
+      final stamp = '${stale.year.toString().padLeft(4, '0')}-'
+          '${stale.month.toString().padLeft(2, '0')}-'
+          '${stale.day.toString().padLeft(2, '0')}';
+      final old = File('${tempDir.path}/full_a_b_com_$stamp.json');
+      await old.writeAsString('[]');
+
+      await FullBackupService.writeLocalSnapshot(archiveWith(5));
+      await FullBackupService.writeLocalSnapshot(archiveWith(7));
+
+      expect(await old.exists(), isFalse, reason: 'older than safetyCopyTtl');
+      expect(safetyCopies(await tempDir.list().toList()), hasLength(1));
+    });
+
+    test('an unreadable live file falls back to the safety copy', () async {
+      await FullBackupService.writeLocalSnapshot(archiveWith(5));
+      await FullBackupService.writeLocalSnapshot(archiveWith(9));
+
+      // Truncated/corrupt live file (a kill mid-write, a bad restore).
+      await File(
+        '${tempDir.path}/full_a_b_com.json',
+      ).writeAsString('{"not":"an archive"}');
+
+      final read = await FullBackupService.readLocalSnapshot('a@b.com');
+      expect(read, isNotNull);
+      expect(
+        read!.documentCount,
+        5,
+        reason: 'the copy taken before the 9-document write',
       );
     });
   });

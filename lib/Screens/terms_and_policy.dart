@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:money_control/Services/full_backup_service.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Services/error_handler.dart';
@@ -113,6 +114,8 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       /// device-local copy of every transaction that a later restore would
       /// resurrect — an explicit data-erasure request must remove it as well.
       await LocalBackupService.clearUserBackup(email);
+      /// ... and the daily full snapshot, which is a copy of every collection.
+      await FullBackupService.clearLocalSnapshot(email);
 
       /// Release the referral code. It lives at the top level (owned by uid),
       /// so it is not in any of the collections deleted above and would
@@ -623,6 +626,8 @@ We NEVER:
 • Share with third parties without consent
 • Store SMS message body text on our servers
 
-Your data is securely stored with industry-standard encryption.
+Your data is stored in Google Cloud Firestore, which encrypts it in transit and at rest. The automatic on-device backup of your transactions is encrypted with a key held in this device's secure storage.
+
+Any file you export yourself (for example "Download My Data") is plaintext so that you can open it — please store it somewhere safe.
 ''';
 }

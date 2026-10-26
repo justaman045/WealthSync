@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Screens/loginscreen.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/full_backup_service.dart';
+import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/user_service.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/colors.dart';
@@ -22,6 +24,9 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
   String? success;
 
   Future<void> _deleteAccount() async {
+    // Captured before the deletion: the purge below is keyed by email, and the
+    // session the app still holds must not be relied on afterwards.
+    final email = FirebaseAuth.instance.currentUser?.email;
     setState(() {
       processing = true;
       error = null;
@@ -31,6 +36,19 @@ class _DeactivateAccountScreenState extends State<DeactivateAccountScreen> {
     try {
       // Hard Delete using UserService
       await UserService().deleteAccount();
+
+      // The account's cloud data is gone, but this device still holds two full
+      // copies of it: the transaction mirror and the daily snapshot. Both are
+      // keyed by email so a later account could never read them — they would
+      // simply linger on the device forever.
+      if (email != null && email.isNotEmpty) {
+        try {
+          await LocalBackupService.clearUserBackup(email);
+          await FullBackupService.clearLocalSnapshot(email);
+        } catch (e) {
+          debugPrint('Local data purge after account deletion: $e');
+        }
+      }
 
       // The auth account is gone, but FirebaseAuth still holds the session
       // until it is explicitly signed out. Doing that here (instead of a
