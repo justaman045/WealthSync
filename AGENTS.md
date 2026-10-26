@@ -189,6 +189,29 @@ onto a future expiry, restarts from now if elapsed), unit-tested in
 purchase, so pin the numbers. `SubscriptionController` client status is cosmetic; the
 authoritative check is the valid-pro-claim rule on the user document.
 
+**Both free-Pro paths are bounded by `firestore.rules`, not by the client.** Spark has
+no Cloud Function, so the rules are the only enforcement that survives a modified APK:
+`isTrialStart` (7 days, only when `trialEndDate` is absent — the same signal the UI
+derives `trialUsed` from), `isTrialShrink` (later `trialEndDate` only via a payout),
+`isReferralApplication` (one 30-day month, code doc must exist and not be your own) and
+`isClaimPayout` (the profile's `referralCredited` ledger must grow, each newly credited
+uid must be a real claim, the ledger never shrinks, ≤30 days/claim). `isReferralReward`
+— which let any signed-in user write `subscriptionStatus: 'pro'` into any account with a
+`referralCode` — is deleted; a payout is a `trialEndDate` grant on the referrer's own
+doc. `isProfileErase` is the single write allowed to *remove* the gated fields (the GDPR
+reset); allowing a plain removal would reset `trialUsed` for another free trial.
+`tool/rules_tests/run.js` pins all of it behaviourally (23 entitlement checks) and
+`test/referral_test.dart` pins the rules text. Residual risk (a forged `purchaseToken`
+passes `validProClaim`; delete+recreate resets the ledger, still capped at 45 days) is
+recorded in `docs/THREAT_MODEL_entitlement.md` — read it before "fixing" a bound.
+
+Codes are random 8 chars from an alphabet without I/O/0/1 (`generateReferralCode()` takes
+no arguments). They used to be `name[0:4] + uid[0:2]`, which made a code guessable from a
+display name. A code doc stores `ownerUid` only — anyone who knows a code may read the
+document, so `owner` (owner's email) leaked it; legacy docs still carry it and the rules
+accept both shapes. Delete + GDPR erase release the code doc (it is top-level, so
+`UserService.subcollections` never covered it).
+
 ## Wealth / Asset System
 
 One Firestore subcollection per asset type under `users/{userEmail}/`, plus a
