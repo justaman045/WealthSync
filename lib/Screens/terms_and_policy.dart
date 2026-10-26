@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Services/app_analytics.dart';
 import 'package:money_control/Services/full_backup_service.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Utils/responsive.dart';
@@ -213,20 +215,58 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
   }
 
   /// -------------------------------------------------------
-  /// 📄 DOWNLOAD USER DATA AS JSON
+  /// 📄 DOWNLOAD MY DATA (complete account export)
   /// -------------------------------------------------------
+  ///
+  /// This used to write a transactions-only JSON file into the app's own
+  /// documents directory and then report that the export had been "created".
+  /// Both halves were wrong: categories, budgets, goals, loans, recurring
+  /// payments, every wealth collection and the profile were missing, and the
+  /// file was not reachable from outside the app sandbox — so a data-access
+  /// request returned neither everything nor anything the user could open.
+  ///
+  /// It now captures the same complete archive the backup screen produces and
+  /// hands it to the file picker, which is the only path that both covers
+  /// every collection and actually leaves the device. A collection that could
+  /// not be read is reported instead of being silently absent.
   Future<void> _downloadMyData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || user.email == null) return;
+    final email = user?.email;
+    if (email == null || email.isEmpty) return;
 
     setState(() => downloadingData = true);
 
+    final failed = <String>[];
     try {
-      await LocalBackupService.exportBackupFile(user.email!);
+      final archive = await FullBackupService.capture(
+        email,
+        onCollectionError: (collection, _) => failed.add(collection),
+      );
+      final path = await FullBackupService.download(archive);
 
-      if (mounted) setState(() => downloadingData = false);
+      AppAnalytics.log(AnalyticsEvent.dataExportDownloaded, {
+        'documents': archive.documentCount,
+        'collections': archive.populatedCollections.length,
+        'failed_collections': failed.length,
+      });
 
-      ErrorHandler.showSuccess("Your data export file has been created.", title: "Data Ready");
+      if (!mounted) return;
+      setState(() => downloadingData = false);
+
+      // Cancelled at the picker is not a failure — say nothing.
+      if (path == null) return;
+
+      if (failed.isEmpty) {
+        ErrorHandler.showSuccess(
+          AppStrings.dataExportReady,
+          title: AppStrings.dataExportTitle,
+        );
+      } else {
+        ErrorHandler.showError(
+          AppStrings.dataExportIncomplete(failed.length),
+          title: AppStrings.dataExportIncompleteTitle,
+        );
+      }
     } catch (e) {
       if (mounted) setState(() => downloadingData = false);
       ErrorHandler.showError(e.toString());

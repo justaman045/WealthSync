@@ -133,6 +133,9 @@ void main() {
         AnalyticsEvent.trialStarted,
         AnalyticsEvent.referralApplied,
         AnalyticsEvent.exportUsed,
+        AnalyticsEvent.fullBackupDownloaded,
+        AnalyticsEvent.fullBackupRestored,
+        AnalyticsEvent.dataExportDownloaded,
         AnalyticsEvent.featureGateHit,
       ];
       expect(names.toSet(), hasLength(names.length));

@@ -396,10 +396,6 @@ class LocalBackupService {
     if (await file.exists()) await file.delete();
     final preserved = await _preservedFile(userEmail);
     if (await preserved.exists()) await preserved.delete();
-    // The plaintext export is a full copy of the same data (see
-    // [exportBackupFile]); leaving it behind would contradict the erase.
-    final exported = await _exportFile(userEmail);
-    if (await exported.exists()) await exported.delete();
   }
 
   // ============================
@@ -668,32 +664,6 @@ class LocalBackupService {
     final dir = Directory('${baseDir.path}/money_control_backups');
     if (!await dir.exists()) await dir.create(recursive: true);
     return dir;
-  }
-
-  /// A **plaintext** copy of the most complete snapshot, for the explicit
-  /// "download my data" action.
-  ///
-  /// The live mirror is sealed at rest, so it must never be handed to the user
-  /// directly — they would get a base64 envelope instead of their data. The
-  /// export is written to its own file (and is deliberately not encrypted: it
-  /// leaves the app's sandbox, and the policy tells the user to store it
-  /// safely).
-  static Future<File> exportBackupFile(String email) async {
-    if (kIsWeb) {
-      // Return in-memory file via universal_io (works on web)
-      return File('/tmp/backup_${_sanitizeEmail(email)}.json');
-    }
-    final transactions = await bestAvailableBackup(email);
-    final file = await _exportFile(email);
-    await file.writeAsString(jsonEncode(transactions));
-    return file;
-  }
-
-  /// The plaintext export's file. Separate from [_transactionsFile] so the
-  /// erase/restore paths can never confuse the two.
-  static Future<File> _exportFile(String email) async {
-    final dir = await _backupDir();
-    return File('${dir.path}/export_tx_${_sanitizeEmail(email)}.json');
   }
 
   static String _sanitizeEmail(String email) {

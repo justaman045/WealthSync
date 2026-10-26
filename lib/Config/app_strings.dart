@@ -85,6 +85,16 @@ class AppStrings {
   static const String backupDownload = 'Download Backup';
   static const String backupRestoreFromFile = 'Restore From Backup File';
 
+  // ---- Data export (privacy screen) ----
+  static const String dataExportReady = 'Your data export file has been created.';
+  static const String dataExportTitle = 'Data Ready';
+  static const String dataExportIncompleteTitle = 'Export incomplete';
+
+  /// Partial-export warning. The count is data, the sentence is copy.
+  static String dataExportIncomplete(int collections) =>
+      '$collections collection(s) could not be read, so this file is missing '
+      'them. Try the export again while online.';
+
   // ---- Admin feature flags ----
   static const String featureFlags = 'Feature Flags';
   static const String featureFlagsSubtitle =

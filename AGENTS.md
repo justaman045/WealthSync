@@ -551,9 +551,11 @@ plaintext rather than to no backup** (an unreadable backup is the failure this w
 exists to prevent), and a sealed payload that will not authenticate reads as "no backup",
 never as a crash. Do not "simplify" the fallback away. `open()` also passes legacy
 plaintext through, so an existing mirror keeps restoring and is re-sealed on the next
-write. The *user-facing export* (`exportBackupFile`) is deliberately plaintext — it leaves
-the app sandbox and the user is expected to open it — so it lives in its own file, and
-`clearUserBackup()` deletes it too.
+write. A file the user downloads is deliberately plaintext — it leaves the app sandbox and they
+are expected to open it. That is `FullBackupService.download`, used by both the backup
+screen and the privacy screen's "Download My Data" (which captures the same complete
+archive: the old transactions-only `exportBackupFile` was neither complete nor reachable
+from outside the sandbox, so it is gone).
 
 **The daily snapshot keeps one dated safety copy for 7 days** (`safetyCopyTtl`). Larger-
 wins protects against shrinkage, but not against a live file that is corrupt or

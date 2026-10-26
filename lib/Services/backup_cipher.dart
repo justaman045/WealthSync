@@ -17,9 +17,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// The key is generated on the device and kept in the platform keystore
 /// (`flutter_secure_storage`: Android Keystore-wrapped, iOS/macOS Keychain), so
 /// the ciphertext and the key never live in the same file. Only the *live
-/// mirror* and its preserved pre-deletion copy are sealed; an explicit user
-/// export stays plaintext (`LocalBackupService.exportBackupFile`) because the
-/// user is expected to read and move that file.
+/// mirror* and its preserved pre-deletion copy are sealed; a file the user
+/// downloads themselves (`FullBackupService.download`, the backup and the
+/// privacy-screen data export) is deliberately plaintext, because it leaves the
+/// sandbox and they are expected to open it.
 ///
 /// Failure policy, in both directions:
 /// - If the key cannot be read or created, [seal] returns `null` and the caller

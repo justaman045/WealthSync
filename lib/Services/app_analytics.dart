@@ -41,6 +41,13 @@ class AnalyticsEvent {
   /// the tap, so a failed restore that reported success is visible here.
   static const String fullBackupRestored = 'full_backup_restored';
 
+  /// A privacy-screen "Download My Data" completed. Separate from
+  /// [fullBackupDownloaded] on purpose: both write the same archive, but this
+  /// one answers "did the data-access request produce a complete file?", which
+  /// is the question a compliance review asks, while the backup event asks
+  /// whether the safety net was refreshed.
+  static const String dataExportDownloaded = 'data_export_downloaded';
+
   /// A user reached a feature that an admin has set to `comingSoon` or
   /// `hidden`. This is the demand signal for what to build next, and the only
   /// way to know which of the feature flags are dead weight.
