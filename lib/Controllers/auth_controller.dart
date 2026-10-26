@@ -4,10 +4,12 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:money_control/main.dart';
 import 'package:money_control/Screens/main_shell.dart';
+import 'package:money_control/Screens/onboarding_screen.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/google_auth_service.dart';
+import 'package:money_control/Services/onboarding_status.dart';
 import 'package:money_control/Utils/auth_error_messages.dart';
 import 'package:money_control/Services/referral_service.dart';
 import 'package:money_control/Services/sms_service.dart';
@@ -88,7 +90,7 @@ class AuthController extends GetxController {
       await _updateUserData(user, 'email');
       AppAnalytics.log(AnalyticsEvent.loginCompleted, {'method': 'email'});
 
-      Get.offAll(() => const MainShell());
+      await routeAfterSignIn(user);
     } on FirebaseAuthException catch (e) {
       errorMessage.value = _getFriendlyErrorMessage(e);
     } catch (e) {
@@ -135,7 +137,7 @@ class AuthController extends GetxController {
       if (user != null) {
         await _updateUserData(user, 'google');
         AppAnalytics.log(AnalyticsEvent.loginCompleted, {'method': 'google'});
-        Get.offAll(() => const MainShell());
+        await routeAfterSignIn(user);
       }
     } on FirebaseAuthException catch (e) {
       errorMessage.value = _getFriendlyErrorMessage(e);
@@ -147,6 +149,27 @@ class AuthController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// The one post-sign-in destination, shared by email login, Google login and
+  /// Google sign-up.
+  ///
+  /// Both login paths used to hardcode `MainShell`, so a brand-new account
+  /// skipped setup and then met it on the next cold start — the root widget
+  /// decides from this same check. Sign-up hardcoded `OnboardingScreen`, which
+  /// pushed existing users through setup again; onboarding merge-writes
+  /// `monthly_budget` (defaulting it to 0) and `currency`, so that was data
+  /// damage, not just a detour.
+  Future<void> routeAfterSignIn(User user) async {
+    final email = user.email;
+    final needsOnboarding =
+        email == null || !await OnboardingStatus.isOnboardedFor(email);
+    Get.offAll(
+      () => postAuthDestination(needsOnboarding: needsOnboarding) ==
+              PostAuthDestination.onboarding
+          ? const OnboardingScreen()
+          : const MainShell(),
+    );
   }
 
   Future<void> _updateUserData(User user, String provider) async {

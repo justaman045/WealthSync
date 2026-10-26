@@ -2,14 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Controllers/auth_controller.dart';
 import 'package:money_control/Components/glass_container.dart'; // Unified Glass Container
 import 'package:money_control/Components/colors.dart'; // App Colors
-import 'package:money_control/Screens/onboarding_screen.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/auth_profile_fields.dart';
 import 'package:money_control/Utils/auth_error_messages.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/app_analytics.dart';
@@ -145,18 +144,32 @@ class _AuthScreenState extends State<AuthScreen> {
 
       final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user!;
+      // Signing up with an account that already exists just signs it in, so
+      // these fields are gated on isNewUser — writing createdAt unconditionally
+      // rewrote an existing user's creation time.
+      final isNewUser = userCredential.additionalUserInfo?.isNewUser ?? false;
 
-      await FirebaseFirestore.instance.collection('users').doc(user.email).set({
-        'name': user.displayName ?? 'Google User',
-        'email': user.email,
-        'photoUrl': user.photoURL,
-        'provider': 'google',
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.email)
+          .set(
+            googleSignupProfileFields(
+              email: user.email,
+              displayName: user.displayName,
+              photoUrl: user.photoURL,
+              isNewUser: isNewUser,
+              createdAt: FieldValue.serverTimestamp(),
+              lastLogin: FieldValue.serverTimestamp(),
+            ),
+            SetOptions(merge: true),
+          );
 
       if (!mounted) return;
       setState(() => _isLoading = false);
-      Get.offAll(() => const OnboardingScreen());
+      // Same destination decision as every other sign-in path: a genuinely new
+      // account needs setup, an existing one goes straight home instead of
+      // being re-onboarded (which merge-writes monthly_budget to 0).
+      await AuthController.to.routeAfterSignIn(user);
     } catch (e) {
       if (!mounted) return;
       setState(() {
