@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Components/methods.dart';
 import 'package:money_control/Controllers/auth_controller.dart';
@@ -14,6 +13,7 @@ import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/auth_error_messages.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/app_analytics.dart';
+import 'package:money_control/Services/google_auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -24,7 +24,6 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -134,20 +133,15 @@ class _AuthScreenState extends State<AuthScreen> {
     });
 
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
+      // Same client (and same forced account picker) as the login screen — see
+      // GoogleAuthService. A second client here held a separate cached account.
+      final credential =
+          await GoogleAuthService.instance.obtainCredential();
+      if (credential == null) {
         if (!mounted) return;
         setState(() => _isLoading = false);
         return;
       }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
 
       final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user!;

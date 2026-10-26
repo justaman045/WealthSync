@@ -1,13 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/material.dart';
 import 'package:money_control/main.dart';
 import 'package:money_control/Screens/main_shell.dart';
 import 'package:money_control/Screens/splashscreen.dart';
 
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/google_auth_service.dart';
 import 'package:money_control/Utils/auth_error_messages.dart';
 import 'package:money_control/Services/referral_service.dart';
 import 'package:money_control/Services/sms_service.dart';
@@ -45,7 +45,6 @@ class AuthController extends GetxController {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
 
   var isLoading = false.obs;
   var errorMessage = ''.obs;
@@ -119,20 +118,15 @@ class AuthController extends GetxController {
     errorMessage.value = '';
 
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
+      // Always asks which account to use — see GoogleAuthService for why the
+      // explicit signOut() first is required on both platforms.
+      final AuthCredential? credential =
+          await GoogleAuthService.instance.obtainCredential();
+      if (credential == null) {
         // User cancelled the picker
         isLoading.value = false;
         return;
       }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
 
       final UserCredential userCredential =
           await _auth.signInWithCredential(credential);
@@ -179,11 +173,10 @@ class AuthController extends GetxController {
       isLoading.value = false;
       return;
     }
-    try {
-      await _googleSignIn.signOut();
-    } catch (e) {
-      debugPrint('Google signOut error: $e');
-    }
+    // Best-effort: the Firebase session is already gone and
+    // GoogleAuthService.signOut() logs instead of throwing, so a device
+    // without Play Services can never block logout.
+    await GoogleAuthService.instance.signOut();
     // Awaited: disposeUserScopedState() ends in `LocalCacheService.clearAll()`,
     // and an unawaited clear can land AFTER a fast re-login had already written
     // the new account's cache, silently wiping it. main.dart's auth-stream
