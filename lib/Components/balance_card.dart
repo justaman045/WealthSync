@@ -149,9 +149,18 @@ class _BalanceCardState extends State<BalanceCard> {
                             Colors.white.withValues(alpha: 0.8),
                           ).copyWith(letterSpacing: 0.5),
                         ),
-                        Wrap(
-                          spacing: AppSpace.s8.w,
-                          children: [
+                        // Must be Flexible: a Wrap inside a Row is laid out
+                        // with unbounded width, so it can never wrap and the
+                        // chips overflow on a 320dp-wide device (caught by the
+                        // E2E run: "RenderFlex overflowed by 11 pixels on the
+                        // right"). Flexible hands it the remaining width and
+                        // lets the second chip drop to its own line.
+                        Flexible(
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: AppSpace.s8.w,
+                            runSpacing: AppSpace.s4.h,
+                            children: [
                             FeatureVisible(
                               flagKey: 'lent_money',
                               child: Obx(
@@ -210,6 +219,7 @@ class _BalanceCardState extends State<BalanceCard> {
                               }),
                             ),
                           ],
+                          ),
                         ),
                       ],
                     ),
