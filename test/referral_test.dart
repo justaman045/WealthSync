@@ -66,6 +66,39 @@ void main() {
       expect(helpers.contains('function isTrialShrink'), isTrue);
     });
 
+    test('each grant branch checks ownership and its own field set', () {
+      // `allow update` ORs its branches, so a branch that forgets the owner
+      // check can write *any* account's profile. The trial branch had exactly
+      // that shape (any signed-in user could rewrite a victim's profile), and
+      // without hasOnly it was also a general-purpose write that could carry a
+      // purchased-looking Pro claim alongside the trial date.
+      expect(rules.contains('function isTrialStart(userEmail)'), isTrue);
+      expect(rules.contains('|| isTrialStart(userEmail)'), isTrue);
+      final trial = rules.substring(
+        rules.indexOf('function isTrialStart'),
+        rules.indexOf('function isTrialShrink'),
+      );
+      expect(trial.contains('request.auth.token.email == userEmail'), isTrue);
+      expect(trial.contains("hasOnly(['trialEndDate'])"), isTrue);
+    });
+
+    test('the erase reset can drop gated fields but never set one back', () {
+      // The erase branch may touch any field, so it is the one place a gated
+      // value must be re-checked: otherwise "erase my data" also minted
+      // `isAdmin: true` or a free trial.
+      final erase = rules.substring(
+        rules.indexOf('function isProfileErase'),
+        rules.indexOf('function isTrialStart'),
+      );
+      expect(erase.contains("hasAny(['trialEndDate'])"), isTrue);
+      expect(erase.contains("hasAny(['referralCredited'])"), isTrue);
+      expect(
+        erase.contains("!d.get('isAdmin', false)"),
+        isTrue,
+        reason: 'an erase that could write isAdmin is a self-promotion path',
+      );
+    });
+
     test('a referral month is 30 days, once, and needs a real code', () {
       final helpers = helperBlock();
       final application = helpers.substring(

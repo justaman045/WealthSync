@@ -200,7 +200,12 @@ uid must be a real claim, the ledger never shrinks, ≤30 days/claim). `isReferr
 `referralCode` — is deleted; a payout is a `trialEndDate` grant on the referrer's own
 doc. `isProfileErase` is the single write allowed to *remove* the gated fields (the GDPR
 reset); allowing a plain removal would reset `trialUsed` for another free trial.
-`tool/rules_tests/run.js` pins all of it behaviourally (23 entitlement checks) and
+**`allow update` ORs its branches, so every branch must check ownership and its own
+field set itself** — `isTrialStart` shipped without either and was a write-anything
+bypass on any profile that had no `trialEndDate` yet; `isProfileErase`, which may touch
+any field, must also refuse to *set* a gated value back (it could mint `isAdmin`).
+Both are pinned by `tool/rules_tests/run.js` and `test/referral_test.dart`.
+`tool/rules_tests/run.js` pins all of it behaviourally (27 entitlement checks of 48) and
 `test/referral_test.dart` pins the rules text. Residual risk (a forged `purchaseToken`
 passes `validProClaim`; delete+recreate resets the ledger, still capped at 45 days) is
 recorded in `docs/THREAT_MODEL_entitlement.md` — read it before "fixing" a bound.

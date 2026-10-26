@@ -40,20 +40,45 @@ service cloud.firestore {
     // referral bookkeeping) disappear. It is the only write allowed to remove
     // them; a plain update could otherwise drop trialEndDate and buy another
     // free trial, since the client derives trialUsed from the key's presence.
+    //
+    // Because this one branch may touch any field, it must also refuse to put a
+    // gated value *back*: without those checks an "erase" was a general-purpose
+    // write that could mint an admin (`isAdmin: true`) or a Pro entitlement
+    // alongside the consent flags. The real erase writes email + the two
+    // consent flags + dataDeletedAt and deletes everything else, so nothing
+    // legitimate is lost.
     function isProfileErase(userEmail) {
       let d = request.resource.data;
       return request.auth != null
           && request.auth.token.email == userEmail
           && d.get('consent_data', true) == false
-          && d.keys().hasAny(['dataDeletedAt']);
+          && d.keys().hasAny(['dataDeletedAt'])
+          // isAdmin may be dropped (an admin erasing their own data), never set.
+          && (!d.get('isAdmin', false)
+              || resource.data.get('isAdmin', false) == true)
+          && !d.keys().hasAny(['trialEndDate'])
+          && !d.keys().hasAny(['referralCredited'])
+          && (!d.keys().hasAny(['isPro']) || d.isPro == false)
+          && (!d.keys().hasAny(['subscriptionStatus'])
+              || d.subscriptionStatus == 'free'
+              || d.subscriptionStatus == 'pending');
     }
 
     // A free trial is granted once, for 7 days. The client derives trialUsed
     // from the presence of trialEndDate, so "no key yet" is exactly the
     // first-grant condition and the rule cannot drift from the UI.
-    function isTrialStart() {
+    //
+    // Ownership AND the changed-field set are both required: the update rule
+    // ORs its branches, so an ownership check inside `isOwnerUpdate` alone left
+    // this branch able to write *any* document — any signed-in user could
+    // rewrite another account's profile, or smuggle `subscriptionStatus: pro`
+    // and a purchase token into their own trial write.
+    function isTrialStart(userEmail) {
       let end = request.resource.data.get('trialEndDate', null);
       return request.auth != null
+          && request.auth.token.email == userEmail
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['trialEndDate'])
           && !resource.data.keys().hasAny(['trialEndDate'])
           && end is timestamp
           && end.toMillis() - request.time.toMillis()
@@ -197,7 +222,7 @@ service cloud.firestore {
               || request.resource.data.isPro == false
               || validProClaim(request.resource.data));
       allow update: if isOwnerUpdate(userEmail)
-          || isTrialStart()
+          || isTrialStart(userEmail)
           || isProfileErase(userEmail)
           || isReferralApplication(userEmail)
           || isClaimPayout(userEmail)

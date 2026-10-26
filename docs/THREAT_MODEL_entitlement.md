@@ -35,7 +35,11 @@ reads that, and nothing else.
      `isClaimPayout`), and allows `trialEndDate` only to move *earlier*
      (`isTrialShrink`).
    - `isTrialStart` — the first trial, 7 days, only when `trialEndDate` is
-     absent (the same signal the UI derives `trialUsed` from).
+     absent (the same signal the UI derives `trialUsed` from). It also checks
+     ownership *itself* and allows `trialEndDate` as the **only** changed
+     field: `allow update` ORs its branches, so a branch without those two
+     guards could write any account's profile (or carry a purchase-looking Pro
+     claim alongside the trial date) while still being a "trial grant".
    - `isReferralApplication` — one 30-day month per profile, and only for a code
      document that exists and is not the caller's own.
    - `isClaimPayout` — the only way to extend an existing `trialEndDate`: the
@@ -43,6 +47,13 @@ reads that, and nothing else.
      be a claim recorded on the caller's code document, the ledger may never
      shrink, and the extension is at most 30 days per credited claim (hard
      ceiling 45 days ahead through `validTrialCap`).
+   - `isProfileErase` — the explicit data-erase reset, and the only write that
+     may *drop* `trialEndDate`/`referralCredited`/the entitlement fields. Because
+     it may touch any field, it also refuses to put a gated value back: the
+     erase cannot set `isAdmin` (an admin may still drop it), cannot end with a
+     `trialEndDate` or `referralCredited`, and cannot end `isPro: true` or
+     `subscriptionStatus: 'pro'`. Without that, "erase my data" doubled as
+     "make me an admin".
    - `subscriptionStatus: 'pro'` and `isPro: true` require `validProClaim` — a
      non-empty `purchaseToken`. A naive "write pro" self-grant fails.
    - Admins (`users/{email}.isAdmin`) may write another user's entitlement, by
@@ -58,6 +69,8 @@ reads that, and nothing else.
 |--------|---------|
 | Write `subscriptionStatus: 'pro'` / `isPro: true` from a modified client | **Blocked** — no `purchaseToken` |
 | Write `isAdmin: true` (create or update) | **Blocked** for non-admins |
+| Write `isAdmin: true` inside an "erase my data" write | **Blocked** — the erase branch re-checks the gated fields |
+| Write another user's profile through the trial branch | **Blocked** — each grant branch checks ownership itself |
 | Write into another user's document | **Blocked** (owner-only) |
 | Start a second free trial | **Blocked** — `trialEndDate` already exists |
 | Extend a trial by rewriting `trialEndDate` | **Blocked** — a later date needs a claim-backed payout |
@@ -146,8 +159,8 @@ In priority order, if the project ever moves to a paid plan:
    ledger lives server-side and the delete/recreate resets above disappear.
 
 Until then, the rules above are the contract: they are covered behaviourally by
-`tool/rules_tests/run.js` (23 entitlement checks against the Firestore
-emulator) and textually by `test/referral_test.dart`. Changing a bound in
+`tool/rules_tests/run.js` (27 entitlement checks out of 48, against the
+Firestore emulator) and textually by `test/referral_test.dart`. Changing a bound in
 `firestore.rules` without updating both is how this file becomes a lie.
 
 ## Deployment note

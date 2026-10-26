@@ -266,6 +266,51 @@ async function main() {
     );
   });
 
+  // The update rule ORs its branches, so each grant branch must verify
+  // ownership itself. A missing check here let any signed-in user write any
+  // other account's profile, because "the target has no trialEndDate yet" is
+  // true for every fresh account.
+  await check("the trial branch cannot write another account's profile", async () => {
+    const victim = freshUser();
+    const attacker = freshUser();
+    await expectAllowed(
+      setDoc(doc(victim.db, `users/${victim.email}`), {
+        email: victim.email,
+        uid: victim.uid,
+      }),
+    );
+    await expectDenied(
+      setDoc(
+        doc(attacker.db, `users/${victim.email}`),
+        { trialEndDate: inDays(7) },
+        { merge: true },
+      ),
+    );
+    await expectDenied(
+      setDoc(
+        doc(attacker.db, `users/${victim.email}`),
+        { trialEndDate: inDays(7), name: 'pwned' },
+        { merge: true },
+      ),
+    );
+  });
+
+  await check('the trial branch cannot smuggle other fields', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), { email: u.email, uid: u.uid }),
+    );
+    // hasOnly(['trialEndDate']) is what keeps this branch a trial grant rather
+    // than a general-purpose profile write.
+    await expectDenied(
+      setDoc(
+        doc(u.db, `users/${u.email}`),
+        { trialEndDate: inDays(7), name: 'Renamed' },
+        { merge: true },
+      ),
+    );
+  });
+
   await check('cancelling a trial (moving the end earlier) is allowed', () =>
     expectAllowed(
       setDoc(
@@ -526,6 +571,75 @@ async function main() {
         consent_marketing: false,
         dataDeletedAt: now(),
       }),
+    );
+
+    // A Pro user erasing: the gated entitlement fields are gone, the purchase
+    // token is left in place, and the write must still be allowed — the erase
+    // checks what is *absent*, not what the doc used to hold.
+    const pro = freshUser();
+    await expectAllowed(
+      setDoc(doc(pro.db, `users/${pro.email}`), {
+        email: pro.email,
+        uid: pro.uid,
+        subscriptionStatus: 'pro',
+        isPro: true,
+        purchaseToken: 'real-looking-token',
+      }),
+    );
+    await expectAllowed(
+      setDoc(doc(pro.db, `users/${pro.email}`), {
+        email: pro.email,
+        consent_data: false,
+        consent_marketing: false,
+        dataDeletedAt: now(),
+        purchaseToken: 'real-looking-token',
+      }),
+    );
+  });
+
+  // The erase branch may touch any field, so it must also refuse to put a gated
+  // value back — otherwise "erase my data" doubles as "make me an admin".
+  await check('the erase reset cannot mint an admin', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), { email: u.email, uid: u.uid }),
+    );
+    await expectDenied(
+      setDoc(
+        doc(u.db, `users/${u.email}`),
+        { consent_data: false, dataDeletedAt: now(), isAdmin: true },
+        { merge: true },
+      ),
+    );
+  });
+
+  await check('the erase reset cannot grant or keep a trial', async () => {
+    const u = freshUser();
+    await expectAllowed(
+      setDoc(doc(u.db, `users/${u.email}`), { email: u.email, uid: u.uid }),
+    );
+    await expectDenied(
+      setDoc(
+        doc(u.db, `users/${u.email}`),
+        { consent_data: false, dataDeletedAt: now(), trialEndDate: inDays(30) },
+        { merge: true },
+      ),
+    );
+    // Nor claim Pro while erasing without a purchase claim. (A *forged* token
+    // is a separate, documented residual: `validProClaim` can only prove a
+    // token exists — it is the owner-update branch that accepts it, not this
+    // one, and a Blaze Cloud Function is the fix.)
+    await expectDenied(
+      setDoc(
+        doc(u.db, `users/${u.email}`),
+        {
+          consent_data: false,
+          dataDeletedAt: now(),
+          subscriptionStatus: 'pro',
+          isPro: true,
+        },
+        { merge: true },
+      ),
     );
   });
 
