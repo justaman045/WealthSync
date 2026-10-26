@@ -582,7 +582,11 @@ snackbar); `force: true` from the explicit Settings action (`data_support_settin
 so it really reads. The read stays un-ordered/server-sourced — do NOT add the listener's
 `orderBy('createdAt')` for a cache hit (docs missing that field drop out, and this is the
 recovery path). Test seams: `fetchOverride`/`writeOverride`/`readOverride` +
-`resetSchedulingForTest()` (`test/local_backup_coalesce_test.dart`).
+`resetSchedulingForTest()` (`test/local_backup_coalesce_test.dart`). Those three
+short-circuit *before* `BackupCipher`, so they cannot see the envelope —
+`backupDirOverride` keeps the real file path and is what
+`test/local_backup_encryption_test.dart` asserts on (sealed mirror, sealed preserved
+slot, legacy plaintext still readable, wrong-key payload reads as "no backup").
 
 **The mirror must never destroy the pre-deletion snapshot.** The automatic backup
 *overwrites* the only local copy it keeps — harmless while the data only grows, but

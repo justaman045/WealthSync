@@ -52,6 +52,12 @@ class LocalBackupService {
   @visibleForTesting
   static Future<String?> Function(String key)? readOverride;
 
+  /// Replaces the backup directory. Unlike the three seams above this one keeps
+  /// the *real* read/write path — which is the only way to assert that what
+  /// [BackupCipher] produces is what actually lands on disk.
+  @visibleForTesting
+  static Future<Directory> Function()? backupDirOverride;
+
   @visibleForTesting
   static void resetSchedulingForTest() {
     for (final t in _trailing.values) {
@@ -64,6 +70,7 @@ class LocalBackupService {
     fetchOverride = null;
     writeOverride = null;
     readOverride = null;
+    backupDirOverride = null;
     minInterval = const Duration(seconds: 30);
   }
 
@@ -658,8 +665,12 @@ class LocalBackupService {
     return RegExp(r'\d{4}-\d{2}-\d{2}T').hasMatch(s);
   }
 
-  /// Mobile-only — kept for exportBackupFile which returns a File
+  /// Mobile-only: the two backup slots are files in the app documents
+  /// directory. Web keeps its mirror in SharedPreferences and never reaches
+  /// this method.
   static Future<Directory> _backupDir() async {
+    final override = backupDirOverride;
+    if (override != null) return override();
     final baseDir = await getApplicationDocumentsDirectory();
     final dir = Directory('${baseDir.path}/money_control_backups');
     if (!await dir.exists()) await dir.create(recursive: true);
