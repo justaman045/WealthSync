@@ -52,6 +52,7 @@ void main() {
           'test',
           'rules',
           'integration_test',
+          'deploy_firebase',
           'build',
           'android_smoke',
           'release',
@@ -115,6 +116,41 @@ void main() {
       );
     });
 
+    test('a master push gates the release on a critical E2E subset', () {
+      final integration = job('integration_test');
+      expect(
+        integration,
+        contains("github.event_name == 'push'"),
+        reason: 'Every master push must be driven end-to-end before its APK '
+            'can publish; a nightly-only suite lets a release ship untested.',
+      );
+      expect(integration, contains('E2E_FILES'));
+      final runner =
+          File('tool/run_integration_tests.sh').readAsStringSync();
+      expect(
+        runner,
+        contains('E2E_FILES'),
+        reason: 'The workflow filter is inert unless the runner honours it.',
+      );
+      expect(
+        runner,
+        contains('names a missing test file'),
+        reason: 'A typo in E2E_FILES must fail the job, not run zero files and '
+            'report a false green.',
+      );
+      // Every file named by the release gate must exist, or the gate fails
+      // open on the first push that touches it.
+      for (final name in <String>[
+        'settings_test.dart',
+        'full_backup_test.dart',
+        'data_management_test.dart',
+        'transaction_management_test.dart',
+      ]) {
+        expect(integration, contains(name));
+        expect(File('integration_test/$name').existsSync(), isTrue);
+      }
+    });
+
     test('the release smoke test installs the built artifact', () {
       final smoke = job('android_smoke');
       expect(smoke, contains('bash tool/smoke_release_apk.sh'));
@@ -155,6 +191,34 @@ void main() {
         File('tool/rules_tests/package-lock.json').existsSync(),
         isTrue,
         reason: 'CI installs with `npm ci`, which requires a lockfile.',
+      );
+    });
+
+    test('production rules deploy is dispatch-only and dry-run first', () {
+      final deploy = job('deploy_firebase');
+      expect(
+        deploy,
+        contains("github.event_name == 'workflow_dispatch'"),
+        reason: 'A push must never change production security rules.',
+      );
+      expect(deploy, contains("github.event.inputs.deploy_firebase == 'true'"));
+      expect(deploy, contains("github.ref == 'refs/heads/master'"));
+      expect(deploy, contains("needs.test.result == 'success'"));
+      expect(deploy, contains("needs.rules.result == 'success'"));
+      expect(deploy, contains('environment: production'));
+      expect(deploy, contains('--non-interactive'));
+      expect(deploy, contains('moneycontroljustaman045'));
+      expect(
+        deploy.indexOf('--dry-run'),
+        lessThan(deploy.indexOf('Deploy rules, indexes and storage rules')),
+        reason: 'The dry run must compile the rules before anything is written.',
+      );
+      expect(
+        deploy,
+        contains(
+          r'FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}',
+        ),
+        reason: 'The deploy token is read from the environment, never a script.',
       );
     });
 
@@ -208,8 +272,32 @@ void main() {
     test('only the pushing jobs get contents: write', () {
       expect(job('test'), contains('contents: read'));
       expect(job('build'), contains('contents: read'));
+      expect(job('deploy_firebase'), contains('contents: read'));
       expect(job('release'), contains('contents: write'));
       expect(job('build_web'), contains('contents: write'));
+    });
+
+    test('dependabot cannot re-redden CI for unfixable harness deps', () {
+      final config = File('.github/dependabot.yml');
+      expect(config.existsSync(), isTrue);
+      final yaml = config.readAsStringSync();
+      // YAML requires quoting for scoped names (`@grpc/grpc-js` starts with a
+      // reserved indicator), so compare without quotes.
+      final normalized = yaml.replaceAll('"', '');
+      expect(yaml, contains('package-ecosystem: npm'));
+      expect(yaml, contains('directory: /tool/rules_tests'));
+      // These three are firebase-tools' transitive dependencies (CI-only, never
+      // shipped). Their only "fix" downgrades firebase-tools, so Dependabot
+      // security jobs fail with `security_update_not_possible` and paint every
+      // push red. Removing an ignore re-breaks the default branch.
+      for (final dep in <String>[
+        'uuid',
+        '@grpc/grpc-js',
+        '@opentelemetry/core',
+      ]) {
+        expect(normalized, contains('dependency-name: $dep'));
+      }
+      expect(yaml, contains('package-ecosystem: github-actions'));
     });
 
     test('secrets are passed through env, never interpolated into a script', () {

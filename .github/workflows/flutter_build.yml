@@ -30,6 +30,11 @@ on:
         type: boolean
         required: false
         default: false
+      deploy_firebase:
+        description: "Deploy Firestore rules/indexes + Storage rules to production (needs the FIREBASE_TOKEN secret)"
+        type: boolean
+        required: false
+        default: false
 
 # Least privilege by default. Jobs that must push (release commit, gh-pages)
 # opt into `contents: write` individually — a workflow-wide write token is not
@@ -143,14 +148,84 @@ jobs:
         run: bash tool/rules_tests/run.sh
 
   # ------------------------------------------------------------
-  # E2E INTEGRATION TESTS (opt-in + nightly)
+  # MANUAL FIREBASE DEPLOY (rules / indexes / storage)
+  # ------------------------------------------------------------
+  # `firebase deploy` is the only thing that can change production security
+  # rules, and it needs credentials CI does not otherwise have. The emulator
+  # suite proves the rules *behave*; the published dry run proves the files
+  # compile against the real project. Both must pass before the deploy.
+  #
+  # Dispatch-only and master-only on purpose: a push must never be able to
+  # change production security rules without a human pressing the button.
+  # FIREBASE_TOKEN comes from `firebase login:ci` and is read from the
+  # environment — never interpolated into a `run:` script.
+  deploy_firebase:
+    name: Deploy Firebase rules
+    runs-on: ubuntu-latest
+    needs: [test, rules]
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_firebase == 'true' && github.ref == 'refs/heads/master' && needs.test.result == 'success' && needs.rules.result == 'success' }}
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Validate deploy token
+        env:
+          FIREBASE_TOKEN_V: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_TOKEN_V:-}" ]; then
+            echo "::error::secret FIREBASE_TOKEN is empty — create one with 'firebase login:ci' and add it as a repository secret."
+            exit 1
+          fi
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools@15.34.1
+
+      # Always compile before writing: this is the same published dry run the
+      # manual procedure requires, so the workflow cannot skip the check.
+      - name: Compile rules (dry run)
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase deploy \
+            --only firestore:rules,firestore:indexes,storage \
+            --project moneycontroljustaman045 \
+            --non-interactive --dry-run
+
+      - name: Deploy rules, indexes and storage rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          firebase deploy \
+            --only firestore:rules,firestore:indexes,storage \
+            --project moneycontroljustaman045 \
+            --non-interactive
+
+  # ------------------------------------------------------------
+  # E2E INTEGRATION TESTS (release gate + nightly)
   # ------------------------------------------------------------
   # These mutate the shared test accounts (create transactions, recurring
-  # payments, etc.), so they never run on PRs: the job is skipped unless a
-  # manual workflow_dispatch sets `run_integration_tests` or the nightly
-  # schedule fires. When they do run they GATE the release: build/release wait
-  # on this job with a status guard, so an E2E failure blocks the release while
-  # a skipped run lets it proceed on analyze + unit tests + rules alone.
+  # payments, etc.), so they never run on PRs. Two modes:
+  #
+  #   * master push  -> the four session/data-loss-critical files only
+  #                     (settings, full backup, data management, transaction
+  #                     management). This is the release gate: `build` and
+  #                     `release` wait on it, so an APK can no longer publish
+  #                     having never been driven end-to-end.
+  #   * schedule / dispatch -> the whole suite, never publishing a release.
+  #
+  # A skipped run still lets `build`/`release` proceed (their status guard
+  # accepts `skipped`), which is what keeps PRs and non-master dispatches cheap;
+  # on master this job always runs, so the gate is real.
   #
   # Each file runs under a 15-minute timeout so one hung file cannot stall the
   # suite, and tool/run_integration_tests.sh restarts the emulator between files
@@ -159,7 +234,7 @@ jobs:
     name: Integration tests (emulator)
     runs-on: ubuntu-latest
     needs: test
-    if: ${{ !cancelled() && needs.test.result == 'success' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true')) }}
+    if: ${{ !cancelled() && needs.test.result == 'success' && ((github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true')) }}
     timeout-minutes: 360
     permissions:
       contents: read
@@ -243,6 +318,11 @@ jobs:
           # against the Pro account — an implicit wipe once destroyed 791 live
           # transactions. These accounts are disposable, so CI opts in.
           E2E_ALLOW_WIPE: "true"
+          # Master pushes run the release-critical subset; schedule/dispatch
+          # leave this empty so the runner executes the whole suite. The
+          # runner validates every name and fails on a typo rather than
+          # running zero files and reporting a false green.
+          E2E_FILES: ${{ github.event_name == 'push' && 'settings_test.dart full_backup_test.dart data_management_test.dart transaction_management_test.dart' || '' }}
 
       - name: Download unit test report
         if: always()

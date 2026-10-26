@@ -252,6 +252,28 @@ pull_screenshots() {
   echo "--- screenshots pulled so far: $(ls build/report/screenshots 2>/dev/null | wc -l)"
 }
 
+# Optional subset filter: a space-separated list of `integration_test/` file
+# names. The release gate uses it to run the four session/data-loss-critical
+# files on every master push (~35 min) instead of the full 25-file suite, which
+# stays nightly. Unset/empty keeps the whole-suite behaviour.
+#
+# Validated up front: a typo in E2E_FILES must fail the job, not silently run
+# zero files and report success (the exact false-green this runner exists to
+# prevent).
+if [ -n "${E2E_FILES:-}" ]; then
+  TEST_FILES=""
+  for wanted in $E2E_FILES; do
+    if [ ! -f "integration_test/$wanted" ]; then
+      echo "ERROR: E2E_FILES names a missing test file: $wanted"
+      exit 2
+    fi
+    TEST_FILES="$TEST_FILES integration_test/$wanted"
+  done
+  echo "E2E_FILES subset: $E2E_FILES"
+else
+  TEST_FILES=$(ls integration_test/*_test.dart)
+fi
+
 FLUTTER_EXIT=0
 EMULATOR_DEAD=0
 DEAD_SINCE=""
@@ -259,7 +281,7 @@ PASS_COUNT=0
 FAIL_COUNT=0
 SKIP_COUNT=0
 FIRST_FILE=1
-for f in integration_test/*_test.dart; do
+for f in $TEST_FILES; do
   name=$(basename "$f" .dart)
   if [ "$EMULATOR_DEAD" = "1" ]; then
     echo "SKIP: $name (emulator confirmed dead after $DEAD_SINCE — no recovery attempt)."

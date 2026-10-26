@@ -13,7 +13,7 @@ tool/check_ui_strings.sh               # UI design-debt audit: report only (exec
 bash tool/check_ui_strings.sh --strict # fail if debts exceed tool/revamp_baseline.env caps
 flutter test                       # unit/widget tests ONLY (test/); integration tests never run here
 flutter test test/<file>_test.dart # single file
-bash tool/run_integration_tests.sh # canonical E2E runner: whole suite, internally one file at a time, fresh emulator per file — no args (needs env creds + booted emulator-5554; single-file runs use the flutter test block below)
+bash tool/run_integration_tests.sh # canonical E2E runner: whole suite, internally one file at a time, fresh emulator per file (needs env creds + booted emulator-5554; `E2E_FILES="a_test.dart b_test.dart"` runs a subset — that is how CI gates pushes; single-file runs use the flutter test block below)
 bash tool/rules_tests/run.sh       # Firestore + Storage rules against the emulators (needs Node 24.12+ and JDK 21+; `npm ci` on first run)
 bash tool/smoke_release_apk.sh     # installs + launches a release APK on emulator-5554 (R8/startup-crash gate)
 flutter gen-l10n                   # after editing lib/l10n/*.arb (l10n.yaml + generate: true)
@@ -858,16 +858,25 @@ CI (`.github/workflows/flutter_build.yml`, Flutter **3.47.7**):
 |-----|---------|----------------|
 | `test` | every push/PR | analyze → UI audit → unit/widget tests → **web release compile** (dart2js). PRs get the same gate as master. |
 | `rules` | every push/PR | `tool/rules_tests/run.sh` boots the Firestore + Storage emulators, compiles both rule sets, and runs `tool/rules_tests/run.js`. |
-| `integration_test` | nightly `schedule` **or** `workflow_dispatch` with `run_integration_tests: true` | the full E2E suite (`bash tool/run_integration_tests.sh`). Never on PRs — it mutates the shared accounts. |
+| `integration_test` | master push (critical subset), nightly `schedule` or `workflow_dispatch` with `run_integration_tests: true` (full suite) | `bash tool/run_integration_tests.sh`. Never on PRs — it mutates the shared accounts. |
+| `deploy_firebase` | `workflow_dispatch` with `deploy_firebase: true`, on `master` only | `--dry-run` compile then `firebase deploy --only firestore:rules,firestore:indexes,storage` using the `FIREBASE_TOKEN` secret. Never runs on a push. |
 | `build` | master push / dispatch (on `master`) | release AAB + **one universal APK**, `apksigner verify`, plus assertions that `versionName`/`versionCode` match `2.0.<run_number>`/`<run_number>` and that the APK still carries `arm64-v8a` + `armeabi-v7a` + `x86_64`. Uploads artifacts, publishes nothing. |
 | `android_smoke` | after `build` | `tool/smoke_release_apk.sh` installs that exact APK on an emulator and fails on a missing pid, a startup `FATAL EXCEPTION`, or an ANR — the R8-only failure mode no debug test can see. |
 | `release` | after `build` + `android_smoke` | creates `v2.0.<run_number>` with AAB/APK/`SHA256SUMS`, **then** commits `pubspec.yaml` + `app_version.json` as one `CI:` commit. |
 | `build_web` | master push / dispatch (on `master`) | `flutter build web --release --base-href /WealthSync/` → GitHub Pages. |
 
-E2E is still **skipped by default**; when opted into (or on the nightly schedule) it gates,
-because `build`/`release`/`build_web` all carry an explicit status guard
-(`success`-or-`skipped`). The `schedule` run never publishes — all three publishing jobs
+E2E runs on **every master push** as a four-file release-critical subset
+(`E2E_FILES` — settings, full backup, data management, transaction management,
+~35 min) and as the **full 25-file suite** nightly/on dispatch. PRs still skip it
+(no emulator cost, no account mutation). `build`/`release`/`build_web` carry an
+explicit `success`-or-`skipped` guard, so the subset really gates a release while
+a PR stays fast. The `schedule` run never publishes — all three publishing jobs
 exclude `github.event_name == 'schedule'`.
+
+Production rules deploy is a **dispatch-only** job (`deploy_firebase`) so a push
+can never mutate production security rules: it runs the published `--dry-run`
+compile first, then deploys. It needs the `FIREBASE_TOKEN` secret (`firebase
+login:ci`); without it the job fails fast with an actionable message.
 
 Two ordering rules the pipeline depends on:
 
