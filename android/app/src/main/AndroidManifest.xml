@@ -1,7 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissions -->
+    <!-- Permissions — each one is here for a shipped feature. Before adding a
+         permission, add the feature that needs it to this list; a dangerous
+         permission with no code path behind it is a Play policy liability
+         (SMS and REQUEST_INSTALL_PACKAGES are the two that get reviewed). -->
+    <!-- SMS import: reads the inbox with Telephony/content resolver. The app
+         never registers a receiver for incoming SMS (auto-import is a
+         WorkManager poll), so no MMS/WAP-push permission is declared. -->
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -10,12 +16,15 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.RECEIVE_MMS"/>
-    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH"/>
+    <!-- Biometric app lock (`BiometricService.lockActive`). -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Geo tagging of assets (`geo_service.dart` → Geolocator). Both are
+         required: Android 12+ lets the user grant only the coarse one. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- QR scanning (`mobile_scanner`). -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- In-app updater: hands the downloaded APK to the system installer. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
 
