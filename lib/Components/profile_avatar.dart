@@ -7,14 +7,12 @@ import 'package:flutter/material.dart';
 class AppAvatar extends StatelessWidget {
   final String? url;
   final double size;
-  final Widget? overlay;
   final String asset;
 
   const AppAvatar({
     super.key,
     this.url,
     this.size = 60,
-    this.overlay,
     this.asset = 'assets/profile.png',
   });
 
@@ -46,12 +44,7 @@ class AppAvatar extends StatelessWidget {
       child: SizedBox(
         width: size,
         height: size,
-        child: overlay == null
-            ? image
-            : Stack(
-                fit: StackFit.expand,
-                children: [image, Center(child: overlay!)],
-              ),
+        child: image,
       ),
     );
   }

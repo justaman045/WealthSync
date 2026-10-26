@@ -74,7 +74,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   confetti: ^0.8.0
-  firebase_storage: ^13.0.6
   in_app_purchase: ^3.2.0
   home_widget: ^0.7.0
   geolocator: ^13.0.2

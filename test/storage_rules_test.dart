@@ -5,14 +5,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Contract test for Firebase Storage security rules.
 ///
-/// The app uploads profile pictures to Firebase Storage, but the rules lived
-/// only in the Firebase Console — nothing in the repo described them, nothing
-/// could review them, and a fresh project would have had no protection at all.
+/// Storage is **dormant**: Cloud Storage needs the Blaze plan, this project stays
+/// on Spark, and the profile-picture upload was removed with the dependency. The
+/// rules file is kept as a reviewed starting point so a future upgrade does not
+/// start from a console-only secret, and this test keeps it wired into
+/// `firebase.json` with its ownership + upload bounds intact.
 ///
 /// `tool/rules_tests/run.sh` proves the behaviour against the Storage emulator.
 /// This test is the fast, always-on guard that the file exists, stays wired into
 /// `firebase.json` (a rules file that is not deployed is not a rule), and keeps
-/// the ownership + upload constraints that make it safe.
+/// the constraints that make it safe.
 void main() {
   final rulesFile = File('storage.rules');
   final firebaseConfig = File('firebase.json');
@@ -81,6 +83,29 @@ void main() {
     test('never allows an unauthenticated wildcard', () {
       expect(rules, isNot(contains('allow read, write: if true')));
       expect(rules, isNot(contains('allow write: if true')));
+    });
+  });
+
+  group('Spark plan constraint', () {
+    // Cloud Storage requires the Blaze plan and this project stays on Spark, so
+    // no bucket can exist. An upload path that ships anyway is a dead button
+    // whose only failure mode is a snackbar — the profile upload was removed on
+    // purpose. Re-adding it must be a deliberate change (and a plan upgrade).
+    test('the app carries no Cloud Storage writer', () {
+      final controller =
+          File('lib/Controllers/profile_controller.dart').readAsStringSync();
+      expect(controller, isNot(contains('firebase_storage')));
+      expect(controller, isNot(contains('pickAndUploadImage')));
+      expect(
+        File('pubspec.yaml').readAsStringSync(),
+        isNot(contains('firebase_storage:')),
+        reason: 'The dependency was removed with the upload affordance.',
+      );
+      expect(
+        File('lib/Screens/edit_profile.dart').readAsStringSync(),
+        isNot(contains('camera_alt_rounded')),
+        reason: 'The camera badge was the only way into the upload.',
+      );
     });
   });
 

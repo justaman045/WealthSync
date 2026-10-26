@@ -182,69 +182,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         children: [
                           SizedBox(height: 20.h),
 
-                          // Avatar with Glow
-                          Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              Obx(() {
-                                final url = _profileController.photoURL.value;
-                                final isLoading =
-                                    _profileController.isLoading.value;
-                                return Hero(
-                                  tag: 'profile_pic',
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          blurRadius: 20.w,
-                                          spreadRadius: 2.w,
-                                        ),
-                                      ],
+                          // Avatar with Glow. No upload affordance: Cloud
+                          // Storage requires the Blaze plan, so the picture is
+                          // whatever the sign-in provider supplies (Google's
+                          // photoURL) or the bundled placeholder asset.
+                          Obx(() {
+                            final url = _profileController.photoURL.value;
+                            return Hero(
+                              tag: 'profile_pic',
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      blurRadius: 20.w,
+                                      spreadRadius: 2.w,
                                     ),
-                                    child: AppAvatar(
-                                      url: url,
-                                      size: 100.r,
-                                      overlay: isLoading
-                                          ? Padding(
-                                              padding: EdgeInsets.all(24.r),
-                                              child: const Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  color: AppColors.primary,
-                                                ),
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                );
-                              }),
-                              GestureDetector(
-                                onTap: _profileController.pickAndUploadImage,
-                                child: Container(
-                                  height: 32.r,
-                                  width: 32.r,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    border: Border.all(
-                                      color: AppColors.darkBackground,
-                                      width: 3,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.camera_alt_rounded,
-                                    size: 16.sp,
-                                    color: AppColors.darkBackground,
-                                  ),
+                                  ],
                                 ),
+                                child: AppAvatar(url: url, size: 100.r),
                               ),
-                            ],
-                          ),
+                            );
+                          }),
 
                           SizedBox(height: 40.h),
 

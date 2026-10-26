@@ -1,21 +1,25 @@
 rules_version = '2';
 
-// Firebase Storage rules for WealthSync.
+// Firebase Storage rules for WealthSync — DORMANT.
 //
-// The app writes exactly one object: the signed-in user's profile picture at
-// `users/{uid}/profile.jpg` (lib/Controllers/profile_controller.dart).
+// Nothing writes here today: Cloud Storage requires the Blaze plan, this project
+// stays on Spark, no bucket exists, and the profile-picture upload affordance was
+// removed. The avatar shown in the app is the sign-in provider's `photoURL`
+// (Google-hosted) or the bundled placeholder asset.
+//
+// The file is kept as a reviewed starting point and is still exercised by the
+// Storage emulator in `tool/rules_tests/run.sh`, but it is NOT deployed by CI:
+// `--only storage` aborts with "Firebase Storage has not been set up", and adding
+// it to the deploy job would abort the Firestore rules deploy with it (see
+// AGENTS.md and test/ci_workflow_contract_test.dart).
 //
 // The path segment is the **Firebase Auth UID**, so ownership is enforced by
 // comparing it to `request.auth.uid` — never by email, which is mutable and is
 // why the Firestore rules use `token.email` only for `users/{email}` paths.
 //
-// Reads are owner-only at the Storage API level. The app displays the image
-// through its long-lived download URL, which carries a token and does not
-// consult these rules; that token is only ever written to the owner's own
-// profile document.
-//
-// Deploy with `firebase deploy --only storage` (never from CI — see AGENTS.md;
-// CI validates the file against the Storage emulator, it cannot deploy it).
+// If Storage is ever enabled, the intended shape is one object per user:
+// `users/{uid}/profile.jpg` — owner read/delete, create/update bounded by
+// content type and size (see the match block below).
 service firebase.storage {
   match /b/{bucket}/o {
     function isOwner(uid) {

@@ -210,9 +210,20 @@ void main() {
       expect(deploy, contains('moneycontroljustaman045'));
       expect(
         deploy.indexOf('--dry-run'),
-        lessThan(deploy.indexOf('Deploy rules, indexes and storage rules')),
+        lessThan(deploy.indexOf('Deploy Firestore rules')),
         reason: 'The dry run must compile the rules before anything is written.',
       );
+      // This project stays on the Spark plan, where Cloud Storage cannot be
+      // provisioned: `--only storage` always aborts with "Firebase Storage has
+      // not been set up" and would prevent the Firestore rules — the ones that
+      // actually guard user data — from deploying at all.
+      expect(
+        deploy,
+        isNot(contains(',storage')),
+        reason: 'No Storage bucket exists on Spark; adding the target aborts '
+            'the whole deploy.',
+      );
+      expect(deploy, contains('Deploy Firestore rules and indexes'));
       expect(
         deploy,
         contains(

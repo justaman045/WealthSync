@@ -158,7 +158,16 @@ jobs:
   # Dispatch-only and master-only on purpose: a push must never be able to
   # change production security rules without a human pressing the button.
   # FIREBASE_TOKEN comes from `firebase login:ci` and is read from the
-  # environment — never interpolated into a `run:` script.
+  # environment — never interpolated into a `run:` script. (The CLI warns that
+  # login:ci tokens are deprecated; when it drops them, swap this for a service
+  # account key via GOOGLE_APPLICATION_CREDENTIALS — nothing else changes.)
+  #
+  # Deploy target is Firestore ONLY. Cloud Storage needs the Blaze plan, and
+  # this project stays on Spark, so there is no bucket and `--only storage`
+  # fails with "Firebase Storage has not been set up". Adding it to this job
+  # would abort the whole deploy and leave the Firestore rules — the ones that
+  # actually guard user data — unpublished. `storage.rules` stays in the repo
+  # for a future upgrade and is still compiled by the emulator `rules` job.
   deploy_firebase:
     name: Deploy Firebase rules
     runs-on: ubuntu-latest
@@ -192,21 +201,21 @@ jobs:
 
       # Always compile before writing: this is the same published dry run the
       # manual procedure requires, so the workflow cannot skip the check.
-      - name: Compile rules (dry run)
+      - name: Compile Firestore rules (dry run)
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           firebase deploy \
-            --only firestore:rules,firestore:indexes,storage \
+            --only firestore:rules,firestore:indexes \
             --project moneycontroljustaman045 \
             --non-interactive --dry-run
 
-      - name: Deploy rules, indexes and storage rules
+      - name: Deploy Firestore rules and indexes
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           firebase deploy \
-            --only firestore:rules,firestore:indexes,storage \
+            --only firestore:rules,firestore:indexes \
             --project moneycontroljustaman045 \
             --non-interactive
 
