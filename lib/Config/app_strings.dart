@@ -25,6 +25,7 @@ class AppStrings {
   static const String letsStart = "Let's Start";
   static const String signIn = 'Sign In';
   static const String continueLabel = 'Continue';
+  static const String startTracking = 'Start Tracking';
 
   // ---- Transactions ----
   static const String sendCta = 'SEND';

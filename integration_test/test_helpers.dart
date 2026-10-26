@@ -228,6 +228,55 @@ Future<void> handleSplashAndOnboarding(WidgetTester tester) async {
   }
 }
 
+/// Completes the post-login setup screen (`OnboardingScreen`) that a brand-new
+/// account lands on instead of home.
+///
+/// This is a *different* screen from the pre-login walkthrough handled by
+/// [handleSplashAndOnboarding]: it renders only after the first sign-in of an
+/// account whose `users/{email}` doc has no `is_onboarded` flag, and it needs a
+/// budget before it will continue. The suite used to depend on the fixture
+/// accounts having been onboarded by hand once; a freshly rotated account made
+/// every file fail at "home not reached" while auth was perfectly healthy.
+///
+/// Returns true when it completed setup, false when there was nothing to do
+/// (home or the login screen is showing) — safe to call at any point.
+Future<bool> completeOnboardingIfNeeded(
+  WidgetTester tester, {
+  int seconds = 30,
+  bool afterSignIn = false,
+}) async {
+  final startButton = find.text(AppStrings.startTracking);
+  final home = find.text(AppStrings.totalBalance);
+  final loginScreen = find.text(AppStrings.signIn);
+  for (var i = 0; i < seconds; i++) {
+    if (home.evaluate().isNotEmpty) return false;
+    // Login screen: sign-in (and whatever follows) is the caller's problem.
+    // Skipped right after a sign-in tap, where the login screen is still
+    // mounted for a moment while the auth call is in flight.
+    if (!afterSignIn && loginScreen.evaluate().isNotEmpty) return false;
+    if (startButton.evaluate().isNotEmpty) break;
+    await pumpReal(tester);
+  }
+  if (startButton.evaluate().isEmpty) return false;
+
+  // The budget field is the only TextFormField in the first card; currency is a
+  // dropdown (its default is fine) and the referral field is optional.
+  final budgetField = find.byType(TextFormField);
+  if (budgetField.evaluate().isNotEmpty) {
+    await tester.enterText(budgetField.first, '50000');
+    await pumpReal(tester);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await pumpReal(tester);
+  }
+
+  await scrollUntilVisible(tester, startButton);
+  await tester.tap(startButton, warnIfMissed: false);
+  await pumpAndSettleSafe(tester);
+  // Setup writes Firestore and then navigates, so wait for the end state — the
+  // caller's assertion is about home, not about the tap landing.
+  return waitForCheck(tester, home, seconds: 60);
+}
+
 /// Polls (real time) until [finder] is present. Fails if [seconds] pass.
 Future<void> waitFor(
   WidgetTester tester,
@@ -545,6 +594,9 @@ Future<bool> loginIfNeeded(
     await scrollUntilVisible(tester, loginButton);
     await pumpReal(tester);
     await tester.tap(loginButton, warnIfMissed: false);
+    // A brand-new account lands on the post-login setup screen, not home —
+    // finish it before waiting for 'Total Balance'.
+    await completeOnboardingIfNeeded(tester, afterSignIn: true);
     final reached = await waitForHome(tester);
     if (reached) return true;
   }
@@ -641,6 +693,9 @@ Future<void> launchAndSignIn(
   }
   await handleSplashAndOnboarding(tester);
   await pumpAndSettleSafe(tester);
+  // A session restored from a previous file can already be parked on the
+  // post-login setup screen (that file failed before finishing it).
+  await completeOnboardingIfNeeded(tester);
   await loginIfNeeded(tester, account: account);
   final reachedHome = await waitForHome(tester);
   if (!reachedHome) {
