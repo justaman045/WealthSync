@@ -156,6 +156,10 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
           'subscriptionStatus': FieldValue.delete(),
           'planType': FieldValue.delete(),
           'expiryDate': FieldValue.delete(),
+          // A purchase credential is personal data; it must not outlive an
+          // erasure request. (The backup capture already redacts it for the
+          // same reason.)
+          'purchaseToken': FieldValue.delete(),
           'trialEndDate': FieldValue.delete(),
           'trialUsed': FieldValue.delete(),
           'referredBy': FieldValue.delete(),
