@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
 
 /// Advance a date by one calendar month, clamping the day to the last day of
 /// the target month (e.g. Jan 31 → Feb 28, not Mar 3).
@@ -356,6 +357,8 @@ class RecurringService {
 
   // Manually link/mark as paid -> Advance due date & optionally create txn
   // Both the date update and optional transaction creation are batched atomically.
+  // Uses a deterministic transaction id per billing cycle to prevent duplicates
+  // when manual "Mark Paid" races with auto-pay or double taps.
   Future<void> markAsPaid(
     RecurringPayment payment, {
     bool createTransaction = false,
@@ -365,65 +368,90 @@ class RecurringService {
     if (user == null || email == null) return;
 
     final uid = user.uid;
-    DateTime nextDate = _advanceDate(payment);
-
-    // Idempotency: if the auto-pay already created a transaction for this
-    // payment today (and advanced the due date), do nothing — otherwise a
-    // manual "Mark Paid" would record a duplicate payment for the same cycle.
-    if (createTransaction) {
-      final existingSnap = await _db
-          .collection('users')
-          .doc(email)
-          .collection('transactions')
-          .where('recurringPaymentId', isEqualTo: payment.id)
-          .get();
-      final today = DateTime.now();
-      final todayStart = DateTime(today.year, today.month, today.day);
-      final hasTodayTx = existingSnap.docs.any((d) {
-        final date = (d.data()['date'] as dynamic)?.toDate();
-        return date != null && !date.isBefore(todayStart);
-      });
-      if (hasTodayTx) return;
-    }
-
-    final batch = _db.batch();
+    final now = DateTime.now();
+    final cycleKey = '${now.year}-${now.month}-${now.day}';
 
     final paymentRef = _db
         .collection('users')
         .doc(email)
         .collection('recurring_payments')
         .doc(payment.id);
-    batch.update(paymentRef, {'nextDueDate': Timestamp.fromDate(nextDate)});
 
-    if (createTransaction) {
-      final txId = const Uuid().v4();
-      final txRef = _db
-          .collection('users')
-          .doc(email)
-          .collection('transactions')
-          .doc(txId);
-      batch.set(txRef, {
-        'id': txId,
-        'amount': -RecurringPayment.roundAmount(payment.amount),
-        'recipientName': payment.title,
-        'recipientId': 'External',
-        'senderId': uid,
-        'date': Timestamp.fromDate(DateTime.now()),
-        'createdAt': FieldValue.serverTimestamp(),
-        'category': payment.category,
-        'status': 'success',
-        'type': 'debit',
-        'note': 'Manual payment for ${payment.title}',
-        'recurringPaymentId': payment.id,
+    try {
+      await _db.runTransaction((txn) async {
+        final paymentSnap = await txn.get(paymentRef);
+        if (!paymentSnap.exists) return;
+        final current = RecurringPayment.fromMap(payment.id, paymentSnap.data()!);
+        DateTime nextDate = _advanceDateStatic(current, now);
+
+        if (createTransaction) {
+          final txId = 'rec_${current.id}_$cycleKey';
+          final txRef = _db
+              .collection('users')
+              .doc(email)
+              .collection('transactions')
+              .doc(txId);
+          final existingTx = await txn.get(txRef);
+          if (existingTx.exists) {
+            // Already paid this cycle, just advance if needed
+            txn.update(paymentRef, {'nextDueDate': Timestamp.fromDate(nextDate)});
+            return;
+          }
+          txn.set(txRef, {
+            'id': txId,
+            'amount': -RecurringPayment.roundAmount(current.amount),
+            'recipientName': current.title,
+            'recipientId': 'External',
+            'senderId': uid,
+            'date': Timestamp.fromDate(now),
+            'createdAt': FieldValue.serverTimestamp(),
+            'category': current.category,
+            'status': 'success',
+            'type': 'debit',
+            'note': 'Manual payment for ${current.title}',
+            'recurringPaymentId': current.id,
+            'processedCycleKey': cycleKey,
+          });
+          txn.update(paymentRef, {'nextDueDate': Timestamp.fromDate(nextDate)});
+        } else {
+          txn.update(paymentRef, {'nextDueDate': Timestamp.fromDate(nextDate)});
+        }
       });
+    } catch (e) {
+      debugPrint('markAsPaid transaction failed: $e');
+      // Fallback to previous behavior if transaction fails
+      DateTime nextDate = _advanceDate(payment);
+      final batch = _db.batch();
+      batch.update(paymentRef, {'nextDueDate': Timestamp.fromDate(nextDate)});
+      if (createTransaction) {
+        final txId = const Uuid().v4();
+        final txRef = _db
+            .collection('users')
+            .doc(email)
+            .collection('transactions')
+            .doc(txId);
+        batch.set(txRef, {
+          'id': txId,
+          'amount': -RecurringPayment.roundAmount(payment.amount),
+          'recipientName': payment.title,
+          'recipientId': 'External',
+          'senderId': uid,
+          'date': Timestamp.fromDate(DateTime.now()),
+          'createdAt': FieldValue.serverTimestamp(),
+          'category': payment.category,
+          'status': 'success',
+          'type': 'debit',
+          'note': 'Manual payment for ${payment.title}',
+          'recurringPaymentId': payment.id,
+        });
+      }
+      await batch.commit();
     }
 
-    await batch.commit();
-
-      LocalBackupService.backupUserTransactions(
-        email,
-        reportErrors: false,
-      );
+    LocalBackupService.backupUserTransactions(
+      email,
+      reportErrors: false,
+    );
   }
 
   // Process Due Payments (called by Background Worker). uid is passed explicitly
@@ -497,38 +525,75 @@ class RecurringService {
       if (alreadyPaidToday.contains(payment.id)) continue;
 
       final nextDate = _advanceDateStatic(payment, today);
-      final cycleKey = '${today.year}-${today.month}';
+      final cycleKey = '${today.year}-${today.month}-${today.day}';
 
-      // Atomically create transaction + advance due date in one batch.
-      final batch = db.batch();
-
-      final txId = const Uuid().v4();
-      final txRef = db
-          .collection('users')
-          .doc(userEmail)
-          .collection('transactions')
-          .doc(txId);
-      batch.set(txRef, {
-        'id': txId,
-        'amount': -RecurringPayment.roundAmount(payment.amount),
-        'recipientName': payment.title,
-        'recipientId': 'External',
-        'senderId': uid,
-        'date': Timestamp.fromDate(DateTime.now()),
-        'createdAt': FieldValue.serverTimestamp(),
-        'category': payment.category,
-        'status': 'success',
-        'type': 'debit',
-        'note': 'Auto-payment for ${payment.title}',
-        'recurringPaymentId': payment.id,
-        'processedCycleKey': cycleKey,
-      });
-
-      batch.update(doc.reference, {
-        'nextDueDate': Timestamp.fromDate(nextDate),
-      });
-
-      await batch.commit();
+      try {
+        await db.runTransaction((txn) async {
+          final paymentSnap = await txn.get(doc.reference);
+          if (!paymentSnap.exists) return;
+          final current = RecurringPayment.fromMap(doc.id, paymentSnap.data()!);
+          if (current.isActive == false || current.autoPay == false) return;
+          final txId = 'rec_${current.id}_$cycleKey';
+          final txRef = db
+              .collection('users')
+              .doc(userEmail)
+              .collection('transactions')
+              .doc(txId);
+          final existingTx = await txn.get(txRef);
+          if (existingTx.exists) {
+            txn.update(doc.reference, {
+              'nextDueDate': Timestamp.fromDate(_advanceDateStatic(current, today)),
+            });
+            return;
+          }
+          txn.set(txRef, {
+            'id': txId,
+            'amount': -RecurringPayment.roundAmount(current.amount),
+            'recipientName': current.title,
+            'recipientId': 'External',
+            'senderId': uid,
+            'date': Timestamp.fromDate(DateTime.now()),
+            'createdAt': FieldValue.serverTimestamp(),
+            'category': current.category,
+            'status': 'success',
+            'type': 'debit',
+            'note': 'Auto-payment for ${current.title}',
+            'recurringPaymentId': current.id,
+            'processedCycleKey': cycleKey,
+          });
+          txn.update(doc.reference, {
+            'nextDueDate': Timestamp.fromDate(_advanceDateStatic(current, today)),
+          });
+        });
+      } catch (e) {
+        debugPrint('processDuePayments tx failed for ${payment.id}: $e');
+        final batch = db.batch();
+        final txId = 'rec_${payment.id}_$cycleKey';
+        final txRef = db
+            .collection('users')
+            .doc(userEmail)
+            .collection('transactions')
+            .doc(txId);
+        batch.set(txRef, {
+          'id': txId,
+          'amount': -RecurringPayment.roundAmount(payment.amount),
+          'recipientName': payment.title,
+          'recipientId': 'External',
+          'senderId': uid,
+          'date': Timestamp.fromDate(DateTime.now()),
+          'createdAt': FieldValue.serverTimestamp(),
+          'category': payment.category,
+          'status': 'success',
+          'type': 'debit',
+          'note': 'Auto-payment for ${payment.title}',
+          'recurringPaymentId': payment.id,
+          'processedCycleKey': cycleKey,
+        }, SetOptions(merge: true));
+        batch.update(doc.reference, {
+          'nextDueDate': Timestamp.fromDate(nextDate),
+        });
+        await batch.commit();
+      }
       LocalBackupService.backupUserTransactions(
         userEmail,
         reportErrors: false,
