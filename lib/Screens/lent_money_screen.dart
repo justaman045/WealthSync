@@ -229,24 +229,35 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(icon, color: color, size: 20.sp),
-                  SizedBox(width: 8.w),
-                  Text(
-                    l10n.lentGrandSum(label),
-                    style: AppType.bodyMedium(
-                      isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
+              // The label is unbounded text next to an amount: without a
+              // Flexible the pair overflows a narrow (320dp) card, which is a
+              // hard failure in widget tests and clipped text on a phone.
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(icon, color: color, size: 20.sp),
+                    SizedBox(width: 8.w),
+                    Flexible(
+                      child: Text(
+                        l10n.lentGrandSum(label),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.bodyMedium(
+                          isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              SizedBox(width: 8.w),
               Text(
                 NumberFormat.simpleCurrency(
                   name: currency,
                 ).format(netBalance.abs()),
+                maxLines: 1,
                 style: AppType.titleMedium(color),
               ),
             ],
@@ -395,13 +406,24 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                       SizedBox(height: AppSpace.s4.h),
                       Row(
                         children: [
-                          Text(
-                            typeLabel,
-                            style: AppType.labelMedium(activeColor),
+                          // Type label + date share one line in a narrow card
+                          // (the amount sits beside it): both must yield, or
+                          // the row overflows by ~11px at 320dp.
+                          Flexible(
+                            child: Text(
+                              typeLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppType.labelMedium(activeColor),
+                            ),
                           ),
-                          Text(
-                            " \u2022 ${DateFormat('MMM dd, yyyy').format(entry.dateLent)}",
-                            style: AppType.bodySmall(tertiaryColor),
+                          Flexible(
+                            child: Text(
+                              " \u2022 ${DateFormat('MMM dd, yyyy').format(entry.dateLent)}",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppType.bodySmall(tertiaryColor),
+                            ),
                           ),
                         ],
                       ),
