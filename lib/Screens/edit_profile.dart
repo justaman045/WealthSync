@@ -10,6 +10,7 @@ import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Utils/profile_update.dart';
 import 'package:money_control/Utils/responsive.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -43,6 +44,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool _isLoading = false;
 
+  /// Controllers the user has typed into since the screen opened.
+  ///
+  /// `_loadUserData` is async and can land *after* typing starts on a slow
+  /// connection. Overwriting the controllers there silently discarded the edit,
+  /// and the following save wrote the prefilled value back — so a rename looked
+  /// like a no-op (the E2E rename flow caught exactly that). Prefill therefore
+  /// skips any controller in this set, and only adopts a stored `dob`/`gender`
+  /// while those are still unset.
+  final Set<TextEditingController> _edited = {};
+
+  void _prefill(TextEditingController controller, String? value) {
+    if (_edited.contains(controller)) return;
+    final next = value ?? '';
+    if (controller.text == next) return;
+    controller.text = next;
+  }
+
   // Fetch Firestore data for the current user
   Future<void> _loadUserData() async {
     final user = _auth.currentUser;
@@ -55,16 +73,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         if (mounted) {
           setState(() {
-            _firstNameController.text = data['firstName'] ?? user.displayName;
-            _lastNameController.text = data['lastName'] ?? '';
-            _phoneController.text = data['phone'] ?? '';
-            _addressController.text = data['address'] ?? '';
+            _prefill(
+              _firstNameController,
+              (data['firstName'] ?? user.displayName)?.toString(),
+            );
+            _prefill(_lastNameController, data['lastName']?.toString());
+            _prefill(_phoneController, data['phone']?.toString());
+            _prefill(_addressController, data['address']?.toString());
             final rawGender = data['gender'] as String?;
-            _gender = _validGenders.contains(rawGender) ? rawGender : null;
+            _gender ??= _validGenders.contains(rawGender) ? rawGender : null;
 
             final dob = data['dob'];
             if (dob is Timestamp) {
-              _dob = dob.toDate();
+              _dob ??= dob.toDate();
             }
           });
         }
@@ -82,17 +103,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _firestore.collection('users').doc(user.email).set({
-        'firstName': _firstNameController.text.trim(),
-        'lastName': _lastNameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'address': _addressController.text.trim(),
-        'gender': _gender,
-        'dob': _dob != null ? Timestamp.fromDate(_dob!) : null,
-        'age': _dob != null ? _calculateAge(_dob!) : null,
-        'email': user.email, // auto from auth
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true)); // keep existing fields
+      // Merge keeps every field the form does not own. dob/age are omitted
+      // (not written as null) when the picker is empty, so an age captured
+      // elsewhere survives a rename — see buildProfileUpdate.
+      final fields = buildProfileUpdate(
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        phone: _phoneController.text,
+        address: _addressController.text,
+        gender: _gender,
+        dob: _dob,
+        age: _dob == null ? null : _calculateAge(_dob!),
+      );
+      fields['email'] = user.email; // auto from auth
+      fields['updatedAt'] = FieldValue.serverTimestamp();
+      await _firestore
+          .collection('users')
+          .doc(user.email)
+          .set(fields, SetOptions(merge: true)); // keep existing fields
 
       if (mounted && !TutorialController.isTestMode) {
         ErrorHandler.showSuccess("Profile updated successfully");
@@ -439,6 +467,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: TextFormField(
             controller: controller,
             enabled: enabled,
+            onChanged: controller == null
+                ? null
+                : (_) => _edited.add(controller),
             initialValue: controller == null ? value ?? '' : null,
             validator: enabled ? validator : null,
             style: AppType.bodyLarge(enabled
