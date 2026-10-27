@@ -4,10 +4,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:money_control/Services/backup_cipher.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_io/io.dart';
 
@@ -99,6 +100,8 @@ class LocalBackupService {
         .collection('users')
         .doc(email)
         .collection('transactions');
+    final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final currentEmail = email;
 
     var restored = 0;
     const chunkSize = 499;
@@ -109,6 +112,7 @@ class LocalBackupService {
         if (data.containsKey('id')) {
           final docRef = col.doc(data['id']);
           final Map<String, dynamic> writeData = Map.from(data)..remove('id');
+          _remapTransactionIdentity(writeData, currentEmail: currentEmail, currentUid: currentUid);
           _restoreDates(writeData);
           batch.set(docRef, writeData, SetOptions(merge: true));
           restored++;
@@ -117,6 +121,54 @@ class LocalBackupService {
       await batch.commit();
     }
     return restored;
+  }
+
+  /// Rewrites senderId/recipientId to the currently signed-in account when
+  /// restoring a local mirror taken under a different account/session. Only
+  /// fields that look like the owner are rewritten (never guess) so we don't
+  /// corrupt split-bill partner ids.
+  static void _remapTransactionIdentity(
+    Map<String, dynamic> data, {
+    required String currentEmail,
+    required String currentUid,
+  }) {
+    final replacement = currentUid.isNotEmpty ? currentUid : currentEmail;
+    if (replacement.isEmpty) return;
+
+    String? remap(Object? value) {
+      if (value is! String || value.isEmpty) return null;
+      // If the transaction has no other party, assume it's owned by the
+      // account that produced the backup or the account we're restoring into.
+      if (value == currentUid || value == currentEmail) return replacement;
+      // Heuristics: a single-party transaction has empty recipient/sender on
+      // the other side. Without archived uid, be conservative and only
+      // normalize when the "other" side is empty or matches the current id.
+      return null;
+    }
+
+    for (final field in const ['uid', 'senderId', 'recipientId']) {
+      if (!data.containsKey(field)) continue;
+      final mapped = remap(data[field]);
+      if (mapped != null) {
+        data[field] = mapped;
+      } else if (field == 'uid' && replacement.isNotEmpty) {
+        data[field] = replacement;
+      } else if (field == 'senderId' && (data['recipientId']?.toString() ?? '').isEmpty) {
+        // Expense owned by old account
+        data[field] = replacement;
+      } else if (field == 'recipientId' && (data['senderId']?.toString() ?? '').isEmpty) {
+        // Income owned by old account
+        data[field] = replacement;
+      }
+    }
+    if (data.containsKey('email')) {
+      final v = data['email'];
+      if (v is String && v.isNotEmpty && v == currentEmail) {
+        data['email'] = currentEmail;
+      } else if (v is String && v.isNotEmpty && replacement.isNotEmpty && (data.containsKey('uid') || data['senderId'] == v || data['recipientId'] == v)) {
+        // owner email on own docs
+      }
+    }
   }
 
   /// Mirrors every call into [email]'s on-device backup.

@@ -58,6 +58,14 @@ class UserService {
     // Liabilities
     'bnpl_entries',
     'credit_cards',
+    // Auxiliary collections created by the app; must be cleared on normal
+    // deletion and are also covered by GDPR erase.
+    'backups',
+    'insights',
+    'preferences',
+    'logs',
+    'receipts',
+    'audit_log',
   ];
 
   /// Where a partially-completed deletion is recorded, relative to `users/`.
