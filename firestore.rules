@@ -229,6 +229,23 @@ service cloud.firestore {
           || isAdminUpdate();
       allow delete: if isOwner(userEmail);
 
+      // Deletion marker. `deleteAccount` writes exactly this one document after
+      // every data subcollection is gone, so a deletion that is interrupted
+      // before the auth user is removed can be finished on the next sign-in
+      // (`UserService.resumeInterruptedDeletion`) instead of leaving a
+      // half-deleted account behind. The uid must be the caller's own: a marker
+      // replayed against a different account (same email, new uid — delete then
+      // sign up again) must not be able to finish/erase that account.
+      // Delete is allowed so the stale tombstone can be cleared, and there is
+      // deliberately no update branch.
+      match /meta/deletion {
+        allow read, delete: if isOwner(userEmail);
+        allow create: if isOwner(userEmail)
+            && request.resource.data.keys().hasOnly(['uid', 'startedAt'])
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.startedAt is timestamp;
+      }
+
       match /transactions/{txId} {
         allow read: if isOwner(userEmail) || isAdmin();
         allow write: if isOwner(userEmail) && (request.method == 'delete' || validTransaction());

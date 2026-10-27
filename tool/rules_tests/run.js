@@ -21,7 +21,13 @@ const path = require('path');
 const {
   initializeTestEnvironment,
 } = require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, Timestamp } = require('firebase/firestore');
+const {
+  doc,
+  getDoc,
+  setDoc,
+  deleteDoc,
+  Timestamp,
+} = require('firebase/firestore');
 const { ref, uploadBytes, deleteObject, getBytes } = require('firebase/storage');
 
 const PROJECT_ID = process.env.GCLOUD_PROJECT || 'demo-wealthsync';
@@ -184,6 +190,64 @@ async function main() {
       setDoc(doc(ownerDb, `users/${OWNER_EMAIL}/not_a_collection/doc-1`), {
         hello: 'world',
       }),
+    ),
+  );
+
+  // ------------------------------------------- Account-deletion marker
+  // `deleteAccount` writes this document after every data subcollection is gone
+  // so an interrupted deletion can be finished on the next sign-in. The shape is
+  // a security boundary: it must carry the caller's own uid as a tombstone for
+  // the caller's own account, and nothing else.
+  const ownerMarker = `users/${OWNER_EMAIL}/meta/deletion`;
+  const markerShape = () => ({ uid: OWNER_UID, startedAt: Timestamp.now() });
+
+  await check('owner can write their deletion marker', () =>
+    expectAllowed(setDoc(doc(ownerDb, ownerMarker), markerShape())),
+  );
+
+  await check('owner can read their deletion marker', () =>
+    expectAllowed(getDoc(doc(ownerDb, ownerMarker))),
+  );
+
+  await check('another account cannot read the marker', () =>
+    expectDenied(getDoc(doc(otherDb, ownerMarker))),
+  );
+
+  await check('the marker is not updatable (write-once tombstone)', () =>
+    expectDenied(
+      setDoc(doc(ownerDb, ownerMarker), { ...markerShape(), retried: 1 }),
+    ),
+  );
+
+  await check('owner can clear the marker', () =>
+    expectAllowed(deleteDoc(doc(ownerDb, ownerMarker))),
+  );
+
+  await check('a marker with extra fields is rejected', () =>
+    expectDenied(
+      setDoc(doc(ownerDb, ownerMarker), { ...markerShape(), isAdmin: true }),
+    ),
+  );
+
+  await check("a marker carrying another uid is rejected", () =>
+    expectDenied(
+      setDoc(doc(ownerDb, ownerMarker), { uid: OTHER_UID, startedAt: Timestamp.now() }),
+    ),
+  );
+
+  await check('a marker without a timestamp is rejected', () =>
+    expectDenied(setDoc(doc(ownerDb, ownerMarker), { uid: OWNER_UID })),
+  );
+
+  await check('a marker cannot be written into another account', () =>
+    expectDenied(
+      setDoc(doc(ownerDb, `users/${OTHER_EMAIL}/meta/deletion`), markerShape()),
+    ),
+  );
+
+  await check('an anonymous client cannot write a marker', () =>
+    expectDenied(
+      setDoc(doc(anonDb, ownerMarker), { uid: 'anon', startedAt: Timestamp.now() }),
     ),
   );
 
