@@ -215,6 +215,7 @@ class FullBackupService {
       profile: profile,
       wealthPortfolio: portfolio,
       collections: collections,
+      uid: _currentUserUid(),
       appVersion: appVersion,
     );
   }
@@ -300,6 +301,14 @@ class FullBackupService {
         'into $email - remapping identity fields',
       );
     }
+    // The uid the archive was taken from. Every owner identity field in the
+    // restored documents (`uid`, and a transaction's `senderId`/`recipientId`
+    // when it names the owner) is rewritten onto the account signed in now —
+    // otherwise the restored history is invisible to every uid-filtered query.
+    // Empty means "unknown owner": ids are then left untouched rather than
+    // guessed (see remapIdentityForRestore).
+    final archivedUid =
+        archive.uid.isNotEmpty ? archive.uid : (archive.profile?['uid']?.toString() ?? '');
 
     final written = <String, int>{};
     final failed = <String, Object>{};
@@ -318,7 +327,13 @@ class FullBackupService {
         var data = BackupArchive.stripServerAuthoritativeFields(
           _revive(archive.profile!),
         );
-        data = _remapIdentity(data, email, uid, archivedEmail, '');
+        data = remapIdentityForRestore(
+          data,
+          currentEmail: email,
+          currentUid: uid,
+          archivedEmail: archivedEmail,
+          archivedUid: archivedUid,
+        );
         if (uid.isNotEmpty) data['uid'] = uid;
         if (email.isNotEmpty) data['email'] = email;
         await _writeDoc('users/$email', data);
@@ -333,7 +348,13 @@ class FullBackupService {
     if (archive.wealthPortfolio != null && archive.wealthPortfolio!.isNotEmpty) {
       try {
         var data = _revive(archive.wealthPortfolio!);
-        data = _remapIdentity(data, email, uid, archivedEmail, '');
+        data = remapIdentityForRestore(
+          data,
+          currentEmail: email,
+          currentUid: uid,
+          archivedEmail: archivedEmail,
+          archivedUid: archivedUid,
+        );
         await _writeDoc('users/$email/wealth/portfolio', data);
         written['wealth_portfolio'] = 1;
       } catch (e, s) {
@@ -371,7 +392,13 @@ class FullBackupService {
               : id;
           try {
             var revived = _revive(data);
-            revived = _remapIdentity(revived, email, uid, archivedEmail, '');
+            revived = remapIdentityForRestore(
+              revived,
+              currentEmail: email,
+              currentUid: uid,
+              archivedEmail: archivedEmail,
+              archivedUid: archivedUid,
+            );
             pending.add({'_docId': docId, '_data': revived});
           } catch (e, s) {
             // One unreadable document must not cost the whole collection.
@@ -499,33 +526,65 @@ class FullBackupService {
     }
   }
 
-  static Map<String, dynamic> _remapIdentity(Map<String, dynamic> data, String currentEmail, String currentUid, String archivedEmail, String archivedUid) {
+  /// Rewrites the identity fields of a restored document from the archive's
+  /// account onto the account signed in now.
+  ///
+  /// Only values *known to be the archive owner's* are rewritten: [archivedUid]
+  /// (the uid the file was taken from) and [archivedEmail]. A transaction's
+  /// `senderId`/`recipientId` can legitimately name the other side of a split
+  /// bill, so anything else is preserved — rewriting a friend's uid onto the
+  /// restoring account would credit the wrong person.
+  ///
+  /// Leaving the owner's stale uid behind is the other failure: every
+  /// uid-filtered query (sent/received, analytics, the split-bill list) skips
+  /// the restored history, which defeats restoring into a rebuilt account. So a
+  /// known-owner id always becomes [currentUid] (falling back to the email when
+  /// there is no auth session).
+  ///
+  /// An archive that carries no uid at all (format 1 without a profile) leaves
+  /// the id fields alone: guessing which of two ids was the owner is how a
+  /// restore corrupts data.
+  static Map<String, dynamic> remapIdentityForRestore(
+    Map<String, dynamic> data, {
+    required String currentEmail,
+    required String currentUid,
+    required String archivedEmail,
+    required String archivedUid,
+  }) {
     final out = Map<String, dynamic>.from(data);
-    if (out.containsKey('uid')) {
-      if (archivedUid.isNotEmpty && out['uid'] == archivedUid) {
-        out['uid'] = currentUid;
-      } else if (currentUid.isNotEmpty) {
-        out['uid'] = currentUid;
+    final replacementId = currentUid.isNotEmpty ? currentUid : currentEmail;
+    final archivedMail = archivedEmail.trim().toLowerCase();
+    final currentMail = currentEmail.trim().toLowerCase();
+
+    /// The replacement for [value] when it names the archive owner, else null.
+    String? ownerReplacement(Object? value) {
+      if (value is! String || value.isEmpty) return null;
+      if (archivedUid.isNotEmpty && value == archivedUid) {
+        return replacementId.isEmpty ? null : replacementId;
+      }
+      if (archivedMail.isNotEmpty &&
+          value.trim().toLowerCase() == archivedMail &&
+          currentMail.isNotEmpty) {
+        return currentEmail;
+      }
+      return null;
+    }
+
+    for (final field in const ['uid', 'senderId', 'recipientId']) {
+      if (!out.containsKey(field)) continue;
+      final mapped = ownerReplacement(out[field]);
+      if (mapped != null) {
+        out[field] = mapped;
+      } else if (field == 'uid' && replacementId.isNotEmpty) {
+        // `uid` on a document inside a user's own tree is the owner by
+        // definition, so it always tracks the signed-in account.
+        out[field] = replacementId;
       }
     }
+
     if (out.containsKey('email')) {
-      if (archivedEmail.isNotEmpty && out['email'] == archivedEmail) {
-        out['email'] = currentEmail;
-      } else if (currentEmail.isNotEmpty) {
-        out['email'] = currentEmail;
-      }
-    }
-    if (out.containsKey('senderId')) {
-      if (archivedUid.isNotEmpty && out['senderId'] == archivedUid) {
-        out['senderId'] = currentUid.isNotEmpty ? currentUid : currentEmail;
-      } else if (currentUid.isNotEmpty) {
-        // Only remap if it looks like owner id
-      }
-    }
-    if (out.containsKey('recipientId')) {
-      if (archivedUid.isNotEmpty && out['recipientId'] == archivedUid) {
-        out['recipientId'] = currentUid.isNotEmpty ? currentUid : currentEmail;
-      }
+      final mapped = ownerReplacement(out['email']);
+      if (mapped != null) out['email'] = mapped;
     }
     return out;
   }

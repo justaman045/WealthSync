@@ -18,7 +18,13 @@ class BackupArchive {
   /// Bump when the on-disk shape changes in a way restore must understand.
   /// Restore refuses an archive newer than it can read rather than silently
   /// importing a partial account.
-  static const int currentFormatVersion = 1;
+  ///
+  /// 2 — the archive records the account uid it was taken from. Restore uses it
+  /// to rewrite `uid`/`senderId`/`recipientId` onto the account that is
+  /// rebuilding from the file. A build that predates this cannot do that
+  /// rewrite, so it must refuse the file instead of restoring an account whose
+  /// uid-filtered queries (sent/received, analytics) silently miss the history.
+  static const int currentFormatVersion = 2;
 
   /// Magic marker so a wrong file is rejected with "this is not a backup"
   /// instead of importing zero documents and reporting success.
@@ -31,6 +37,7 @@ class BackupArchive {
     required this.profile,
     required this.wealthPortfolio,
     required this.collections,
+    this.uid = '',
     this.appVersion = '',
   });
 
@@ -40,6 +47,18 @@ class BackupArchive {
   /// confirmation, so the user can pick between several downloaded files.
   final DateTime createdAt;
   final String email;
+
+  /// The Firebase uid the snapshot was taken from.
+  ///
+  /// Restore writes into the account signed in *now* (a fresh signup after a
+  /// deletion has a new uid), so every identity field that names the old owner
+  /// has to be rewritten. Without the recorded id there is no safe way to tell
+  /// the owner's id from the other party's in a split-bill transaction — an
+  /// empty value therefore means "leave ids alone" rather than "guess".
+  ///
+  /// Older archives predate this field: [fromMap] falls back to the uid stored
+  /// on the archived profile, which is where it also lived.
+  final String uid;
 
   /// The `users/{email}` document, or null when it did not exist.
   final Map<String, dynamic>? profile;
@@ -150,6 +169,8 @@ class BackupArchive {
     'createdAt': createdAt.toUtc().toIso8601String(),
     'appVersion': appVersion,
     'email': email,
+    // The uid restore remaps every owner identity field onto.
+    'uid': uid,
     // The profile is stored verbatim; `null` is meaningful (no profile doc).
     'profile': profile,
     'wealthPortfolio': wealthPortfolio,
@@ -268,19 +289,27 @@ class BackupArchive {
       });
     }
 
+    final profile = map['profile'] is Map
+        ? Map<String, dynamic>.from(map['profile'] as Map)
+        : null;
+    // Format-1 archives had no top-level uid; the profile carried it.
+    final rawUid = map['uid']?.toString() ?? '';
+    final uid = rawUid.isNotEmpty
+        ? rawUid
+        : (profile?['uid']?.toString() ?? '');
+
     return BackupArchive(
       formatVersion: version,
       createdAt:
           DateTime.tryParse(map['createdAt']?.toString() ?? '')?.toUtc() ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       email: map['email']?.toString() ?? '',
-      profile: map['profile'] is Map
-          ? Map<String, dynamic>.from(map['profile'] as Map)
-          : null,
+      profile: profile,
       wealthPortfolio: map['wealthPortfolio'] is Map
           ? Map<String, dynamic>.from(map['wealthPortfolio'] as Map)
           : null,
       collections: collections,
+      uid: uid,
       appVersion: map['appVersion']?.toString() ?? '',
     );
   }

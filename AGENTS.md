@@ -644,6 +644,17 @@ and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
   and restoring their old file. Writing to the *archived* address is denied by
   `firestore.rules` (an owner may only write their own document), so the restore
   would silently write nothing.
+- **Identity is remapped onto the signed-in account, never guessed.** Format 2 archives
+  record the uid they were taken from (`BackupArchive.uid`, falling back to the archived
+  profile's `uid` for a format-1 file); `remapIdentityForRestore` rewrites `uid`, and
+  `senderId`/`recipientId` **only when the value is the archived owner's**, onto the current
+  account. Two failures it exists to prevent: leaving the old uid behind makes every
+  uid-filtered query (sent/received, analytics, split bills) skip the restored history — the
+  whole point of rebuilding a deleted account; rewriting ids blindly would move a split-bill
+  friend's transaction onto the restoring account. No recorded uid ⇒ ids are left alone.
+  `currentFormatVersion` is 2 so a build that predates the rewrite refuses the file rather
+  than restoring history it cannot re-identify. Pinned by
+  `test/backup_identity_remap_test.dart`.
 - **The profile restore strips the server-authoritative fields**
   (`BackupArchive.serverAuthoritativeProfileFields`: `subscriptionStatus`, `isPro`,
   `trialEndDate`, `trialUsed`, `planType`, `expiryDate`, `purchaseToken`, `isAdmin`,
