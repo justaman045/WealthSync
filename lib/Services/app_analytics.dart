@@ -52,6 +52,11 @@ class AnalyticsEvent {
   /// `hidden`. This is the demand signal for what to build next, and the only
   /// way to know which of the feature flags are dead weight.
   static const String featureGateHit = 'feature_gate_hit';
+
+  /// A sign-in finished an account deletion that had been interrupted after the
+  /// data was already gone (`UserService.resumeInterruptedDeletion`). Should be
+  /// rare; a spike means deletions are failing mid-flight on real devices.
+  static const String accountDeletionResumed = 'account_deletion_resumed';
 }
 
 /// Thin, typed wrapper over [FirebaseAnalytics] and [FirebaseCrashlytics].

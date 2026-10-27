@@ -30,6 +30,9 @@ import 'package:money_control/Controllers/recurring_payment_controller.dart';
 import 'package:money_control/Controllers/audit_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Services/app_analytics.dart';
+import 'package:money_control/Services/full_backup_service.dart';
+import 'package:money_control/Services/local_backup_service.dart';
+import 'package:money_control/Services/user_service.dart';
 
 class AuthController extends GetxController {
   static AuthController get to => Get.find();
@@ -219,6 +222,40 @@ class AuthController extends GetxController {
       SubscriptionController.to.checkSubscriptionStatus();
     }
     Get.offAll(() => const AnimatedSplashScreen());
+  }
+
+  /// Finishes a deletion that was interrupted after every data collection was
+  /// gone but before the profile/auth user were removed (see
+  /// `UserService.deleteAccount`). Returns true when the account was deleted.
+  ///
+  /// Every failure is swallowed: this runs on the sign-in path, and a marker
+  /// that cannot be read (an older rules deploy, an offline device) must never
+  /// block a normal login. The marker keeps the retry alive for the next launch.
+  Future<bool> resumeInterruptedDeletion() async {
+    final email = _auth.currentUser?.email;
+    if (email == null) return false;
+    final bool resumed;
+    try {
+      resumed = await UserService().resumeInterruptedDeletion();
+    } catch (e, s) {
+      AppAnalytics.recordError(e, s, reason: 'resume_interrupted_deletion');
+      debugPrint('resumeInterruptedDeletion failed: $e');
+      return false;
+    }
+    if (!resumed) return false;
+    AppAnalytics.log(AnalyticsEvent.accountDeletionResumed);
+    // The account is gone, so the device copies of its data must go with it —
+    // otherwise "delete my account" leaves a full backup in the app sandbox.
+    await LocalBackupService.clearUserBackup(email);
+    await FullBackupService.clearLocalSnapshot(email);
+    // `user.delete()` already cleared currentUser; this only clears a residual
+    // session. The auth stream then runs the single teardown list.
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      debugPrint('Sign-out after resuming deletion failed: $e');
+    }
+    return true;
   }
 
   /// Deletes all user-scoped controllers and clears user-scoped caches so a

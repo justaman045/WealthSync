@@ -60,6 +60,15 @@ class UserService {
     'credit_cards',
   ];
 
+  /// Where a partially-completed deletion is recorded, relative to `users/`.
+  ///
+  /// It cannot live on the profile document: step 4 deletes that, and the
+  /// marker has to outlive it to be resumable. Firestore does not cascade a
+  /// document delete into its subcollections, so this survives as a tiny
+  /// tombstone — `resumeInterruptedDeletion` ignores/clears a marker whose uid
+  /// is not the signed-in account's.
+  static String deletionMarkerPath(String email) => 'users/$email/meta/deletion';
+
   /// How recently the user must have signed in for `user.delete()` to be
   /// accepted. Kept comfortably inside Firebase Auth's own
   /// `requires-recent-login` window so the pre-flight below trips *before* any
@@ -68,6 +77,41 @@ class UserService {
 
   static const String _reauthRequiredMessage =
       "Security Check: Please log out and log in again to delete your account.";
+
+  /// True when [marker] was written by [uid], i.e. *this* account's deletion
+  /// can be finished. A marker from a previous account that used the same
+  /// email carries a different uid and must be treated as stale.
+  static bool isDeletionMarkerFor(Map<String, dynamic>? marker, String uid) {
+    final owner = marker?['uid'];
+    return owner is String && owner.isNotEmpty && owner == uid;
+  }
+
+  /// Reads the deletion marker, treating "rules do not know this path yet"
+  /// (a production deploy older than this build) as "no marker".
+  Future<Map<String, dynamic>?> readDeletionMarker(String email) async {
+    try {
+      final doc = await _db.doc(deletionMarkerPath(email)).get();
+      return doc.data();
+    } on FirebaseException catch (e) {
+      if (e.code != 'permission-denied') rethrow;
+      return null;
+    }
+  }
+
+  Future<void> clearDeletionMarker(String email) async {
+    try {
+      await _db.doc(deletionMarkerPath(email)).delete();
+    } catch (e) {
+      debugPrint('Failed to clear the deletion marker: $e');
+    }
+  }
+
+  Future<void> _writeDeletionMarker(String email, String uid) async {
+    await _db.doc(deletionMarkerPath(email)).set({
+      'uid': uid,
+      'startedAt': FieldValue.serverTimestamp(),
+    });
+  }
 
   Future<void> deleteAccount() async {
     final user = _auth.currentUser;
@@ -99,21 +143,18 @@ class UserService {
       await _deleteCollection('users/$email/$sub');
     }
 
+    // 2b. Record that the data is gone, BEFORE the profile and the auth user are
+    // removed. If the app dies or the network drops between here and step 5, the
+    // next sign-in finishes the job (`resumeInterruptedDeletion`) instead of
+    // leaving a signed-in account that has no data and no way to complete the
+    // deletion the user asked for.
+    await _writeDeletionMarker(email, user.uid);
+
     // 3. Release the referral code. It lives at the top level (owned by uid),
     // not under the user document, so deleting the account used to leave a code
     // behind that still pointed at the deleted uid and still carried the uids
     // of everyone who had claimed it.
-    try {
-      final profile = await _db.collection('users').doc(email).get();
-      final code = profile.data()?['referralCode'];
-      if (code is String && code.isNotEmpty) {
-        await _db.collection('referralCodes').doc(code).delete();
-      }
-    } catch (e) {
-      // The profile and every subcollection are already gone; a stranded code
-      // document must not turn a completed deletion into an error.
-      debugPrint('Failed to release referral code: $e');
-    }
+    await _releaseReferralCode(email);
 
     // 4. Delete the user document.
     await _db.collection('users').doc(email).delete();
@@ -128,6 +169,56 @@ class UserService {
       throw Exception("Failed to delete auth account: $e");
     } catch (e) {
       throw Exception("Failed to delete auth account: $e");
+    }
+  }
+
+  /// Finishes a deletion whose data was already gone but whose profile and auth
+  /// user were not removed (app killed, network dropped at the wrong moment).
+  ///
+  /// Returns true when *this* account's marker was found and the account has
+  /// been deleted — the caller's session is then dead and must not be used. A
+  /// marker left by a different uid (account deleted, then signed up again with
+  /// the same email) is stale: it is removed and false is returned, so a
+  /// previous owner's marker can never erase a new account.
+  ///
+  /// The auth-freshness pre-flight deliberately does not apply: this runs right
+  /// after a sign-in, and the account is already empty — refusing would strand
+  /// exactly the state the marker exists to fix.
+  Future<bool> resumeInterruptedDeletion() async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null) return false;
+
+    final marker = await readDeletionMarker(email);
+    if (marker == null) return false;
+    if (!isDeletionMarkerFor(marker, user.uid)) {
+      // A stale tombstone from a previous account with this email.
+      await clearDeletionMarker(email);
+      debugPrint('Cleared a stale deletion marker for $email');
+      return false;
+    }
+
+    await _releaseReferralCode(email);
+    await _db.collection('users').doc(email).delete();
+    // Throws (and keeps the marker) when the session went stale mid-resume: the
+    // next sign-in retries. The marker is NOT cleared afterwards — the caller is
+    // signed out by then, so the write would be denied; it stays as a tombstone
+    // and is cleared by the stale-uid branch above on a re-signup.
+    await user.delete();
+    return true;
+  }
+
+  Future<void> _releaseReferralCode(String email) async {
+    try {
+      final profile = await _db.collection('users').doc(email).get();
+      final code = profile.data()?['referralCode'];
+      if (code is String && code.isNotEmpty) {
+        await _db.collection('referralCodes').doc(code).delete();
+      }
+    } catch (e) {
+      // The profile and every subcollection are already gone; a stranded code
+      // document must not turn a completed deletion into an error.
+      debugPrint('Failed to release referral code: $e');
     }
   }
 

@@ -603,6 +603,16 @@ class _AuthCheckerState extends State<AuthChecker> {
           ) ??
           false;
       if (user != null && (user.emailVerified || isOAuthUser)) {
+        // Finish a deletion that was interrupted after the account's data was
+        // already gone (UserService.deleteAccount writes its marker last, just
+        // before removing the profile/auth user). Native only: the web listener
+        // ordering here is fragile, and a browser session is the least likely
+        // place to be killed mid-delete. Costs one marker read per sign-in.
+        if (!kIsWeb) {
+          final resumed = await Get.find<AuthController>()
+              .resumeInterruptedDeletion();
+          if (resumed || authStale()) return;
+        }
         // On web, initialize Firestore network here (after auth, before Phase 2)
         // so the first JS SDK operation is a persistent .snapshots() listener
         // from TransactionController, not a transient .get() — this avoids the
