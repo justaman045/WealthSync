@@ -652,11 +652,14 @@ Future<void> ensureAccountState(
 
   final email = FirebaseAuth.instance.currentUser?.email;
   if (email != null) {
+    // The rules only allow moving trialEndDate earlier (a shrink/cancel); a
+    // write that would extend it is denied. Force Free by moving it to epoch
+    // (or before any live value) so it satisfies isTrialShrink.
     await FirebaseFirestore.instance.collection('users').doc(email).set({
       'subscriptionStatus': 'free',
       'isPro': false,
       'trialEndDate': Timestamp.fromDate(
-        DateTime.now().subtract(const Duration(seconds: 1)),
+        DateTime.fromMillisecondsSinceEpoch(0),
       ),
     }, SetOptions(merge: true));
   }
