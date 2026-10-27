@@ -136,6 +136,23 @@ in init — registering them in phase 1 crashes. Screens self-register via
   touching Firestore; otherwise it deleted all data then hit
   `requires-recent-login`. After deletion `DeactivateAccountScreen` must
   `signOut()` — deleting the auth user alone does not clear `FirebaseAuth.currentUser`.
+- **A deletion that dies after the data is gone is resumed on the next sign-in.**
+  `deleteAccount` writes `users/{email}/meta/deletion` (`{uid, startedAt}`) *after* the 34
+  subcollections are empty and *before* the profile/auth user are removed — a process kill
+  in between otherwise leaves the account signed in with no data and no way to finish the
+  request it was told was complete. `AuthController.resumeInterruptedDeletion` runs from
+  `main.dart`'s `_handleAuthChange` (native only, before the phase-2 registrations) and
+  finishes it: release the code, delete the profile, delete the auth user, purge the sealed
+  device copies, sign out (the auth stream then runs the single teardown list).
+  Two ordering rules: the marker is written **after** the wipe (written first, a resume
+  would delete an account whose data was still intact), and it is a **tombstone** — Firestore
+  does not cascade a document delete into subcollections, so it outlives the profile, and
+  `isDeletionMarkerFor` refuses a marker whose `uid` is not the signed-in account's
+  (delete → sign up again with the same email must never erase the new account; that stale
+  marker is deleted instead). Rules open only the literal `meta/deletion` path, owner-only,
+  uid-bound, write-once (no update branch) — pinned by `tool/rules_tests/run.js` and
+  `test/deletion_resume_test.dart`. `meta` is deliberately NOT in `UserService.subcollections`
+  (the marker must survive the wipe, and it is not user data to export).
 - **Sign-up is serialized with the auth stream.** `createUserWithEmailAndPassword`
   signs in immediately → `_handleAuthChange` signs unverified accounts back out
   mid-write. `signup.dart` sets `AuthController.signupInProgress`, checked at the
