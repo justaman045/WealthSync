@@ -581,6 +581,14 @@ Future<bool> loginIfNeeded(
 
   final loginButton = find.text(AppStrings.signIn);
   for (var attempt = 0; attempt < 3; attempt++) {
+    // The form can be torn down and rebuilt between the check above and here
+    // (splash → login transition): enterText on a vanished field throws
+    // "Bad state: No element" instead of retrying, which the nightly suite
+    // reported as a login failure. Re-resolve every attempt.
+    if (emailField.evaluate().isEmpty || passwordField.evaluate().isEmpty) {
+      await pumpReal(tester);
+      continue;
+    }
     await tester.enterText(emailField, email);
     await pumpReal(tester);
     await tester.enterText(passwordField, password);
@@ -661,6 +669,33 @@ Future<void> ensureAccountState(
   }
 }
 
+/// Ensures the signed-in account can open the Wealth tab.
+///
+/// The Wealth Builder is age-gated (`main_shell.dart` `_checkAgeGate`): with no
+/// `age`/`dob` on the profile the tab tap shows the "Setup Required" dialog and
+/// never switches, so every wealth file times out waiting for "Wealth Builder".
+/// The CI fixtures predate that gate, and `clearAccountData` deliberately does
+/// not touch the profile — so the harness seeds it once per launch instead of
+/// depending on out-of-band account state.
+Future<void> ensureProfileAge(WidgetTester tester) async {
+  final email = FirebaseAuth.instance.currentUser?.email;
+  if (email == null) return;
+  try {
+    final doc = FirebaseFirestore.instance.collection('users').doc(email);
+    final data = (await doc.get()).data();
+    final age = data?['age'];
+    if (age is num && age > 0) return;
+    if (data?['dob'] != null) return; // the gate derives an age from it
+    // Rule-legal owner write: isOwnerUpdate has no field allow-list and age is
+    // not an entitlement field.
+    await doc.set({'age': 30}, SetOptions(merge: true));
+    debugPrint('ensureProfileAge: seeded age=30 for $email');
+    await pumpReal(tester);
+  } catch (e) {
+    debugPrint('ensureProfileAge error: $e');
+  }
+}
+
 /// Launches the app and brings it to the home screen, tapping through splash/
 /// onboarding and signing in when needed. Fails the test if home is not
 /// reached (so failures point at login/onboarding, not later finders).
@@ -707,6 +742,7 @@ Future<void> launchAndSignIn(
     );
   }
   await ensureAccountState(tester, account);
+  await ensureProfileAge(tester);
 }
 
 /// Deletes every doc in `users/{email}/{path}` (owner delete is allowed by

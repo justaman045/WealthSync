@@ -31,12 +31,13 @@ void main() {
     await waitFor(tester, find.text(AppStrings.subscriptions));
     expect(find.text(AppStrings.subscriptions), findsOneWidget);
     await waitFor(tester, find.text('Add Subscription'));
-    expect(find.text('Add Subscription'), findsOneWidget);
-
-    // 5. Add Subscription
+    // While the list is empty the screen shows the label twice: the FAB and the
+    // empty-state action (CI wipes the account, so it is always empty there).
+    // Tap the FAB explicitly rather than the ambiguous text.
+    expect(find.text('Add Subscription'), findsWidgets);
     await tapUntilMarker(
       tester,
-      find.text('Add Subscription'),
+      find.widgetWithText(FloatingActionButton, 'Add Subscription'),
       find.text('New Subscription'),
     );
     expect(find.text('New Subscription'), findsOneWidget);

@@ -37,6 +37,13 @@ void main() {
       matching: find.byType(Switch),
     );
     await scrollUntilVisible(tester, darkSwitch);
+    // The theme is a device-level preference that outlives sign-out and the
+    // account wipe, so an earlier file (or a previous run on this install) may
+    // have left dark mode on. Normalise before asserting the toggle round-trip.
+    if (tester.widget<Switch>(darkSwitch).value) {
+      await tester.tap(darkSwitch, warnIfMissed: false);
+      await pumpAndSettleSafe(tester);
+    }
     expect(tester.widget<Switch>(darkSwitch).value, isFalse);
 
     await tester.tap(darkSwitch, warnIfMissed: false);

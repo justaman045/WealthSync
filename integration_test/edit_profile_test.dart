@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -37,6 +39,16 @@ void main() {
       // 7. Interact with Fields (order: First, Last, Email, Phone, Address)
       final textFields = find.byType(TextFormField);
 
+      // Wait for the async prefill to land before typing. The form deliberately
+      // never overwrites a field the user already typed into, so typing into a
+      // not-yet-prefilled form would leave the other fields empty and the save
+      // would clear them.
+      for (var i = 0; i < 40; i++) {
+        final field = tester.widget<TextFormField>(textFields.at(0));
+        if ((field.controller?.text ?? '').isNotEmpty) break;
+        await pumpReal(tester);
+      }
+
       await tester.enterText(textFields.at(0), 'UpdatedName');
       await pumpAndSettleSafe(tester);
 
@@ -68,9 +80,24 @@ void main() {
       // 10. Wait for the async save + profile refresh
       await pumpReal(tester, const Duration(seconds: 2));
 
-      // 11. Verify Changes Persisted (Locally in fields)
-      expect(find.text('UpdatedName'), findsWidgets);
-      expect(find.text('UpdatedLast'), findsWidgets);
+      // 11. Verify Changes Persisted. Assert the stored profile — the real
+      // contract — instead of the on-screen field text, which depends on where
+      // the form happens to be scrolled. Step 12 still proves the edit screen
+      // is showing (it taps that screen's back arrow).
+      final email = FirebaseAuth.instance.currentUser!.email!;
+      Map<String, dynamic>? saved;
+      for (var i = 0; i < 30; i++) {
+        saved = (await FirebaseFirestore.instance
+                .collection('users')
+                .doc(email)
+                .get())
+            .data();
+        if (saved?['firstName'] == 'UpdatedName') break;
+        await pumpReal(tester);
+      }
+      expect(saved?['firstName'], 'UpdatedName');
+      expect(saved?['lastName'], 'UpdatedLast');
+      expect(saved?['phone'], '1234567890');
 
       // 12. Navigate Back
       final backButton = find.byIcon(Icons.arrow_back_ios);
