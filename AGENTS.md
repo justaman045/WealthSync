@@ -762,6 +762,16 @@ and delete cannot drift) + `users/{email}` profile + `wealth/portfolio`.
     `problems-report.html` unstaged. Never build or analyze mid-rebase: Gradle surfaces a
     bare `1 error` with no diagnostic above the tail of a truncated build log, so a failed
     build's cause only shows up on a clean tree.
+28. **An async prefill must never overwrite what the user typed.** `edit_profile.dart`'s
+    `initState` Firestore read can land *after* the user starts typing on a slow connection;
+    assigning the controllers there discarded the edit and the following save wrote the old
+    value back, so a rename silently did nothing (the E2E rename flow caught it, and it had
+    never passed in CI). Prefill through `_prefill`, which skips any controller in `_edited`.
+    The same form must also never write `age: null` — `buildProfileUpdate`
+    (`lib/Utils/profile_update.dart`, pinned by `test/profile_update_test.dart`) omits
+    `dob`/`age` unless a date of birth is set, because the Wealth Builder's age gate
+    (`main_shell.dart` `_checkAgeGate`) refuses to open without an age, so a rename used to
+    lock the user out of the Wealth tab.
 
 ## Platform-Specific
 
@@ -1087,6 +1097,21 @@ Gotchas:
     (its accounts are disposable) and `tool/run_integration_tests.sh` defaults to **off**
     as well. Pointing the runner at a real account must never wipe it — if a test needs
     a clean slate, seed its own data instead.
+12. **The Wealth tab is age-gated, so the harness seeds an age.** `main_shell.dart`
+    `_checkAgeGate` shows a "Setup Required" dialog and refuses to switch tabs when the
+    profile has no `age`/`dob`; the wipe does not touch the profile, and the CI fixtures
+    predate the gate — six wealth files and the tab tour timed out waiting for "Wealth
+    Builder" on the first nightly run. `launchAndSignIn` now calls `ensureProfileAge`
+    (a rule-legal owner write of `age: 30` when neither is stored). Keep it there: any new
+    wealth test depends on it, and `edit_profile_test` must not clear the field it seeds.
+13. **Assertions must not depend on scroll position or on another file's leftovers.**
+    `edit_profile_test` asserted the typed name through `find.text` after scrolling to the
+    save button; it now asserts the persisted `users/{email}` doc (the real contract) and
+    waits for the async prefill before typing. Theme is a **device-level** preference that
+    survives sign-out and the wipe, so `misc_settings_test` normalises dark mode before
+    asserting the toggle instead of assuming light. The subscriptions screen renders
+    "Add Subscription" twice while the list is empty (FAB + empty-state action) — tap
+    `find.widgetWithText(FloatingActionButton, …)`, not the ambiguous text.
 
 ## UI Copy / Revamp Audit
 
