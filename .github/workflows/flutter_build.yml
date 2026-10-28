@@ -51,7 +51,7 @@ concurrency:
 
 env:
   FLUTTER_VERSION: "3.47.7"
-  ANDROID_NDK_VERSION: "27.3.13750724"
+  ANDROID_NDK_VERSION: "28.2.13676358"
 
 jobs:
   # ------------------------------------------------------------

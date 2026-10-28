@@ -20,7 +20,7 @@ android {
     // ZipFile: unknown archive"). CI sets ANDROID_NDK_VERSION to an NDK already
     // on the runner (see .github/workflows/flutter_build.yml) to skip the
     // download; locally the env var is unset and Flutter's default is used.
-    ndkVersion = System.getenv("ANDROID_NDK_VERSION") ?: flutter.ndkVersion
+    ndkVersion = System.getenv("ANDROID_NDK_VERSION") ?: "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
