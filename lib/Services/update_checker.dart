@@ -227,12 +227,13 @@ class UpdateChecker {
 
       if (!await _looksLikeApk(file)) {
         debugPrint("Downloaded file is not a valid APK (bad magic bytes)");
-        // Check if it's actually a valid ZIP/APK by trying to read
         final stat = await file.length();
-        if (stat < 100000) { // Too small to be a real APK
+        // Real APKs are usually > 10MB, if it's large enough skip strict check
+        if (stat < 5000000) {
           await _safeDelete(file);
           return UpdateInstallResult.downloadFailed;
         }
+        debugPrint("File is large enough ($stat bytes), attempting install anyway");
       }
 
       return await _installApk(file.path);
