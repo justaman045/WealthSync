@@ -83,6 +83,7 @@ dependencies:
   mobile_scanner: ^7.4.0
   cryptography: ^2.9.0
   flutter_secure_storage: ^10.3.4
+  crypto: ^3.0.8
 
 dev_dependencies:
   integration_test:

@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:crypto/crypto.dart' as crypto;
+
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/version_utils.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -174,8 +176,8 @@ class UpdateChecker {
         if (resp.statusCode != 200) return null;
         final body = resp.body;
         if (body.trim().startsWith('<')) return null;
-        final lines = body.split('
-');
+        final lines = body.split(RegExp(r'[
+]+'));
         for (final line in lines) {
           if (line.contains('app-release.apk')) {
             final parts = line.trim().split(RegExp(r'\s+'));
@@ -197,9 +199,9 @@ class UpdateChecker {
   Future<bool> _verifySha256(File file, String expected) async {
     try {
       final bytes = await file.readAsBytes();
-      final digest = await crypto.sha256.convert(bytes);
-      final actual = digest.toString().toLowerCase();
-      return actual == expected.toLowerCase();
+      final digest = await sha256.convert(bytes);
+      final actual = digest.bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+      return actual.toLowerCase() == expected.toLowerCase();
     } catch (e) {
       debugPrint('SHA256 verification failed: $e');
       return false;
