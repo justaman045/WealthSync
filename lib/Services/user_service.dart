@@ -136,13 +136,6 @@ class UserService {
       throw Exception(_reauthRequiredMessage);
     }
 
-    // Write deletion marker early so partial deletion can be resumed.
-    try {
-      await _writeDeletionMarker(email, user.uid);
-    } catch (e) {
-      debugPrint('Failed to write deletion marker early: $e');
-    }
-
     // 1. Delete wealth portfolio document
     await _db.doc('users/$email/wealth/portfolio').delete();
 
@@ -153,11 +146,7 @@ class UserService {
 
     // 2b. Record that the data is gone, BEFORE the profile and the auth user are
     // removed.
-    try {
-      await _writeDeletionMarker(email, user.uid);
-    } catch (e) {
-      debugPrint('Failed to update deletion marker: $e');
-    }
+    await _writeDeletionMarker(email, user.uid);
 
     // 3. Release the referral code.
     try {
