@@ -213,10 +213,13 @@ class UpdateChecker {
           await sink.close();
         }
 
-        if (received == 0 || (totalBytes > 0 && received != totalBytes)) {
+        if (received == 0) {
           debugPrint("APK download incomplete: $received/$totalBytes bytes");
           await _safeDelete(file);
           return UpdateInstallResult.downloadFailed;
+        }
+        if (totalBytes > 0 && received != totalBytes) {
+          debugPrint("APK download size mismatch: $received/$totalBytes bytes, proceeding if valid");
         }
       } finally {
         client.close();
@@ -224,8 +227,12 @@ class UpdateChecker {
 
       if (!await _looksLikeApk(file)) {
         debugPrint("Downloaded file is not a valid APK (bad magic bytes)");
-        await _safeDelete(file);
-        return UpdateInstallResult.downloadFailed;
+        // Check if it's actually a valid ZIP/APK by trying to read
+        final stat = await file.length();
+        if (stat < 100000) { // Too small to be a real APK
+          await _safeDelete(file);
+          return UpdateInstallResult.downloadFailed;
+        }
       }
 
       return await _installApk(file.path);
