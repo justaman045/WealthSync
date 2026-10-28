@@ -129,7 +129,7 @@ jobs:
       # version before 21"). Java 17 — the pin the Android build needs — would
       # fail here, so this job pins 21 independently.
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
@@ -264,7 +264,7 @@ jobs:
       # runner's default Java is how the local Android Studio JBR (Java 25) broke
       # the Gradle 8.14 build.
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -383,7 +383,7 @@ jobs:
           cache: true
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
