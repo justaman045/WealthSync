@@ -312,6 +312,7 @@ class FullBackupService {
 
     final written = <String, int>{};
     final failed = <String, Object>{};
+    final skipped = <String>[];
 
     // Profile first: it carries the personal details that make a rebuilt
     // account usable.
@@ -377,6 +378,7 @@ class FullBackupService {
           '[FullBackupService] skipping unknown collection "$collection" '
           '(${docs.length} docs)',
         );
+        skipped.add(collection);
         continue;
       }
 
@@ -498,7 +500,8 @@ class FullBackupService {
       }
     }
 
-    return BackupRestoreResult(written: written, failed: failed);
+    return BackupRestoreResult(
+        written: written, failed: failed, skippedCollections: skipped);
   }
 
   /// The signed-in account's email, or '' when there is none.
@@ -1100,15 +1103,21 @@ class FullBackupService {
 /// transactions restored" while one collection silently failed is the failure
 /// mode this class exists to prevent.
 class BackupRestoreResult {
-  const BackupRestoreResult({required this.written, required this.failed});
+  const BackupRestoreResult({
+    required this.written,
+    required this.failed,
+    this.skippedCollections = const <String>[],
+  });
 
   final Map<String, int> written;
   final Map<String, Object> failed;
+  final List<String> skippedCollections;
 
   int get totalWritten =>
       written.values.fold(0, (total, n) => total + n);
 
   bool get hasFailures => failed.isNotEmpty;
+  bool get hasSkippedCollections => skippedCollections.isNotEmpty;
 
   /// Collections that were present in the archive with a non-zero document
   /// count, for a human-readable summary.
