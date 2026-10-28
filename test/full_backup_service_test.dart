@@ -759,11 +759,14 @@ void main() {
     late Directory tempDir;
 
     setUp(() async {
+      BackupCipher.resetForTest();
+      BackupCipher.useKeyForTest(List<int>.generate(32, (i) => i + 7));
       tempDir = await Directory.systemTemp.createTemp('wealthsync_backup_test');
       FullBackupService.snapshotDirOverride = () async => tempDir;
     });
 
     tearDown(() async {
+      BackupCipher.resetForTest();
       if (await tempDir.exists()) {
         await tempDir.delete(recursive: true);
       }
