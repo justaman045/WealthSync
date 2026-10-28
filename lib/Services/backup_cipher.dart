@@ -66,6 +66,9 @@ class BackupCipher {
     return _cachedKey ??= _loadKey();
   }
 
+  @visibleForTesting
+  static Future<SecretKey?> loadKeyForTest() => _loadKey();
+
   static Future<SecretKey?> _loadKey() async {
     try {
       const storage = FlutterSecureStorage();
