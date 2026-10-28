@@ -524,7 +524,12 @@ class LocalBackupService {
   ) async {
     final override = writeOverride;
     if (override != null) return override(_preservedPrefsKey(email), data);
-    final payload = await BackupCipher.seal(data) ?? data;
+    final payload = await BackupCipher.seal(data);
+    if (payload == null) {
+      debugPrint(
+          '[LocalBackupService] refusing to write unencrypted preserved backup (keystore unavailable)');
+      return;
+    }
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_preservedPrefsKey(email), payload);
@@ -556,10 +561,17 @@ class LocalBackupService {
     final override = writeOverride;
     if (override != null) return override(key, data);
     // Sealed before it touches the disk: the mirror is a full copy of the
-    // user's history and must not sit in the sandbox in the clear. A missing
-    // key falls back to plaintext — an unreadable backup is worse than an
-    // unencrypted one.
-    final payload = await BackupCipher.seal(data) ?? data;
+    // user's history and must not sit in the sandbox in the clear. Fail closed
+    // if the keystore is unavailable rather than writing plaintext financial data.
+    final payload = await BackupCipher.seal(data);
+    if (payload == null) {
+      debugPrint(
+          '[LocalBackupService] refusing to write unencrypted transaction mirror (keystore unavailable)');
+      ErrorHandler.showError(
+          'Unable to secure backup. Transaction backup disabled.',
+          title: 'Backup');
+      return;
+    }
     if (kIsWeb) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(key, payload);

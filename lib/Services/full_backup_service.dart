@@ -746,7 +746,17 @@ class FullBackupService {
         await _rotateSafetyCopy(email, raw, now: DateTime.now());
       }
 
-      final stored = await BackupCipher.seal(payload) ?? payload;
+      final stored = await BackupCipher.seal(payload);
+      if (stored == null) {
+        debugPrint(
+            '[FullBackupService] refusing to write unencrypted snapshot (keystore unavailable)');
+        AppAnalytics.recordError(
+          Exception('backup_encryption_unavailable'),
+          StackTrace.current,
+          reason: 'full_backup_snapshot_unencrypted_blocked',
+        );
+        return false;
+      }
       // Write-then-rename, so a kill mid-write cannot leave a truncated
       // snapshot that parses as a valid-but-empty backup.
       final tmp = File('${file.path}.tmp');
