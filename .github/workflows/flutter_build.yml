@@ -21,8 +21,8 @@ on:
   # same suite the manual dispatch does, but never builds or publishes a
   # release (build/release/build_web all exclude `schedule`). This is what keeps
   # the E2E coverage from rotting between opt-in release runs.
-  schedule:
-    - cron: "0 3 * * *"
+  # schedule:
+  #   - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
       run_integration_tests:
