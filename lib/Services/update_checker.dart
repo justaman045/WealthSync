@@ -176,8 +176,7 @@ class UpdateChecker {
         if (resp.statusCode != 200) return null;
         final body = resp.body;
         if (body.trim().startsWith('<')) return null;
-        final lines = body.split(RegExp(r'[
-]+'));
+        final lines = body.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
         for (final line in lines) {
           if (line.contains('app-release.apk')) {
             final parts = line.trim().split(RegExp(r'\s+'));
@@ -199,7 +198,7 @@ class UpdateChecker {
   Future<bool> _verifySha256(File file, String expected) async {
     try {
       final bytes = await file.readAsBytes();
-      final digest = await sha256.convert(bytes);
+      final digest = sha256.convert(bytes);
       final actual = digest.bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
       return actual.toLowerCase() == expected.toLowerCase();
     } catch (e) {
