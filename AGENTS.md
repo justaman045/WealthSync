@@ -27,9 +27,11 @@ flutter build web --release --base-href /WealthSync/   # GitHub Pages deploy
 `bash tool/check_ui_strings.sh --strict` → `flutter test` → `flutter build web --release`
 (dart2js check, every event). All four must pass. A second CI job, `rules`, runs
 `bash tool/rules_tests/run.sh` and is required before any release build.
-(`run_integration_tests.sh` is mode 644 and always invoked as `bash …`; `tool/smoke_release_apk.sh`
-is invoked as `bash …` for the same reason. `tool/rules_tests/run.sh` bootstraps its own
-`npm ci`.) CI runs Flutter **3.47.7**; `pubspec.yaml` declares `sdk: ^3.9.2`.
+Integration tests are **disabled in CI until all features are manually verified** (the
+`integration_test` job is forced to skip). (`run_integration_tests.sh` is mode 644 and
+always invoked as `bash …`; `tool/smoke_release_apk.sh` is invoked as `bash …` for the
+same reason. `tool/rules_tests/run.sh` bootstraps its own `npm ci`.) CI runs Flutter
+**3.47.7**; `pubspec.yaml` declares `sdk: ^3.9.2`.
 
 **The web compile check is now in the `test` job, not only in `build_web`** — `flutter analyze`
 and `flutter test` both run against the VM, and dart2js is stricter than the analyzer in a few
@@ -991,7 +993,7 @@ CI (`.github/workflows/flutter_build.yml`, Flutter **3.47.7**):
 |-----|---------|----------------|
 | `test` | every push/PR | analyze → UI audit → unit/widget tests → **web release compile** (dart2js). PRs get the same gate as master. |
 | `rules` | every push/PR | `tool/rules_tests/run.sh` boots the Firestore + Storage emulators, compiles both rule sets, and runs `tool/rules_tests/run.js`. |
-| `integration_test` | master push (critical subset), nightly `schedule` or `workflow_dispatch` with `run_integration_tests: true` (full suite) | `bash tool/run_integration_tests.sh`. Never on PRs — it mutates the shared accounts. |
+| `integration_test` | **disabled in CI until manually verified** (always skipped) | `bash tool/run_integration_tests.sh`. Never on PRs — it mutates the shared accounts. |
 | `deploy_firebase` | `workflow_dispatch` with `deploy_firebase: true`, on `master` only | `--dry-run` compile then `firebase deploy --only firestore:rules,firestore:indexes` using the `FIREBASE_TOKEN` secret. Never runs on a push; Storage is excluded because Spark cannot provision a bucket. |
 | `build` | master push / dispatch (on `master`) | release AAB + **one universal APK**, `apksigner verify`, plus assertions that `versionName`/`versionCode` match `2.0.<run_number>`/`<run_number>` and that the APK still carries `arm64-v8a` + `armeabi-v7a` + `x86_64`. Uploads artifacts, publishes nothing. |
 | `android_smoke` | after `build` | `tool/smoke_release_apk.sh` installs that exact APK on an emulator and fails on a missing pid, a startup `FATAL EXCEPTION`, or an ANR — the R8-only failure mode no debug test can see. |

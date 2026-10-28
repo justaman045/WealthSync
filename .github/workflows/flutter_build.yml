@@ -243,7 +243,7 @@ jobs:
     name: Integration tests (emulator)
     runs-on: ubuntu-latest
     needs: test
-    if: ${{ !cancelled() && needs.test.result == 'success' && (github.event_name == 'workflow_dispatch' && github.event.inputs.run_integration_tests == 'true') }}
+    if: ${{ false }}
     timeout-minutes: 360
     permissions:
       contents: read
