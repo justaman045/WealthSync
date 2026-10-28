@@ -28,7 +28,7 @@ flutter build web --release --base-href /WealthSync/   # GitHub Pages deploy
 (dart2js check, every event). All four must pass. A second CI job, `rules`, runs
 `bash tool/rules_tests/run.sh` and is required before any release build.
 Integration tests are **disabled in CI until all features are manually verified** (the
-`integration_test` job is forced to skip). (`run_integration_tests.sh` is mode 644 and
+`integration_test` job is forced to skip with `if: ${{ false }}`). (`run_integration_tests.sh` is mode 644 and
 always invoked as `bash …`; `tool/smoke_release_apk.sh` is invoked as `bash …` for the
 same reason. `tool/rules_tests/run.sh` bootstraps its own `npm ci`.) CI runs Flutter
 **3.47.7**; `pubspec.yaml` declares `sdk: ^3.9.2`.

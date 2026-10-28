@@ -327,9 +327,9 @@ service cloud.firestore {
       }
     }
 
-    // App Config — restrict reads to admins to avoid exposing internal config.
+    // App Config — authenticated users can read feature flags/payment settings.
     match /app_config/{docId} {
-      allow read: if isAdmin();
+      allow read: if request.auth != null;
       allow write: if isAdmin();
     }
 

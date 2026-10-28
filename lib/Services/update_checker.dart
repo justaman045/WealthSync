@@ -283,15 +283,16 @@ class UpdateChecker {
 
       final checker = UpdateChecker();
       final expectedSha = await checker._fetchSha256(version);
-      if (expectedSha != null) {
-        final ok = await checker._verifySha256(file, expectedSha);
-        if (!ok) {
-          debugPrint('APK SHA256 mismatch');
-          await _safeDelete(file);
-          return UpdateInstallResult.downloadFailed;
-        }
-      } else {
-        debugPrint('No SHA256SUMS found for release, skipping checksum verification');
+      if (expectedSha == null || expectedSha.isEmpty) {
+        debugPrint('APK SHA256 missing for release, failing closed');
+        await _safeDelete(file);
+        return UpdateInstallResult.downloadFailed;
+      }
+      final ok = await checker._verifySha256(file, expectedSha);
+      if (!ok) {
+        debugPrint('APK SHA256 mismatch');
+        await _safeDelete(file);
+        return UpdateInstallResult.downloadFailed;
       }
 
       return await UpdateChecker._installApk(file.path);
