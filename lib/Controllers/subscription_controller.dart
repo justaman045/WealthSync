@@ -11,6 +11,7 @@ import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Services/app_analytics.dart';
 
 enum SubscriptionStatus { free, pending, pro }
 
@@ -117,8 +118,14 @@ class SubscriptionController extends GetxController {
               (snapshot) {
                 _onSubscriptionSnapshot(snapshot, email);
               },
-              onError: (e) {
+              onError: (e, stackTrace) {
                 debugPrint('SubscriptionController stream error: $e');
+                try {
+                  // On transient failures, avoid keeping stale pro state
+                  resetForSignOut();
+                  AppAnalytics.recordError(e, stackTrace,
+                      reason: 'subscription_stream_error');
+                } catch (_) {}
               },
             );
       }
@@ -177,6 +184,17 @@ class SubscriptionController extends GetxController {
 
           var referralProActive = false;
           if (!adminFlag && newStatus == SubscriptionStatus.pro) {
+            final purchaseToken = data['purchaseToken'];
+            if (purchaseToken != null && purchaseToken.toString().isNotEmpty) {
+              try {
+                AppAnalytics.recordError(
+                  Exception('suspicious_pro_grant'),
+                  StackTrace.current,
+                  reason: 'suspicious_pro_grant',
+                  context: {'hasPurchaseToken': true},
+                );
+              } catch (_) {}
+            }
             if (data.containsKey('expiryDate')) {
               final expiry = (data['expiryDate'] as Timestamp?)?.toDate();
               if (expiry != null) {

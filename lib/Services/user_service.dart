@@ -129,18 +129,18 @@ class UserService {
     if (email == null) throw Exception("User has no email");
 
     // 0. Pre-flight the auth freshness BEFORE deleting anything.
-    //
-    // `user.delete()` throws `requires-recent-login` for a stale session, and
-    // the old order (Firestore first, auth last) had already destroyed every
-    // transaction, goal and asset by then — the user was told to log in again
-    // to finish deleting an account whose data was already gone. Checking the
-    // sign-in time first turns a silent data-loss bug into a clean, actionable
-    // refusal with nothing deleted.
     final lastSignIn = user.metadata.lastSignInTime;
     final staleSession = lastSignIn == null ||
         DateTime.now().difference(lastSignIn) > _recentLoginWindow;
     if (staleSession) {
       throw Exception(_reauthRequiredMessage);
+    }
+
+    // Write deletion marker early so partial deletion can be resumed.
+    try {
+      await _writeDeletionMarker(email, user.uid);
+    } catch (e) {
+      debugPrint('Failed to write deletion marker early: $e');
     }
 
     // 1. Delete wealth portfolio document
@@ -152,17 +152,19 @@ class UserService {
     }
 
     // 2b. Record that the data is gone, BEFORE the profile and the auth user are
-    // removed. If the app dies or the network drops between here and step 5, the
-    // next sign-in finishes the job (`resumeInterruptedDeletion`) instead of
-    // leaving a signed-in account that has no data and no way to complete the
-    // deletion the user asked for.
-    await _writeDeletionMarker(email, user.uid);
+    // removed.
+    try {
+      await _writeDeletionMarker(email, user.uid);
+    } catch (e) {
+      debugPrint('Failed to update deletion marker: $e');
+    }
 
-    // 3. Release the referral code. It lives at the top level (owned by uid),
-    // not under the user document, so deleting the account used to leave a code
-    // behind that still pointed at the deleted uid and still carried the uids
-    // of everyone who had claimed it.
-    await _releaseReferralCode(email);
+    // 3. Release the referral code.
+    try {
+      await _releaseReferralCode(email);
+    } catch (e) {
+      debugPrint('Failed to release referral code during deletion: $e');
+    }
 
     // 4. Delete the user document.
     await _db.collection('users').doc(email).delete();

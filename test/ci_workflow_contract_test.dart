@@ -151,6 +151,15 @@ void main() {
       }
     });
 
+    test('integration job must not be permanently disabled', () {
+      final integration = job('integration_test');
+      expect(
+        integration.contains('false &&'),
+        isFalse,
+        reason: 'Integration tests must not be disabled with "false &&".',
+      );
+    });
+
     test('the release smoke test installs the built artifact', () {
       final smoke = job('android_smoke');
       expect(smoke, contains('bash tool/smoke_release_apk.sh'));

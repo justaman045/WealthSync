@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/version_utils.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -163,6 +164,48 @@ class UpdateChecker {
   /// attempt is removed first, and a truncated/empty/invalid download is
   /// deleted rather than handed to the installer. Install a partial APK and
   /// Android reports "There was a problem parsing the package".
+  Future<String?> _fetchSha256(String version) async {
+    try {
+      final client = http.Client();
+      try {
+        final uri = Uri.parse(
+            'https://github.com/justaman045/WealthSync/releases/download/v$version/SHA256SUMS');
+        final resp = await client.get(uri, headers: {'User-Agent': 'WealthSync-Updater'});
+        if (resp.statusCode != 200) return null;
+        final body = resp.body;
+        if (body.trim().startsWith('<')) return null;
+        final lines = body.split('
+');
+        for (final line in lines) {
+          if (line.contains('app-release.apk')) {
+            final parts = line.trim().split(RegExp(r'\s+'));
+            if (parts.isNotEmpty && parts[0].length == 64) {
+              return parts[0].toLowerCase();
+            }
+          }
+        }
+        return null;
+      } finally {
+        client.close();
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch SHA256SUMS: $e');
+      return null;
+    }
+  }
+
+  Future<bool> _verifySha256(File file, String expected) async {
+    try {
+      final bytes = await file.readAsBytes();
+      final digest = await crypto.sha256.convert(bytes);
+      final actual = digest.toString().toLowerCase();
+      return actual == expected.toLowerCase();
+    } catch (e) {
+      debugPrint('SHA256 verification failed: $e');
+      return false;
+    }
+  }
+
   static Future<UpdateInstallResult> downloadAndInstallApk({
     required String version,
     void Function(double progress)? onProgress,
@@ -184,8 +227,6 @@ class UpdateChecker {
       final dir = await getTemporaryDirectory();
       file = File("${dir.path}/WealthSync-v$version.apk");
 
-      // Never trust a cached/partial APK: a poisoned file would be reinstalled
-      // instantly on every retry.
       await _safeDelete(file);
 
       final client = http.Client();
@@ -194,6 +235,12 @@ class UpdateChecker {
           http.Request('GET', Uri.parse(_apkUrl(version))),
         );
         if (response.statusCode != 200) {
+          return UpdateInstallResult.downloadFailed;
+        }
+
+        final contentType = response.headers['content-type'] ?? '';
+        if (contentType.contains('text/html')) {
+          debugPrint('APK download failed: received HTML response');
           return UpdateInstallResult.downloadFailed;
         }
 
@@ -219,7 +266,9 @@ class UpdateChecker {
           return UpdateInstallResult.downloadFailed;
         }
         if (totalBytes > 0 && received != totalBytes) {
-          debugPrint("APK download size mismatch: $received/$totalBytes bytes, proceeding if valid");
+          debugPrint("APK download incomplete: $received/$totalBytes bytes");
+          await _safeDelete(file);
+          return UpdateInstallResult.downloadFailed;
         }
       } finally {
         client.close();
@@ -227,16 +276,24 @@ class UpdateChecker {
 
       if (!await _looksLikeApk(file)) {
         debugPrint("Downloaded file is not a valid APK (bad magic bytes)");
-        final stat = await file.length();
-        // Real APKs are usually > 10MB, if it's large enough skip strict check
-        if (stat < 5000000) {
+        await _safeDelete(file);
+        return UpdateInstallResult.downloadFailed;
+      }
+
+      final checker = UpdateChecker();
+      final expectedSha = await checker._fetchSha256(version);
+      if (expectedSha != null) {
+        final ok = await checker._verifySha256(file, expectedSha);
+        if (!ok) {
+          debugPrint('APK SHA256 mismatch');
           await _safeDelete(file);
           return UpdateInstallResult.downloadFailed;
         }
-        debugPrint("File is large enough ($stat bytes), attempting install anyway");
+      } else {
+        debugPrint('No SHA256SUMS found for release, skipping checksum verification');
       }
 
-      return await _installApk(file.path);
+      return await UpdateChecker._installApk(file.path);
     } catch (e) {
       debugPrint("APK download failed: $e");
       if (file != null) await _safeDelete(file);
