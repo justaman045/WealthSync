@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload unit test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           # Just the reporter JSON: the combined HTML report is generated in the
           # integration job, which is where the screenshot + suite data exists.
@@ -346,7 +346,7 @@ jobs:
 
       - name: Upload integration test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-report
           path: build/report/report.html
@@ -506,19 +506,19 @@ jobs:
           cat build/SHA256SUMS
 
       - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-release.aab
           path: build/app/outputs/bundle/release/app-release.aab
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload checksums artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: checksums
           path: build/SHA256SUMS
