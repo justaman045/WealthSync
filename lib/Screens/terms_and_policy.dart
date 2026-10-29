@@ -201,17 +201,16 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     }
   }
 
-  /// Deletes every document in [collection] using chunked [WriteBatch] commits.
+  /// Deletes every document in [collection] using paginated [WriteBatch] commits.
   /// Firestore caps a batch at 500 writes, so commits are capped well under it.
   Future<void> _deleteCollection(
     CollectionReference<Map<String, dynamic>> collection,
   ) async {
-    final snap = await collection.get();
-    // Firestore batches are capped at 500 writes — chunk large deletes.
-    const chunkSize = 499;
-    for (var i = 0; i < snap.docs.length; i += chunkSize) {
+    while (true) {
+      final snap = await collection.limit(500).get();
+      if (snap.docs.isEmpty) break;
       final batch = FirebaseFirestore.instance.batch();
-      for (final doc in snap.docs.skip(i).take(chunkSize)) {
+      for (final doc in snap.docs) {
         batch.delete(doc.reference);
       }
       await batch.commit();

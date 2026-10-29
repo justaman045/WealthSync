@@ -204,13 +204,44 @@ class UserService {
       return false;
     }
 
-    await _releaseReferralCode(email);
-    await _db.collection('users').doc(email).delete();
+    try {
+      await _db.doc('users/$email/wealth/portfolio').delete().catchError((_) {});
+      for (final sub in subcollections) {
+        try {
+          await _deleteCollection('users/$email/$sub');
+        } catch (e) {
+          debugPrint('resumeInterruptedDeletion: failed to delete $sub $e');
+        }
+      }
+      for (final sub in ['backups', 'insights', 'preferences', 'logs', 'receipts', 'audit_log']) {
+        try {
+          await _deleteCollection('users/$email/$sub');
+        } catch (_) {}
+      }
+    } catch (e) {
+      debugPrint('resumeInterruptedDeletion: cleanup failed $e');
+    }
+
+    try {
+      await _releaseReferralCode(email);
+    } catch (e) {
+      debugPrint('resumeInterruptedDeletion: failed to release referral $e');
+    }
+    try {
+      await _db.collection('users').doc(email).delete();
+    } catch (e) {
+      debugPrint('resumeInterruptedDeletion: failed to delete profile $e');
+    }
     // Throws (and keeps the marker) when the session went stale mid-resume: the
-    // next sign-in retries. The marker is NOT cleared afterwards — the caller is
-    // signed out by then, so the write would be denied; it stays as a tombstone
-    // and is cleared by the stale-uid branch above on a re-signup.
-    await user.delete();
+    // next sign-in retries.
+    try {
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        rethrow;
+      }
+      rethrow;
+    }
     return true;
   }
 

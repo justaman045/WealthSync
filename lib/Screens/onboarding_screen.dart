@@ -136,6 +136,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       // 4. Play Confetti & Navigate Home
       _confettiController.play();
       await Future.delayed(const Duration(seconds: 1)); // Wait a bit for effect
+      if (!mounted) return;
 
       Get.offAll(() => const MainShell());
     } catch (e) {
