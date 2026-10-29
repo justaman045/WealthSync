@@ -21,18 +21,17 @@ void main() {
   });
 
   group('deleteAccount ordering', () {
-    test('the marker is written after the wipe and before the profile delete', () {
+    test('the marker is written at the beginning for recovery and not updated after wipe', () {
       final src = File('lib/Services/user_service.dart').readAsStringSync();
-      // Find the marker written after wipe (line ~156)
       final markers = RegExp(r'_writeDeletionMarker\(email, user\.uid\)').allMatches(src).toList();
-      expect(markers.length, greaterThanOrEqualTo(2));
-      final marker = markers[1].start;
+      expect(markers.length, equals(1));
+      final marker = markers[0].start;
       final subCollectionLoop = src.indexOf('for (final sub in subcollections)');
       final profileDelete = src.indexOf(
         "collection('users').doc(email).delete()",
       );
       expect(subCollectionLoop, greaterThan(-1));
-      expect(marker, greaterThan(subCollectionLoop));
+      expect(marker, lessThan(subCollectionLoop));
       expect(marker, lessThan(profileDelete));
     });
   });

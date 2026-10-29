@@ -160,9 +160,8 @@ class UserService {
       }
     }
 
-    // 2b. Record that the data is gone, BEFORE the profile and the auth user are
-    // removed.
-    await _writeDeletionMarker(email, user.uid);
+    // 2b. Data is gone; resumeInterruptedDeletion will finish profile/auth removal
+    // if interrupted here. Marker already written at start.
 
     // 3. Release the referral code.
     try {
