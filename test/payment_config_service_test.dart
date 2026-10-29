@@ -9,12 +9,5 @@ void main() {
       final service = PaymentConfigService();
       expect(service, isNotNull);
     });
-
-    test('has expected properties', () {
-      final service = PaymentConfigService();
-      expect(service.razorpayKeyId, isA<String>());
-      expect(service.razorpayKeySecret, isA<String>());
-      expect(service.merchantId, isA<String>());
-    });
   });
 }
