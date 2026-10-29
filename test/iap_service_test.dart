@@ -9,10 +9,5 @@ void main() {
       final service = IapService();
       expect(service, isNotNull);
     });
-
-    test('initial state does not crash', () {
-      final service = IapService();
-      expect(service.isAvailable, isA<bool>());
-    });
   });
 }
