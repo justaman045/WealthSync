@@ -44,6 +44,18 @@ shared signature or a service that web compiles.
 `app_localizations_en.dart` are tracked, so an ARB edit ships with its
 regenerated pair in the same commit.
 
+## Accepted deferred limitations
+
+- **Fake purchase tokens**: accepted for now. Firebase Spark cannot provide
+  server-side Google Play receipt validation without an upgrade the project
+  cannot currently afford. Keep the limitation documented in
+  `docs/THREAT_MODEL_entitlement.md`; do not reopen it as a release blocker
+  unless the billing plan changes.
+- **Integration tests in CI**: intentionally disabled with `if: ${{ false }}`
+  until the remaining application issues are addressed and the features have
+  been manually verified. Treat this as a known coverage limitation, not an
+  accidental CI regression. The local canonical runner remains available.
+
 ## Critical Flutter / GetX Patterns
 
 - **Never `Get.find<>()` in a field initializer** — controllers aren't registered
