@@ -141,6 +141,7 @@ class UserService {
       await _writeDeletionMarker(email, user.uid);
     } catch (e) {
       debugPrint('Failed to write deletion marker early: $e');
+      throw Exception('Failed to prepare account deletion for recovery');
     }
 
     // 1. Delete wealth portfolio document
@@ -149,6 +150,14 @@ class UserService {
     // 2. Delete all subcollections. If any fail, throw before touching auth.
     for (final sub in subcollections) {
       await _deleteCollection('users/$email/$sub');
+    }
+    // Clean up auxiliary collections
+    for (final sub in ['backups', 'insights', 'preferences', 'logs', 'receipts', 'audit_log']) {
+      try {
+        await _deleteCollection('users/$email/$sub');
+      } catch (e) {
+        throw Exception('Failed to delete auxiliary collection $sub: $e');
+      }
     }
 
     // 2b. Record that the data is gone, BEFORE the profile and the auth user are
@@ -160,6 +169,7 @@ class UserService {
       await _releaseReferralCode(email);
     } catch (e) {
       debugPrint('Failed to release referral code during deletion: $e');
+      throw Exception('Failed to release referral code during deletion');
     }
 
     // 4. Delete the user document.
@@ -205,43 +215,43 @@ class UserService {
     }
 
     try {
-      await _db.doc('users/$email/wealth/portfolio').delete().catchError((_) {});
-      for (final sub in subcollections) {
-        try {
-          await _deleteCollection('users/$email/$sub');
-        } catch (e) {
-          debugPrint('resumeInterruptedDeletion: failed to delete $sub $e');
-        }
-      }
-      for (final sub in ['backups', 'insights', 'preferences', 'logs', 'receipts', 'audit_log']) {
-        try {
-          await _deleteCollection('users/$email/$sub');
-        } catch (_) {}
-      }
+      await _db.doc('users/$email/wealth/portfolio').delete();
     } catch (e) {
-      debugPrint('resumeInterruptedDeletion: cleanup failed $e');
+      debugPrint('resumeInterruptedDeletion: failed to delete portfolio $e');
+      throw Exception('Failed to complete deletion');
+    }
+    for (final sub in subcollections) {
+      try {
+        await _deleteCollection('users/$email/$sub');
+      } catch (e) {
+        debugPrint('resumeInterruptedDeletion: failed to delete $sub $e');
+        throw Exception('Failed to complete deletion');
+      }
+    }
+    for (final sub in ['backups', 'insights', 'preferences', 'logs', 'receipts', 'audit_log']) {
+      try {
+        await _deleteCollection('users/$email/$sub');
+      } catch (e) {
+        debugPrint('resumeInterruptedDeletion: failed to delete $sub $e');
+        throw Exception('Failed to complete deletion');
+      }
     }
 
     try {
       await _releaseReferralCode(email);
     } catch (e) {
       debugPrint('resumeInterruptedDeletion: failed to release referral $e');
+      throw Exception('Failed to complete deletion');
     }
     try {
       await _db.collection('users').doc(email).delete();
     } catch (e) {
       debugPrint('resumeInterruptedDeletion: failed to delete profile $e');
+      throw Exception('Failed to complete deletion');
     }
     // Throws (and keeps the marker) when the session went stale mid-resume: the
     // next sign-in retries.
-    try {
-      await user.delete();
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'requires-recent-login') {
-        rethrow;
-      }
-      rethrow;
-    }
+    await user.delete();
     return true;
   }
 
@@ -253,9 +263,8 @@ class UserService {
         await _db.collection('referralCodes').doc(code).delete();
       }
     } catch (e) {
-      // The profile and every subcollection are already gone; a stranded code
-      // document must not turn a completed deletion into an error.
       debugPrint('Failed to release referral code: $e');
+      rethrow;
     }
   }
 
