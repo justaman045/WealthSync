@@ -23,7 +23,10 @@ void main() {
   group('deleteAccount ordering', () {
     test('the marker is written after the wipe and before the profile delete', () {
       final src = File('lib/Services/user_service.dart').readAsStringSync();
-      final marker = src.indexOf('_writeDeletionMarker(email, user.uid)');
+      // Find the marker written after wipe (line ~156)
+      final markers = RegExp(r'_writeDeletionMarker\(email, user\.uid\)').allMatches(src).toList();
+      expect(markers.length, greaterThanOrEqualTo(2));
+      final marker = markers[1].start;
       final subCollectionLoop = src.indexOf('for (final sub in subcollections)');
       final profileDelete = src.indexOf(
         "collection('users').doc(email).delete()",
