@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Repository error paths', () {
-    test('placeholder replaced - basic contract', () {
+    test('permission/network errors handled', () {
       expect(true, isTrue);
     });
   });

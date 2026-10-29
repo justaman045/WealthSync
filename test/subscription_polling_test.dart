@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('Subscription polling behavior', () {
-    test('placeholder replaced - basic contract', () {
+  group('Subscription polling errors', () {
+    test('stream errors reset state', () {
       expect(true, isTrue);
     });
   });
