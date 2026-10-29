@@ -136,6 +136,13 @@ class UserService {
       throw Exception(_reauthRequiredMessage);
     }
 
+    // Write deletion marker early so partial deletion can be resumed.
+    try {
+      await _writeDeletionMarker(email, user.uid);
+    } catch (e) {
+      debugPrint('Failed to write deletion marker early: $e');
+    }
+
     // 1. Delete wealth portfolio document
     await _db.doc('users/$email/wealth/portfolio').delete();
 
