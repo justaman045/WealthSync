@@ -57,6 +57,18 @@ class AnalyticsEvent {
   /// data was already gone (`UserService.resumeInterruptedDeletion`). Should be
   /// rare; a spike means deletions are failing mid-flight on real devices.
   static const String accountDeletionResumed = 'account_deletion_resumed';
+
+  /// The in-app updater could not produce a verified APK. `reason` carries the
+  /// failure class (`checksum_unavailable`, `checksum_mismatch`, …).
+  ///
+  /// This is the only signal for update failures on real devices: a user cannot
+  /// read a phone's logcat, so without this event "Download failed. Please try
+  /// again." is untraceable.
+  static const String updateDownloadFailed = 'update_download_failed';
+
+  /// The updater downloaded a verified APK but the Android installer did not
+  /// finish (permission denied, no installer, or the user backed out).
+  static const String updateInstallFailed = 'update_install_failed';
 }
 
 /// Thin, typed wrapper over [FirebaseAnalytics] and [FirebaseCrashlytics].
