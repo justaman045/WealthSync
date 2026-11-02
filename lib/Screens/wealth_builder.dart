@@ -135,6 +135,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         userProfile,
         baselineMonthlyIncome: quickGeo?.baselineMonthlyIncome ?? 25000,
         bankBalance: balance,
+        useOverrides: !_ageBasedEnabled,
       );
       if (!mounted) return;
       setState(() => assetTargets = targets);
@@ -179,6 +180,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         (cached) async => cached ?? await GeoService.fetchAndCache(),
       );
 
+      // Loaded before the targets so the first render already agrees with the
+      // Smart/Custom mode: in Smart Mode a manual target must not override the
+      // formula, not even for one frame.
+      final ageBasedEnabled =
+          await WealthAgeRecommendations.isAgeBasedEnabled();
+      final promptShown = await WealthAgeRecommendations.isAgePromptShown();
+
       final balance = WealthService.calculateBankBalance(transactions);
       final insights = WealthService.generateSmartInsights(p, transactions);
       final actualIncome = WealthService.calculateAverageMonthlyIncome(
@@ -193,14 +201,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         userProfile,
         baselineMonthlyIncome: quickGeo?.baselineMonthlyIncome ?? 25000,
         bankBalance: balance,
+        useOverrides: !ageBasedEnabled,
       );
 
       final age = userProfile?.calculatedAge;
 
-      // Load age-based preference and check prompt
-      final ageBasedEnabled =
-          await WealthAgeRecommendations.isAgeBasedEnabled();
-      final promptShown = await WealthAgeRecommendations.isAgePromptShown();
       bool showPrompt = !promptShown && age != null && !_agePromptChecked;
 
       if (mounted) {
@@ -237,6 +242,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           userProfile,
           baselineMonthlyIncome: liveGeo.baselineMonthlyIncome,
           bankBalance: bankBalance,
+          useOverrides: !_ageBasedEnabled,
         );
         if (mounted) {
           setState(() {
@@ -274,7 +280,20 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
             ? WealthAgeRecommendations.getRecommendedCardKeys(userAge!)
             : {};
       });
+      _refreshTargetsForModeChange();
     }
+  }
+
+  /// Re-derives the asset targets after the Smart/Custom switch flips.
+  ///
+  /// The targets were already computed for the previous mode; without this the
+  /// cards keep showing custom-override targets while the header claims Smart
+  /// Mode (or the reverse) until the next launch.
+  void _refreshTargetsForModeChange() {
+    final transactions = Get.isRegistered<TransactionController>()
+        ? Get.find<TransactionController>().transactions
+        : const <TransactionModel>[];
+    _scheduleTargetRecompute(transactions, bankBalance);
   }
 
   @override
@@ -589,7 +608,6 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               fit: BoxFit.scaleDown,
               child: Switch(
                 value: _ageBasedEnabled,
-                activeThumbColor: AppColors.primary,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 onChanged: (val) {
                   setState(() {
@@ -601,6 +619,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
                         : {};
                   });
                   WealthAgeRecommendations.setAgeBasedEnabled(val);
+                  // Smart Mode is formula-only: re-derive the targets so an
+                  // override from Custom Mode stops driving the progress bars.
+                  _refreshTargetsForModeChange();
                 },
               ),
             ),

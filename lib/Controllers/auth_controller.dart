@@ -33,6 +33,7 @@ import 'package:money_control/Services/app_analytics.dart';
 import 'package:money_control/Services/full_backup_service.dart';
 import 'package:money_control/Services/local_backup_service.dart';
 import 'package:money_control/Services/user_service.dart';
+import 'package:money_control/Services/widget_action_queue.dart';
 
 class AuthController extends GetxController {
   static AuthController get to => Get.find();
@@ -309,6 +310,10 @@ class AuthController extends GetxController {
     // Clear it on every teardown; a write that never reached the server
     // (device offline) is implicitly abandoned when the user signs out.
     await OfflineQueueService.clearPending();
+    // A widget tap queued while the previous account was still signed in must
+    // not fire for the next one (it would open the add-transaction screen for
+    // a user who never tapped it).
+    WidgetActionQueue.reset();
     // Awaited: an unawaited clear could land AFTER a fast re-login had already
     // written the new account's cache, silently wiping it.
     await LocalCacheService.clearAll();

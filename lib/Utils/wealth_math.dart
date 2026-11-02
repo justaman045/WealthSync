@@ -182,6 +182,12 @@ String formatMonthlyIncome(
 /// Default share of income reserved for savings when advising a daily limit.
 const double kDefaultSavingsRate = 0.20;
 
+/// A committed bill counts as paid once this share of its usual amount has
+/// been recorded. The forecast and the per-category insight both use it: they
+/// diverged (0.95 vs 0.90), so a bill at 92% of its usual amount read as "paid"
+/// on one card and "partially paid" on the other.
+const double kBillPaidFraction = 0.95;
+
 /// Category keywords that name a fixed/committed monthly expense (rent, EMIs,
 /// bills, subscriptions, …). Drives the fixed-vs-discretionary split behind
 /// [computeDailyLimit]; see [isFixedExpenseCategory].
@@ -289,6 +295,134 @@ DailyLimitRole resolveDailyLimitRole(
 /// Income source modes used by [computeExpectedIncome].
 enum IncomeMode { manual, autoBlend, autoSalaryWindow }
 
+/// Completed months (plus the current, partial one) the blend averages over.
+const int kIncomeBlendMonths = 3;
+
+/// Months of spending history the forecast and insights may use. Anything
+/// older is noise — spending patterns from years ago distort this month's
+/// forecast — and the scan cost grows without bound.
+const int kInsightHistoryMonths = 12;
+
+/// First day of the earliest month inside the [kInsightHistoryMonths] window
+/// that ends with the month containing [now]. Transactions before it are
+/// outside the history the forecast is allowed to learn from.
+DateTime monthKeyFloor(DateTime now, {int months = kInsightHistoryMonths}) =>
+    DateTime(now.year, now.month - (months - 1), 1);
+
+/// Categories whose credits are money coming *back*, not money earned.
+///
+/// They reuse the fixed-expense keyword matcher so "Self Transfer" and
+/// "Transfer" both match. These names are the ones this app's own SMS/CSV
+/// importer writes, and a refund or a transfer between the user's own accounts
+/// counted as income inflates the monthly expectation — and with it the daily
+/// limit the user is told they can spend.
+const List<String> kNonIncomeKeywords = [
+  'refund',
+  'cashback',
+  'reversal',
+  'transfer',
+  'loan/emi', // a disbursement is a liability, not income
+];
+
+final Map<String, RegExp> _nonIncomeKeywordReCache = {};
+
+/// Matches a non-income keyword and its inflections ("Transferred", "Refunded",
+/// "Cashbacks"). Unlike [_fixedKeywordRe] this allows trailing letters: the
+/// importer writes free-form categories, and `Transferred rental income` is
+/// still a transfer. The leading boundary is kept so a keyword cannot fire in
+/// the middle of an unrelated word.
+RegExp _nonIncomeKeywordRe(String keyword) =>
+    _nonIncomeKeywordReCache.putIfAbsent(
+      keyword,
+      () => RegExp('(^|[^a-z])${RegExp.escape(keyword)}[a-z]*([^a-z]|\$)'),
+    );
+
+/// True when [category] names a credit that is not new income.
+bool isNonIncomeCategory(String? category) {
+  if (category == null) return false;
+  final c = category.toLowerCase().trim();
+  if (c.isEmpty) return false;
+  for (final keyword in kNonIncomeKeywords) {
+    if (_nonIncomeKeywordRe(keyword).hasMatch(c)) return true;
+  }
+  return false;
+}
+
+/// A category is optional on transactions built from fixtures/maps, so read it
+/// defensively: a missing field means "not excluded", never a crash.
+String? _categoryOf(dynamic tx) {
+  try {
+    final value = (tx as dynamic).category;
+    return value is String ? value : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// True when [tx] is income for [uid]: paid *to* them, positive, and not a
+/// refund/transfer (see [isNonIncomeCategory]).
+///
+/// `recipientId == uid` alone is not enough — the app stores a refund or a
+/// self-transfer with the same shape as a salary credit.
+bool _isIncomeTx(dynamic tx, String uid) {
+  if (tx.recipientId != uid) return false;
+  final amount = tx.amount;
+  if (amount is! num || amount <= 0) return false;
+  return !isNonIncomeCategory(_categoryOf(tx));
+}
+
+double _incomeAmount(dynamic tx) {
+  final amount = tx.amount;
+  return amount is num ? amount.toDouble() : 0.0;
+}
+
+/// Income per calendar month, keyed by `year * 100 + month`, for the [months]
+/// completed months before [now] plus the current (partial) month.
+///
+/// Calendar buckets, not a rolling 90-day window: a salary paid on the 1st
+/// would otherwise fall out of the window mid-month purely because of today's
+/// date.
+Map<int, double> incomeByMonth(
+  List<dynamic> allTx,
+  String uid,
+  DateTime now, {
+  int months = kIncomeBlendMonths,
+}) {
+  final floor = DateTime(now.year, now.month - months, 1);
+  final ceiling = DateTime(now.year, now.month + 1, 1);
+  final buckets = <int, double>{};
+  for (final tx in allTx) {
+    if (!_isIncomeTx(tx, uid)) continue;
+    final date = tx.date as DateTime;
+    if (date.isBefore(floor) || !date.isBefore(ceiling)) continue;
+    final key = date.year * 100 + date.month;
+    buckets[key] = (buckets[key] ?? 0) + _incomeAmount(tx);
+  }
+  return buckets;
+}
+
+/// The blended monthly income: the better of this month so far and the average
+/// of the months that actually recorded income.
+///
+/// The divisor is the number of months **with income**, not the window size. A
+/// fixed `/ 3` turns a new user's single ₹30k salary into "₹10k expected", and
+/// a month between jobs drags the daily limit down for three months after the
+/// next salary arrives. An empty month is missing data, not a month of zero
+/// earnings.
+double blendedMonthlyIncome(
+  List<dynamic> allTx,
+  String uid, {
+  DateTime? now,
+}) {
+  final ref = now ?? DateTime.now();
+  final buckets = incomeByMonth(allTx, uid, ref);
+  if (buckets.isEmpty) return 0;
+  final total = buckets.values.fold<double>(0, (sum, value) => sum + value);
+  final average = total / buckets.length;
+  final current = buckets[ref.year * 100 + ref.month] ?? 0;
+  return math.max(current, average);
+}
+
 /// Returns true if [date] is in the first week of its month (calendar days 1–7 inclusive).
 bool isInFirstWeek(DateTime date) {
   // Calendar days 1-7, inclusive. Time component ignored.
@@ -322,31 +456,30 @@ bool isLastWorkingDay(DateTime date) {
   return d.year == lwm.year && d.month == lwm.month && d.day == lwm.day;
 }
 
-/// Sum of income (recipientId == uid) in the union of:
+/// Sum of income (paid to [uid]) in the union of:
 /// - first week of current month (calendar days 1–7) AND/OR
 /// - last working day of previous month (Mon–Fri).
-/// Union sum; only recorded transactions counted.
-double sumIncomeInSalaryWindowThisMonth(List<dynamic> allTx, String uid) {
-  final now = DateTime.now();
-  final year = now.year;
-  final month = now.month;
-  final lwmPrev = lastWorkingDayOfPreviousMonth(now);
+/// Union sum; refunds/transfers are not income ([isNonIncomeCategory]) and
+/// negative rows are never counted.
+double sumIncomeInSalaryWindowThisMonth(
+  List<dynamic> allTx,
+  String uid, {
+  DateTime? now,
+}) {
+  final ref = now ?? DateTime.now();
+  final year = ref.year;
+  final month = ref.month;
+  final lwmPrev = lastWorkingDayOfPreviousMonth(ref);
   double sum = 0;
 
   for (final tx in allTx) {
-    final recipientId = tx.recipientId;
-    if (recipientId != uid) continue;
+    if (!_isIncomeTx(tx, uid)) continue;
     final tDate = tx.date as DateTime;
 
     final inFirstWeekCurrent = (tDate.year == year && tDate.month == month && tDate.day >= 1 && tDate.day <= 7);
     final isLwmPrev = (tDate.year == lwmPrev.year && tDate.month == lwmPrev.month && tDate.day == lwmPrev.day);
     if (inFirstWeekCurrent || isLwmPrev) {
-      final amt = tx.amount;
-      if (amt < 0) {
-        sum += (-amt);
-      } else {
-        sum += amt.abs();
-      }
+      sum += _incomeAmount(tx);
     }
   }
   return sum;
@@ -369,53 +502,37 @@ class ExpectedIncomeResult {
   });
 }
 
-/// Computes effective expected monthly income given mode + manual and transactions.
+/// Computes effective expected monthly income given mode + manual and
+/// transactions.
+///
+/// [now] is injectable so callers and tests agree on "this month"; it defaults
+/// to the wall clock.
 ExpectedIncomeResult computeExpectedIncome({
   required List<dynamic> allTx,
   required String uid,
   required IncomeMode mode,
   required double manualMonthly,
+  DateTime? now,
 }) {
+  final ref = now ?? DateTime.now();
   final manualSet = manualMonthly > 0.0 && manualMonthly.isFinite;
 
   // Manual mode takes precedence if set.
-  if (mode == IncomeMode.manual) {
-    if (manualSet) {
-      return ExpectedIncomeResult(
-        expectedIncome: manualMonthly,
-        effectiveMode: IncomeMode.manual,
-        usedManual: true,
-        fellBackToBlend: false,
-        salaryWindowEmpty: false,
-      );
-    }
-    // Manual requested but not set → fallback to Auto – Blend
-    // Compute blend.
+  if (mode == IncomeMode.manual && manualSet) {
+    return ExpectedIncomeResult(
+      expectedIncome: manualMonthly,
+      effectiveMode: IncomeMode.manual,
+      usedManual: true,
+      fellBackToBlend: false,
+      salaryWindowEmpty: false,
+    );
   }
 
-  if (mode == IncomeMode.manual && !manualSet) {
-    // fallback to blend
-    final now = DateTime.now();
-    final year = now.year;
-    final month = now.month;
-    final incomeCutoff = now.subtract(const Duration(days: 90));
-    double thisMonthIncome = 0;
-    double last3mIncome = 0;
-    for (final tx in allTx) {
-      if (tx.recipientId != uid) continue;
-      final amt = tx.amount.abs();
-      final d = tx.date as DateTime;
-      if (d.year == year && d.month == month) {
-        thisMonthIncome += amt;
-      }
-      if (d.isAfter(incomeCutoff)) {
-        last3mIncome += amt;
-      }
-    }
-    final avg3m = last3mIncome / 3.0;
-    final expected = thisMonthIncome > avg3m ? thisMonthIncome : avg3m;
+  // Manual requested but not set → fall back to Auto – Blend. The flag lets
+  // the card explain that a chosen mode was not used.
+  if (mode == IncomeMode.manual) {
     return ExpectedIncomeResult(
-      expectedIncome: expected,
+      expectedIncome: blendedMonthlyIncome(allTx, uid, now: ref),
       effectiveMode: IncomeMode.autoBlend,
       usedManual: false,
       fellBackToBlend: true,
@@ -424,55 +541,38 @@ ExpectedIncomeResult computeExpectedIncome({
   }
 
   if (mode == IncomeMode.autoSalaryWindow) {
-    final w = sumIncomeInSalaryWindowThisMonth(allTx, uid);
-    if (w > 0) {
+    final window = sumIncomeInSalaryWindowThisMonth(allTx, uid, now: ref);
+    if (window > 0) {
       return ExpectedIncomeResult(
-        expectedIncome: w,
+        expectedIncome: window,
         effectiveMode: IncomeMode.autoSalaryWindow,
         usedManual: false,
         fellBackToBlend: false,
         salaryWindowEmpty: false,
       );
-    } else {
-      return ExpectedIncomeResult(
-        expectedIncome: 0.0,
-        effectiveMode: IncomeMode.autoSalaryWindow,
-        usedManual: false,
-        fellBackToBlend: false,
-        salaryWindowEmpty: true,
-      );
     }
+    // The window is empty: the salary may be a day late, or this month's slip
+    // has not been imported yet. Reporting 0 would hide the whole daily limit,
+    // so fall back to the blend and keep the flag so the card can say why the
+    // number is not the salary-window one.
+    final fallback = blendedMonthlyIncome(allTx, uid, now: ref);
+    return ExpectedIncomeResult(
+      expectedIncome: fallback,
+      effectiveMode: IncomeMode.autoSalaryWindow,
+      usedManual: false,
+      fellBackToBlend: fallback > 0,
+      salaryWindowEmpty: true,
+    );
   }
 
   // Auto – Blend (default)
-  {
-    final now = DateTime.now();
-    final year = now.year;
-    final month = now.month;
-    final incomeCutoff = now.subtract(const Duration(days: 90));
-    double thisMonthIncome = 0;
-    double last3mIncome = 0;
-    for (final tx in allTx) {
-      if (tx.recipientId != uid) continue;
-      final amt = tx.amount.abs();
-      final d = tx.date as DateTime;
-      if (d.year == year && d.month == month) {
-        thisMonthIncome += amt;
-      }
-      if (d.isAfter(incomeCutoff)) {
-        last3mIncome += amt;
-      }
-    }
-    final avg3m = last3mIncome / 3.0;
-    final expected = thisMonthIncome > avg3m ? thisMonthIncome : avg3m;
-    return ExpectedIncomeResult(
-      expectedIncome: expected,
-      effectiveMode: IncomeMode.autoBlend,
-      usedManual: false,
-      fellBackToBlend: false,
-      salaryWindowEmpty: false,
-    );
-  }
+  return ExpectedIncomeResult(
+    expectedIncome: blendedMonthlyIncome(allTx, uid, now: ref),
+    effectiveMode: IncomeMode.autoBlend,
+    usedManual: false,
+    fellBackToBlend: false,
+    salaryWindowEmpty: false,
+  );
 }
 
 /// Result of an income-based daily spending limit.

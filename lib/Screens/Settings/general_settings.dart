@@ -20,6 +20,7 @@ import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/main.dart'; // For ThemeController
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
+import 'package:money_control/Components/income_mode_sheet.dart';
 import 'package:money_control/Components/settings_widgets.dart';
 import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
@@ -303,7 +304,6 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                                     title: "Auto-Import SMS",
                                     trailing: Switch(
                                       value: _autoImport,
-                                      activeThumbColor: AppColors.primary,
                                       onChanged:
                                           FeatureFlagService.to.visibleToMe(
                                             'sms_auto_import',
@@ -327,7 +327,6 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                                     "Nudge me when no expenses are added for a while",
                                 trailing: Switch(
                                   value: _expenseReminder,
-                                  activeThumbColor: AppColors.primary,
                                   onChanged:
                                       FeatureFlagService.to.visibleToMe(
                                         'expense_reminder',
@@ -354,7 +353,6 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                         title: "Dark Mode",
                         trailing: Switch(
                           value: isDarkMode,
-                          activeThumbColor: AppColors.primary,
                           onChanged: (val) {
                             themeController.setTheme(val);
                           },
@@ -376,7 +374,6 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                           onTap: manual ? perf.resetToAuto : null,
                           trailing: Switch(
                             value: perf.liteMode.value,
-                            activeThumbColor: AppColors.primary,
                             onChanged:
                                 FeatureFlagService.to.visibleToMe('lite_mode')
                                 ? (val) {
@@ -482,48 +479,9 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   }
 
   void _showIncomeModeDialog(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-        title: Text(
-          AppLocalizations.of(context)!.incomeSource,
-          style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
-        ),
-        content: RadioGroup<IncomeMode>(
-          groupValue: IncomeSettings.mode.value,
-          onChanged: (v) async {
-            if (v == null) return;
-            await IncomeSettings.setMode(v);
-            if (ctx.mounted) Navigator.pop(ctx);
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: IncomeMode.values.map((m) {
-              return RadioListTile<IncomeMode>(
-                title: Text(
-                  incomeModeLabel(AppLocalizations.of(ctx)!, m),
-                  style: AppType.bodySmall(
-                    isDark
-                        ? AppColors.darkTextPrimary
-                        : AppColors.lightTextPrimary,
-                  ),
-                ),
-                value: m,
-              );
-            }).toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.cancel),
-          ),
-        ],
-      ),
-    );
+    // The same explainer sheet AI Insights opens on first run: three modes with
+    // what each one means for the daily limit, plus the manual amount inline.
+    showIncomeModeSheet(context);
   }
 
   void _showIncomeManualDialog(BuildContext context) {

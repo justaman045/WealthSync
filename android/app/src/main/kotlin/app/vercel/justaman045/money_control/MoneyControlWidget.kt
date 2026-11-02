@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.app.PendingIntent
 import android.net.Uri
+import android.view.View
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetPlugin
@@ -30,9 +31,16 @@ class MoneyControlWidget : AppWidgetProvider() {
         ) {
             val widgetData = HomeWidgetPlugin.getData(context)
             val balance = widgetData.getString("mc_balance", "—") ?: "—"
+            // Default true: a widget placed before the setting existed keeps
+            // its shortcut instead of silently losing it on upgrade.
+            val showQuickAdd = widgetData.getBoolean("mc_show_quick_add", true)
 
             val views = RemoteViews(context.packageName, R.layout.home_widget)
             views.setTextViewText(R.id.widget_balance, balance)
+            views.setViewVisibility(
+                R.id.widget_tap_hint,
+                if (showQuickAdd) View.VISIBLE else View.GONE
+            )
 
             // Tap widget body → open app home
             val openIntent = Intent(context, MainActivity::class.java).apply {

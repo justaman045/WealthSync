@@ -553,10 +553,12 @@ void main() {
       expect(r.expectedIncome, closeTo(6000, 0.01));
     });
 
-    test('blend floors at the 3-month average when this month is quiet', () {
+    test('blend floors at the recent average when this month is quiet', () {
       final now = DateTime.now();
-      // A prior-month income inside the 90-day window: this month = 0,
-      // so the 3-month average (9000/3 = 3000) is the floor that wins.
+      // A prior-month income inside the window: this month = 0, so the average
+      // of the months *with income* (9000 / 1) is the floor that wins.
+      // Dividing by a fixed 3 reported 3000 — a third of the real income — on
+      // the strength of two empty months.
       final lastMonth = DateTime(
         now.month == 1 ? now.year - 1 : now.year,
         now.month == 1 ? 12 : now.month - 1,
@@ -568,7 +570,95 @@ void main() {
         mode: IncomeMode.autoBlend,
         manualMonthly: 0,
       );
-      expect(r.expectedIncome, closeTo(3000, 0.01));
+      expect(r.expectedIncome, closeTo(9000, 0.01));
+    });
+
+    test('blend averages only the months that recorded income', () {
+      final now = DateTime.now();
+      DateTime monthsAgo(int m) {
+        final zero = DateTime(now.year, now.month - m, 1);
+        return DateTime(zero.year, zero.month, 15);
+      }
+
+      // Two months of 20k and one of 30k, nothing this month: 70k / 3 months
+      // with data — not 70k / 3 window months by accident, so make the count
+      // visible by leaving one month empty.
+      final r = computeExpectedIncome(
+        allTx: [
+          income(20000, monthsAgo(1)),
+          income(30000, monthsAgo(2)),
+        ],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+      );
+      expect(r.expectedIncome, closeTo(25000, 0.01));
+    });
+
+    test('income older than the calendar window is ignored', () {
+      final now = DateTime(2026, 11, 1);
+      final r = computeExpectedIncome(
+        allTx: [income(90000, DateTime(2026, 6, 15))],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+        now: now,
+      );
+      expect(r.expectedIncome, 0);
+    });
+
+    test('a salary on the 1st still counts late in the month', () {
+      // The old rolling 90-day cutoff dropped a payment from slightly over 90
+      // days earlier mid-month; calendar buckets keep the whole month.
+      final now = DateTime(2026, 11, 30);
+      final r = computeExpectedIncome(
+        allTx: [income(80000, DateTime(2026, 9, 1))],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+        now: now,
+      );
+      expect(r.expectedIncome, closeTo(80000, 0.01));
+    });
+
+    test('refunds and transfers are not income', () {
+      final now = DateTime(2026, 11, 15);
+      TransactionModel categorised(double amount, String category) => _tx(
+            amount: amount,
+            date: now,
+            recipientId: 'me',
+            senderId: '',
+            category: category,
+          );
+
+      final r = computeExpectedIncome(
+        allTx: [
+          income(50000, now),
+          categorised(9000, 'Refund'),
+          categorised(7000, 'Transfer'),
+          categorised(3000, 'Loan/EMI'),
+        ],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+        now: now,
+      );
+      expect(r.expectedIncome, closeTo(50000, 0.01));
+    });
+
+    test('a negative amount paid to the user is not income', () {
+      final now = DateTime(2026, 11, 15);
+      final r = computeExpectedIncome(
+        allTx: [
+          income(50000, now),
+          _tx(amount: -5000, date: now, recipientId: 'me', senderId: ''),
+        ],
+        uid: 'me',
+        mode: IncomeMode.autoBlend,
+        manualMonthly: 0,
+        now: now,
+      );
+      expect(r.expectedIncome, closeTo(50000, 0.01));
     });
 
     test('blend ignores income older than the 90-day cutoff', () {
@@ -636,6 +726,89 @@ void main() {
       expect(r.expectedIncome, 0);
       expect(r.usedManual, false);
       expect(r.salaryWindowEmpty, true);
+    });
+
+    test('an empty window falls back to the blend instead of zero', () {
+      final r = computeExpectedIncome(
+        allTx: [income(60000, DateTime(2026, 9, 15))],
+        uid: 'me',
+        mode: IncomeMode.autoSalaryWindow,
+        manualMonthly: 0,
+        now: DateTime(2026, 11, 20),
+      );
+      // The flag stays so the card can explain that this is not the window sum.
+      expect(r.salaryWindowEmpty, true);
+      expect(r.fellBackToBlend, true);
+      expect(r.effectiveMode, IncomeMode.autoSalaryWindow);
+      // A late salary slip must not black out the daily limit.
+      expect(r.expectedIncome, closeTo(60000, 0.01));
+    });
+
+    test('a refund in the salary window is not salary', () {
+      final r = computeExpectedIncome(
+        allTx: [
+          _tx(
+            amount: 12000,
+            date: DateTime(2026, 11, 3),
+            recipientId: 'me',
+            senderId: '',
+            category: 'Refund',
+          ),
+        ],
+        uid: 'me',
+        mode: IncomeMode.autoSalaryWindow,
+        manualMonthly: 0,
+        now: DateTime(2026, 11, 10),
+      );
+      expect(r.salaryWindowEmpty, true);
+      expect(r.expectedIncome, 0);
+    });
+  });
+
+  group('income history helpers', () {
+    test('monthKeyFloor starts the window a year back', () {
+      expect(monthKeyFloor(DateTime(2026, 11, 30)), DateTime(2025, 12, 1));
+      expect(
+        monthKeyFloor(DateTime(2026, 11, 30), months: 4),
+        DateTime(2026, 8, 1),
+      );
+    });
+
+    test('refund/transfer categories are recognised as non-income', () {
+      expect(isNonIncomeCategory('Refund'), true);
+      expect(isNonIncomeCategory('Transfer'), true);
+      expect(isNonIncomeCategory('Self Transfer'), true);
+      expect(isNonIncomeCategory('Loan/EMI'), true);
+      expect(isNonIncomeCategory('Cashback'), true);
+      expect(isNonIncomeCategory('Salary'), false);
+      expect(isNonIncomeCategory('Income'), false);
+      expect(isNonIncomeCategory(null), false);
+      // The keyword matcher must not fire on substrings.
+      expect(isNonIncomeCategory('Coffee'), false);
+      expect(isNonIncomeCategory('Transferred rental income'), true);
+    });
+
+    test('incomeByMonth buckets by calendar month, not by 90 days', () {
+      final now = DateTime(2026, 11, 10);
+      final buckets = incomeByMonth(
+        [
+          _tx(amount: 50000, date: DateTime(2026, 11, 1), recipientId: 'me', senderId: ''),
+          _tx(amount: 100, date: DateTime(2026, 10, 31), recipientId: 'me', senderId: ''),
+          _tx(amount: 200, date: DateTime(2026, 10, 1), recipientId: 'me', senderId: ''),
+          _tx(amount: 300, date: DateTime(2026, 7, 31), recipientId: 'me', senderId: ''),
+        ],
+        'me',
+        now,
+      );
+      expect(buckets[202611], 50000);
+      expect(buckets[202610], 300);
+      // Outside the 3 completed months + current bucket.
+      expect(buckets.containsKey(202607), false);
+    });
+
+    test('the paid-bill fraction is shared by forecast and insights', () {
+      expect(kBillPaidFraction, greaterThan(0.9));
+      expect(kBillPaidFraction, lessThan(1));
     });
   });
 }

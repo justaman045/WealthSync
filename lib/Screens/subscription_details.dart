@@ -513,7 +513,6 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                   : AppColors.warning,
               size: 22.sp,
             ),
-            activeThumbColor: AppColors.primary,
           ),
         ),
       ),

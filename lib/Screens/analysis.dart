@@ -17,6 +17,7 @@ import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Components/feature_gate.dart';
+import 'package:money_control/Components/income_mode_sheet.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
@@ -144,6 +145,13 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       await SavingsSettings.load();
       if (!mounted) return;
 
+      // First visit: the daily limit is derived from an income mode the user
+      // has never seen explained. Show the chooser once, before the numbers.
+      if (!IncomeSettings.confirmed.value) {
+        await showIncomeModeSheet(context);
+        if (!mounted) return;
+      }
+
       incomeResult = computeExpectedIncome(
         allTx: txController.transactions,
         uid: user.uid,
@@ -164,6 +172,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       // 1. DATA ORGANIZING
       // ======================================================
 
+      // Only the last year of history feeds the forecast: spending from years
+      // ago describes a different life, and the scan would grow without bound.
+      // The current month is always inside this window.
+      final historyFloor = monthKeyFloor(now);
+
       // Structure: Category -> MonthKey -> Total
       Map<String, Map<int, double>> categoryMonthly = {};
       Map<int, double> monthlyTotal = {};
@@ -178,6 +191,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       for (final tx in allTx) {
         final d = tx.date;
+        if (d.isBefore(historyFloor)) continue;
         final monthKey = d.year * 100 + d.month;
         final cat = tx.category ?? l10n.analysisOthers;
         final role = resolveDailyLimitRole(
@@ -277,8 +291,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           if (wTotal > 0) typicalAmount = wSum / wTotal;
         }
 
-        // If already paid ≥95% of typical → assume done; else forecast the full amount.
-        if (typicalAmount > 0 && spentThisMonth >= typicalAmount * 0.95) {
+        // If already paid ≥ the paid fraction of typical → assume done; else forecast the full amount.
+        if (typicalAmount > 0 && spentThisMonth >= typicalAmount * kBillPaidFraction) {
           calcForecastFixed += spentThisMonth;
         } else {
           calcForecastFixed += max(spentThisMonth, typicalAmount);
@@ -393,7 +407,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
         if (isFixed) {
           smartBudget = catHistAvg;
-          if (currentSpent >= catHistAvg * 0.9 && catHistAvg > 0) {
+          if (currentSpent >= catHistAvg * kBillPaidFraction && catHistAvg > 0) {
             msg = l10n.analysisBillPaid(cat);
             catForecast = currentSpent;
           } else if (currentSpent > 0) {
@@ -429,7 +443,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
           smartBudget = catHistAvg > 0 ? catHistAvg : currentSpent * 1.1;
 
-          if (currentSpent > expectedSoFar * 1.25 && catHistAvg > 500) {
+          // "Material" has to scale with the user's own spending: a flat ₹500
+          // is currency-blind and meaningless on a small budget. 2% of their
+          // usual month keeps a coffee habit from reading as an alert.
+          final materialFloor = usualMonthAvg * 0.02;
+          if (currentSpent > expectedSoFar * 1.25 && catHistAvg > materialFloor) {
             msg = l10n.analysisSpendingFaster(cat);
           } else if (currentSpent < expectedSoFar * 0.75 && currentSpent > 0) {
             msg = l10n.analysisSpendingLower(cat);
@@ -888,9 +906,13 @@ child: loading
         if (m == IncomeMode.manual && manual <= 0) {
           note += ' · ${l10n.analysisManualNotSet}';
         }
-        // Reflect liveIncome when the salary window is empty.
+        // Reflect liveIncome when the salary window is empty. When the blend
+        // stood in for it, say so — otherwise the number looks like a window
+        // sum that happens to differ from the salary.
         if (m == IncomeMode.autoSalaryWindow && liveIncome.salaryWindowEmpty) {
-          note += ' · ${l10n.analysisNoSalaryWindow}';
+          note += liveIncome.expectedIncome > 0
+              ? ' · ${l10n.analysisSalaryWindowBlend}'
+              : ' · ${l10n.analysisNoSalaryWindow}';
         }
         return Text(
           note,

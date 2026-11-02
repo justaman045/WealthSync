@@ -80,6 +80,7 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
         isSettled: widget.existingEntry!.isSettled,
         createdAt: widget.existingEntry!.createdAt,
         repayments: widget.existingEntry!.repayments,
+        advances: widget.existingEntry!.advances,
       );
     } else {
       success = await _controller.addEntry(
@@ -142,6 +143,8 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
               SizedBox(height: 24.h),
               _buildDetailsForm(context),
               if (widget.existingEntry != null) ...[
+                SizedBox(height: 24.h),
+                _buildTopUpSection(context),
                 SizedBox(height: 24.h),
                 _buildRepaymentHistory(context),
               ],
@@ -312,6 +315,166 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
     );
   }
 
+  /// Top-ups: money handed over after the original loan. Kept separate from the
+  /// original amount so the history stays truthful; [remainingAmount] accounts
+  /// for the extra principal.
+  Widget _buildTopUpSection(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final entryId = widget.existingEntry!.id;
+    final currency = _currencyController.currencyCode.value;
+    return GlassContainer(
+      padding: EdgeInsets.all(20.w),
+      borderRadius: BorderRadius.circular(24.r),
+      child: Obx(() {
+        final live = _controller.entries.firstWhereOrNull(
+          (e) => e.id == entryId,
+        );
+        final advances = live?.advances ?? widget.existingEntry!.advances;
+        final principal = live?.totalPrincipal ??
+            widget.existingEntry!.totalPrincipal;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  l10n.lentTopUps,
+                  style: AppType.titleSmall(theme.colorScheme.onSurface),
+                ),
+                Text(
+                  l10n.lentTopUpsTotal(
+                    NumberFormat.simpleCurrency(name: currency).format(principal),
+                  ),
+                  style: AppType.labelMedium(AppColors.primary),
+                ),
+              ],
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              l10n.lentTopUpsHint,
+              style: AppType.bodySmall(
+                theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            if (advances.isEmpty)
+              Text(
+                l10n.lentTopUpsEmpty,
+                style: AppType.bodySmall(
+                  theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              )
+            else
+              for (var i = 0; i < advances.length; i++) ...[
+                _buildAdvanceRow(theme, entryId, advances[i], i),
+                if (i < advances.length - 1)
+                  Divider(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+                    height: 1,
+                  ),
+              ],
+            SizedBox(height: 12.h),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _addTopUp(entryId),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: BorderSide(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                icon: Icon(Icons.add_circle_outline, size: 18.sp),
+                label: Text(l10n.lentAddTopUp),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildAdvanceRow(
+    ThemeData theme,
+    String entryId,
+    LentAdvance advance,
+    int index,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final currency = _currencyController.currencyCode.value;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: Row(
+        children: [
+          Icon(Icons.add_circle, size: 18.sp, color: AppColors.primary),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  NumberFormat.simpleCurrency(name: currency)
+                      .format(advance.amount),
+                  style: AppType.numericOf(
+                    AppType.bodyLarge(theme.colorScheme.onSurface).copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Text(
+                  DateFormat('MMM dd, yyyy').format(advance.date),
+                  style: AppType.bodySmall(
+                    theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+                if (advance.note.isNotEmpty) ...[
+                  SizedBox(height: 2.h),
+                  Text(
+                    advance.note,
+                    style: AppType.bodySmall(
+                      theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: l10n.lentRemoveTopUp,
+            icon: Icon(
+              Icons.delete_outline,
+              size: 20.sp,
+              color: AppColors.error,
+            ),
+            onPressed: () => _controller.deleteAdvance(entryId, index),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addTopUp(String entryId) async {
+    final result = await showDialog<({double amount, DateTime date, String note})>(
+      context: context,
+      builder: (_) => const _AddTopUpDialog(),
+    );
+    if (result == null) return;
+    await _controller.addAdvance(
+      entryId: entryId,
+      amount: result.amount,
+      date: result.date,
+      note: result.note,
+    );
+  }
+
   Widget _buildRepaymentHistory(BuildContext context) {
     final theme = Theme.of(context);
     final entryId = widget.existingEntry!.id;
@@ -475,6 +638,91 @@ class _AddLentMoneyScreenState extends State<AddLentMoneyScreen> {
                 ),
         ),
       ),
+    );
+  }
+}
+
+/// Amount + date + note for a top-up. Owns its controllers: the dialog rebuilds
+/// while the user types, so a controller created by the caller could outlive or
+/// be replaced mid-edit.
+class _AddTopUpDialog extends StatefulWidget {
+  const _AddTopUpDialog();
+
+  @override
+  State<_AddTopUpDialog> createState() => _AddTopUpDialogState();
+}
+
+class _AddTopUpDialogState extends State<_AddTopUpDialog> {
+  final TextEditingController _amountCtrl = TextEditingController();
+  final TextEditingController _noteCtrl = TextEditingController();
+  DateTime _date = DateTime.now();
+
+  @override
+  void dispose() {
+    _amountCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null && mounted) setState(() => _date = picked);
+  }
+
+  void _save() {
+    final amount =
+        double.tryParse(_amountCtrl.text.replaceAll(',', '').trim()) ?? 0;
+    if (amount <= 0) {
+      ErrorHandler.showError("Enter a valid top-up amount");
+      return;
+    }
+    Navigator.of(context).pop((
+      amount: amount,
+      date: _date,
+      note: _noteCtrl.text.trim(),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(l10n.lentAddTopUp),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _amountCtrl,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(labelText: l10n.amount),
+          ),
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _noteCtrl,
+            decoration: InputDecoration(labelText: l10n.note),
+          ),
+          SizedBox(height: 12.h),
+          TextButton.icon(
+            onPressed: _pickDate,
+            icon: const Icon(Icons.calendar_today, size: 18),
+            label: Text(DateFormat('MMM dd, yyyy').format(_date)),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(onPressed: _save, child: Text(l10n.add)),
+      ],
     );
   }
 }

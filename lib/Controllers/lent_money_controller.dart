@@ -143,6 +143,7 @@ class LentMoneyController extends GetxController {
     required bool isSettled,
     required DateTime? createdAt,
     List<LentRepayment> repayments = const [],
+    List<LentAdvance> advances = const [],
   }) async {
     if (isSaving.value) return false;
     isSaving.value = true;
@@ -153,7 +154,9 @@ class LentMoneyController extends GetxController {
       isSaving.value = false;
       return false;
     }
-    if (amount < repaid) {
+    final principal =
+        amount + advances.fold(0.0, (acc, a) => acc + a.amount);
+    if (principal < repaid) {
       ErrorHandler.showError("Amount cannot be less than already repaid");
       isSaving.value = false;
       return false;
@@ -169,6 +172,7 @@ class LentMoneyController extends GetxController {
       type: type,
       createdAt: createdAt,
       repayments: repayments,
+      advances: advances,
     );
 
     try {
@@ -198,6 +202,7 @@ class LentMoneyController extends GetxController {
         type: entry.type,
         createdAt: entry.createdAt,
         repayments: entry.repayments,
+        advances: entry.advances,
       );
       await _repository.updateEntry(updatedEntry);
       LocalCacheService.invalidate(_cacheKey);
@@ -251,10 +256,11 @@ class LentMoneyController extends GetxController {
       amount: entry.amount,
       note: entry.note,
       dateLent: entry.dateLent,
-      isSettled: repaid >= entry.amount - 0.001,
+      isSettled: repaid >= entry.totalPrincipal - 0.001,
       type: entry.type,
       createdAt: entry.createdAt,
       repayments: repayments,
+      advances: entry.advances,
     );
 
     try {
@@ -290,10 +296,11 @@ class LentMoneyController extends GetxController {
       amount: entry.amount,
       note: entry.note,
       dateLent: entry.dateLent,
-      isSettled: repaid >= entry.amount - 0.001,
+      isSettled: repaid >= entry.totalPrincipal - 0.001,
       type: entry.type,
       createdAt: entry.createdAt,
       repayments: repayments,
+      advances: entry.advances,
     );
 
     try {
@@ -304,6 +311,110 @@ class LentMoneyController extends GetxController {
       return true;
     } catch (e) {
       ErrorHandler.showError("Failed to delete repayment: $e");
+      isSaving.value = false;
+      return false;
+    }
+  }
+
+  /// Records extra money lent on the same entry.
+  ///
+  /// The original principal stays untouched, so the history reads as
+  /// "₹5,000 on 3 Aug, +₹2,000 on 20 Aug" instead of a single mutated amount.
+  Future<bool> addAdvance({
+    required String entryId,
+    required double amount,
+    required DateTime date,
+    String note = '',
+  }) async {
+    if (isSaving.value) return false;
+    isSaving.value = true;
+
+    final entry = entries.firstWhereOrNull((e) => e.id == entryId);
+    if (entry == null) {
+      ErrorHandler.showError("Entry not found");
+      isSaving.value = false;
+      return false;
+    }
+    if (amount <= 0) {
+      ErrorHandler.showError("Enter a valid top-up amount");
+      isSaving.value = false;
+      return false;
+    }
+
+    final advances = [
+      ...entry.advances,
+      LentAdvance(amount: amount, date: date, note: note),
+    ];
+
+    final updatedEntry = LentMoneyModel(
+      id: entry.id,
+      friendName: entry.friendName,
+      amount: entry.amount,
+      note: entry.note,
+      dateLent: entry.dateLent,
+      // New money means the entry is open again even if it had been settled.
+      isSettled: false,
+      type: entry.type,
+      createdAt: entry.createdAt,
+      repayments: entry.repayments,
+      advances: advances,
+    );
+
+    try {
+      await _repository.updateEntry(updatedEntry);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
+      isSaving.value = false;
+      return true;
+    } catch (e) {
+      ErrorHandler.showError("Failed to add top-up: $e");
+      isSaving.value = false;
+      return false;
+    }
+  }
+
+  Future<bool> deleteAdvance(String entryId, int index) async {
+    if (isSaving.value) return false;
+    isSaving.value = true;
+
+    final entry = entries.firstWhereOrNull((e) => e.id == entryId);
+    if (entry == null || index < 0 || index >= entry.advances.length) {
+      ErrorHandler.showError("Top-up not found");
+      isSaving.value = false;
+      return false;
+    }
+
+    final advances = [...entry.advances]..removeAt(index);
+    final principal =
+        entry.amount + advances.fold(0.0, (acc, a) => acc + a.amount);
+    if (entry.repaidAmount > principal + 0.001) {
+      // Deleting this top-up would leave more repaid than was ever lent.
+      ErrorHandler.showError("Repayments exceed the remaining principal");
+      isSaving.value = false;
+      return false;
+    }
+
+    final updatedEntry = LentMoneyModel(
+      id: entry.id,
+      friendName: entry.friendName,
+      amount: entry.amount,
+      note: entry.note,
+      dateLent: entry.dateLent,
+      isSettled: entry.repaidAmount >= principal - 0.001,
+      type: entry.type,
+      createdAt: entry.createdAt,
+      repayments: entry.repayments,
+      advances: advances,
+    );
+
+    try {
+      await _repository.updateEntry(updatedEntry);
+      LocalCacheService.invalidate(_cacheKey);
+      _fetchFromFirestore();
+      isSaving.value = false;
+      return true;
+    } catch (e) {
+      ErrorHandler.showError("Failed to delete top-up: $e");
       isSaving.value = false;
       return false;
     }

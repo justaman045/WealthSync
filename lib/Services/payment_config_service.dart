@@ -4,12 +4,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Utils/auth_gated_listener.dart';
+import 'package:money_control/Utils/payment_config_fields.dart';
 
 class PaymentConfigService extends GetxController {
   static PaymentConfigService get to => Get.find();
 
   final RxString paymentMode = 'google_play'.obs;
   final RxString upiId = ''.obs;
+
+  /// Audit trail of the last save, shown on the admin screen. `null` until the
+  /// document has actually been written by a build that records it.
+  final Rxn<DateTime> updatedAt = Rxn<DateTime>();
+  final RxString updatedBy = ''.obs;
 
   Timer? _webPollTimer;
 
@@ -41,8 +47,15 @@ class PaymentConfigService extends GetxController {
     final exists = snap.exists && snap.data() != null;
     if (!exists) return;
     final data = snap.data()!;
-    paymentMode.value = data['paymentMode'] as String? ?? 'google_play';
-    upiId.value = data['upiId'] as String? ?? '';
+    paymentMode.value = normalizePaymentMode(data['paymentMode']);
+    upiId.value = normalizeUpiId(data['upiId']);
+    updatedBy.value = (data['updatedBy'] as String?)?.trim() ?? '';
+    final rawUpdatedAt = data['updatedAt'];
+    updatedAt.value = rawUpdatedAt is Timestamp
+        ? rawUpdatedAt.toDate()
+        : rawUpdatedAt is DateTime
+        ? rawUpdatedAt
+        : null;
   }
 
   /// Start periodic polling for payment config. Called after login on web.
@@ -75,7 +88,12 @@ class PaymentConfigService extends GetxController {
     super.onClose();
   }
 
-  Future<void> save({required String mode, required String upi}) async {
+  /// Persists the payment config and records who changed it.
+  ///
+  /// The write is a merge so it cannot drop keys this build does not know about.
+  /// `updatedAt` uses a server timestamp so two admins on skewed phones cannot
+  /// write a "last updated" in the future.
+  Future<void> saveConfig({required String mode, required String upi}) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       debugPrint('PaymentConfigService: cannot save, not authenticated');
@@ -84,6 +102,14 @@ class PaymentConfigService extends GetxController {
     await FirebaseFirestore.instance
         .collection('app_config')
         .doc('payment_settings')
-        .set({'paymentMode': mode, 'upiId': upi}, SetOptions(merge: true));
+        .set(
+          paymentConfigPayload(
+            mode: mode,
+            upi: upi,
+            updatedBy: user.email ?? user.uid,
+            updatedAt: FieldValue.serverTimestamp(),
+          ),
+          SetOptions(merge: true),
+        );
   }
 }

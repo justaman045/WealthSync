@@ -10,6 +10,7 @@ import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Config/app_strings.dart';
+import 'package:money_control/Utils/display_name.dart';
 import 'package:money_control/Utils/profile_update.dart';
 import 'package:money_control/Utils/responsive.dart';
 
@@ -73,11 +74,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
         if (mounted) {
           setState(() {
+            // Google accounts used to store only `displayName`, so a missing
+            // `firstName` is not a blank field — split the display name instead
+            // of dumping all of it into First name and persisting that on save.
+            final storedFirst =
+                (data['firstName'] as String?)?.trim() ?? '';
+            final storedLast = (data['lastName'] as String?)?.trim() ?? '';
+            final fallback = splitDisplayName(user.displayName);
             _prefill(
               _firstNameController,
-              (data['firstName'] ?? user.displayName)?.toString(),
+              storedFirst.isNotEmpty ? storedFirst : fallback.firstName,
             );
-            _prefill(_lastNameController, data['lastName']?.toString());
+            _prefill(
+              _lastNameController,
+              storedLast.isNotEmpty
+                  ? storedLast
+                  : (storedFirst.isNotEmpty ? '' : fallback.lastName),
+            );
             _prefill(_phoneController, data['phone']?.toString());
             _prefill(_addressController, data['address']?.toString());
             final rawGender = data['gender'] as String?;

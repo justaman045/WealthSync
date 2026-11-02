@@ -263,7 +263,9 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                     const Spacer(),
                     Switch(
                       value: isPro,
-                      activeThumbColor: AppColors.success,
+                      // Green track keeps "this account is Pro" meaningful
+                      // while the theme still draws a visible thumb on top.
+                      activeTrackColor: AppColors.success,
                       onChanged: (val) {
                         setState(() => isPro = val);
                       },

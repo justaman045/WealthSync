@@ -382,6 +382,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'No salary credits found in window (current month first week or previous month last working day)';
 
   @override
+  String get analysisSalaryWindowBlend =>
+      'no salary in window · using your recent average';
+
+  @override
   String get analysisNoSpendingMonth =>
       'No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.';
 
@@ -1259,6 +1263,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeWidget => 'Home Widget';
 
   @override
+  String get homeWidgetQuickAddTitle => 'Quick add shortcut';
+
+  @override
+  String get homeWidgetQuickAddSubtitle =>
+      'Show “+ Add” on the widget so one tap starts a new transaction.';
+
+  @override
+  String get homeWidgetTotalBalance => 'Total Balance';
+
+  @override
+  String get homeWidgetStepAddTitle => 'Add the widget';
+
+  @override
+  String get homeWidgetStepAddBody =>
+      'Long-press your home screen, tap Widgets, search for “WealthSync”, then drag it onto your home screen.';
+
+  @override
+  String get homeWidgetStepTapTitle => 'Tap to open';
+
+  @override
+  String get homeWidgetStepTapBody =>
+      'Tapping the widget opens WealthSync. Tap “+ Add” to start a new transaction straight away.';
+
+  @override
+  String get homeWidgetStepRefreshTitle => 'Always up to date';
+
+  @override
+  String get homeWidgetStepRefreshBody =>
+      'Your balance refreshes every time you add, import or edit a transaction — no manual setup needed.';
+
+  @override
   String get howCategoryCountsTowardSmart =>
       'How this category counts toward your Smart Daily Limit. Ignored categories (e.g. investments/SIPs) never reduce it.';
 
@@ -1295,6 +1330,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get incomeSource => 'Income Source';
+
+  @override
+  String get incomeModeChooserIntro =>
+      'How should we estimate your monthly income? You can change this any time in Settings.';
+
+  @override
+  String get incomeModeManualHint =>
+      'You enter the amount yourself; nothing is inferred from your transactions.';
+
+  @override
+  String get incomeModeBlendHint =>
+      'Averages your recent months of income, weighted toward the current month.';
+
+  @override
+  String get incomeModeSalaryWindowHint =>
+      'Counts income added in the first week of the month or on the last working day as salary.';
+
+  @override
+  String get incomeModeManualAmountLabel => 'Monthly income';
+
+  @override
+  String get incomeModeManualRequired =>
+      'Enter your monthly income to use Manual.';
 
   @override
   String get insurancePolicies => 'Insurance Policies';
@@ -1402,6 +1460,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lentYouOwe => 'You Owe';
+
+  @override
+  String get lentTopUps => 'Top-ups';
+
+  @override
+  String lentTopUpsTotal(Object amount) {
+    return '$amount total';
+  }
+
+  @override
+  String get lentTopUpsHint =>
+      'Money you lent this person after the original entry.';
+
+  @override
+  String get lentTopUpsEmpty => 'No top-ups recorded.';
+
+  @override
+  String get lentAddTopUp => 'Add top-up';
+
+  @override
+  String get lentRemoveTopUp => 'Remove top-up';
 
   @override
   String get loanBalanceCol => 'Balance';
@@ -1583,6 +1662,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentSettings => 'Payment Settings';
+
+  @override
+  String get paymentSettingsChangedElsewhere =>
+      'Payment settings changed on another device. Reload to see the latest, or save to overwrite.';
+
+  @override
+  String get paymentSettingsLastUpdated => 'Last updated';
+
+  @override
+  String get reload => 'Reload';
 
   @override
   String get pendingRequests => 'No Pending Requests';

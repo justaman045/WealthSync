@@ -237,8 +237,6 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                       SizedBox(width: 8.w),
                       Switch.adaptive(
                         value: _evenSplit,
-                        activeThumbColor: AppColors.primary,
-                        activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
                         onChanged: _onEvenSplitToggled,
                       ),
                     ],

@@ -106,4 +106,84 @@ void main() {
       expect((map['repayments'] as List).first['note'], 'First');
     });
   });
+
+  group('LentMoneyModel top-ups', () {
+    LentMoneyModel entry({List<LentAdvance> advances = const []}) {
+      return LentMoneyModel(
+        id: '1',
+        friendName: 'Rahul',
+        amount: 5000,
+        dateLent: DateTime(2026, 8, 3),
+        advances: advances,
+      );
+    }
+
+    test('totalPrincipal is the original amount plus every top-up', () {
+      final model = entry(advances: [
+        LentAdvance(amount: 2000, date: DateTime(2026, 8, 20)),
+        LentAdvance(amount: 500, date: DateTime(2026, 9, 1)),
+      ]);
+      expect(model.advanceAmount, 2500.0);
+      expect(model.totalPrincipal, 7500.0);
+    });
+
+    test('a top-up raises the outstanding balance', () {
+      final model = entry(advances: [
+        LentAdvance(amount: 2000, date: DateTime(2026, 8, 20)),
+      ]);
+      expect(model.remainingAmount, 7000.0);
+    });
+
+    test('repayments can cover the top-up and leave the original untouched', () {
+      final model = LentMoneyModel(
+        id: '1',
+        friendName: 'Rahul',
+        amount: 5000,
+        dateLent: DateTime(2026, 8, 3),
+        advances: [LentAdvance(amount: 2000, date: DateTime(2026, 8, 20))],
+        repayments: [LentRepayment(amount: 3000, date: DateTime(2026, 8, 25))],
+      );
+      expect(model.repaidAmount, 3000.0);
+      expect(model.remainingAmount, 4000.0);
+    });
+
+    test('the balance never goes negative when over-repaid', () {
+      final model = LentMoneyModel(
+        id: '1',
+        friendName: 'Rahul',
+        amount: 5000,
+        dateLent: DateTime(2026, 8, 3),
+        repayments: [LentRepayment(amount: 9000, date: DateTime(2026, 8, 25))],
+      );
+      expect(model.remainingAmount, 0.0);
+    });
+
+    test('legacy docs without advances keep their original balance', () {
+      final model = LentMoneyModel.fromMap('1', {
+        'friendName': 'Rahul',
+        'amount': 5000,
+        'dateLent': DateTime(2026, 8, 3),
+      });
+      expect(model.advances, isEmpty);
+      expect(model.advanceAmount, 0.0);
+      expect(model.totalPrincipal, 5000.0);
+      expect(model.remainingAmount, 5000.0);
+    });
+
+    test('a top-up round-trips through toMap/fromMap', () {
+      final model = entry(advances: [
+        LentAdvance(
+          amount: 2000,
+          date: DateTime(2026, 8, 20),
+          note: 'Emergency',
+        ),
+      ]);
+      final restored = LentMoneyModel.fromMap('1', model.toMap());
+      expect(restored.advances.length, 1);
+      expect(restored.advances.first.amount, 2000.0);
+      expect(restored.advances.first.note, 'Emergency');
+      expect(restored.advances.first.date, DateTime(2026, 8, 20));
+      expect(restored.totalPrincipal, 7000.0);
+    });
+  });
 }

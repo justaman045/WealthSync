@@ -806,7 +806,6 @@ class _AddLoanSheetState extends State<_AddLoanSheet> {
                     Switch(
                       value: _createRecurring,
                       onChanged: (v) => setState(() => _createRecurring = v),
-                      activeThumbColor: AppColors.primary,
                     ),
                     SizedBox(width: 8.w),
                     Expanded(

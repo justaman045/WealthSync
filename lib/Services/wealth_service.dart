@@ -233,20 +233,30 @@ class WealthService {
         });
   }
 
-  /// Calculate current bank balance from transaction history
-  static double calculateBankBalance(List<TransactionModel> transactions) {
-    final user = _auth.currentUser;
-    if (user == null) return 0;
+  /// Calculate current bank balance from transaction history.
+  ///
+  /// Every row counts at its **net** value ([TransactionModel.total] =
+  /// `amount - tax`): an expense is already stored negative, so adding `total`
+  /// subtracts the amount *and* the tax withheld, and an income credit adds
+  /// what actually landed after TDS. The old code used `amount.abs()` for
+  /// income, which reported the gross salary and ignored the TDS deduction.
+  ///
+  /// [uid] defaults to the signed-in user and exists so the arithmetic can be
+  /// tested without Firebase (`FirebaseAuth.instance` throws with no app).
+  static double calculateBankBalance(
+    List<TransactionModel> transactions, {
+    String? uid,
+  }) {
+    final owner = uid ?? _auth.currentUser?.uid;
+    if (owner == null) return 0;
 
     double balance = 0;
 
     try {
       for (final tx in transactions) {
-        if (tx.senderId == user.uid) {
-          balance -= tx.amount.abs();
-          if (tx.tax > 0 && tx.amount < 0) balance -= tx.tax;
-        } else if (tx.recipientId == user.uid) {
-          balance += tx.amount.abs();
+        // A self-transfer matches both ids; `||` keeps it counted once.
+        if (tx.senderId == owner || tx.recipientId == owner) {
+          balance += tx.total;
         }
       }
     } catch (e) {
@@ -255,26 +265,58 @@ class WealthService {
     return balance;
   }
 
-  /// Calculate average monthly income from the last [months] of transactions.
+  /// Average monthly income over the last [months] calendar months.
+  ///
+  /// Divides by the number of months that actually have income, not by
+  /// [months]: a user three weeks into the app has one month of data, and
+  /// dividing by three reported a third of their real income. Refunds and
+  /// transfers are excluded ([isNonIncomeCategory]) — they reuse the shape of
+  /// an income credit without being income.
   static double calculateAverageMonthlyIncome(
     List<TransactionModel> transactions, {
     int months = 3,
+    DateTime? now,
+    String? uid,
   }) {
-    final user = _auth.currentUser;
-    if (user == null) return 0;
+    final owner = uid ?? _auth.currentUser?.uid;
+    if (owner == null || months <= 0) return 0;
 
-    double totalIncome = 0;
+    final ref = now ?? DateTime.now();
+    final floor = DateTime(ref.year, ref.month - (months - 1), 1);
+    final ceiling = DateTime(ref.year, ref.month + 1, 1);
     try {
-      final cutoff = DateTime.now().subtract(Duration(days: 30 * months));
+      final buckets = <int, double>{};
       for (final tx in transactions) {
-        if (tx.recipientId == user.uid && tx.date.isAfter(cutoff)) {
-          totalIncome += tx.amount.abs();
-        }
+        if (tx.recipientId != owner) continue;
+        if (tx.amount <= 0) continue;
+        if (isNonIncomeCategory(tx.category)) continue;
+        if (tx.date.isBefore(floor) || !tx.date.isBefore(ceiling)) continue;
+        final key = tx.date.year * 100 + tx.date.month;
+        buckets[key] = (buckets[key] ?? 0) + tx.total;
       }
+      if (buckets.isEmpty) return 0;
+      final total = buckets.values.fold<double>(0, (acc, v) => acc + v);
+      return total / buckets.length;
     } catch (e) {
       log("Error calculating monthly income: $e");
+      return 0;
     }
-    return months > 0 ? totalIncome / months : 0;
+  }
+
+  /// The currency symbol, or an empty string when the controller is not
+  /// registered yet.
+  ///
+  /// This used to be a `Get.find<CurrencyController>()` *inside* the insight
+  /// generator's `try`: on a path where the controller was missing, the throw
+  /// was caught as "Error generating insights" and every insight silently
+  /// disappeared.
+  static String _currencySymbol() {
+    if (!Get.isRegistered<CurrencyController>()) return '';
+    try {
+      return Get.find<CurrencyController>().currencySymbol.value;
+    } catch (_) {
+      return '';
+    }
   }
 
   /// Generate smart financial insights based on transaction history and current portfolio
@@ -285,34 +327,57 @@ class WealthService {
     final user = _auth.currentUser;
     if (user == null) return [];
 
+    // Resolved before the try: a missing controller used to throw inside it,
+    // which the catch reported as a failed insight pass and returned no
+    // insights at all.
+    final symbol = _currencySymbol();
     List<Map<String, dynamic>> insights = [];
 
     try {
       final now = DateTime.now();
-      final threeMonthsAgo = now.subtract(const Duration(days: 90));
+      // Calendar months, not a rolling 90-day window: the window used to start
+      // mid-month, so the same salary dropped out of the savings rate halfway
+      // through the next month.
+      final floor = DateTime(now.year, now.month - 2, 1);
+      final ceiling = DateTime(now.year, now.month + 1, 1);
 
-      final recentTx = transactions.where((tx) {
-        return tx.date.isAfter(threeMonthsAgo);
-      }).toList();
+      final recentTx = transactions
+          .where(
+            (tx) =>
+                !tx.date.isBefore(floor) && tx.date.isBefore(ceiling),
+          )
+          .toList();
 
       double totalIncome = 0;
       double totalExpense = 0;
+      final incomeMonths = <int>{};
+      final expenseMonths = <int>{};
       Map<String, double> categoryExpenses = {};
 
       for (var tx in recentTx) {
         final amount = tx.amount.abs();
+        final monthKey = tx.date.year * 100 + tx.date.month;
 
         if (tx.recipientId == user.uid) {
-          totalIncome += amount;
+          // Refunds/transfers arrive shaped like income but are the user's own
+          // money coming back; counting them inflates the savings rate.
+          if (isNonIncomeCategory(tx.category)) continue;
+          totalIncome += tx.total.abs();
+          incomeMonths.add(monthKey);
         } else if (tx.senderId == user.uid) {
           totalExpense += amount;
+          expenseMonths.add(monthKey);
           final cat = tx.category ?? 'Uncategorized';
           categoryExpenses[cat] = (categoryExpenses[cat] ?? 0) + amount;
         }
       }
 
-      final avgMonthlyIncome = totalIncome / 3;
-      final avgMonthlyExpense = totalExpense / 3;
+      // Divide by the months that have data — a user one month in must not be
+      // told their income is a third of what it is.
+      final incomeMonthsCount = incomeMonths.isEmpty ? 1 : incomeMonths.length;
+      final expenseMonthsCount = expenseMonths.isEmpty ? 1 : expenseMonths.length;
+      final avgMonthlyIncome = totalIncome / incomeMonthsCount;
+      final avgMonthlyExpense = totalExpense / expenseMonthsCount;
       final avgMonthlySavings = avgMonthlyIncome - avgMonthlyExpense;
       final savingsRate = avgMonthlyIncome > 0
           ? (avgMonthlySavings / avgMonthlyIncome)
@@ -372,7 +437,7 @@ class WealthService {
         insights.add({
           'type': 'info',
           'message':
-              "📈 Idle Cash? You save ~${Get.find<CurrencyController>().currencySymbol.value}${avgMonthlySavings.toStringAsFixed(0)}/mo. Consider starting a new SIP of ${Get.find<CurrencyController>().currencySymbol.value}${(avgMonthlySavings * 0.4).toStringAsFixed(0)}.",
+              "📈 Idle Cash? You save ~$symbol${avgMonthlySavings.toStringAsFixed(0)}/mo. Consider starting a new SIP of $symbol${(avgMonthlySavings * 0.4).toStringAsFixed(0)}.",
         });
       }
 
@@ -381,7 +446,7 @@ class WealthService {
           ..sort((a, b) => b.value.compareTo(a.value));
         final topCat = sortedCats.first;
         final topCatShare = avgMonthlyExpense > 0
-            ? (topCat.value / 3) / avgMonthlyExpense
+            ? (topCat.value / expenseMonthsCount) / avgMonthlyExpense
             : 0;
 
         if (topCatShare > 0.25 &&
@@ -441,7 +506,7 @@ class WealthService {
         insights.add({
           'type': 'warning',
           'message':
-              "💳 High CC Debt: ${CurrencyController.to.currencySymbol.value}${portfolio.creditCard.toStringAsFixed(0)} outstanding. Pay this off first — credit card rates (36–48% p.a.) beat any investment return.",
+              "💳 High CC Debt: $symbol${portfolio.creditCard.toStringAsFixed(0)} outstanding. Pay this off first — credit card rates (36–48% p.a.) beat any investment return.",
         });
       }
 
@@ -459,13 +524,20 @@ class WealthService {
     return insights;
   }
 
-  /// Calculate target values based on User Formulas OR Custom Overrides
+  /// Calculate target values based on User Formulas OR Custom Overrides.
+  ///
+  /// [useOverrides] decides whether a user's manual per-asset target applies.
+  /// Smart Mode is formula-only by definition, so the caller passes `false`
+  /// there: a target entered in Custom Mode used to keep overriding the
+  /// formula after switching back, leaving the progress bars on stale numbers
+  /// while the UI claimed the recommendation was in charge.
   static Future<Map<String, WealthTarget>> calculateAssetTargets(
     WealthPortfolio portfolio,
     List<TransactionModel> transactions,
     UserModel? userProfile, {
     int baselineMonthlyIncome = 25000,
     double bankBalance = 0,
+    bool useOverrides = true,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return {};
@@ -552,7 +624,9 @@ class WealthService {
       const expenseBased = {'bank', 'fd', 'postOffice'};
 
       // Cap gold / SGB at 10% of visible net worth so alternatives never
-      // dwarf the emergency fund or retirement base before it is built.
+      // dwarf the emergency fund or retirement base before it is built. With
+      // no net worth there is nothing to cap against: a 0 cap used to zero the
+      // whole goal, so a brand-new user's gold target read as already complete.
       double visible(String key, double val) =>
           portfolio.hiddenKeys.contains(key) ? 0.0 : val;
       final double visibleNetWorth =
@@ -588,7 +662,11 @@ class WealthService {
           visible('loans', portfolio.loans) -
           visible('creditCard', portfolio.creditCard) -
           visible('bnpl', portfolio.bnpl);
-      final goldCap = 0.10 * (visibleNetWorth > 0 ? visibleNetWorth : 0.0);
+      // `infinity` means "no cap": with no visible net worth the formula target
+      // stands instead of collapsing to zero.
+      final goldCap = visibleNetWorth > 0
+          ? 0.10 * visibleNetWorth
+          : double.infinity;
 
       final result = <String, WealthTarget>{};
       formulaTargets.forEach((key, val) {
@@ -610,16 +688,21 @@ class WealthService {
       // drives its input through monthlyExpenseOverride instead, so it stays
       // formula-driven here. Custom keys not in formulaTargets get a target
       // that is pure override (formula 0) so their cards show progress.
-      portfolio.targets.forEach((key, override) {
-        if (key == 'bank') return;
-        final double value = override.toDouble();
-        if (value <= 0) return;
-        result[key] = WealthTarget(
-          effective: value,
-          formula: result[key]?.formula ?? 0.0,
-          isOverridden: true,
-        );
-      });
+      //
+      // Only in Custom Mode: Smart Mode is the formula by definition, and an
+      // override left over from Custom Mode must not keep overriding it.
+      if (useOverrides) {
+        portfolio.targets.forEach((key, override) {
+          if (key == 'bank') return;
+          final double value = override.toDouble();
+          if (value <= 0) return;
+          result[key] = WealthTarget(
+            effective: value,
+            formula: result[key]?.formula ?? 0.0,
+            isOverridden: true,
+          );
+        });
+      }
 
       return result;
     } catch (e) {

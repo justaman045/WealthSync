@@ -48,6 +48,8 @@ import 'package:money_control/Controllers/recurring_payment_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Services/widget_service.dart';
+import 'package:money_control/Services/widget_action_queue.dart';
+import 'package:money_control/Utils/widget_action.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
@@ -380,6 +382,9 @@ class RootApp extends StatefulWidget {
 class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
   late final BiometricService _bioService;
   StreamSubscription<Uri?>? _widgetClickSub;
+  Worker? _widgetPendingWorker;
+  Worker? _widgetReadyWorker;
+  Worker? _widgetUnlockWorker;
 
   @override
   void initState() {
@@ -394,33 +399,60 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
     // Kill-switch: a `hidden` home_widget flag makes widget taps dead — the
     // feature reads as if it never existed (no cold/warm-start navigation).
     if (FeatureFlagService.to.isHidden('home_widget')) return;
-    // Biometric lock: only route widget taps when the app is unlocked, so a
-    // locked device cannot push a payment screen over the lock screen.
-    bool unlocked() =>
-        !_bioService.lockActive || _bioService.isAuthenticated.value;
+
+    // A tap can arrive at any moment — during the splash, on the login screen,
+    // mid-onboarding, or behind the biometric lock. Nothing is routed from the
+    // listener itself: the action is queued and drained once the main shell is
+    // on screen and the lock is open (see [_flushWidgetActions]).
+    _widgetPendingWorker = ever<WidgetAction?>(
+      WidgetActionQueue.pending,
+      (_) => _flushWidgetActions(),
+    );
+    _widgetReadyWorker = ever<bool>(
+      WidgetActionQueue.ready,
+      (_) => _flushWidgetActions(),
+    );
+    _widgetUnlockWorker = ever<bool>(_bioService.isAuthenticated, (value) {
+      if (value) _flushWidgetActions();
+    });
+
     // Cold start: app opened via widget tap
     HomeWidget.initiallyLaunchedFromHomeWidget()
         .then((uri) {
-          if (uri?.host == 'add_transaction' && unlocked()) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Get.to(() => const PaymentScreen(type: PaymentType.send));
-            });
-          }
+          final action = parseWidgetAction(uri);
+          if (action != null) WidgetActionQueue.push(action);
         })
         .catchError((e) {
           debugPrint('HomeWidget error: $e');
         });
     // Warm start: app already running when widget tapped
     _widgetClickSub = HomeWidget.widgetClicked.listen((uri) {
-      if (uri?.host == 'add_transaction' && unlocked()) {
-        Get.to(() => const PaymentScreen(type: PaymentType.send));
-      }
+      final action = parseWidgetAction(uri);
+      if (action != null) WidgetActionQueue.push(action);
     });
+  }
+
+  /// Routes a queued widget action only when it cannot land on top of the
+  /// splash, the login screen, onboarding, or the biometric lock.
+  void _flushWidgetActions() {
+    if (!WidgetActionQueue.ready.value) return;
+    // Biometric lock: a locked device must never let a widget tap push content
+    // over the lock screen. The action stays queued until the unlock.
+    if (_bioService.lockActive && !_bioService.isAuthenticated.value) return;
+    final action = WidgetActionQueue.take();
+    if (action == null) return;
+    switch (action) {
+      case WidgetAction.addTransaction:
+        Get.to(() => const PaymentScreen(type: PaymentType.send));
+    }
   }
 
   @override
   void dispose() {
     _widgetClickSub?.cancel();
+    _widgetPendingWorker?.dispose();
+    _widgetReadyWorker?.dispose();
+    _widgetUnlockWorker?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -742,8 +774,23 @@ class _AuthCheckerState extends State<AuthChecker> {
 
   @override
   void dispose() {
+    // The shell is going away (sign-out, or the biometric lock replacing this
+    // subtree), so a widget tap must be queued again instead of routed.
+    WidgetActionQueue.markReady(false);
     _authSub?.cancel();
     super.dispose();
+  }
+
+  /// Publishes "the shell owns the frame" on the next frame.
+  ///
+  /// Routing a queued widget tap must never happen during build, and readiness
+  /// must be false again as soon as this subtree shows the splash, the login
+  /// screen or onboarding.
+  void _markShellReady(bool ready) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      WidgetActionQueue.markReady(ready);
+    });
   }
 
   @override
@@ -752,6 +799,7 @@ class _AuthCheckerState extends State<AuthChecker> {
       stream: _authStream ??= FirebaseAuth.instance.authStateChanges(),
       builder: (_, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
+          _markShellReady(false);
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -777,6 +825,7 @@ class _AuthCheckerState extends State<AuthChecker> {
             future: _onboardingFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
+                _markShellReady(false);
                 return const Scaffold(
                   body: Center(child: CircularProgressIndicator()),
                 );
@@ -784,14 +833,17 @@ class _AuthCheckerState extends State<AuthChecker> {
               final isOnboarded = snapshot.data ?? false;
 
               if (isOnboarded) {
+                _markShellReady(true);
                 return const MainShell();
               } else {
+                _markShellReady(false);
                 return const OnboardingScreen();
               }
             },
           );
         }
 
+        _markShellReady(false);
         return const AnimatedSplashScreen();
       },
     );

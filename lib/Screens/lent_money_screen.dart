@@ -456,7 +456,7 @@ class _LentMoneyScreenState extends State<LentMoneyScreen> {
                     Text(
                       NumberFormat.simpleCurrency(
                         name: currency,
-                      ).format(entry.amount),
+                      ).format(entry.totalPrincipal),
                       style: AppType.titleMedium(
                         entry.isSettled ? tertiaryColor : textColor,
                       ),

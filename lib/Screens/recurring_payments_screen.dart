@@ -22,6 +22,7 @@ import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/adaptive_panel.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/empty_state.dart';
+import 'package:money_control/Components/selectable_chip_row.dart';
 import 'package:money_control/Services/performance_controller.dart';
 
 class RecurringPaymentsScreen extends StatefulWidget {
@@ -663,35 +664,32 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
               ),
               SizedBox(height: 16.h),
 
-              // Frequency
-              DropdownButtonFormField<RecurringFrequency>(
-                initialValue: _freq,
-                items: RecurringFrequency.values
-                    .map(
-                      (f) => DropdownMenuItem(
-                        value: f,
-                        child: Text(f.name.capitalizeFirst ?? f.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _freq = v!),
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.recurringFrequencyLabel,
-                ),
+              // Frequency — three values, so chips beat a dropdown.
+              Text(
+                AppLocalizations.of(context)!.recurringFrequencyLabel,
+                style: AppType.labelMedium(textColor),
+              ),
+              SizedBox(height: 8.h),
+              SelectableChipRow<RecurringFrequency>(
+                options: RecurringFrequency.values,
+                selected: _freq,
+                labelOf: (f) => f.name.capitalizeFirst ?? f.name,
+                onSelected: (f) => setState(() => _freq = f),
               ),
 
               SizedBox(height: 16.h),
 
-              // Category Dropdown
-              DropdownButtonFormField<String>(
-                initialValue: _category,
-                items: _sortedCategories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) => setState(() => _category = v!),
-                decoration: InputDecoration(
-                  labelText: AppLocalizations.of(context)!.recurringCategoryLabel,
-                ),
+              // Category
+              Text(
+                AppLocalizations.of(context)!.recurringCategoryLabel,
+                style: AppType.labelMedium(textColor),
+              ),
+              SizedBox(height: 8.h),
+              SelectableChipRow<String>(
+                options: _sortedCategories,
+                selected: _category,
+                labelOf: (c) => c,
+                onSelected: (c) => setState(() => _category = c),
               ),
 
               SizedBox(height: 16.h),

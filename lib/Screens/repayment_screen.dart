@@ -194,7 +194,7 @@ class _RepaymentScreenState extends State<RepaymentScreen> {
                   style: AppType.titleMedium(color),
                 ),
                 Text(
-                  "of ${NumberFormat.simpleCurrency(name: currency).format(entry.amount)}",
+                  "of ${NumberFormat.simpleCurrency(name: currency).format(entry.totalPrincipal)}",
                   style: AppType.bodySmall(theme.colorScheme.onSurface.withValues(alpha: 0.5)),
                 ),
               ],

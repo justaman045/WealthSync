@@ -467,12 +467,16 @@ class DataSupportSettingsScreen extends StatelessWidget {
                 SettingsTile(
                   icon: Icons.gavel_outlined,
                   title: "Terms & Conditions",
-                  onTap: () => Get.to(() => const LegalTrustPage()),
+                  onTap: () => Get.to(
+                    () => const LegalTrustPage(initialSection: LegalSection.terms),
+                  ),
                 ),
                 SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: "Privacy Policy",
-                  onTap: () => Get.to(() => const LegalTrustPage()),
+                  onTap: () => Get.to(
+                    () => const LegalTrustPage(initialSection: LegalSection.privacy),
+                  ),
                 ),
                   ],
                 ),

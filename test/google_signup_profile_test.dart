@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_control/Utils/auth_profile_fields.dart';
+import 'package:money_control/Utils/display_name.dart';
 
 /// "Sign up with Google" is the same Firebase call as sign-in with Google:
 /// tapping it with an account that already exists simply signs that account in.
@@ -59,5 +60,61 @@ void main() {
       lastLogin: 'LAST_LOGIN',
     );
     expect(fields['name'], 'Google User');
+  });
+
+  group('name split', () {
+    test('a two-part display name fills both fields', () {
+      final fields = googleSignupProfileFields(
+        email: 'someone@example.com',
+        displayName: 'Ada Lovelace',
+        photoUrl: null,
+        isNewUser: true,
+        createdAt: 'CREATED_AT',
+        lastLogin: 'LAST_LOGIN',
+      );
+      expect(fields['firstName'], 'Ada');
+      expect(fields['lastName'], 'Lovelace');
+    });
+
+    test('a multi-part surname stays in the last name', () {
+      expect(splitDisplayName('John Ronald Reuel Tolkien').lastName,
+          'Ronald Reuel Tolkien');
+    });
+
+    test('extra whitespace is collapsed', () {
+      final split = splitDisplayName('  Ada   Lovelace  ');
+      expect(split.firstName, 'Ada');
+      expect(split.lastName, 'Lovelace');
+    });
+
+    test('a single-token name leaves the surname empty', () {
+      final split = splitDisplayName('Prince');
+      expect(split.firstName, 'Prince');
+      expect(split.lastName, '');
+    });
+
+    test('an empty or missing name yields two empty parts', () {
+      expect(splitDisplayName(null).firstName, '');
+      expect(splitDisplayName('   ').lastName, '');
+    });
+
+    test('a nameless account writes no derived name parts', () {
+      final fields = googleSignupProfileFields(
+        email: 'someone@example.com',
+        displayName: null,
+        photoUrl: null,
+        isNewUser: true,
+        createdAt: 'CREATED_AT',
+        lastLogin: 'LAST_LOGIN',
+      );
+      expect(fields.containsKey('firstName'), isFalse);
+      expect(fields.containsKey('lastName'), isFalse);
+    });
+
+    test('a returning user never has their edited name overwritten', () {
+      final fields = build(isNewUser: false);
+      expect(fields.containsKey('firstName'), isFalse);
+      expect(fields.containsKey('lastName'), isFalse);
+    });
   });
 }

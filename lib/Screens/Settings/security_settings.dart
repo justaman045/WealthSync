@@ -96,7 +96,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                               title: "Biometric App Lock",
                               trailing: Switch(
                                 value: bioService.isBiometricEnabled.value,
-                                activeThumbColor: AppColors.primary,
                                 onChanged: FeatureFlagService.to
                                         .visibleToMe('biometric_app_lock')
                                     ? (val) => bioService.toggleBiometric(val)
@@ -115,7 +114,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                             title: "Privacy Mode (Blur)",
                             trailing: Switch(
                               value: privacyController.isPrivacyMode.value,
-                              activeThumbColor: AppColors.primary,
                               onChanged: FeatureFlagService.to
                                       .visibleToMe('privacy_mode')
                                   ? (val) => privacyController.toggle()

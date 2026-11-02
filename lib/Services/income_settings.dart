@@ -16,8 +16,14 @@ class IncomeSettings {
   static const String modeKey = 'income_mode';
   static const String manualKey = 'income_manual_monthly'; // stored as double
 
+  /// Whether the user has seen the income-mode chooser. Until they have, the
+  /// AI Insights screen opens it once: the daily limit is otherwise derived
+  /// from a mode the user never picked or had explained.
+  static const String confirmedKey = 'income_mode_confirmed';
+
   static final Rx<IncomeMode> mode = IncomeMode.autoBlend.obs;
   static final RxDouble manualMonthly = 0.0.obs; // 0.0 = not set
+  static final RxBool confirmed = false.obs;
 
   static String _modeToString(IncomeMode m) {
     switch (m) {
@@ -54,6 +60,8 @@ class IncomeSettings {
     } else {
       manualMonthly.value = storedManual;
     }
+
+    confirmed.value = prefs.getBool(confirmedKey) ?? false;
   }
 
   /// Clears the persisted + in-memory income configuration (call on signOut).
@@ -64,9 +72,19 @@ class IncomeSettings {
   static Future<void> reset() async {
     mode.value = IncomeMode.autoBlend;
     manualMonthly.value = 0.0;
+    confirmed.value = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(modeKey);
     await prefs.remove(manualKey);
+    await prefs.remove(confirmedKey);
+  }
+
+  /// Records that the user has been shown (and answered) the mode chooser, so
+  /// it is not reopened on every visit.
+  static Future<void> markConfirmed() async {
+    confirmed.value = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(confirmedKey, true);
   }
 
   static Future<void> setMode(IncomeMode m) async {

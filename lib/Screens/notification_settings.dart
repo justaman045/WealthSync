@@ -161,7 +161,6 @@ class _NotificationSettingsScreenState
                           : AppColors.warning,
                       trailing: Switch(
                         value: _master,
-                        activeThumbColor: AppColors.primary,
                         onChanged: _toggleMaster,
                       ),
                     ),
@@ -205,7 +204,6 @@ class _NotificationSettingsScreenState
                         title: channel.label,
                         trailing: Switch(
                           value: !_disabledChannels.contains(channel.channelId),
-                          activeThumbColor: AppColors.primary,
                           onChanged: _master
                               ? (val) => _toggleChannel(channel.channelId, val)
                               : null,

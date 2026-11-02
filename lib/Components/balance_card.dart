@@ -204,7 +204,7 @@ class _BalanceCardState extends State<BalanceCard> {
                                                 .value
                                         ? l10n.balanceDuesHidden
                                         : l10n.balanceDuesDue(
-                                            '- ${CurrencyController.to.currencySymbol.value}${committed.toStringAsFixed(0)}',
+                                            '${CurrencyController.to.currencySymbol.value}${committed.toStringAsFixed(0)}',
                                           ),
                                   onTap: () {
                                     HapticFeedback.lightImpact();

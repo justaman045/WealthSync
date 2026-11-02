@@ -7,6 +7,7 @@ import 'package:money_control/Components/adaptive_scaffold.dart';
 import 'package:money_control/Components/bottom_nav_bar.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/feature_gate.dart';
+import 'package:money_control/Components/kept_page_transition.dart';
 import 'package:money_control/Components/offline_banner.dart';
 import 'package:money_control/Config/tab_destinations.dart';
 import 'package:money_control/Screens/analysis.dart';
@@ -34,6 +35,15 @@ class _MainShellState extends State<MainShell> {
   late String _current = widget.initialName;
   final Map<String, Widget> _pages = {};
 
+  /// Kept-list index of the tab that was visible before the last navigation.
+  /// A page materialized for the first time has no `oldWidget` to compare
+  /// against, so it takes its slide direction from here.
+  int _previousActiveIndex = 0;
+
+  /// False until the user navigates. The initial page must appear in place —
+  /// sliding it in on launch fights the splash-to-shell fade.
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +65,8 @@ class _MainShellState extends State<MainShell> {
       if (!hasAge) return;
     }
     setState(() {
+      _previousActiveIndex = _kept.indexOf(_current);
+      _hasNavigated = true;
       _current = name;
       if (!_kept.contains(name)) _kept.add(name);
     });
@@ -310,18 +322,22 @@ class _MainShellState extends State<MainShell> {
     final name = _kept[i];
     final active = name == _current;
     final activeIndex = _kept.indexOf(_current);
+    final lite = PerformanceController.to.liteMode.value;
     return IgnorePointer(
       ignoring: !active,
       child: ExcludeSemantics(
         excluding: !active,
         child: Offstage(
           offstage: !active,
-          child: AnimatedSlide(
-            offset: Offset(active ? 0 : (i < activeIndex ? -1 : 1), 0),
-            duration: PerformanceController.to.liteMode.value
+          child: KeptPageTransition(
+            key: ValueKey(name),
+            active: active,
+            index: i,
+            activeIndex: activeIndex,
+            initialDirection: i < _previousActiveIndex ? -1 : 1,
+            duration: (lite || !_hasNavigated)
                 ? Duration.zero
                 : const Duration(milliseconds: 320),
-            curve: Curves.easeOutCubic,
             child: _page(name),
           ),
         ),

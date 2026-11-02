@@ -1,9 +1,12 @@
+import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Utils/payment_config_fields.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Services/error_handler.dart';
 
@@ -15,27 +18,96 @@ class PaymentSettingsScreen extends StatefulWidget {
 }
 
 class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
+  late final PaymentConfigService _service;
+  late final TextEditingController _upiCtrl;
+
+  /// The form. Seeded from the service, then owned by the admin until saved.
   late String _mode;
-  late TextEditingController _upiCtrl;
+
+  /// What the form was last synced to. A remote change may overwrite the form
+  /// only while it still equals this snapshot, otherwise the admin's edit wins.
+  late String _savedMode;
+  late String _savedUpi;
+
   bool _saving = false;
+
+  /// A save from another device landed while this form had unsaved edits.
+  bool _remoteChanged = false;
+
+  Worker? _modeWorker;
+  Worker? _upiWorker;
 
   @override
   void initState() {
     super.initState();
-    _mode = PaymentConfigService.to.paymentMode.value.isNotEmpty
-        ? PaymentConfigService.to.paymentMode.value
-        : 'cash';
-    _upiCtrl = TextEditingController(text: PaymentConfigService.to.upiId.value);
+    _service = PaymentConfigService.to;
+    _mode = normalizePaymentMode(_service.paymentMode.value);
+    _savedMode = _mode;
+    _upiCtrl = TextEditingController(text: normalizeUpiId(_service.upiId.value));
+    _savedUpi = _upiCtrl.text;
+
+    // The config is live: another admin can flip the mode while this screen is
+    // open. Without this the screen kept showing the values it read in
+    // initState and a later save silently reverted their change.
+    _modeWorker = ever(_service.paymentMode, (_) => _onRemoteChange());
+    _upiWorker = ever(_service.upiId, (_) => _onRemoteChange());
   }
 
   @override
   void dispose() {
+    _modeWorker?.dispose();
+    _upiWorker?.dispose();
     _upiCtrl.dispose();
     super.dispose();
   }
 
+  String get _remoteMode => normalizePaymentMode(_service.paymentMode.value);
+  String get _remoteUpi => normalizeUpiId(_service.upiId.value);
+
+  /// An untouched form follows the remote config; an edited one does not.
+  bool get _formUntouched => !paymentConfigIsDirty(
+    mode: _mode,
+    upi: _upiCtrl.text,
+    savedMode: _savedMode,
+    savedUpi: _savedUpi,
+  );
+
+  bool get _dirty => paymentConfigIsDirty(
+    mode: _mode,
+    upi: _upiCtrl.text,
+    savedMode: _remoteMode,
+    savedUpi: _remoteUpi,
+  );
+
+  void _onRemoteChange() {
+    if (!mounted) return;
+    final untouched = _formUntouched;
+    setState(() {
+      if (untouched) {
+        _mode = _remoteMode;
+        _upiCtrl.text = _remoteUpi;
+        _savedMode = _remoteMode;
+        _savedUpi = _remoteUpi;
+        _remoteChanged = false;
+      } else {
+        _remoteChanged = true;
+      }
+    });
+  }
+
+  void _reload() {
+    setState(() {
+      _mode = _remoteMode;
+      _upiCtrl.text = _remoteUpi;
+      _savedMode = _mode;
+      _savedUpi = _upiCtrl.text;
+      _remoteChanged = false;
+    });
+  }
+
   Future<void> _save() async {
-    if (_mode == 'upi' && _upiCtrl.text.trim().isEmpty) {
+    final upi = _upiCtrl.text.trim();
+    if (_mode == 'upi' && upi.isEmpty) {
       ErrorHandler.showError(
         'Please enter your UPI ID before switching to UPI mode.',
         title: 'Missing UPI ID',
@@ -44,7 +116,13 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
     }
     setState(() => _saving = true);
     try {
-      await PaymentConfigService.to.save(mode: _mode, upi: _upiCtrl.text.trim());
+      await PaymentConfigService.to.saveConfig(mode: _mode, upi: upi);
+      if (!mounted) return;
+      setState(() {
+        _savedMode = _mode;
+        _savedUpi = upi;
+        _remoteChanged = false;
+      });
       ErrorHandler.showSuccess('Payment settings updated.', title: 'Saved');
     } catch (e) {
       ErrorHandler.showError('Failed to save: $e', title: 'Error');
@@ -88,90 +166,153 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              Text(AppLocalizations.of(context)!.paymentMode,
-                  style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary)),
-              SizedBox(height: 12.h),
-              _buildModeCard(
-                mode: 'google_play',
-                label: 'Google Play Billing',
-                subtitle: 'Users pay via Google Play Store. Requires Play Console setup.',
-                icon: Icons.shop_rounded,
-                color: AppColors.success,
-              ),
-              SizedBox(height: 12.h),
-              _buildModeCard(
-                mode: 'upi',
-                label: 'Manual UPI',
-                subtitle: 'Users pay to your UPI ID and submit the transaction ID for manual approval.',
-                icon: Icons.account_balance_wallet_rounded,
-                color: AppColors.primary,
-              ),
-              SizedBox(height: 32.h),
-              if (_mode == 'upi') ...[
-                Text(AppLocalizations.of(context)!.upiID,
-                    style: AppType.bodySmall(isDark
-                            ? Colors.white70
-                            : AppColors.lightTextSecondary)),
-                SizedBox(height: 8.h),
-                GlassContainer(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-                  borderRadius: BorderRadius.circular(14.r),
-                  child: TextField(
-                    controller: _upiCtrl,
-                    style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'yourname@upi',
-                      hintStyle: AppType.bodyLarge(isDark
-                              ? Colors.white38
-                              : AppColors.lightTextTertiary),
-                      prefixIcon: const Icon(Icons.alternate_email, color: AppColors.primary),
-                    ),
-                  ),
+              child: Obx(
+                // Rebuild when the live config or its audit trail changes.
+                () => ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _upiCtrl,
+                  builder: (context, _, __) => _buildForm(context, isDark),
                 ),
-                SizedBox(height: 8.h),
-                Text(
-                  AppLocalizations.of(context)!.usersAskedPayUPIID,
-                  style: AppType.bodySmall(isDark
-                          ? Colors.white38
-                          : AppColors.lightTextTertiary),
-                ),
-                SizedBox(height: 32.h),
-              ],
-              SizedBox(
-                width: double.infinity,
-                height: 52.h,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md.r),
-                    ),
-                  ),
-                  // The spinner was black on the indigo fill (3.1:1); the label
-                  // size now comes from the button theme.
-                  child: _saving
-                      ? SizedBox(
-                          width: 22.w,
-                          height: 22.h,
-                          child: const CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
-                          ),
-                        )
-                      : Text(AppLocalizations.of(context)!.saveSettings),
-                ),
-              ),
-            ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context, bool isDark) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.paymentMode,
+            style: AppType.bodySmall(isDark ? Colors.white70 : AppColors.lightTextSecondary)),
+        SizedBox(height: 12.h),
+        _buildModeCard(
+          mode: 'google_play',
+          label: 'Google Play Billing',
+          subtitle: 'Users pay via Google Play Store. Requires Play Console setup.',
+          icon: Icons.shop_rounded,
+          color: AppColors.success,
+        ),
+        SizedBox(height: 12.h),
+        _buildModeCard(
+          mode: 'upi',
+          label: 'Manual UPI',
+          subtitle: 'Users pay to your UPI ID and submit the transaction ID for manual approval.',
+          icon: Icons.account_balance_wallet_rounded,
+          color: AppColors.primary,
+        ),
+        SizedBox(height: 32.h),
+        if (_remoteChanged) ...[
+          _buildRemoteChangeBanner(l10n, isDark),
+          SizedBox(height: 16.h),
+        ],
+        // Always visible: the UPI id used to be hidden until UPI mode was
+        // selected, so it could not be checked (or corrected) while the mode
+        // was still Play Billing — and an empty id only surfaced on save.
+        Text(l10n.upiID,
+            style: AppType.bodySmall(isDark
+                    ? Colors.white70
+                    : AppColors.lightTextSecondary)),
+        SizedBox(height: 8.h),
+        GlassContainer(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+          borderRadius: BorderRadius.circular(14.r),
+          child: TextField(
+            controller: _upiCtrl,
+            style: AppType.bodyLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: 'yourname@upi',
+              hintStyle: AppType.bodyLarge(isDark
+                      ? Colors.white38
+                      : AppColors.lightTextTertiary),
+              prefixIcon: const Icon(Icons.alternate_email, color: AppColors.primary),
+            ),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Text(
+          l10n.usersAskedPayUPIID,
+          style: AppType.bodySmall(isDark
+                  ? Colors.white38
+                  : AppColors.lightTextTertiary),
+        ),
+        SizedBox(height: 12.h),
+        _buildLastUpdated(l10n, isDark),
+        SizedBox(height: 32.h),
+        SizedBox(
+          width: double.infinity,
+          height: 52.h,
+          child: ElevatedButton(
+            // A save that changes nothing still bumps `updatedAt` and tells the
+            // other admin their config was replaced, so a clean form cannot save.
+            onPressed: (_saving || !_dirty) ? null : _save,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md.r),
+              ),
+            ),
+            // The spinner was black on the indigo fill (3.1:1); the label
+            // size now comes from the button theme.
+            child: _saving
+                ? SizedBox(
+                    width: 22.w,
+                    height: 22.h,
+                    child: const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(l10n.saveSettings),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRemoteChangeBanner(AppLocalizations l10n, bool isDark) {
+    return GlassContainer(
+      padding: EdgeInsets.all(12.w),
+      borderRadius: BorderRadius.circular(14.r),
+      child: Row(
+        children: [
+          const Icon(Icons.sync_problem, color: AppColors.warning, size: 20),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              l10n.paymentSettingsChangedElsewhere,
+              style: AppType.bodySmall(isDark
+                  ? Colors.white70
+                  : AppColors.lightTextSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: _reload,
+            child: Text(l10n.reload),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLastUpdated(AppLocalizations l10n, bool isDark) {
+    final updatedAt = _service.updatedAt.value;
+    final updatedBy = _service.updatedBy.value;
+    if (updatedAt == null && updatedBy.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final stamp = updatedAt == null
+        ? ''
+        : ' · ${DateFormat.yMMMd().add_Hm().format(updatedAt)}';
+    final who = updatedBy.isEmpty ? '' : ' $updatedBy';
+    return Text(
+      '${l10n.paymentSettingsLastUpdated}$who$stamp',
+      style: AppType.bodySmall(
+        isDark ? Colors.white38 : AppColors.lightTextTertiary,
       ),
     );
   }

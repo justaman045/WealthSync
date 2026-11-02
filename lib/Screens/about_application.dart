@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:money_control/Config/app_info.dart';
+import 'package:money_control/Screens/terms_and_policy.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/colors.dart';
 
@@ -95,7 +98,19 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
               ),
               SizedBox(height: 22.h),
 
-              _sectionLabel("Developer", secondaryTextColor),
+              _sectionLabel(AppInfo.featuresLabel, secondaryTextColor),
+              SizedBox(height: 8.h),
+              _featuresCard(
+                cardColor,
+                borderColor,
+                secondaryTextColor,
+                textColor,
+                isDark,
+              ),
+
+              SizedBox(height: 22.h),
+
+              _sectionLabel(AppInfo.developerLabel, secondaryTextColor),
               SizedBox(height: 8.h),
               _developerTile(
                 cardColor,
@@ -108,7 +123,20 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
 
               SizedBox(height: 22.h),
 
-              _sectionLabel("Acknowledgements", secondaryTextColor),
+              _sectionLabel(AppInfo.legalAndDataLabel, secondaryTextColor),
+              SizedBox(height: 8.h),
+              _legalCard(
+                cardColor,
+                borderColor,
+                scheme,
+                secondaryTextColor,
+                textColor,
+                isDark,
+              ),
+
+              SizedBox(height: 22.h),
+
+              _sectionLabel(AppInfo.acknowledgementsLabel, secondaryTextColor),
               SizedBox(height: 8.h),
               _acknowledgementCard(
                 cardColor,
@@ -173,7 +201,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           ),
           SizedBox(height: 14.h),
           Text(
-            "WealthSync",
+            AppInfo.name,
             style: AppType.titleLarge(textColor),
           ),
           SizedBox(height: 6.h),
@@ -189,7 +217,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
           Divider(color: border),
           SizedBox(height: 12.h),
           Text(
-            "Empower your financial journey with WealthSync. Seamlessly track expenses, visualize income streams, and gain profound insights into your spending habits with our AI-powered analytics. Crafted for elegance, designed for control.",
+            AppInfo.summary,
             textAlign: TextAlign.center,
             style: AppType.bodySmall(textColor.withValues(alpha: 0.85)),
           ),
@@ -245,6 +273,140 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
     );
   }
 
+  // ---------------- FEATURES CARD ----------------
+  Widget _featuresCard(
+    Color surface,
+    Color border,
+    Color secondary,
+    Color textColor,
+    bool isDark,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < AppInfo.features.length; i++) ...[
+            Text(
+              AppInfo.features[i].title,
+              style: AppType.labelLarge(textColor),
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              AppInfo.features[i].description,
+              style: AppType.bodySmall(secondary),
+            ),
+            if (i < AppInfo.features.length - 1) ...[
+              SizedBox(height: 10.h),
+              Divider(color: border, height: 1),
+              SizedBox(height: 10.h),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ---------------- LEGAL & DATA CARD ----------------
+  //
+  // Each row opens the legal page *at its section*. Both legal tiles used to
+  // open the same page at the top, so "Privacy Policy" landed on the Terms.
+  Widget _legalCard(
+    Color surface,
+    Color border,
+    ColorScheme scheme,
+    Color secondary,
+    Color textColor,
+    bool isDark,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: border, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+            blurRadius: 15.w,
+            offset: Offset(0, 5.w),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _legalTile(
+            title: AppInfo.termsOfService,
+            icon: Icons.gavel_rounded,
+            section: LegalSection.terms,
+            textColor: textColor,
+            secondary: secondary,
+            border: border,
+            scheme: scheme,
+          ),
+          Divider(color: border, height: 1),
+          _legalTile(
+            title: AppInfo.privacyPolicy,
+            icon: Icons.privacy_tip_rounded,
+            section: LegalSection.privacy,
+            textColor: textColor,
+            secondary: secondary,
+            border: border,
+            scheme: scheme,
+          ),
+          Divider(color: border, height: 1),
+          _legalTile(
+            title: AppInfo.dataAndConsents,
+            icon: Icons.tune_rounded,
+            section: LegalSection.data,
+            textColor: textColor,
+            secondary: secondary,
+            border: border,
+            scheme: scheme,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _legalTile({
+    required String title,
+    required IconData icon,
+    required LegalSection section,
+    required Color textColor,
+    required Color secondary,
+    required Color border,
+    required ColorScheme scheme,
+  }) {
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 2.h),
+        leading: Icon(icon, color: scheme.primary, size: 20.sp),
+        title: Text(title, style: AppType.labelLarge(textColor)),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: secondary,
+          size: 20.sp,
+        ),
+        onTap: () => Get.to(
+          () => LegalTrustPage(initialSection: section),
+        ),
+      ),
+    );
+  }
+
   // ---------------- ACKNOWLEDGEMENT CARD ----------------
   Widget _acknowledgementCard(
     Color surface,
@@ -272,17 +434,13 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Powered by open-source technologies:",
+            AppInfo.poweredBy,
             style: AppType.labelMedium(secondary),
           ),
           SizedBox(height: 10.h),
 
-          _bullet("Flutter Framework", textColor),
-          _bullet("Firebase Authentication & Firestore", textColor),
-          _bullet("GetX – State Management & Routing", textColor),
-          _bullet("flutter_screenutil – Responsive UI", textColor),
-          _bullet("package_info_plus", textColor),
-          _bullet("share_plus, printing, and more", textColor),
+          for (final credit in AppInfo.acknowledgements)
+            _bullet(credit, textColor),
 
           SizedBox(height: 16.h),
           Row(
@@ -294,7 +452,7 @@ class _AboutApplicationScreenState extends State<AboutApplicationScreen> {
               ),
               SizedBox(width: 6.w),
               Text(
-                "${DateTime.now().year} WealthSync",
+                "${DateTime.now().year} ${AppInfo.name}",
                 style: AppType.bodySmall(secondary),
               ),
             ],

@@ -11,9 +11,18 @@ import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Services/user_service.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/Config/app_info.dart';
+
+/// Anchor into [LegalTrustPage]. The settings screen links straight to the
+/// section the user tapped instead of dropping them at the top of a page that
+/// starts with the Terms.
+enum LegalSection { terms, privacy, data }
 
 class LegalTrustPage extends StatefulWidget {
-  const LegalTrustPage({super.key});
+  const LegalTrustPage({super.key, this.initialSection});
+
+  /// Section to scroll to after the first frame. `null` opens at the top.
+  final LegalSection? initialSection;
 
   @override
   State<LegalTrustPage> createState() => _LegalTrustPageState();
@@ -27,10 +36,55 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
 
   String? message;
 
+  final GlobalKey _termsKey = GlobalKey();
+  final GlobalKey _privacyKey = GlobalKey();
+  final GlobalKey _consentsKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _loadUserConsents();
+    if (widget.initialSection != null) {
+      // The keys have no context until the first build, so scroll afterwards.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollTo(widget.initialSection!);
+      });
+    }
+  }
+
+  GlobalKey _keyFor(LegalSection section) {
+    switch (section) {
+      case LegalSection.terms:
+        return _termsKey;
+      case LegalSection.privacy:
+        return _privacyKey;
+      case LegalSection.data:
+        return _consentsKey;
+    }
+  }
+
+  void _scrollTo(LegalSection section) {
+    final ctx = _keyFor(section).currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+      alignment: 0,
+    );
+  }
+
+  String get _title {
+    switch (widget.initialSection) {
+      case LegalSection.terms:
+        return AppInfo.termsOfService;
+      case LegalSection.privacy:
+        return AppInfo.privacyPolicy;
+      case LegalSection.data:
+        return AppInfo.dataAndConsents;
+      case null:
+        return 'Legal & Privacy';
+    }
   }
 
   Future<void> _loadUserConsents() async {
@@ -318,7 +372,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Text(
-            "Legal & Privacy",
+            _title,
             style: AppType.titleMedium(textColor),
           ),
           backgroundColor: Colors.transparent,
@@ -337,32 +391,36 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              _buildGlassSection(
-                title: "Terms of Service",
-                content: _termsOfServiceText,
-                cardColor: cardColor,
-                borderColor: borderColor,
-                textColor: textColor,
-                secondaryColor: secondaryTextColor,
-                isDark: isDark,
+              KeyedSubtree(
+                key: _termsKey,
+                child: _buildGlassSection(
+                  title: AppInfo.termsOfService,
+                  content: _termsOfServiceText,
+                  cardColor: cardColor,
+                  borderColor: borderColor,
+                  textColor: textColor,
+                  secondaryColor: secondaryTextColor,
+                  isDark: isDark,
+                ),
               ),
               SizedBox(height: 20.h),
-              _buildGlassSection(
-                title: "Privacy Policy",
-                content: _privacyPolicyText,
-                cardColor: cardColor,
-                borderColor: borderColor,
-                textColor: textColor,
-                secondaryColor: secondaryTextColor,
-                isDark: isDark,
+              KeyedSubtree(
+                key: _privacyKey,
+                child: _buildGlassSection(
+                  title: AppInfo.privacyPolicy,
+                  content: _privacyPolicyText,
+                  cardColor: cardColor,
+                  borderColor: borderColor,
+                  textColor: textColor,
+                  secondaryColor: secondaryTextColor,
+                  isDark: isDark,
+                ),
               ),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: () => launchUrl(
-                    Uri.parse(
-                      'https://justaman045.github.io/WealthSync/privacy_policy.html',
-                    ),
+                    Uri.parse(AppInfo.privacyPolicyUrl),
                     mode: LaunchMode.externalApplication,
                   ),
                   icon: Icon(
@@ -377,7 +435,10 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
                 ),
               ),
               SizedBox(height: 24.h),
-              _sectionTitle("Your Consents", textColor),
+              KeyedSubtree(
+                key: _consentsKey,
+                child: _sectionTitle("Your Consents", textColor),
+              ),
               SizedBox(height: 10.h),
               _buildConsentSection(
                 cardColor,
@@ -499,7 +560,6 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
     Color secondaryColor,
   ) {
     return SwitchListTile(
-      activeThumbColor: AppColors.primary,
       contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       title: Text(
         title,

@@ -744,6 +744,12 @@ abstract class AppLocalizations {
   /// **'No salary credits found in window (current month first week or previous month last working day)'**
   String get analysisNoSalaryWindow;
 
+  /// No description provided for @analysisSalaryWindowBlend.
+  ///
+  /// In en, this message translates to:
+  /// **'no salary in window · using your recent average'**
+  String get analysisSalaryWindowBlend;
+
   /// No description provided for @analysisNoSpendingMonth.
   ///
   /// In en, this message translates to:
@@ -2189,6 +2195,60 @@ abstract class AppLocalizations {
   /// **'Home Widget'**
   String get homeWidget;
 
+  /// No description provided for @homeWidgetQuickAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick add shortcut'**
+  String get homeWidgetQuickAddTitle;
+
+  /// No description provided for @homeWidgetQuickAddSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show “+ Add” on the widget so one tap starts a new transaction.'**
+  String get homeWidgetQuickAddSubtitle;
+
+  /// No description provided for @homeWidgetTotalBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Balance'**
+  String get homeWidgetTotalBalance;
+
+  /// No description provided for @homeWidgetStepAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add the widget'**
+  String get homeWidgetStepAddTitle;
+
+  /// No description provided for @homeWidgetStepAddBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press your home screen, tap Widgets, search for “WealthSync”, then drag it onto your home screen.'**
+  String get homeWidgetStepAddBody;
+
+  /// No description provided for @homeWidgetStepTapTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open'**
+  String get homeWidgetStepTapTitle;
+
+  /// No description provided for @homeWidgetStepTapBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tapping the widget opens WealthSync. Tap “+ Add” to start a new transaction straight away.'**
+  String get homeWidgetStepTapBody;
+
+  /// No description provided for @homeWidgetStepRefreshTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Always up to date'**
+  String get homeWidgetStepRefreshTitle;
+
+  /// No description provided for @homeWidgetStepRefreshBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your balance refreshes every time you add, import or edit a transaction — no manual setup needed.'**
+  String get homeWidgetStepRefreshBody;
+
   /// No description provided for @howCategoryCountsTowardSmart.
   ///
   /// In en, this message translates to:
@@ -2260,6 +2320,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Income Source'**
   String get incomeSource;
+
+  /// No description provided for @incomeModeChooserIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'How should we estimate your monthly income? You can change this any time in Settings.'**
+  String get incomeModeChooserIntro;
+
+  /// No description provided for @incomeModeManualHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You enter the amount yourself; nothing is inferred from your transactions.'**
+  String get incomeModeManualHint;
+
+  /// No description provided for @incomeModeBlendHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Averages your recent months of income, weighted toward the current month.'**
+  String get incomeModeBlendHint;
+
+  /// No description provided for @incomeModeSalaryWindowHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Counts income added in the first week of the month or on the last working day as salary.'**
+  String get incomeModeSalaryWindowHint;
+
+  /// No description provided for @incomeModeManualAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly income'**
+  String get incomeModeManualAmountLabel;
+
+  /// No description provided for @incomeModeManualRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your monthly income to use Manual.'**
+  String get incomeModeManualRequired;
 
   /// No description provided for @insurancePolicies.
   ///
@@ -2458,6 +2554,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You Owe'**
   String get lentYouOwe;
+
+  /// No description provided for @lentTopUps.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-ups'**
+  String get lentTopUps;
+
+  /// No description provided for @lentTopUpsTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} total'**
+  String lentTopUpsTotal(Object amount);
+
+  /// No description provided for @lentTopUpsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Money you lent this person after the original entry.'**
+  String get lentTopUpsHint;
+
+  /// No description provided for @lentTopUpsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No top-ups recorded.'**
+  String get lentTopUpsEmpty;
+
+  /// No description provided for @lentAddTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Add top-up'**
+  String get lentAddTopUp;
+
+  /// No description provided for @lentRemoveTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove top-up'**
+  String get lentRemoveTopUp;
 
   /// No description provided for @loanBalanceCol.
   ///
@@ -2782,6 +2914,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Payment Settings'**
   String get paymentSettings;
+
+  /// No description provided for @paymentSettingsChangedElsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment settings changed on another device. Reload to see the latest, or save to overwrite.'**
+  String get paymentSettingsChangedElsewhere;
+
+  /// No description provided for @paymentSettingsLastUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated'**
+  String get paymentSettingsLastUpdated;
+
+  /// No description provided for @reload.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get reload;
 
   /// No description provided for @pendingRequests.
   ///
