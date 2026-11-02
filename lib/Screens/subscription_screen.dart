@@ -43,7 +43,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     AppAnalytics.log(AnalyticsEvent.paywallViewed, {
       'source': args is Map ? (args['source']?.toString() ?? 'unknown') : 'unknown',
       'scroll_to_payment':
-          args is Map && args['scrollToPayment'] == true,
+          args is Map && args['scrollToPayment'] == true ? 1 : 0,
     });
     if (args is Map && args['scrollToPayment'] == true) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToPayment());

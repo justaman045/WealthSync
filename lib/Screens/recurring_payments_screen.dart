@@ -582,8 +582,8 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
   late bool _autoPay;
   late String _category;
   late final List<String> _sortedCategories;
-  late final bool _autoCalculate; // derived from toggle
-  late final bool _carryForward; // derived from toggle
+  bool _autoCalculate = true; // derived from toggle
+  bool _carryForward = false; // derived from toggle
   bool _saving = false;
 
   @override
@@ -612,8 +612,8 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
         widget.payment?.nextDueDate ??
         DateTime.now().add(const Duration(days: 30));
     _autoPay = widget.payment?.autoPay ?? false;
-    _autoCalculate = true; // default to on
-    _carryForward = CarryForward.never == CarryForward.never; // default
+    _autoCalculate = widget.payment?.autoCalculate ?? true;
+    _carryForward = widget.payment?.carryForward == CarryForward.always;
 
     _category = widget.payment?.category ?? 'Utilities';
     final categoryNames = widget.categories.map((e) => e.name).toSet();
@@ -866,31 +866,31 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                 ),
               ],
 
-              // Auto-calculate outstanding toggle
-              SizedBox(height: 24.h),
-              SwitchListTile(
-                title: Text(
-                  AppLocalizations.of(context)!.recurringAutoCalcToggle,
-                  style: AppType.labelLarge(textColor),
+              // Auto-calculate & carry-forward toggles (only for liability kinds)
+              if (_kind.isLiability) ...[
+                SizedBox(height: 24.h),
+                SwitchListTile(
+                  title: Text(
+                    AppLocalizations.of(context)!.recurringAutoCalcToggle,
+                    style: AppType.labelLarge(textColor),
+                  ),
+                  value: _autoCalculate,
+                  onChanged: (v) => setState(() => _autoCalculate = v),
+                  // ignore: deprecated_member_use
+                  activeColor: AppColors.primary,
                 ),
-                value: _autoCalculate,
-                onChanged: (v) => setState(() => _autoCalculate = v),
-                // ignore: deprecated_member_use
-                activeColor: AppColors.primary,
-              ),
-
-              // Carry forward missed payments toggle
-              SizedBox(height: 16.h),
-              SwitchListTile(
-                title: Text(
-                  AppLocalizations.of(context)!.recurringCarryForwardToggle,
-                  style: AppType.labelLarge(textColor),
+                SizedBox(height: 16.h),
+                SwitchListTile(
+                  title: Text(
+                    AppLocalizations.of(context)!.recurringCarryForwardToggle,
+                    style: AppType.labelLarge(textColor),
+                  ),
+                  value: _carryForward,
+                  onChanged: (v) => setState(() => _carryForward = v),
+                  // ignore: deprecated_member_use
+                  activeColor: AppColors.warning,
                 ),
-                value: _carryForward,
-                onChanged: (v) => setState(() => _carryForward = v),
-                // ignore: deprecated_member_use
-                activeColor: AppColors.warning,
-              ),
+              ],
 
 // Category
               Text(
