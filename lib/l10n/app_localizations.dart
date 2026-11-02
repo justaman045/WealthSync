@@ -4396,6 +4396,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type'**
   String get recurringTypeLabel;
+
+  /// No description provided for @recurringTermLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Term (months)'**
+  String get recurringTermLabel;
+
+  /// No description provided for @recurringInterestLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest rate'**
+  String get recurringInterestLabel;
+
+  /// No description provided for @recurringInterestRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Interest rate'**
+  String get recurringInterestRate;
+
+  /// No description provided for @recurringInterestRateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 12 for 12% annual'**
+  String get recurringInterestRateHint;
+
+  /// No description provided for @recurringAutoCalcToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-calculate outstanding'**
+  String get recurringAutoCalcToggle;
+
+  /// No description provided for @recurringCarryForwardToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Carry forward missed payments'**
+  String get recurringCarryForwardToggle;
 }
 
 class _AppLocalizationsDelegate

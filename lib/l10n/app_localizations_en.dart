@@ -2491,4 +2491,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recurringTypeLabel => 'Type';
+
+  @override
+  String get recurringTermLabel => 'Term (months)';
+
+  @override
+  String get recurringInterestLabel => 'Interest rate';
+
+  @override
+  String get recurringInterestRate => 'Interest rate';
+
+  @override
+  String get recurringInterestRateHint => 'e.g. 12 for 12% annual';
+
+  @override
+  String get recurringAutoCalcToggle => 'Auto-calculate outstanding';
+
+  @override
+  String get recurringCarryForwardToggle => 'Carry forward missed payments';
 }

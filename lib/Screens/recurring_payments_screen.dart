@@ -574,12 +574,16 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _amountCtrl;
   late final TextEditingController _outstandingCtrl;
-  late RecurringFrequency _freq;
+  late final TextEditingController _termCtrl;
+  late final TextEditingController _interestRateCtrl;
+  late final RecurringFrequency _freq;
   late RecurringKind _kind;
   late DateTime _nextPaymentDate;
   late bool _autoPay;
   late String _category;
   late final List<String> _sortedCategories;
+  late final bool _autoCalculate; // derived from toggle
+  late final bool _carryForward; // derived from toggle
   bool _saving = false;
 
   @override
@@ -594,12 +598,22 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
           ? widget.payment!.outstanding!.toStringAsFixed(0)
           : '',
     );
+    _termCtrl = TextEditingController(
+      text: widget.payment?.numberOfPayments != null
+          ? widget.payment!.numberOfPayments.toString()
+          : '',
+    );
+    _interestRateCtrl = TextEditingController(
+      text: widget.payment?.interestRate?.toStringAsFixed(1) ?? '',
+    );
     _freq = widget.payment?.frequency ?? RecurringFrequency.monthly;
     _kind = widget.payment?.kind ?? RecurringKind.bill;
     _nextPaymentDate =
         widget.payment?.nextDueDate ??
         DateTime.now().add(const Duration(days: 30));
     _autoPay = widget.payment?.autoPay ?? false;
+    _autoCalculate = true; // default to on
+    _carryForward = CarryForward.never == CarryForward.never; // default
 
     _category = widget.payment?.category ?? 'Utilities';
     final categoryNames = widget.categories.map((e) => e.name).toSet();
@@ -614,6 +628,8 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
     _titleCtrl.dispose();
     _amountCtrl.dispose();
     _outstandingCtrl.dispose();
+    _termCtrl.dispose();
+    _interestRateCtrl.dispose();
     super.dispose();
   }
 
@@ -647,11 +663,21 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
       // Outstanding only applies to a liability; clearing the field (or
       // switching back to a plain bill) drops it to null rather than 0, so the
       // total never counts a zero balance as tracked debt.
-      final outstanding = _kind.isLiability
+      final manualOutstanding = _kind.isLiability
           ? RecurringPayment.roundAmount(
               double.tryParse(_outstandingCtrl.text.replaceAll(',', '')) ?? 0,
             )
           : 0.0;
+      // Parse term and interest rate from the UI controllers.
+      final numberOfPayments =
+          _termCtrl.text.isNotEmpty ? int.tryParse(_termCtrl.text) : null;
+      final interestRate = double.tryParse(_interestRateCtrl.text);
+      // Auto-calculate is enabled only when the user explicitly has provided term
+      // details (number of payments) and interest rate.
+      final autoCalculate = _kind.isLiability &&
+          _termCtrl.text.isNotEmpty &&
+          _interestRateCtrl.text.isNotEmpty;
+      // Build the new payment with all the new fields.
       final newPayment = RecurringPayment(
         id: widget.payment?.id ?? const Uuid().v4(),
         userId: userId,
@@ -664,7 +690,20 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
         isActive: widget.payment?.isActive ?? true,
         autoPay: _autoPay,
         kind: _kind,
-        outstanding: outstanding > 0 ? outstanding : null,
+        outstanding: manualOutstanding > 0 ? manualOutstanding : null,
+        calculationMethod:
+            _kind.isLiability && _interestRateCtrl.text.isNotEmpty
+                ? CalculationMethod.amortizing
+                : CalculationMethod.simple,
+        carryForward: _kind.isLiability
+            ? (_carryForward || widget.payment?.carryForward == CarryForward.always
+                ? CarryForward.always
+                : CarryForward.never)
+            : CarryForward.never,
+        termEndDate: null, // we use numberOfPayments instead
+        numberOfPayments: numberOfPayments,
+        interestRate: interestRate,
+        autoCalculate: autoCalculate,
       );
       try {
         await widget.onSave(newPayment);
@@ -680,7 +719,7 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
       }
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
@@ -787,7 +826,73 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
 
               SizedBox(height: 16.h),
 
-              // Category
+              
+
+              // Term — number of monthly payments (only for liability kinds)
+              if (_kind.isLiability) ...[
+                SizedBox(height: 16.h),
+                Text(
+                  AppLocalizations.of(context)!.recurringTermLabel,
+                  style: AppType.labelMedium(textColor),
+                ),
+                SizedBox(height: 8.h),
+                TextFormField(
+                  controller: _termCtrl,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.recurringTermLabel,
+                    helperText:
+                        'Number of monthly payments (e.g. 36 for a 3-year loan)',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+
+              // Interest rate — only shown for liability kinds
+              if (_kind.isLiability) ...[
+                SizedBox(height: 16.h),
+                Text(
+                  AppLocalizations.of(context)!.recurringInterestLabel,
+                  style: AppType.labelMedium(textColor),
+                ),
+                SizedBox(height: 8.h),
+                TextFormField(
+                  controller: _interestRateCtrl,
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.recurringInterestRate,
+                    helperText: AppLocalizations.of(context)!.recurringInterestRateHint,
+                    prefixText: '%',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ],
+
+              // Auto-calculate outstanding toggle
+              SizedBox(height: 24.h),
+              SwitchListTile(
+                title: Text(
+                  AppLocalizations.of(context)!.recurringAutoCalcToggle,
+                  style: AppType.labelLarge(textColor),
+                ),
+                value: _autoCalculate,
+                onChanged: (v) => setState(() => _autoCalculate = v),
+                // ignore: deprecated_member_use
+                activeColor: AppColors.primary,
+              ),
+
+              // Carry forward missed payments toggle
+              SizedBox(height: 16.h),
+              SwitchListTile(
+                title: Text(
+                  AppLocalizations.of(context)!.recurringCarryForwardToggle,
+                  style: AppType.labelLarge(textColor),
+                ),
+                value: _carryForward,
+                onChanged: (v) => setState(() => _carryForward = v),
+                // ignore: deprecated_member_use
+                activeColor: AppColors.warning,
+              ),
+
+// Category
               Text(
                 AppLocalizations.of(context)!.recurringCategoryLabel,
                 style: AppType.labelMedium(textColor),
@@ -878,7 +983,8 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                       size: 22.sp,
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
-                    activeColor: AppColors.primary,
+                    // ignore: deprecated_member_use
+                activeColor: AppColors.primary,
                     checkColor: Colors.white,
                   ),
                 ),

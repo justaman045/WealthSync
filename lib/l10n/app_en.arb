@@ -938,5 +938,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "recurringTermLabel": "Term (months)",
+  "recurringInterestLabel": "Interest rate",
+  "recurringInterestRate": "Interest rate",
+  "recurringInterestRateHint": "e.g. 12 for 12% annual",
+  "recurringAutoCalcToggle": "Auto-calculate outstanding",
+  "recurringCarryForwardToggle": "Carry forward missed payments"
 }

@@ -98,12 +98,21 @@ Map<String, RecurringDue> recurringDueByCategory(
 
 /// Outstanding balance still owed across every active credit card / loan EMI
 /// payment. A stock, not a flow: it does not depend on the due date.
+///
+/// When a payment has [autoCalculate] enabled, this returns the auto-calculated
+/// remaining balance based on the term details (start date, term end/number of
+/// payments, interest rate, and calculation method). Otherwise it falls back to
+/// the manual [outstanding] field.
 double liabilityOutstanding(Iterable<RecurringPayment> payments) {
   double total = 0;
   for (final payment in payments) {
     if (!payment.isActive || !payment.kind.isLiability) continue;
-    final owed = payment.outstanding;
-    if (owed != null && owed > 0) total += owed;
+    // Use auto-calculated outstanding when autoCalculate is enabled and term
+    // details are available; otherwise respect the manually entered [outstanding].
+    double owed = payment.autoCalculate && payment.autoCalculatedOutstanding.isFinite
+        ? payment.autoCalculatedOutstanding
+        : (payment.outstanding ?? 0);
+    if (owed > 0) total += owed;
   }
   return total;
 }
@@ -132,6 +141,10 @@ class MonthlyBill {
   /// The due recurring payment is a credit card / loan EMI.
   final bool isLiability;
 
+  /// Whether this bill's [plan] was derived from the auto-calculated outstanding
+  /// rather than a manual entry. Useful for UI badges.
+  final bool autoCalculated;
+
   const MonthlyBill({
     required this.category,
     required this.autoAmount,
@@ -141,6 +154,7 @@ class MonthlyBill {
     required this.role,
     this.dueDate,
     this.isLiability = false,
+    this.autoCalculated = false,
   });
 
   bool get isOverridden => overrideAmount > 0;
@@ -186,6 +200,7 @@ class MonthlyBill {
     role: role,
     dueDate: dueDate,
     isLiability: isLiability,
+    autoCalculated: autoCalculated,
   );
 }
 
@@ -280,6 +295,27 @@ MonthlyBills buildMonthlyBills({
     // A category nobody spent on, planned or owes anything for is noise.
     if (auto == 0 && spent == 0 && due == null && override == 0) continue;
 
+    // Determine if this bill's outstanding should be auto-calculated.
+    final recurringPayment = recurring.firstWhere(
+      (p) => p.category.toLowerCase().trim() == key && p.isActive,
+      orElse: () => RecurringPayment(
+        id: '',
+        userId: '',
+        title: name,
+        amount: 0,
+        category: name,
+        frequency: RecurringFrequency.monthly,
+        startDate: DateTime.now(),
+        nextDueDate: DateTime.now(),
+        isActive: false,
+      ),
+    );
+    final bool useAutoCalc =
+        recurringPayment.autoCalculate &&
+            (recurringPayment.termEndDate != null ||
+                recurringPayment.numberOfPayments != null) &&
+            recurringPayment.autoCalculatedOutstanding.isFinite;
+
     bills.add(
       MonthlyBill(
         category: name,
@@ -290,6 +326,8 @@ MonthlyBills buildMonthlyBills({
         role: role,
         dueDate: due?.date,
         isLiability: due?.isLiability ?? false,
+        // Flag that the outstanding for this category was auto-calculated.
+        autoCalculated: useAutoCalc,
       ),
     );
   }
