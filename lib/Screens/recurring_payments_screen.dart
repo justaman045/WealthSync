@@ -876,8 +876,6 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                   ),
                   value: _autoCalculate,
                   onChanged: (v) => setState(() => _autoCalculate = v),
-                  // ignore: deprecated_member_use
-                  activeColor: AppColors.primary,
                 ),
                 SizedBox(height: 16.h),
                 SwitchListTile(
@@ -887,8 +885,6 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                   ),
                   value: _carryForward,
                   onChanged: (v) => setState(() => _carryForward = v),
-                  // ignore: deprecated_member_use
-                  activeColor: AppColors.warning,
                 ),
               ],
 
