@@ -4210,6 +4210,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When a friend signs up with your code, you both get +30 days of Pro — and every additional friend adds 30 more.'**
   String get whenFriendSignsUpCode;
+
+  /// No description provided for @analysisBillDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Due {date}: {amount}'**
+  String analysisBillDue(String amount, String date);
+
+  /// No description provided for @analysisBillPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill'**
+  String get analysisBillPlan;
+
+  /// No description provided for @analysisBillsDueLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Bills {amount} · next {date} · View'**
+  String analysisBillsDueLink(String amount, String date);
+
+  /// No description provided for @analysisBillsLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Bills {amount} · View'**
+  String analysisBillsLink(String amount);
+
+  /// No description provided for @analysisHowCalculated.
+  ///
+  /// In en, this message translates to:
+  /// **'How is this calculated?'**
+  String get analysisHowCalculated;
+
+  /// No description provided for @analysisPerDayFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'You spend about {amount} a day on other items. Add income to see a safe daily limit.'**
+  String analysisPerDayFallback(String amount);
+
+  /// No description provided for @analysisTypicalPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Typical per day'**
+  String get analysisTypicalPerDay;
+
+  /// No description provided for @billsAutoAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto: {amount}'**
+  String billsAutoAmount(String amount);
+
+  /// No description provided for @billsDueOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Due {date}'**
+  String billsDueOn(String date);
+
+  /// No description provided for @billsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No bills yet. Add spending or a recurring payment and they will appear here.'**
+  String get billsEmpty;
+
+  /// No description provided for @billsInvalidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount greater than 0, or leave it blank for Auto.'**
+  String get billsInvalidAmount;
+
+  /// No description provided for @billsLeaveBlank.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave it blank to go back to the automatic average.'**
+  String get billsLeaveBlank;
+
+  /// No description provided for @billsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} left'**
+  String billsLeft(String amount);
+
+  /// No description provided for @billsLiability.
+  ///
+  /// In en, this message translates to:
+  /// **'Liability'**
+  String get billsLiability;
+
+  /// No description provided for @billsManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get billsManual;
+
+  /// No description provided for @billsMonthlyAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly amount'**
+  String get billsMonthlyAmount;
+
+  /// No description provided for @billsOutstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding {amount}'**
+  String billsOutstanding(String amount);
+
+  /// No description provided for @billsPlanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned'**
+  String get billsPlanned;
+
+  /// No description provided for @billsReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved'**
+  String get billsReserved;
+
+  /// No description provided for @billsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the bill amount. Try again.'**
+  String get billsSaveFailed;
+
+  /// No description provided for @billsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Each bill is the average of the months with spending. A recurring payment counts as soon as it is due.'**
+  String get billsSubtitle;
+
+  /// No description provided for @billsTapToEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a category to set your own amount.'**
+  String get billsTapToEdit;
+
+  /// No description provided for @billsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bills this month'**
+  String get billsTitle;
+
+  /// No description provided for @billsUseAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Use auto'**
+  String get billsUseAuto;
+
+  /// No description provided for @recurringKindBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill'**
+  String get recurringKindBill;
+
+  /// No description provided for @recurringKindCreditCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit card'**
+  String get recurringKindCreditCard;
+
+  /// No description provided for @recurringKindLoanEmi.
+  ///
+  /// In en, this message translates to:
+  /// **'Loan EMI'**
+  String get recurringKindLoanEmi;
+
+  /// No description provided for @recurringLiabilityDue.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} in liability payments due'**
+  String recurringLiabilityDue(String amount);
+
+  /// No description provided for @recurringOutstandingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What you still owe. Shown separately; it is not an expense this month.'**
+  String get recurringOutstandingHint;
+
+  /// No description provided for @recurringOutstandingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding balance'**
+  String get recurringOutstandingLabel;
+
+  /// No description provided for @recurringTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get recurringTypeLabel;
 }
 
 class _AppLocalizationsDelegate

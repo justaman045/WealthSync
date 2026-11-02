@@ -15,9 +15,11 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:money_control/Utils/animation.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/recurring_payment_controller.dart';
 import 'package:money_control/Screens/subscription_details.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:money_control/Utils/bills_math.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/adaptive_panel.dart';
 import 'package:money_control/Services/error_handler.dart';
@@ -362,6 +364,26 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                           ),
                         ),
                       ],
+                      if (item.kind.isLiability) ...[
+                        SizedBox(width: 8.w),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 6.w,
+                            vertical: 2.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.xs.r),
+                            border: Border.all(
+                              color: AppColors.warning.withValues(alpha: 0.35),
+                            ),
+                          ),
+                          child: Text(
+                            _kindLabel(item.kind, m),
+                            style: AppType.labelSmall(AppColors.warning),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   SizedBox(height: AppSpace.s4.h),
@@ -431,6 +453,17 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
                   "${CurrencyController.to.currencySymbol.value}${item.amount.toStringAsFixed(0)}",
                   style: AppType.titleMedium(textColor),
                 ),
+                if (item.kind.isLiability &&
+                    (item.outstanding ?? 0) > 0) ...[
+                  SizedBox(height: 2.h),
+                  Text(
+                    m.billsOutstanding(
+                      "${CurrencyController.to.currencySymbol.value}"
+                      "${item.outstanding!.toStringAsFixed(0)}",
+                    ),
+                    style: AppType.labelSmall(AppColors.warning),
+                  ),
+                ],
                 SizedBox(height: AppSpace.s4.h),
                 // Was a 28 dp GestureDetector: below the 48 dp guideline, with
                 // no ripple, no tooltip and nothing for a screen reader.
@@ -452,6 +485,18 @@ class _RecurringPaymentsScreenState extends State<RecurringPaymentsScreen> {
         ),
       ),
     );
+  }
+
+  /// Human label for a liability / bill kind, used by the list badge.
+  String _kindLabel(RecurringKind kind, AppLocalizations m) {
+    switch (kind) {
+      case RecurringKind.bill:
+        return m.recurringKindBill;
+      case RecurringKind.creditCard:
+        return m.recurringKindCreditCard;
+      case RecurringKind.loanEmi:
+        return m.recurringKindLoanEmi;
+    }
   }
 
   Widget _buildDetailPlaceholder() {
@@ -528,7 +573,9 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleCtrl;
   late final TextEditingController _amountCtrl;
+  late final TextEditingController _outstandingCtrl;
   late RecurringFrequency _freq;
+  late RecurringKind _kind;
   late DateTime _nextPaymentDate;
   late bool _autoPay;
   late String _category;
@@ -542,7 +589,13 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
     _amountCtrl = TextEditingController(
       text: widget.payment?.amount.toString(),
     );
+    _outstandingCtrl = TextEditingController(
+      text: widget.payment?.outstanding != null
+          ? widget.payment!.outstanding!.toStringAsFixed(0)
+          : '',
+    );
     _freq = widget.payment?.frequency ?? RecurringFrequency.monthly;
+    _kind = widget.payment?.kind ?? RecurringKind.bill;
     _nextPaymentDate =
         widget.payment?.nextDueDate ??
         DateTime.now().add(const Duration(days: 30));
@@ -560,6 +613,7 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
   void dispose() {
     _titleCtrl.dispose();
     _amountCtrl.dispose();
+    _outstandingCtrl.dispose();
     super.dispose();
   }
 
@@ -590,6 +644,14 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
       }
       setState(() => _saving = true);
       final userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      // Outstanding only applies to a liability; clearing the field (or
+      // switching back to a plain bill) drops it to null rather than 0, so the
+      // total never counts a zero balance as tracked debt.
+      final outstanding = _kind.isLiability
+          ? RecurringPayment.roundAmount(
+              double.tryParse(_outstandingCtrl.text.replaceAll(',', '')) ?? 0,
+            )
+          : 0.0;
       final newPayment = RecurringPayment(
         id: widget.payment?.id ?? const Uuid().v4(),
         userId: userId,
@@ -601,6 +663,8 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
         nextDueDate: _nextPaymentDate,
         isActive: widget.payment?.isActive ?? true,
         autoPay: _autoPay,
+        kind: _kind,
+        outstanding: outstanding > 0 ? outstanding : null,
       );
       try {
         await widget.onSave(newPayment);
@@ -676,6 +740,50 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
                 labelOf: (f) => f.name.capitalizeFirst ?? f.name,
                 onSelected: (f) => setState(() => _freq = f),
               ),
+
+              SizedBox(height: 16.h),
+
+              // Type — a credit card payment or loan EMI also carries an
+              // outstanding balance, which the bills sheet and Insights show.
+              Text(
+                AppLocalizations.of(context)!.recurringTypeLabel,
+                style: AppType.labelMedium(textColor),
+              ),
+              SizedBox(height: 8.h),
+              SelectableChipRow<RecurringKind>(
+                options: RecurringKind.values,
+                selected: _kind,
+                labelOf: (k) => switch (k) {
+                  RecurringKind.bill => AppLocalizations.of(
+                    context,
+                  )!.recurringKindBill,
+                  RecurringKind.creditCard => AppLocalizations.of(
+                    context,
+                  )!.recurringKindCreditCard,
+                  RecurringKind.loanEmi => AppLocalizations.of(
+                    context,
+                  )!.recurringKindLoanEmi,
+                },
+                onSelected: (k) => setState(() => _kind = k),
+              ),
+
+              if (_kind.isLiability) ...[
+                SizedBox(height: 16.h),
+                TextFormField(
+                  controller: _outstandingCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(
+                      context,
+                    )!.recurringOutstandingLabel,
+                    helperText: AppLocalizations.of(
+                      context,
+                    )!.recurringOutstandingHint,
+                  ),
+                ),
+              ],
 
               SizedBox(height: 16.h),
 
@@ -880,6 +988,58 @@ class _MonthlyCommitmentCardState extends State<_MonthlyCommitmentCard>
                     );
                   },
                 ),
+              // Credit card / loan EMIs are commitments too, but they also
+              // carry a balance still owed. Show it here instead of in the
+              // Wealth portfolio, which stays purely asset-based.
+              if (Get.isRegistered<RecurringPaymentController>())
+                Obx(() {
+                  final payments =
+                      Get.find<RecurringPaymentController>().payments;
+                  final outstanding = liabilityOutstanding(payments);
+                  final due = payments
+                      .where(
+                        (p) =>
+                            p.isActive &&
+                            p.kind.isLiability &&
+                            recurringIsDue(p, DateTime.now()),
+                      )
+                      .fold<double>(
+                        0,
+                        (sum, p) => sum + p.monthlyEquivalent,
+                      );
+                  if (outstanding <= 0 && due <= 0) {
+                    return const SizedBox.shrink();
+                  }
+                  final sym = CurrencyController.to.currencySymbol.value;
+                  final l10n = AppLocalizations.of(context)!;
+                  return Padding(
+                    padding: EdgeInsets.only(top: AppSpace.s12.h),
+                    child: Column(
+                      children: [
+                        if (due > 0)
+                          Text(
+                            l10n.recurringLiabilityDue(
+                              "$sym${due.toStringAsFixed(0)}",
+                            ),
+                            style: AppType.labelMedium(
+                              widget.isDark
+                                  ? AppColors.darkTextSecondary
+                                  : AppColors.lightTextSecondary,
+                            ),
+                          ),
+                        if (outstanding > 0) ...[
+                          SizedBox(height: 2.h),
+                          Text(
+                            l10n.billsOutstanding(
+                              "$sym${outstanding.toStringAsFixed(0)}",
+                            ),
+                            style: AppType.labelSmall(AppColors.warning),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
             ],
           ),
         );

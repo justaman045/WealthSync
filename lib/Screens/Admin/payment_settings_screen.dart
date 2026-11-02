@@ -36,6 +36,7 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
 
   Worker? _modeWorker;
   Worker? _upiWorker;
+  Worker? _auditWorker;
 
   @override
   void initState() {
@@ -51,12 +52,21 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
     // initState and a later save silently reverted their change.
     _modeWorker = ever(_service.paymentMode, (_) => _onRemoteChange());
     _upiWorker = ever(_service.upiId, (_) => _onRemoteChange());
+    // The "last updated" line is read straight off the service. Watching it
+    // with a worker keeps it fresh without an Obx in build() — an Obx whose
+    // only Rx reads happen inside a nested ValueListenableBuilder registers no
+    // dependency and makes GetX throw "improper use of a GetX", which painted
+    // this whole screen blank.
+    _auditWorker = ever(_service.updatedAt, (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
     _modeWorker?.dispose();
     _upiWorker?.dispose();
+    _auditWorker?.dispose();
     _upiCtrl.dispose();
     super.dispose();
   }
@@ -166,12 +176,11 @@ class _PaymentSettingsScreenState extends State<PaymentSettingsScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
-              child: Obx(
-                // Rebuild when the live config or its audit trail changes.
-                () => ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _upiCtrl,
-                  builder: (context, _, __) => _buildForm(context, isDark),
-                ),
+              child: ValueListenableBuilder<TextEditingValue>(
+                // Rebuilds the form as the admin types so the Save button's
+                // dirty-check and the UPI validation stay in sync.
+                valueListenable: _upiCtrl,
+                builder: (context, _, __) => _buildForm(context, isDark),
               ),
             ),
           ),

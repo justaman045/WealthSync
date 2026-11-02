@@ -29,11 +29,22 @@ void main() {
     );
 
     final usages = RegExp(r'resolveDailyLimitRole\(').allMatches(source).length;
+    // The per-category bill plan classifies in `bills_math.dart` (the screen
+    // hands it the resolution map), so the screen itself has fewer direct
+    // call sites than before.
+    final billsSource = File('lib/Utils/bills_math.dart').readAsStringSync();
+    final billsUsages =
+        RegExp(r'resolveDailyLimitRole\(').allMatches(billsSource).length;
     expect(
-      usages,
+      usages + billsUsages,
       greaterThanOrEqualTo(3),
       reason: 'the current-month variable total, today\'s fixed total, and the '
           'fixed forecast must all classify via resolveDailyLimitRole()',
+    );
+    expect(
+      billsUsages,
+      greaterThanOrEqualTo(1),
+      reason: 'per-category bills must classify with the shared resolver',
     );
   });
 

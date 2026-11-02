@@ -1,5 +1,6 @@
 // lib/Screens/ai_insights.dart
 
+import 'dart:async';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,18 +12,21 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/skeleton_loader.dart';
 import 'package:money_control/Components/staggered_slide_fade.dart';
 import 'package:intl/intl.dart';
+import 'package:money_control/Utils/bills_math.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/income_mode_label.dart';
 import 'package:money_control/l10n/app_localizations.dart';
 
 import 'package:money_control/Components/adaptive_scaffold.dart';
+import 'package:money_control/Components/bills_sheet.dart';
 import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/income_mode_sheet.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Controllers/recurring_payment_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/cateogary.dart';
-import 'package:money_control/Repositories/transaction_repository.dart';
+import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Screens/cateogary_history.dart';
 import 'package:money_control/Screens/other_items_screen.dart';
 import 'package:money_control/Services/performance_controller.dart';
@@ -39,7 +43,6 @@ class AIInsightsScreen extends StatefulWidget {
 }
 
 class _AIInsightsScreenState extends State<AIInsightsScreen> {
-  final TransactionRepository _repository = TransactionRepository();
   bool loading = true;
   String? error;
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
@@ -57,16 +60,64 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   List<CategoryInsight> insights = [];
   Map<DateTime, double> dailySpending = {};
 
+  /// This month's bills (auto average per category + recurring payments).
+  /// Built in [_runInsights]; read by the forecast card, the category insights
+  /// and the bills editor.
+  MonthlyBills bills = const MonthlyBills(categories: [], outstanding: 0);
+
+  /// Average variable spend per day over the history window. The fallback the
+  /// daily-limit card shows when no income is recorded yet, so the user still
+  /// sees a per-day figure without configuring anything.
+  double typicalDailySpend = 0;
+
+  /// Recomputes the forecast when the things it learns from change: a category
+  /// edit (fixed amount / treatment), a new or edited recurring payment, or new
+  /// transactions. Debounced so a burst of writes costs one pass.
+  Worker? _categoryWorker;
+  Worker? _paymentsWorker;
+  Timer? _recomputeTimer;
+  bool _recomputing = false;
+
   @override
   void initState() {
     super.initState();
     _runInsights();
+    _watchSources();
   }
 
   @override
   void dispose() {
+    _recomputeTimer?.cancel();
+    _categoryWorker?.dispose();
+    _paymentsWorker?.dispose();
     _isBottomBarVisible.dispose();
     super.dispose();
+  }
+
+  /// Coalesces the sources that can change the bills into one recompute.
+  void _watchSources() {
+    if (!Get.isRegistered<TransactionController>()) return;
+    _categoryWorker = ever(
+      Get.find<TransactionController>().categories,
+      (_) => _scheduleRecompute(),
+    );
+    if (Get.isRegistered<RecurringPaymentController>()) {
+      _paymentsWorker = ever(
+        Get.find<RecurringPaymentController>().payments,
+        (_) => _scheduleRecompute(),
+      );
+    }
+  }
+
+  void _scheduleRecompute() {
+    if (!mounted) return;
+    _recomputeTimer?.cancel();
+    _recomputeTimer = Timer(const Duration(milliseconds: 300), () {
+      // Opening this screen already runs a pass; while it is in flight the wake
+      // it causes would otherwise queue a second, pointless one.
+      if (!mounted || _recomputing) return;
+      _runInsights();
+    });
   }
 
   // Class Level State for UI
@@ -84,6 +135,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   // 🔥 AI ANALYSIS: FIXED vs VARIABLE + HISTORICAL REMAINING SPEND
   // ======================================================
   Future<void> _runInsights() async {
+    _recomputing = true;
     try {
       setState(() {
         loading = true;
@@ -114,11 +166,14 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         Get.put(TransactionController());
       }
       final TransactionController txController = Get.find();
-      if (!txController.isLoading.value) {
-        final freshTx = await _repository.getTransactionsStream().first;
-        txController.transactions.assignAll(freshTx);
-      } else {
-        await Future.delayed(const Duration(milliseconds: 800));
+      // The controller owns the collection's single live listener. This screen
+      // used to run the repository stream here as well, re-reading
+      // every transaction on each open: two listeners over the same data (a
+      // Spark-plan read cost) and a visible stall before anything rendered.
+      // Wait briefly for the stream, then work with what is in memory.
+      for (var i = 0; i < 15 && txController.isLoading.value; i++) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        if (!mounted) return;
       }
       if (!mounted) return;
 
@@ -145,11 +200,12 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       await SavingsSettings.load();
       if (!mounted) return;
 
-      // First visit: the daily limit is derived from an income mode the user
-      // has never seen explained. Show the chooser once, before the numbers.
+      // The income-mode chooser used to block the first visit, hiding the
+      // numbers the user came for behind a modal. It is now an inline "how is
+      // this calculated" link in the daily-limit card, so record that it has
+      // been seen instead of gating the page on it.
       if (!IncomeSettings.confirmed.value) {
-        await showIncomeModeSheet(context);
-        if (!mounted) return;
+        unawaited(IncomeSettings.markConfirmed());
       }
 
       incomeResult = computeExpectedIncome(
@@ -160,7 +216,18 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       );
       expectedMonthlyIncome = incomeResult?.expectedIncome ?? 0;
 
-      if (allTx.isEmpty) {
+      // The list the RecurringPaymentController already streams — never a
+      // second Firestore listener. When this screen somehow runs before that
+      // controller is registered (onboarding), the auto averages still work;
+      // only the recurring contribution is missing.
+      final recurringPayments = Get.isRegistered<RecurringPaymentController>()
+          ? Get.find<RecurringPaymentController>().payments.toList()
+          : <RecurringPayment>[];
+
+      // A user with no transactions yet but a recurring bill still has
+      // something to see: the bill they just added. Only a completely empty
+      // account gets the empty state.
+      if (allTx.isEmpty && recurringPayments.isEmpty) {
         setState(() {
           loading = false;
           error = l10n.analysisEmpty;
@@ -258,46 +325,26 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             ..sort((a, b) => b.compareTo(a)); // Descending (Latest first)
 
       // ------------------------------------------------------
-      // 3. FIXED EXPENSE FORECAST (Status Based)
+      // 3. BILLS (auto per-category average + recurring payments)
       // ------------------------------------------------------
-      double calcForecastFixed = 0;
 
-      // Use actual category names from the user's data, classified by the same
-      // whole-word helper the current-month variable total uses, so a bill is
-      // never counted as discretionary while its forecast is still reserved.
-      final fixedCatNames = categoryMonthly.keys
-          .where((k) =>
-              resolveDailyLimitRole(
-                k,
-                treatmentOverrides: treatmentOverrides,
-              ) ==
-              DailyLimitRole.fixed)
-          .toSet();
+      final monthBills = buildMonthlyBills(
+        categoryMonthly: categoryMonthly,
+        currentMonthKey: currentKey,
+        historyFloorMonthKey: historyFloor.year * 100 + historyFloor.month,
+        fixedAmountOverrides: buildFixedAmountOverrides(
+          txController.categories,
+        ),
+        treatmentOverrides: treatmentOverrides,
+        recurring: recurringPayments,
+        now: now,
+      );
 
-      for (var cat in fixedCatNames) {
-        final spentThisMonth = categoryMonthly[cat]?[currentKey] ?? 0;
-
-        double typicalAmount = 0;
-        if (pastMonthKeys.isNotEmpty) {
-          double wSum = 0, wTotal = 0;
-          for (int i = 0; i < pastMonthKeys.length; i++) {
-            final v = categoryMonthly[cat]?[pastMonthKeys[i]];
-            if (v != null && v > 0) {
-              final w = (pastMonthKeys.length - i).toDouble();
-              wSum += v * w;
-              wTotal += w;
-            }
-          }
-          if (wTotal > 0) typicalAmount = wSum / wTotal;
-        }
-
-        // If already paid ≥ the paid fraction of typical → assume done; else forecast the full amount.
-        if (typicalAmount > 0 && spentThisMonth >= typicalAmount * kBillPaidFraction) {
-          calcForecastFixed += spentThisMonth;
-        } else {
-          calcForecastFixed += max(spentThisMonth, typicalAmount);
-        }
-      }
+      // Committed bills only: fixed-role categories in full, plus the unpaid
+      // recurring part of a discretionary category. A category's average is a
+      // *plan* shown on its own card; reserving every plan against income would
+      // leave nothing to spend.
+      final double calcForecastFixed = monthBills.committedTotal;
 
       // ------------------------------------------------------
       // 4. VARIABLE EXPENSE FORECAST (Progress-based blend)
@@ -374,51 +421,46 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       // 6. CATEGORY INSIGHTS GENERATION (Updated Logic)
       // ======================================================
       final List<CategoryInsight> localInsights = [];
+      final sym = CurrencyController.to.currencySymbol.value;
 
-      categoryMonthly.forEach((cat, months) {
-        final role = resolveDailyLimitRole(
-          cat,
-          treatmentOverrides: treatmentOverrides,
-        );
-        // Categories the user excluded from the limit get no limit-framed
-        // insight — they would misleadingly read "on track"/"pending".
-        if (role == DailyLimitRole.ignored) return;
-        final currentSpent = months[currentKey] ?? 0;
-        final isFixed = role == DailyLimitRole.fixed;
-
-        // Full-history weighted average for this category
-        double catHistAvg = 0;
-        if (pastMonthKeys.isNotEmpty) {
-          double wSum = 0, wTotal = 0;
-          for (int i = 0; i < pastMonthKeys.length; i++) {
-            final k = pastMonthKeys[i];
-            if (months.containsKey(k)) {
-              final w = (pastMonthKeys.length - i).toDouble();
-              wSum += months[k]! * w;
-              wTotal += w;
-            }
-          }
-          if (wTotal > 0) catHistAvg = wSum / wTotal;
-        }
+      // Iterate the bills, not the transaction categories: a bill the user
+      // just added as a recurring payment has no transaction yet, and that is
+      // exactly the "bills shows 0" case.
+      for (final bill in monthBills.categories) {
+        if (bill.role == DailyLimitRole.ignored) continue;
+        final cat = bill.category;
+        final months = categoryMonthly[cat] ?? const <int, double>{};
+        final currentSpent = bill.spentThisMonth;
+        final isFixed = bill.role == DailyLimitRole.fixed;
+        final catHistAvg = bill.autoAmount;
+        final plan = bill.plan;
 
         String msg;
-        double catForecast = 0;
-        double smartBudget = 0;
+        double catForecast;
 
-        if (isFixed) {
-          smartBudget = catHistAvg;
-          if (currentSpent >= catHistAvg * kBillPaidFraction && catHistAvg > 0) {
+        if (bill.isRecurring && bill.isUnpaid && bill.dueDate != null) {
+          // An unpaid recurring bill is the most actionable line on the card:
+          // it names the amount and the deadline instead of pacing language.
+          msg = l10n.analysisBillDue(
+            "$sym${plan.toStringAsFixed(0)}",
+            DateFormat.MMMd().format(bill.dueDate!),
+          );
+          catForecast = max(currentSpent, plan);
+        } else if (isFixed) {
+          if (plan > 0 && bill.isPaid) {
             msg = l10n.analysisBillPaid(cat);
             catForecast = currentSpent;
           } else if (currentSpent > 0) {
             msg = l10n.analysisBillPartial(cat);
-            catForecast = max(currentSpent, catHistAvg);
-          } else {
+            catForecast = max(currentSpent, plan);
+          } else if (plan > 0) {
             msg = l10n.analysisBillPending(
-              "${CurrencyController.to.currencySymbol.value}"
-              "${catHistAvg.toStringAsFixed(0)}",
+              "$sym${plan.toStringAsFixed(0)}",
             );
-            catForecast = catHistAvg;
+            catForecast = plan;
+          } else {
+            msg = l10n.analysisBillPartial(cat);
+            catForecast = currentSpent;
           }
         } else {
           // Variable: Blend historical avg with current pace (same as total forecast)
@@ -440,8 +482,6 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             catForecast = catPaced > 0 ? catPaced : currentSpent * 1.1;
           }
           catForecast = max(catForecast, currentSpent);
-
-          smartBudget = catHistAvg > 0 ? catHistAvg : currentSpent * 1.1;
 
           // "Material" has to scale with the user's own spending: a flat ₹500
           // is currency-blind and meaningless on a small budget. 2% of their
@@ -470,17 +510,26 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             forecastMonthTotal: catForecast,
             prevMonthTotal: lastMonthVal,
             olderMonthTotal: 0,
-            smartBudget: smartBudget,
+            smartBudget: plan,
             trendPercent: trend,
             message: msg,
           ),
         );
-      });
+      }
+
+      // A per-day figure the user can act on without configuring income: their
+      // typical variable spend per day. Historical average when there is
+      // history, otherwise what they have actually spent per day this month.
+      final double calcTypicalDailySpend = historicalVarMonthly > 0
+          ? historicalVarMonthly / daysInMonth
+          : (daysPassed > 0 ? currentVar / daysPassed : 0);
 
       localInsights.sort((a, b) => b.currentSoFar.compareTo(a.currentSoFar));
 
       setState(() {
         insights = localInsights;
+        bills = monthBills;
+        typicalDailySpend = calcTypicalDailySpend;
         loading = false;
       });
     } catch (e) {
@@ -490,6 +539,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         error = AppLocalizations.of(context)!.analysisError(e.toString());
       });
       debugPrint(e.toString());
+    } finally {
+      _recomputing = false;
     }
   }
 
@@ -861,7 +912,83 @@ child: loading
               ],
             ),
           ),
+          if (bills.categories.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            _buildBillsLink(scheme),
+          ],
+          if (bills.outstanding > 0) ...[
+            SizedBox(height: 8.h),
+            Row(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: scheme.onPrimary.withValues(alpha: 0.85),
+                  size: 14.sp,
+                ),
+                SizedBox(width: 6.w),
+                Expanded(
+                  child: Text(
+                    l10n.billsOutstanding(
+                      "${CurrencyController.to.currencySymbol.value}"
+                      "${bills.outstanding.toStringAsFixed(0)}",
+                    ),
+                    style: AppType.labelSmall(
+                      scheme.onPrimary.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  /// "Bills ₹X · View" — the entry point to the per-category bills sheet.
+  Widget _buildBillsLink(ColorScheme scheme) {
+    final l10n = AppLocalizations.of(context)!;
+    final sym = CurrencyController.to.currencySymbol.value;
+    final due = bills.nextDueDate;
+    return InkWell(
+      onTap: () => showBillsSheet(context, bills: bills),
+      borderRadius: BorderRadius.circular(12.r),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: scheme.onPrimary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: scheme.onPrimary.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              color: scheme.onPrimary,
+              size: 14.sp,
+            ),
+            SizedBox(width: 6.w),
+            Expanded(
+              child: Text(
+                due == null
+                    ? l10n.analysisBillsLink(
+                        "$sym${bills.plannedTotal.toStringAsFixed(0)}",
+                      )
+                    : l10n.analysisBillsDueLink(
+                        "$sym${bills.plannedTotal.toStringAsFixed(0)}",
+                        DateFormat.MMMd().format(due),
+                      ),
+                style: AppType.labelSmall(scheme.onPrimary),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: scheme.onPrimary.withValues(alpha: 0.8),
+              size: 16.sp,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -892,6 +1019,12 @@ child: loading
       remainingDays: max(1, daysInMonth - now.day + 1),
       savingsRate: SavingsSettings.rate,
     );
+    final hasIncome = liveIncome.expectedIncome > 0;
+    // With no income recorded there is no "safe to spend" number to derive, but
+    // the user still deserves a per-day figure without configuring anything:
+    // what they typically spend on discretionary items in a day.
+    final perDay = hasIncome ? limit.dailyLimit : typicalDailySpend;
+    final today = todayVariableSpent;
 
     final List<Widget> children = [
       Text(
@@ -919,29 +1052,36 @@ child: loading
           style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.7)),
         );
       }),
+      SizedBox(height: 6.h),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _limitTile(
+            hasIncome
+                ? l10n.analysisSpendPerDay
+                : l10n.analysisTypicalPerDay,
+            "$sym${perDay.toStringAsFixed(0)}",
+            scheme.onSurface,
+          ),
+          _limitTile(
+            l10n.today,
+            "$sym${today.toStringAsFixed(0)}",
+            perDay > 0 && today > perDay ? AppColors.error : AppColors.success,
+          ),
+        ],
+      ),
+      SizedBox(height: 8.h),
     ];
 
-    if (liveIncome.expectedIncome <= 0) {
-      // No income logged yet — an income-less "limit" would be meaningless, so
-      // prompt the user instead of showing a number.
-      children.addAll([
-        SizedBox(height: 8.h),
-        Text(
-          l10n.analysisAddIncomeHint,
-          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
-        ),
-      ]);
-    } else {
-      final daily = limit.dailyLimit;
-      final today = todayVariableSpent;
+    if (hasIncome) {
       final ratePct = SavingsSettings.percent.value;
 
       String statusText;
       Color statusColor;
-      if (today > daily * 1.5) {
+      if (today > perDay * 1.5) {
         statusText = l10n.analysisStopSpending;
         statusColor = AppColors.error;
-      } else if (today > daily * 1.1) {
+      } else if (today > perDay * 1.1) {
         statusText = l10n.analysisCarefulSpending;
         statusColor = AppColors.warning;
       } else if (today == 0) {
@@ -953,23 +1093,6 @@ child: loading
       }
 
       children.addAll([
-        SizedBox(height: 6.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _limitTile(
-              l10n.analysisSpendPerDay,
-              "$sym${daily.toStringAsFixed(0)}",
-              scheme.onSurface,
-            ),
-            _limitTile(
-              l10n.today,
-              "$sym${today.toStringAsFixed(0)}",
-              today > daily ? AppColors.error : AppColors.success,
-            ),
-          ],
-        ),
-        SizedBox(height: 8.h),
         Text(
           // gen-l10n orders positional placeholders alphabetically, not in
           // sentence order: bills, days, income, rate, remaining, saving, spent.
@@ -985,12 +1108,43 @@ child: loading
           style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
         SizedBox(height: 6.h),
+        Text(statusText, style: AppType.labelMedium(statusColor)),
+      ]);
+    } else {
+      // No income logged yet. Instead of a dead end, show the observed pace and
+      // explain how the limit would appear once income exists.
+      children.addAll([
         Text(
-          statusText,
-          style: AppType.labelMedium(statusColor),
+          l10n.analysisPerDayFallback(
+            "$sym${typicalDailySpend.toStringAsFixed(0)}",
+          ),
+          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          l10n.analysisAddIncomeHint,
+          style: AppType.bodySmall(
+            scheme.onSurface.withValues(alpha: 0.65),
+          ),
         ),
       ]);
     }
+
+    children.addAll([
+      SizedBox(height: 4.h),
+      // The income-mode chooser is no longer a blocking first-run modal; this
+      // is where the user finds it.
+      InkWell(
+        onTap: () => showIncomeModeSheet(context),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 2.h),
+          child: Text(
+            l10n.analysisHowCalculated,
+            style: AppType.labelSmall(scheme.primary),
+          ),
+        ),
+      ),
+    ]);
 
     return _InsightCard(
       child: Column(
@@ -1344,7 +1498,7 @@ child: loading
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      l10n.limit,
+                      l10n.analysisBillPlan,
                       style: AppType.labelSmall(
                         scheme.onSurface.withValues(alpha: 0.4),
                       ),

@@ -13,6 +13,12 @@ class RecurringPaymentController extends GetxController {
   final RecurringService _service = RecurringService();
   final _auth = FirebaseAuth.instance;
   final RxDouble pendingSubscriptions = 0.0.obs;
+
+  /// The live list behind [pendingSubscriptions], shared with every other
+  /// screen that needs the commitments (AI Insights bills) so it does not open
+  /// a second Firestore listener.
+  final RxList<RecurringPayment> payments = <RecurringPayment>[].obs;
+
   StreamSubscription<List<RecurringPayment>>? _paymentsSub;
 
   String? get _userEmail => _auth.currentUser?.email;
@@ -27,7 +33,10 @@ class RecurringPaymentController extends GetxController {
     // recompute on every Firestore snapshot so adds/edits/deletes and auto-pay
     // date advances are reflected without restarting the app.
     _paymentsSub = _service.getPayments().listen(
-      (list) => pendingSubscriptions.value = _computeMonthlyTotal(list),
+      (list) {
+        payments.assignAll(list);
+        pendingSubscriptions.value = _computeMonthlyTotal(list);
+      },
       onError: (e) => log('RecurringPaymentController stream error: $e'),
     );
   }
@@ -50,6 +59,7 @@ class RecurringPaymentController extends GetxController {
         final id = (map.remove('_id') as dynamic)?.toString() ?? '';
         return RecurringPayment.fromMap(id, map);
       }).toList();
+      payments.assignAll(list);
       pendingSubscriptions.value = _computeMonthlyTotal(list);
     }
     // Never trust the cache past a read: the live stream/one-shot fetch that

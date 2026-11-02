@@ -119,6 +119,13 @@ registering them in phase 1 crashes. Screens self-register with
 
 ## Firestore, rules, backups
 
+- **The app ships on Firebase's free (Spark) plan.** No Cloud Functions, no Cloud
+  Storage, no messaging fan-out: `test/spark_plan_guard_test.dart` fails the build on a
+  `cloud_functions`/`firebase_storage` import or `httpsCallable`/`uploadBytes`
+  call. Offline persistence stays on (`persistenceEnabled: true` in `main.dart`) —
+  cached snapshots are not billed as server reads. One listener per collection:
+  `TransactionController` owns transactions, `RecurringPaymentController` owns
+  recurring payments; a screen must never call a repository stream directly.
 - Asset types live one subcollection per type under `users/{email}/`. The registry is
   `UserService.subcollections` (26 asset collections + core/aux). Adding an asset type
   means adding it to that list **and** to the `firestore.rules` wildcard, or writes are

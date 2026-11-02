@@ -2375,4 +2375,120 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get whenFriendSignsUpCode =>
       'When a friend signs up with your code, you both get +30 days of Pro — and every additional friend adds 30 more.';
+
+  @override
+  String analysisBillDue(String amount, String date) {
+    return 'Due $date: $amount';
+  }
+
+  @override
+  String get analysisBillPlan => 'Bill';
+
+  @override
+  String analysisBillsDueLink(String amount, String date) {
+    return 'Bills $amount · next $date · View';
+  }
+
+  @override
+  String analysisBillsLink(String amount) {
+    return 'Bills $amount · View';
+  }
+
+  @override
+  String get analysisHowCalculated => 'How is this calculated?';
+
+  @override
+  String analysisPerDayFallback(String amount) {
+    return 'You spend about $amount a day on other items. Add income to see a safe daily limit.';
+  }
+
+  @override
+  String get analysisTypicalPerDay => 'Typical per day';
+
+  @override
+  String billsAutoAmount(String amount) {
+    return 'Auto: $amount';
+  }
+
+  @override
+  String billsDueOn(String date) {
+    return 'Due $date';
+  }
+
+  @override
+  String get billsEmpty =>
+      'No bills yet. Add spending or a recurring payment and they will appear here.';
+
+  @override
+  String get billsInvalidAmount =>
+      'Enter an amount greater than 0, or leave it blank for Auto.';
+
+  @override
+  String get billsLeaveBlank =>
+      'Leave it blank to go back to the automatic average.';
+
+  @override
+  String billsLeft(String amount) {
+    return '$amount left';
+  }
+
+  @override
+  String get billsLiability => 'Liability';
+
+  @override
+  String get billsManual => 'Manual';
+
+  @override
+  String get billsMonthlyAmount => 'Monthly amount';
+
+  @override
+  String billsOutstanding(String amount) {
+    return 'Outstanding $amount';
+  }
+
+  @override
+  String get billsPlanned => 'Planned';
+
+  @override
+  String get billsReserved => 'Reserved';
+
+  @override
+  String get billsSaveFailed => 'Could not save the bill amount. Try again.';
+
+  @override
+  String get billsSubtitle =>
+      'Each bill is the average of the months with spending. A recurring payment counts as soon as it is due.';
+
+  @override
+  String get billsTapToEdit => 'Tap a category to set your own amount.';
+
+  @override
+  String get billsTitle => 'Bills this month';
+
+  @override
+  String get billsUseAuto => 'Use auto';
+
+  @override
+  String get recurringKindBill => 'Bill';
+
+  @override
+  String get recurringKindCreditCard => 'Credit card';
+
+  @override
+  String get recurringKindLoanEmi => 'Loan EMI';
+
+  @override
+  String recurringLiabilityDue(String amount) {
+    return '$amount in liability payments due';
+  }
+
+  @override
+  String get recurringOutstandingHint =>
+      'What you still owe. Shown separately; it is not an expense this month.';
+
+  @override
+  String get recurringOutstandingLabel => 'Outstanding balance';
+
+  @override
+  String get recurringTypeLabel => 'Type';
 }

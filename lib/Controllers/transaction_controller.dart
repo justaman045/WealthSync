@@ -341,6 +341,59 @@ class TransactionController extends GetxController {
     }
   }
 
+  /// Sets the user's own monthly bill amount for [categoryName], or clears it
+  /// (back to the auto average) when [amount] is null/zero.
+  ///
+  /// The override is stored on the category doc that is already in memory, so
+  /// editing a bill costs one write and no extra read. A bill can exist for a
+  /// category with no doc yet (a recurring payment the user just added), in
+  /// which case the doc is created first.
+  Future<bool> setCategoryBillAmount(
+    String categoryName,
+    double? amount,
+  ) async {
+    final name = categoryName.trim();
+    if (name.isEmpty) return false;
+    final value = (amount == null || !amount.isFinite || amount <= 0)
+        ? null
+        : double.parse(amount.toStringAsFixed(2));
+
+    try {
+      CategoryModel? existing;
+      for (final category in categories) {
+        if (category.name.toLowerCase().trim() == name.toLowerCase()) {
+          existing = category;
+          break;
+        }
+      }
+
+      if (existing == null) {
+        final doc = await _repository.addCategory(name);
+        await _repository.updateCategory(doc.id, {'fixedAmount': value});
+        categories.add(
+          CategoryModel(id: doc.id, name: name, fixedAmount: value),
+        );
+        sortedCategoryNames.add(name);
+      } else {
+        await _repository.updateCategory(existing.id, {'fixedAmount': value});
+        final index = categories.indexOf(existing);
+        categories[index] = CategoryModel(
+          id: existing.id,
+          name: existing.name,
+          icon: existing.icon,
+          iconCode: existing.iconCode,
+          color: existing.color,
+          treatmentOverride: existing.treatmentOverride,
+          fixedAmount: value,
+        );
+      }
+      return true;
+    } catch (e) {
+      _handleFirestoreError(e, "Failed to update the bill amount");
+      return false;
+    }
+  }
+
   Future<bool> saveTransaction({
     required double amount,
     required String name,

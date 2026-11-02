@@ -379,6 +379,42 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
             "${CurrencyController.to.currencySymbol.value}${payment.amount.toStringAsFixed(0)} / ${payment.frequency.name}",
             style: AppType.bodyLarge(textColor.withValues(alpha: 0.6)),
           ),
+          if (payment.kind.isLiability) ...[
+            SizedBox(height: 8.h),
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 8.w,
+                    vertical: 3.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Text(
+                    payment.kind == RecurringKind.creditCard
+                        ? AppLocalizations.of(context)!.recurringKindCreditCard
+                        : AppLocalizations.of(context)!.recurringKindLoanEmi,
+                    style: AppType.labelSmall(AppColors.warning),
+                  ),
+                ),
+                if ((payment.outstanding ?? 0) > 0) ...[
+                  SizedBox(width: 8.w),
+                  Text(
+                    AppLocalizations.of(context)!.billsOutstanding(
+                      "${CurrencyController.to.currencySymbol.value}"
+                      "${payment.outstanding!.toStringAsFixed(0)}",
+                    ),
+                    style: AppType.labelSmall(AppColors.warning),
+                  ),
+                ],
+              ],
+            ),
+          ],
           if (!payment.isActive || _isPending(payment) || payment.autoPay)
             Padding(
               padding: EdgeInsets.only(top: 8.h),

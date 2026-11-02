@@ -212,10 +212,15 @@ void main() {
 
     test('forecast and insights share one paid-bill fraction', () {
       final analysis = File('lib/Screens/analysis.dart').readAsStringSync();
-      expect(analysis, contains('kBillPaidFraction'));
+      final bills = File('lib/Utils/bills_math.dart').readAsStringSync();
+      // The paid threshold moved into the pure bill maths, which the forecast,
+      // the insight cards and the bills sheet all read.
+      expect('$analysis\n$bills', contains('kBillPaidFraction'));
       // No second hardcoded threshold: they had drifted to 0.95 vs 0.90.
       expect(analysis, isNot(contains('typicalAmount * 0.95')));
       expect(analysis, isNot(contains('catHistAvg * 0.9')));
+      expect(bills, isNot(contains('0.95')));
+      expect(bills, isNot(contains('0.9')));
     });
 
     test('analysis learns only from the recent year of history', () {

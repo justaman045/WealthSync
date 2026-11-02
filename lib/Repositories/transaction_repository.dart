@@ -120,4 +120,10 @@ class TransactionRepository {
   Future<void> deleteCategory(String id) async {
     await _userCategoriesRef.doc(id).delete();
   }
+
+  /// Writes a partial update to a category doc. Used for the per-category bill
+  /// amount (`fixedAmount`); `null` clears it back to Auto.
+  Future<void> updateCategory(String id, Map<String, dynamic> data) async {
+    await _userCategoriesRef.doc(id).update(data);
+  }
 }

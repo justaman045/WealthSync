@@ -22,7 +22,7 @@
   "cancel": "Cancel",
   "delete": "Delete",
   "deleteCategoryTitle": "Delete Category",
-  "deleteCategoryContent": "Do you want to delete '{category}'?\n\n\u2022 This will NOT delete existing transactions.\n\u2022 Category will simply be removed from your list.",
+  "deleteCategoryContent": "Do you want to delete '{category}'?\n\n• This will NOT delete existing transactions.\n• Category will simply be removed from your list.",
   "error": "Error",
   "success": "Success",
   "newCategory": "New Category",
@@ -37,7 +37,7 @@
   "onboardingSubtitle": "Let's set up your financial goals in 2 steps.",
   "onboardingReferralHint": "e.g. AMAN05",
   "onboardingReferralOptional": "Referral Code (Optional)",
-  "onboardingReferralPitch": "Have a friend\u2019s code? Get 1 month free!",
+  "onboardingReferralPitch": "Have a friend’s code? Get 1 month free!",
   "chooseCurrencyStep": "1. Choose Currency",
   "setBudgetStep": "2. Set Monthly Budget",
   "budgetProUpsell": "Create budgets, track spending, and get alerts with Pro.",
@@ -148,13 +148,13 @@
   "analyticsPersonalityBalanced": "Balanced Spender",
   "analyticsPersonalityBalancedDesc": "Your spending is well-distributed across categories.",
   "analyticsPersonalityBigSpender": "Big Spender",
-  "analyticsPersonalityBigSpenderDesc": "Your average transaction is over {amount} \u2014 you go big.",
+  "analyticsPersonalityBigSpenderDesc": "Your average transaction is over {amount} — you go big.",
   "analyticsPersonalityCommuter": "Commuter",
   "analyticsPersonalityCommuterDesc": "Transport accounts for {pct}% of your expenses.",
   "analyticsPersonalityFoodie": "Foodie",
   "analyticsPersonalityFoodieDesc": "Food & dining makes up {pct}% of your spending.",
   "analyticsPersonalityFrequentSpender": "Frequent Spender",
-  "analyticsPersonalityFrequentSpenderDesc": "{count, plural, =1{1 transaction in the last 30 days} other{{count} transactions in the last 30 days}} \u2014 always on the move.",
+  "analyticsPersonalityFrequentSpenderDesc": "{count, plural, =1{1 transaction in the last 30 days} other{{count} transactions in the last 30 days}} — always on the move.",
   "analyticsPersonalityFunSeeker": "Fun Seeker",
   "analyticsPersonalityFunSeekerDesc": "Entertainment & leisure is your top spending category.",
   "analyticsPersonalityJustStarting": "Just Getting Started",
@@ -162,9 +162,9 @@
   "analyticsPersonalityShopaholic": "Shopaholic",
   "analyticsPersonalityShopaholicDesc": "Shopping takes {pct}% of your budget.",
   "analyticsPersonalitySmartSaver": "Smart Saver",
-  "analyticsPersonalitySmartSaverDesc": "You save over 40% of your income \u2014 great financial discipline!",
+  "analyticsPersonalitySmartSaverDesc": "You save over 40% of your income — great financial discipline!",
   "analyticsShareReportDesc": "Share your monthly report as an image.",
-  "analyticsShareReportFileName": "My {period} Financial Report \u2014 Money Control",
+  "analyticsShareReportFileName": "My {period} Financial Report — Money Control",
   "analyticsSpendingExceedsIncome": "Spending exceeds income by {pct}%",
   "analyticsTaxSummary": "Tax Summary",
   "analyticsTaxSummaryDesc": "Export categorized annual tax summary PDF.",
@@ -176,7 +176,7 @@
   "analyticsReports": "Analytics & Reports",
   "annually": "annually",
   "approve": "Approve",
-  "assetsLiabilities": "Assets \u2212 All Liabilities",
+  "assetsLiabilities": "Assets − All Liabilities",
   "auto": "AUTO",
   "autoPAYMISSED": "AUTO-PAY MISSED",
   "autoPay": "Auto-pay",
@@ -194,8 +194,8 @@
       }
     }
   },
-  "balanceDuesHidden": "- \u2022\u2022\u2022\u2022 due",
-  "balanceHidden": "\u2022\u2022\u2022\u2022",
+  "balanceDuesHidden": "- •••• due",
+  "balanceHidden": "••••",
   "balanceHiddenAnnouncement": "{title}. Hidden",
   "@balanceHiddenAnnouncement": {
     "placeholders": {
@@ -335,7 +335,7 @@
   "backupAndRestore": "Backup & Restore",
   "backupAndRestoreAllData": "Backup & Restore All Data",
   "backupDownload": "Download Backup",
-  "backupDownloadExplain": "Saves a .json file you choose the location for. Keep it somewhere safe (email it to yourself, or a cloud drive) \u2014 a backup on the same device is not a backup.",
+  "backupDownloadExplain": "Saves a .json file you choose the location for. Keep it somewhere safe (email it to yourself, or a cloud drive) — a backup on the same device is not a backup.",
   "backupFailed": "Backup failed: {error}",
   "@backupFailed": {
     "placeholders": {
@@ -344,7 +344,7 @@
       }
     }
   },
-  "backupIncompleteWarning": "Last backup was incomplete \u2014 these could not be read: {collections}. Try again before relying on that file.",
+  "backupIncompleteWarning": "Last backup was incomplete — these could not be read: {collections}. Try again before relying on that file.",
   "@backupIncompleteWarning": {
     "placeholders": {
       "collections": {
@@ -353,7 +353,7 @@
     }
   },
   "backupKeepOwnCopy": "Keep your own copy",
-  "backupKeepOwnCopyBody": "A backup is a single file holding every transaction, category, budget, goal, loan and asset, plus your profile. It downloads to your device and works without the app \u2014 so even a deleted account can be rebuilt from it.",
+  "backupKeepOwnCopyBody": "A backup is a single file holding every transaction, category, budget, goal, loan and asset, plus your profile. It downloads to your device and works without the app — so even a deleted account can be rebuilt from it.",
   "backupRestoreCancel": "Cancel",
   "backupRestoreConfirm": "Restore",
   "backupRestoreConfirmItems": "{count} items will be written back.",
@@ -365,7 +365,7 @@
     }
   },
   "backupRestoreConfirmTitle": "Restore this backup?",
-  "backupRestoreExistingKept": "Existing items are kept \u2014 restoring adds anything missing and updates items that are already there. Nothing is deleted.",
+  "backupRestoreExistingKept": "Existing items are kept — restoring adds anything missing and updates items that are already there. Nothing is deleted.",
   "backupRestoreExplain": "Pick a backup file to restore. Existing items are kept; nothing is deleted.",
   "backupRestoreFailed": "Restore failed: {error}",
   "@backupRestoreFailed": {
@@ -432,7 +432,7 @@
     }
   },
   "backupSectionTitle": "Backup",
-  "backupWorking": "Working\u2026",
+  "backupWorking": "Working…",
   "a11yProfilePhoto": "Your profile",
   "a11yPreviousMonth": "Previous month",
   "a11yNextMonth": "Next month",
@@ -479,7 +479,7 @@
       }
     }
   },
-  "restoredFromPreservedBackup": "{count, plural, =1{Restored 1 transaction} other{Restored {count} transactions}} from backup \u2014 the preserved pre-deletion copy",
+  "restoredFromPreservedBackup": "{count, plural, =1{Restored 1 transaction} other{Restored {count} transactions}} from backup — the preserved pre-deletion copy",
   "@restoredFromPreservedBackup": {
     "placeholders": {
       "count": {
@@ -523,7 +523,7 @@
   "issuesFound": "No issues found",
   "keepPlan": "Keep Plan",
   "keepTrial": "Keep Trial",
-  "keywordsYetTapAdd": "No keywords yet \u2014 tap Add",
+  "keywordsYetTapAdd": "No keywords yet — tap Add",
   "ledgerCopiedClipboard": "Ledger copied to clipboard",
   "ledgerEntries": "No ledger entries",
   "limit": "Limit",
@@ -563,8 +563,8 @@
   "loanOutstanding": "Outstanding: {amount}",
   "loanPercentPaid": "{percent}% paid",
   "loanPrincipalCol": "Principal",
-  "loanRatePerAnnum": "{type} \u2022 {rate}% p.a.",
-  "loanScheduleTitle": "{name} \u2014 Schedule",
+  "loanRatePerAnnum": "{type} • {rate}% p.a.",
+  "loanScheduleTitle": "{name} — Schedule",
   "loanStartedOn": "Started {date}",
   "loanTotalInterest": "Total interest: {amount}",
   "loanTracker": "Loan Tracker",
@@ -579,7 +579,7 @@
   "manualMonthlyIncome": "Manual Monthly Income",
   "markPaid": "Mark Paid",
   "markPaid2": "Mark as Paid?",
-  "masterToggleOffNothingPosted": "Master toggle is off \u2014 nothing will be posted until you turn it back on.",
+  "masterToggleOffNothingPosted": "Master toggle is off — nothing will be posted until you turn it back on.",
   "matchCSVHeadersAppFields": "Match CSV headers to app fields",
   "migrate": "Migrate to:",
   "migrateDelete": "Migrate & Delete",
@@ -633,7 +633,7 @@
   "recurringAutoPayHint": "When due, a transaction is created automatically.",
   "recurringCategoryLabel": "Category",
   "recurringFrequencyLabel": "Frequency",
-  "recurringManualPayHint": "Remind me when due \u2014 I'll mark it paid manually.",
+  "recurringManualPayHint": "Remind me when due — I'll mark it paid manually.",
   "recurringNameLabel": "Name (e.g. Netflix)",
   "recurringRequired": "Required",
   "recurringSaveFailed": "Failed to save. Please try again.",
@@ -692,7 +692,7 @@
   "skipPayment": "Skip this Payment",
   "skipPayment2": "Skip this payment?",
   "smartMode": "Smart Mode",
-  "smartModeVisibilityFollowsAge": "Smart Mode is on \u2014 visibility follows your age recommendations. Turn it off to customize manually.",
+  "smartModeVisibilityFollowsAge": "Smart Mode is on — visibility follows your age recommendations. Turn it off to customize manually.",
   "smartSuggestions": "Smart Suggestions",
   "smsPermissionPreviouslyDeniedPlease": "SMS permission was previously denied. Please enable \"SMS\" permission in app settings to import transactions.",
   "smsPermissionRequired": "SMS Permission Required",
@@ -708,11 +708,11 @@
   "splashHeadlineTrackExpenses": "Track Your Expenses",
   "splashLetsStart": "Let's Start",
   "splashSubtitleFillWallet": "Take control of your earnings by working smarter and building your own success story.",
-  "splashSubtitleSaveMoney": "Discover smart ways to manage your finances and grow your savings\u2014start making your money work for you, effortlessly and securely.",
+  "splashSubtitleSaveMoney": "Discover smart ways to manage your finances and grow your savings—start making your money work for you, effortlessly and securely.",
   "splashSubtitleTrackExpenses": "Monitor your spending habits effortlessly and take control of your financial goals in real time.",
   "start": "Start",
   "startChallenge": "Start Challenge",
-  "startFirstChallenge": "Start your first challenge \ud83c\udfaf",
+  "startFirstChallenge": "Start your first challenge 🎯",
   "submitVerification": "Submit for Verification",
   "subscriptionDataFound": "Subscription data not found",
   "subscriptionDetails": "Subscription Details",
@@ -733,7 +733,7 @@
   "status": "Status",
   "tax": "Tax",
   "taxSummaryPDF": "Tax Summary PDF",
-  "theseNonBillExpensesRent": "These are your non-bill expenses. Rent, EMIs, bills, subscriptions and other fixed payments are excluded \u2014 open the excluded list below to see them.",
+  "theseNonBillExpensesRent": "These are your non-bill expenses. Rent, EMIs, bills, subscriptions and other fixed payments are excluded — open the excluded list below to see them.",
   "topMerchants": "Top Merchants",
   "total": "Total",
   "transactionFailed": "Transaction Failed!",
@@ -752,7 +752,7 @@
   "upgradeProNow": "Upgrade to Pro Now",
   "upgradeRequestCurrentlyUnderReview": "Your upgrade request is currently under review by the administration. You will be notified once your account is upgraded to Pro.",
   "upiID": "Your UPI ID",
-  "upiQRCodeTryAgain": "Not a UPI QR code \u2014 try again",
+  "upiQRCodeTryAgain": "Not a UPI QR code — try again",
   "userLogged": "User not logged in",
   "usersAskedPayUPIID": "Users will be asked to pay this UPI ID and enter the resulting transaction ID.",
   "usersFound": "No users found.",
@@ -833,10 +833,110 @@
   "save": "Save",
   "dismiss": "Dismiss",
   "wealthBuilder": "Wealth Builder",
-  "wealthBuilderPersonalisesEveryTarget": "Wealth Builder personalises every target \u2014 emergency fund, equity allocation, retirement corpus \u2014 based on your age.\\n\\nAdd your date of birth in your profile to get started.",
-  "wealthsync": "\ud83d\udcb0 WealthSync",
+  "wealthBuilderPersonalisesEveryTarget": "Wealth Builder personalises every target — emergency fund, equity allocation, retirement corpus — based on your age.\\n\\nAdd your date of birth in your profile to get started.",
+  "wealthsync": "💰 WealthSync",
   "wealthsyncNeedsCameraAccessScan": "WealthSync needs camera access to scan UPI QR codes. Open Settings to grant it.",
   "wealthsyncWeb": "WealthSync Web",
   "whatShouldEarnStayTrack": "What you should earn to stay on track",
-  "whenFriendSignsUpCode": "When a friend signs up with your code, you both get +30 days of Pro \u2014 and every additional friend adds 30 more."
+  "whenFriendSignsUpCode": "When a friend signs up with your code, you both get +30 days of Pro — and every additional friend adds 30 more.",
+  "analysisBillDue": "Due {date}: {amount}",
+  "analysisBillPlan": "Bill",
+  "analysisBillsDueLink": "Bills {amount} · next {date} · View",
+  "analysisBillsLink": "Bills {amount} · View",
+  "analysisHowCalculated": "How is this calculated?",
+  "analysisPerDayFallback": "You spend about {amount} a day on other items. Add income to see a safe daily limit.",
+  "analysisTypicalPerDay": "Typical per day",
+  "billsAutoAmount": "Auto: {amount}",
+  "billsDueOn": "Due {date}",
+  "billsEmpty": "No bills yet. Add spending or a recurring payment and they will appear here.",
+  "billsInvalidAmount": "Enter an amount greater than 0, or leave it blank for Auto.",
+  "billsLeaveBlank": "Leave it blank to go back to the automatic average.",
+  "billsLeft": "{amount} left",
+  "billsLiability": "Liability",
+  "billsManual": "Manual",
+  "billsMonthlyAmount": "Monthly amount",
+  "billsOutstanding": "Outstanding {amount}",
+  "billsPlanned": "Planned",
+  "billsReserved": "Reserved",
+  "billsSaveFailed": "Could not save the bill amount. Try again.",
+  "billsSubtitle": "Each bill is the average of the months with spending. A recurring payment counts as soon as it is due.",
+  "billsTapToEdit": "Tap a category to set your own amount.",
+  "billsTitle": "Bills this month",
+  "billsUseAuto": "Use auto",
+  "recurringKindBill": "Bill",
+  "recurringKindCreditCard": "Credit card",
+  "recurringKindLoanEmi": "Loan EMI",
+  "recurringLiabilityDue": "{amount} in liability payments due",
+  "recurringOutstandingHint": "What you still owe. Shown separately; it is not an expense this month.",
+  "recurringOutstandingLabel": "Outstanding balance",
+  "recurringTypeLabel": "Type",
+  "@analysisBillDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@analysisBillsDueLink": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@analysisBillsLink": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@analysisPerDayFallback": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@billsAutoAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@billsDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@billsLeft": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@billsOutstanding": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@recurringLiabilityDue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  }
 }
