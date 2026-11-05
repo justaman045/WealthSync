@@ -65,7 +65,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
@@ -122,7 +122,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # The Firestore emulator is a JVM process, and firebase-tools 15 refuses to
       # start it on anything older than Java 21 ("no longer supports Java
@@ -179,7 +179,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -249,7 +249,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
@@ -374,7 +374,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
@@ -541,7 +541,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Download APK
         uses: actions/download-artifact@v4
@@ -582,7 +582,7 @@ jobs:
       VERSION: 2.0.${{ github.run_number }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Download AAB
         uses: actions/download-artifact@v4
@@ -677,7 +677,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Flutter SDK
         uses: subosito/flutter-action@v2
