@@ -322,8 +322,9 @@ class WealthService {
   /// Generate smart financial insights based on transaction history and current portfolio
   static List<Map<String, dynamic>> generateSmartInsights(
     WealthPortfolio portfolio,
-    List<TransactionModel> transactions,
-  ) {
+    List<TransactionModel> transactions, {
+    double? creditCardOutstanding,
+  }) {
     final user = _auth.currentUser;
     if (user == null) return [];
 
@@ -499,14 +500,16 @@ class WealthService {
       }
 
       // Credit card debt check
+      final double ccOutstanding =
+          creditCardOutstanding ?? portfolio.creditCard;
       if (!portfolio.hiddenKeys.contains('creditCard') &&
-          portfolio.creditCard > 0 &&
+          ccOutstanding > 0 &&
           avgMonthlyExpense > 0 &&
-          portfolio.creditCard > avgMonthlyExpense * 0.5) {
+          ccOutstanding > avgMonthlyExpense * 0.5) {
         insights.add({
           'type': 'warning',
           'message':
-              "💳 High CC Debt: $symbol${portfolio.creditCard.toStringAsFixed(0)} outstanding. Pay this off first — credit card rates (36–48% p.a.) beat any investment return.",
+              "💳 High CC Debt: $symbol${ccOutstanding.toStringAsFixed(0)} outstanding. Pay this off first — credit card rates (36–48% p.a.) beat any investment return.",
         });
       }
 
@@ -563,16 +566,21 @@ class WealthService {
 
       // Use monthlyExpenseOverride from the portfolio doc, or fall back to
       // computed monthly expense from transactions. If neither has data, use
-      // geo-baseline (passed as baselineMonthlyIncome).
+      // the geo-baseline (passed as baselineMonthlyIncome) - inflated to the
+      // current planning year - instead of a stale pre-2025 city average.
       final double rawMonthlyExpense =
           portfolio.monthlyExpenseOverride ?? monthlyExpense;
       final bool usingEstimate = rawMonthlyExpense <= 0;
-      final double effectiveMonthlyExpense =
-          usingEstimate ? baselineMonthlyIncome.toDouble() : rawMonthlyExpense;
+      final double effectiveMonthlyExpense = usingEstimate
+          ? resolvePlanningMonthlyIncome(
+              transactionIncomeMonthly: monthlyExpense,
+              geoBaselineMonthly: baselineMonthlyIncome.toDouble(),
+            )
+          : rawMonthlyExpense;
       final annualExpense = effectiveMonthlyExpense * 12;
 
       // Age-based emergency fund multiplier (months)
-      final int cashMonths = age < 30 ? 3 : age > 50 ? 12 : 6;
+      final int cashMonths = emergencyFundMonths(age);
 
       // Every target = milestone(age, table) × annualExpense.
       // Targets grow with age, NOT with net worth.

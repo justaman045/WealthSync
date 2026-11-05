@@ -206,6 +206,42 @@ void main() {
     });
   });
 
+  group('resolvePlanningMonthlyIncome()', () {
+    test('prefers real transaction income over the geo baseline', () {
+      expect(
+        resolvePlanningMonthlyIncome(
+          transactionIncomeMonthly: 42000,
+          geoBaselineMonthly: 18000,
+        ),
+        42000,
+      );
+    });
+
+    test('uses the geo baseline when no real income exists', () {
+      expect(
+        resolvePlanningMonthlyIncome(
+          transactionIncomeMonthly: null,
+          geoBaselineMonthly: 18000,
+        ),
+        18000 * geoIncomeInflationFactor,
+      );
+    });
+
+    test('treats a zero transaction income as absent', () {
+      expect(
+        resolvePlanningMonthlyIncome(
+          transactionIncomeMonthly: 0,
+          geoBaselineMonthly: 25000,
+        ),
+        25000 * geoIncomeInflationFactor,
+      );
+    });
+
+    test('geo inflation factor keeps 2026 plans above pre-2025 baselines', () {
+      expect(geoIncomeInflationFactor, greaterThan(1.0));
+    });
+  });
+
   group('formatAnnualIncome()', () {
     test('formats INR as LPA', () {
       expect(

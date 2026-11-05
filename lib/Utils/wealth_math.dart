@@ -41,6 +41,32 @@ String compact(double v) {
 // Source: Fidelity lifecycle model adapted for India, SEBI/AMFI guidelines.
 // Linear interpolation is used between brackets.
 
+/// Geo baselines are city-average incomes captured before the current
+/// planning year; fold in an inflation factor so a 2026 plan is not sized off
+/// pre-2025 averages (an 18K/mo baseline from an old table reads as realistic
+/// in 2026 when it is not).
+const double geoIncomeInflationFactor = 1.25;
+
+/// Resolves the monthly income a wealth plan should be sized against.
+///
+/// Real transaction income (when the user has any in the window) always wins -
+/// it is the most personal signal we have. Otherwise the geo location baseline
+/// (city average) is used, adjusted for planning-year inflation.
+double resolvePlanningMonthlyIncome({
+  required double? transactionIncomeMonthly,
+  required double geoBaselineMonthly,
+}) {
+  final real = transactionIncomeMonthly ?? 0;
+  if (real > 0) return real;
+  return geoBaselineMonthly * geoIncomeInflationFactor;
+}
+
+/// Emergency-fund months by age: <30 -> 3, >50 -> 12, else 6.
+///
+/// Single source of truth so the service, the screen and any future caller
+/// classify an age the same way (no drifted copies).
+int emergencyFundMonths(int age) => age < 30 ? 3 : age > 50 ? 12 : 6;
+
 const sipM = {22: 0.0, 25: 0.5, 30: 2.0, 35: 5.0, 40: 10.0, 50: 20.0, 60: 35.0};
 const stocksM = {22: 0.0, 25: 0.3, 30: 1.0, 35: 3.0, 40: 6.0, 50: 12.0, 60: 20.0};
 const etfM = {22: 0.0, 25: 0.2, 30: 0.8, 35: 2.0, 40: 4.0, 50: 8.0, 60: 12.0};

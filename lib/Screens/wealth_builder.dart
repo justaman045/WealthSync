@@ -24,6 +24,8 @@ import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
+import 'package:money_control/Controllers/recurring_payment_controller.dart';
+import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Screens/loan_tracker_screen.dart';
 import 'package:money_control/Screens/credit_card_detail_screen.dart';
 import 'package:money_control/Screens/insurance_policy_screen.dart';
@@ -109,7 +111,11 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       actualMonthlyIncome = income;
       final p = portfolio;
       if (p != null) {
-        smartInsights = WealthService.generateSmartInsights(p, transactions);
+        smartInsights = WealthService.generateSmartInsights(
+          p,
+          transactions,
+          creditCardOutstanding: _creditCardOutstandingFor(p),
+        );
       }
     });
     _scheduleTargetRecompute(transactions, balance);
@@ -128,12 +134,12 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       final p = portfolio;
       if (p == null) return;
       final userProfile = Get.find<ProfileController>().userProfile.value;
-      final quickGeo = await GeoService.getCached();
+      final geo = await GeoService.getCached();
       final targets = await WealthService.calculateAssetTargets(
         p,
         transactions,
         userProfile,
-        baselineMonthlyIncome: quickGeo?.baselineMonthlyIncome ?? 25000,
+        baselineMonthlyIncome: geo?.baselineMonthlyIncome ?? 25000,
         bankBalance: balance,
         useOverrides: !_ageBasedEnabled,
       );
@@ -153,6 +159,22 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         _loadData();
       }
     });
+  }
+
+  /// Outstanding credit-card debt across both entry points: the manually
+  /// tracked portfolio total plus any credit-card-kind recurring liabilities
+  /// added through the recurring-payments flow, so both land in one figure.
+  /// Before this, cards added as recurring payments never reached the Wealth
+  /// Builder credit-card card (which only read the portfolio total).
+  double _creditCardOutstandingFor(WealthPortfolio p) {
+    final tracked = p.creditCard;
+    if (!Get.isRegistered<RecurringPaymentController>()) return tracked;
+    final payments = Get.find<RecurringPaymentController>().payments;
+    final recurring = payments
+        .where((x) => x.kind == RecurringKind.creditCard)
+        .where((x) => x.outstanding != null && x.outstanding! > 0)
+        .fold(0.0, (sum, x) => sum + x.outstanding!);
+    return tracked + recurring;
   }
 
   Future<void> _loadData() async {
@@ -188,18 +210,25 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       final promptShown = await WealthAgeRecommendations.isAgePromptShown();
 
       final balance = WealthService.calculateBankBalance(transactions);
-      final insights = WealthService.generateSmartInsights(p, transactions);
+      final insights = WealthService.generateSmartInsights(
+        p,
+        transactions,
+        creditCardOutstanding: _creditCardOutstandingFor(p),
+      );
       final actualIncome = WealthService.calculateAverageMonthlyIncome(
         transactions,
       );
 
-      // Use cached geo if available immediately, else baseline for first render
-      final GeoResult? quickGeo = await GeoService.getCached();
+      // Resolve geo before deriving the targets: the first render must not
+      // compute from a pre-detection placeholder baseline (national median) and
+      // then patch itself once GPS lands. A target that "loads before the
+      // user's location is even detected" is exactly the stale-geo bug.
+      final geo = await geoFuture;
       final targets = await WealthService.calculateAssetTargets(
         p,
         transactions,
         userProfile,
-        baselineMonthlyIncome: quickGeo?.baselineMonthlyIncome ?? 25000,
+        baselineMonthlyIncome: geo.baselineMonthlyIncome,
         bankBalance: balance,
         useOverrides: !ageBasedEnabled,
       );
@@ -216,7 +245,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           assetTargets = targets;
           actualMonthlyIncome = actualIncome;
           userAge = age;
-          geoResult = quickGeo;
+          geoResult = geo;
           _ageBasedEnabled = ageBasedEnabled;
           _agePromptChecked = true;
           _recommendedKeys = age != null
@@ -229,29 +258,6 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         if (showPrompt) {
           _showAgePromptIfEligible();
         }
-      }
-
-      // Once geo resolves (may take a few seconds for GPS), refresh targets
-      final GeoResult liveGeo = await geoFuture;
-      if (mounted &&
-          liveGeo.baselineMonthlyIncome !=
-              (quickGeo?.baselineMonthlyIncome ?? 25000)) {
-        final updatedTargets = await WealthService.calculateAssetTargets(
-          p,
-          transactions,
-          userProfile,
-          baselineMonthlyIncome: liveGeo.baselineMonthlyIncome,
-          bankBalance: bankBalance,
-          useOverrides: !_ageBasedEnabled,
-        );
-        if (mounted) {
-          setState(() {
-            assetTargets = updatedTargets;
-            geoResult = liveGeo;
-          });
-        }
-      } else if (mounted && geoResult == null && liveGeo.city.isNotEmpty) {
-        setState(() => geoResult = liveGeo);
       }
     } catch (e) {
       if (mounted) {
@@ -670,7 +676,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               borderRadius: BorderRadius.circular(8.r),
             ),
             child: PrivacyText(
-              '~${CurrencyController.to.currencySymbol.value}${(geo.baselineMonthlyIncome / 1000).toStringAsFixed(0)}K/mo',
+              '~${CurrencyController.to.currencySymbol.value}${(geo.baselineMonthlyIncome * geoIncomeInflationFactor / 1000).toStringAsFixed(0)}K/mo',
               style: AppType.labelSmall(zoneColor),
             ),
           ),
@@ -726,15 +732,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final p = portfolio!;
 
     // ── helpers ──────────────────────────────────────────────────────────────
-    int multiplier = 6;
-    if (userAge != null) {
-      if (userAge! < 30) {
-        multiplier = 3;
-      } else if (userAge! > 50) {
-        multiplier = 12;
-      }
-    }
-    final monthlyExpense = (assetTargets['bank']?.formula ?? 0) / multiplier;
+    final int cashMonths = userAge == null ? 6 : emergencyFundMonths(userAge!);
+    final monthlyExpense = (assetTargets['bank']?.formula ?? 0) / cashMonths;
 
     // Visibility: Smart Mode follows age recommendations; Custom Mode respects manual hides
     bool isVisible(String key) {
@@ -1003,6 +1002,10 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final amount = switch (asset.key) {
       'bank' => bankBalance,
       'loans' => loanTotal,
+      // Credit-card outstanding = manually tracked total + recurring-kind
+      // liabilities added via the recurring-payments flow (see
+      // [_creditCardOutstandingFor]).
+      'creditCard' => _creditCardOutstandingFor(p),
       _ => wealthAssetValue(p, asset.key),
     };
 
@@ -1310,15 +1313,8 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     // Any other asset prefills from its manual override when one is set.
     double displayTargetVal = formulaVal;
     if (isBank) {
-      int multiplier = 6;
-      if (userAge != null) {
-        if (userAge! < 30) {
-          multiplier = 3;
-        } else if (userAge! > 50) {
-          multiplier = 12;
-        }
-      }
-      if (multiplier > 0) displayTargetVal = formulaVal / multiplier;
+      final int cashMonths = userAge == null ? 6 : emergencyFundMonths(userAge!);
+      if (cashMonths > 0) displayTargetVal = formulaVal / cashMonths;
     } else if (manualOverride != null && manualOverride > 0) {
       displayTargetVal = manualOverride;
     }
@@ -1930,9 +1926,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     final symbol = CurrencyController.to.currencySymbol.value;
 
     // Effective monthly expense = bank target formula ÷ cash-months
-    final cashMonths = userAge == null
-        ? 6
-        : (userAge! < 30 ? 3 : (userAge! > 50 ? 12 : 6));
+    final cashMonths = userAge == null ? 6 : emergencyFundMonths(userAge!);
     final monthlyExpense = cashMonths > 0
         ? (assetTargets['bank']?.formula ?? 0) / cashMonths
         : 0.0;
@@ -2067,7 +2061,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
               Icons.location_city_outlined,
               l10n.wealthTypicalIncomeArea,
               formatMonthlyIncome(
-                geoResult!.baselineMonthlyIncome.toDouble(),
+                geoResult!.baselineMonthlyIncome * geoIncomeInflationFactor,
                 currencyCode: code,
                 symbol: symbol,
               ),
@@ -2181,7 +2175,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           asset.key,
           asset.key == 'loans'
               ? loanController?.totalOutstanding ?? p.loans
-              : wealthAssetValue(p, asset.key),
+              : asset.key == 'creditCard'
+                  ? _creditCardOutstandingFor(p)
+                  : wealthAssetValue(p, asset.key),
         );
       }
     }
