@@ -72,6 +72,17 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
     }
   }
 
+  /// Localized frequency label for a recurring payment — the enum `name` is
+  /// hard-coded English and never changes when the app language does.
+  String _frequencyLabel(RecurringFrequency f) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (f) {
+      RecurringFrequency.monthly => l10n.recurringFrequencyMonthly,
+      RecurringFrequency.weekly => l10n.recurringFrequencyWeekly,
+      RecurringFrequency.yearly => l10n.recurringFrequencyYearly,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -376,7 +387,7 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            "${CurrencyController.to.currencySymbol.value}${payment.amount.toStringAsFixed(0)} / ${payment.frequency.name}",
+            "${CurrencyController.to.currencySymbol.value}${payment.amount.toStringAsFixed(0)} / ${_frequencyLabel(payment.frequency)}",
             style: AppType.bodyLarge(textColor.withValues(alpha: 0.6)),
           ),
           if (payment.kind.isLiability) ...[

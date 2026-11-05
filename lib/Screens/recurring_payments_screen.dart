@@ -576,7 +576,7 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
   late final TextEditingController _outstandingCtrl;
   late final TextEditingController _termCtrl;
   late final TextEditingController _interestRateCtrl;
-  late final RecurringFrequency _freq;
+  late RecurringFrequency _freq;
   late RecurringKind _kind;
   late DateTime _nextPaymentDate;
   late bool _autoPay;
@@ -776,7 +776,11 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
               SelectableChipRow<RecurringFrequency>(
                 options: RecurringFrequency.values,
                 selected: _freq,
-                labelOf: (f) => f.name.capitalizeFirst ?? f.name,
+                labelOf: (f) => switch (f) {
+                  RecurringFrequency.monthly => AppLocalizations.of(context)!.recurringFrequencyMonthly,
+                  RecurringFrequency.weekly => AppLocalizations.of(context)!.recurringFrequencyWeekly,
+                  RecurringFrequency.yearly => AppLocalizations.of(context)!.recurringFrequencyYearly,
+                },
                 onSelected: (f) => setState(() => _freq = f),
               ),
 

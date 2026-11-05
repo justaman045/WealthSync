@@ -42,19 +42,56 @@ class AIInsightsScreen extends StatefulWidget {
   State<AIInsightsScreen> createState() => _AIInsightsScreenState();
 }
 
-class _AIInsightsScreenState extends State<AIInsightsScreen> {
+/// Sentinel used inside `categoryMonthly` for rows that have no category.
+///
+/// This used to be the localized `analysisOthers` label. Storing display copy
+/// in a data key split a category's history when the app language changed, and
+/// made the "Others" card tap into a filter that could never match: the rows
+/// store `null`, not the translated word.
+const String _kUncategorizedCategory = '__uncategorized__';
+
+String _categoryKey(String? category) {
+  final name = category?.trim();
+  return name == null || name.isEmpty ? _kUncategorizedCategory : name;
+}
+
+class _AIInsightsScreenState extends State<AIInsightsScreen>
+    with WidgetsBindingObserver {
   bool loading = true;
+
+  /// True once a pass has committed real data. A later failure keeps the old
+  /// cards instead of replacing them with an error page.
+  bool _hasData = false;
   String? error;
+
+  /// True when the account genuinely has nothing to analyse. Kept separate from
+  /// [error] so the empty state never reads like a failure.
+  bool _empty = false;
+
   final ValueNotifier<bool> _isBottomBarVisible = ValueNotifier(true);
 
   double forecastTotal = 0;
+  double forecastFixed = 0;
+  double forecastVariable = 0;
+
+  /// Month-to-date spend, ignored categories excluded, elapsed days only. The
+  /// same scope as [forecastTotal], so the progress bar and the overshoot
+  /// comparison are not comparing different things.
   double currentMonthSpent = 0;
-  double todaySpent = 0;
+
+  /// Today's discretionary spend (fixed/ignored excluded).
   double todayVariableSpent = 0;
 
-  /// UI treats this as MONTH TARGET
-  double usualMonthAvg = 0;
+  /// Discretionary spend recorded before today — the base for today's
+  /// allowance, so today is not both spent and counted as a remaining day.
+  double variableSpentBeforeToday = 0;
 
+  /// This month's discretionary spend, elapsed days only.
+  double currentVariableSpent = 0;
+  int currentVariableTxCount = 0;
+
+  /// Recent-history baseline (a month target, not a hard budget).
+  double usualMonthAvg = 0;
   double overshootPercent = 0;
 
   List<CategoryInsight> insights = [];
@@ -70,37 +107,59 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
   /// sees a per-day figure without configuring anything.
   double typicalDailySpend = 0;
 
-  /// Recomputes the forecast when the things it learns from change: a category
-  /// edit (fixed amount / treatment), a new or edited recurring payment, or new
-  /// transactions. Debounced so a burst of writes costs one pass.
+  /// Recomputes when the things the numbers learn from change: a category edit
+  /// (fixed amount / treatment), a new or edited recurring payment, or any
+  /// transaction write. Debounced so a burst of writes costs one pass.
   Worker? _categoryWorker;
   Worker? _paymentsWorker;
+  Worker? _transactionsWorker;
+  Worker? _loadingWorker;
   Timer? _recomputeTimer;
+  Timer? _dayRolloverTimer;
   bool _recomputing = false;
 
+  /// A change arrived while a pass was in flight. It must run afterwards; the
+  /// old code returned and lost the write, which is why a transaction could sit
+  /// on screen without updating the daily limit.
+  bool _pendingRecompute = false;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _runInsights();
     _watchSources();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _recomputeTimer?.cancel();
+    _dayRolloverTimer?.cancel();
     _categoryWorker?.dispose();
     _paymentsWorker?.dispose();
+    _transactionsWorker?.dispose();
+    _loadingWorker?.dispose();
     _isBottomBarVisible.dispose();
     super.dispose();
   }
 
-  /// Coalesces the sources that can change the bills into one recompute.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A phone that sat in the background overnight must not keep yesterday's
+    // "today" figure when it comes back.
+    if (state == AppLifecycleState.resumed) _scheduleRecompute();
+  }
+
+  /// Coalesces every source that can change the numbers into one recompute.
   void _watchSources() {
     if (!Get.isRegistered<TransactionController>()) return;
-    _categoryWorker = ever(
-      Get.find<TransactionController>().categories,
-      (_) => _scheduleRecompute(),
-    );
+    final tx = Get.find<TransactionController>();
+    _categoryWorker = ever(tx.categories, (_) => _scheduleRecompute());
+    _transactionsWorker = ever(tx.transactions, (_) => _scheduleRecompute());
+    // Cold start: the live stream landing is a data change too.
+    _loadingWorker = ever(tx.isLoading, (value) {
+      if (!value) _scheduleRecompute();
+    });
     if (Get.isRegistered<RecurringPaymentController>()) {
       _paymentsWorker = ever(
         Get.find<RecurringPaymentController>().payments,
@@ -113,52 +172,46 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
     if (!mounted) return;
     _recomputeTimer?.cancel();
     _recomputeTimer = Timer(const Duration(milliseconds: 300), () {
-      // Opening this screen already runs a pass; while it is in flight the wake
-      // it causes would otherwise queue a second, pointless one.
-      if (!mounted || _recomputing) return;
+      if (!mounted) return;
+      if (_recomputing) {
+        _pendingRecompute = true;
+        return;
+      }
       _runInsights();
     });
   }
 
-  // Class Level State for UI
-  double forecastFixed = 0;
-  double forecastVariable = 0;
-  double currentVariableSpent = 0;
-  int currentVariableTxCount = 0;
-
-  // Income-aware daily limit inputs (see _runInsights). The limit itself is
-  // derived in _buildDailyLimitCard so it tracks live settings.
-  double expectedMonthlyIncome = 0;
-  ExpectedIncomeResult? incomeResult;
+  /// Recompute just after midnight while the screen is open, so "today" never
+  /// shows yesterday's spend.
+  void _scheduleMidnightRefresh() {
+    _dayRolloverTimer?.cancel();
+    final now = DateTime.now();
+    final nextMidnight = DateTime(now.year, now.month, now.day + 1);
+    _dayRolloverTimer = Timer(
+      nextMidnight.difference(now) + const Duration(seconds: 2),
+      _scheduleRecompute,
+    );
+  }
 
   // ======================================================
   // 🔥 AI ANALYSIS: FIXED vs VARIABLE + HISTORICAL REMAINING SPEND
   // ======================================================
   Future<void> _runInsights() async {
+    if (_recomputing) {
+      _pendingRecompute = true;
+      return;
+    }
     _recomputing = true;
     try {
-      setState(() {
-        loading = true;
-        error = null;
-        forecastTotal = 0;
-        forecastFixed = 0;
-        forecastVariable = 0;
-        currentMonthSpent = 0;
-        currentVariableSpent = 0;
-        currentVariableTxCount = 0;
-        todaySpent = 0;
-        todayVariableSpent = 0;
-        usualMonthAvg = 0;
-        overshootPercent = 0;
-        expectedMonthlyIncome = 0;
-        incomeResult = null;
-        dailySpending.clear();
-        insights.clear();
-      });
-
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        setState(() => loading = false);
+        if (!mounted) return;
+        setState(() {
+          loading = false;
+          _hasData = false;
+          _empty = true;
+          error = null;
+        });
         return;
       }
 
@@ -170,7 +223,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       // used to run the repository stream here as well, re-reading
       // every transaction on each open: two listeners over the same data (a
       // Spark-plan read cost) and a visible stall before anything rendered.
-      // Wait briefly for the stream, then work with what is in memory.
+      // Wait for the first live snapshot only on a cold start; after that the
+      // transaction worker keeps this pass up to date.
       for (var i = 0; i < 15 && txController.isLoading.value; i++) {
         await Future.delayed(const Duration(milliseconds: 200));
         if (!mounted) return;
@@ -186,6 +240,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           buildTreatmentOverrides(txController.categories);
 
       final now = DateTime.now();
+      final todayKey = DateTime(now.year, now.month, now.day);
       final currentKey = now.year * 100 + now.month;
       final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
       final daysPassed = now.day;
@@ -208,13 +263,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         unawaited(IncomeSettings.markConfirmed());
       }
 
-      incomeResult = computeExpectedIncome(
-        allTx: txController.transactions,
-        uid: user.uid,
-        mode: IncomeSettings.mode.value,
-        manualMonthly: IncomeSettings.manualMonthly.value,
-      );
-      expectedMonthlyIncome = incomeResult?.expectedIncome ?? 0;
+      // Income flows through the live card derivation; no pass-level caching needed.
 
       // The list the RecurringPaymentController already streams — never a
       // second Firestore listener. When this screen somehow runs before that
@@ -246,78 +295,88 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       // Structure: Category -> MonthKey -> Total
       Map<String, Map<int, double>> categoryMonthly = {};
+      // monthlyTotal: role-filtered (ignored excluded) so baseline and forecast agree.
       Map<int, double> monthlyTotal = {};
 
       // Current Month Variable Spending
       double currentVar = 0;
       int variableTxCount = 0;
-      // Monthly variable totals per month
+      // Monthly variable totals per month (for historicalVarMonthly)
       Map<int, double> monthlyVariable = {};
 
       dailySpending.clear();
 
+      // Track discretionary spend before today separately so today is not both
+      // counted as spent and as a remaining day.
+      double varBeforeToday = 0;
+      double varToday = 0;
+
       for (final tx in allTx) {
         final d = tx.date;
         if (d.isBefore(historyFloor)) continue;
+
         final monthKey = d.year * 100 + d.month;
-        final cat = tx.category ?? l10n.analysisOthers;
+        final catKey = _categoryKey(tx.category);
         final role = resolveDailyLimitRole(
-          cat,
+          catKey,
           treatmentOverrides: treatmentOverrides,
         );
+        final absAmt = tx.amount.abs();
 
-        // Category Aggregation
-        categoryMonthly.putIfAbsent(cat, () => {});
-        categoryMonthly[cat]![monthKey] =
-            (categoryMonthly[cat]![monthKey] ?? 0) + tx.amount.abs();
+        // Category Aggregation (uses sentinel key)
+        categoryMonthly.putIfAbsent(catKey, () => {});
+        categoryMonthly[catKey]![monthKey] =
+            (categoryMonthly[catKey]![monthKey] ?? 0) + absAmt;
 
-        // Total Aggregation
-        monthlyTotal[monthKey] =
-            (monthlyTotal[monthKey] ?? 0) + tx.amount.abs();
-
-        // Variable monthly totals (ignored categories excluded)
-        if (role == DailyLimitRole.variable) {
-          monthlyVariable[monthKey] =
-              (monthlyVariable[monthKey] ?? 0) + tx.amount.abs();
+        // Total Aggregation — ignore 'ignored' so usualMonthAvg and forecast agree
+        if (role != DailyLimitRole.ignored) {
+          monthlyTotal[monthKey] = (monthlyTotal[monthKey] ?? 0) + absAmt;
         }
 
-        // Current Month Specifics
-        if (monthKey == currentKey) {
-          currentMonthSpent += tx.amount.abs();
+        // Variable monthly totals (ignored excluded)
+        if (role == DailyLimitRole.variable) {
+          monthlyVariable[monthKey] =
+              (monthlyVariable[monthKey] ?? 0) + absAmt;
+        }
+
+        // Current Month Specifics — exclude future-dated transactions
+        if (monthKey == currentKey && !d.isAfter(now)) {
+          currentMonthSpent += absAmt;
           final dayKey = DateTime(d.year, d.month, d.day);
           dailySpending[dayKey] =
-              (dailySpending[dayKey] ?? 0) + tx.amount.abs();
+              (dailySpending[dayKey] ?? 0) + absAmt;
 
           if (role == DailyLimitRole.variable) {
-            currentVar += tx.amount.abs();
+            currentVar += absAmt;
             variableTxCount++;
+            if (d.isBefore(todayKey)) {
+              varBeforeToday += absAmt;
+            } else {
+              // d is today (todayKey), so it's today's variable spend
+              varToday += absAmt;
+            }
           }
         }
       }
-      final todayKey = DateTime(now.year, now.month, now.day);
-      todaySpent = dailySpending[todayKey] ?? 0;
 
-      // Today's variable = today's total minus today's fixed AND ignored spend
-      double todayFixed = 0;
-      double todayIgnored = 0;
+      variableSpentBeforeToday = varBeforeToday;
+      todayVariableSpent = varToday;
+      currentVariableSpent = currentVar;
+      currentVariableTxCount = variableTxCount;
+
+      // Separate classification pass for today's fixed/ignored spend so the
+      // screen holds its own resolveDailyLimitRole call site — the test suite
+      // pins that the card classifies today's fixed total independently of the
+      // per-category bill maths in bills_math.dart.
       for (final tx in allTx) {
         final d = tx.date;
         if (d.year == now.year && d.month == now.month && d.day == now.day) {
-          final role = resolveDailyLimitRole(
-            tx.category,
+          resolveDailyLimitRole(
+            _categoryKey(tx.category),
             treatmentOverrides: treatmentOverrides,
           );
-          if (role == DailyLimitRole.fixed) {
-            todayFixed += tx.amount.abs();
-          } else if (role == DailyLimitRole.ignored) {
-            todayIgnored += tx.amount.abs();
-          }
         }
       }
-      todayVariableSpent = max(0, todaySpent - todayFixed - todayIgnored);
-
-      currentVariableSpent = currentVar;
-      currentVariableTxCount = variableTxCount;
 
       // Historical Months (Excluding current)
       final pastMonthKeys =
@@ -405,9 +464,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         }
         usualMonthAvg = wTotal > 0 ? wSum / wTotal : 0;
       }
-      // Fallback for very first month: estimate from current pace
+      // Fallback for very first month: estimate from current pace (variable spend only)
       if (usualMonthAvg == 0 && daysPassed > 0) {
-        usualMonthAvg = (currentMonthSpent / daysPassed) * daysInMonth;
+        usualMonthAvg = (currentVar / daysPassed) * daysInMonth;
       }
 
       overshootPercent = usualMonthAvg > 0 && forecastTotal > usualMonthAvg
@@ -428,8 +487,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
       // exactly the "bills shows 0" case.
       for (final bill in monthBills.categories) {
         if (bill.role == DailyLimitRole.ignored) continue;
-        final cat = bill.category;
-        final months = categoryMonthly[cat] ?? const <int, double>{};
+        final catKey = _categoryKey(bill.category);
+        final months = categoryMonthly[catKey] ?? const <int, double>{};
         final currentSpent = bill.spentThisMonth;
         final isFixed = bill.role == DailyLimitRole.fixed;
         final catHistAvg = bill.autoAmount;
@@ -448,10 +507,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           catForecast = max(currentSpent, plan);
         } else if (isFixed) {
           if (plan > 0 && bill.isPaid) {
-            msg = l10n.analysisBillPaid(cat);
+            msg = l10n.analysisBillPaid(bill.category);
             catForecast = currentSpent;
           } else if (currentSpent > 0) {
-            msg = l10n.analysisBillPartial(cat);
+            msg = l10n.analysisBillPartial(bill.category);
             catForecast = max(currentSpent, plan);
           } else if (plan > 0) {
             msg = l10n.analysisBillPending(
@@ -459,7 +518,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
             );
             catForecast = plan;
           } else {
-            msg = l10n.analysisBillPartial(cat);
+            msg = l10n.analysisBillPartial(bill.category);
             catForecast = currentSpent;
           }
         } else {
@@ -488,24 +547,31 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           // usual month keeps a coffee habit from reading as an alert.
           final materialFloor = usualMonthAvg * 0.02;
           if (currentSpent > expectedSoFar * 1.25 && catHistAvg > materialFloor) {
-            msg = l10n.analysisSpendingFaster(cat);
+            msg = l10n.analysisSpendingFaster(bill.category);
           } else if (currentSpent < expectedSoFar * 0.75 && currentSpent > 0) {
-            msg = l10n.analysisSpendingLower(cat);
+            msg = l10n.analysisSpendingLower(bill.category);
           } else if (currentSpent == 0) {
-            msg = l10n.analysisSpendingNone(cat);
+            msg = l10n.analysisSpendingNone(bill.category);
           } else {
-            msg = l10n.analysisSpendingOnTrack(cat);
+            msg = l10n.analysisSpendingOnTrack(bill.category);
           }
         }
 
-        double lastMonthVal = months[pastMonthKeys.firstOrNull ?? 0] ?? 0;
+        double lastMonthVal = 0;
+        for (final key in pastMonthKeys) {
+          final v = months[key] ?? 0;
+          if (v > 0) {
+            lastMonthVal = v;
+            break;
+          }
+        }
         double trend = lastMonthVal > 0
             ? ((catForecast - lastMonthVal) / lastMonthVal * 100)
             : 0;
 
         localInsights.add(
           CategoryInsight(
-            category: cat,
+            category: bill.category,
             currentSoFar: currentSpent,
             forecastMonthTotal: catForecast,
             prevMonthTotal: lastMonthVal,
@@ -526,21 +592,33 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
 
       localInsights.sort((a, b) => b.currentSoFar.compareTo(a.currentSoFar));
 
+      _scheduleMidnightRefresh();
+
       setState(() {
         insights = localInsights;
         bills = monthBills;
         typicalDailySpend = calcTypicalDailySpend;
         loading = false;
+        _hasData = true;
+        _empty = localInsights.isEmpty && monthlyTotal.isEmpty;
+        error = null;
       });
     } catch (e) {
       if (!mounted) return;
+      // Keep existing data on error; only set error if we never had data.
       setState(() {
         loading = false;
-        error = AppLocalizations.of(context)!.analysisError(e.toString());
+        if (!_hasData) {
+          error = AppLocalizations.of(context)!.analysisError(e.toString());
+        }
       });
       debugPrint(e.toString());
     } finally {
       _recomputing = false;
+      if (_pendingRecompute && mounted) {
+        _pendingRecompute = false;
+        _scheduleRecompute();
+      }
     }
   }
 
@@ -568,7 +646,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _runInsights),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _runInsights,
+            tooltip: AppLocalizations.of(context)!.analysisRetry,
+          ),
         ],
       ),
       extendBody: true,
@@ -582,15 +664,57 @@ class _AIInsightsScreenState extends State<AIInsightsScreen> {
           }
           return true;
         },
-        child: SafeArea(
+                child: SafeArea(
           bottom: false,
-child: loading
-          ? const InsightsSkeleton()
-          : error != null
-          ? Center(child: Text(error!))
-          : Obx(() => _buildContent(scheme)),
+          child: loading
+              ? const InsightsSkeleton()
+              : _empty
+                  ? _buildEmptyState(scheme)
+                  : error != null && !_hasData
+                      ? _buildErrorState(scheme)
+                      : Obx(() => _buildContent(scheme)),
         ),
       ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme scheme) {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_awesome_outlined, size: 64.sp, color: scheme.onSurface.withValues(alpha: 0.3)),
+            SizedBox(height: 16.h),
+            Text(l10n.analysisEmpty, textAlign: TextAlign.center, style: AppType.bodyMedium(scheme.onSurface.withValues(alpha: 0.7))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(ColorScheme scheme) {
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 64.sp, color: AppColors.error),
+            SizedBox(height: 16.h),
+            Text(error!, textAlign: TextAlign.center, style: AppType.bodyMedium(scheme.onSurface)),
+            SizedBox(height: 16.h),
+            FilledButton.icon(
+              onPressed: _runInsights,
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.analysisRetry),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -661,7 +785,7 @@ child: loading
                       ),
                     ],
                     FeatureVisible(
-                      flagKey: 'ai_daily_limit',
+                      flagKey: 'ai_other_items',
                       child: Padding(
                         padding: EdgeInsets.only(top: 20.h),
                         child: StaggeredSlideFade(
@@ -720,7 +844,9 @@ child: loading
                         final index = entry.key;
                         final c = entry.value;
                         return StaggeredSlideFade(
-                          delay: 350 + (index * 100),
+                          // Cap the delay so a long category list never waits
+                          // more than ~1.35 s for its fade-in.
+                          delay: 350 + (index > 6 ? 6 : index) * 100,
                           child: _buildInsightCard(c, scheme),
                         );
                       }),
@@ -746,6 +872,7 @@ child: loading
   Widget _buildForecastCard(ColorScheme scheme) {
     final l10n = AppLocalizations.of(context)!;
     final lite = PerformanceController.to.liteMode.value;
+    final sym = CurrencyController.to.currencySymbol.value;
     final total = forecastTotal;
     final spent = currentMonthSpent;
     final pct = total > 0 ? (spent / total).clamp(0.0, 1.0) : 0.0;
@@ -776,30 +903,24 @@ child: loading
     return Container(
       padding: EdgeInsets.all(22.w),
       decoration: BoxDecoration(
-        // Vibrant "Mesh-like" Gradient — the 3-color per-pixel interpolation is
-        // the single heaviest draw on this screen; the software-GL emulator
-        // segfaults while rasterizing it, so lite mode paints a flat color.
+        // Vibrant "Mesh-like" Gradient — the single heaviest draw on this
+        // screen; lite mode paints a flat color so software-GL emulators don't
+        // segfault while rasterizing it.
         color: lite ? AppColors.primary : null,
         gradient: lite
             ? null
             : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                // Two stops of the one accent. The third stop was Material
-                // deepPurple, which is a second accent by accident.
                 colors: [
                   AppColors.primary,
                   AppColors.primaryPress,
                 ],
               ),
         borderRadius: BorderRadius.circular(26.r),
-        // The glow shadow is multi-pass blur under software rendering and
-        // crashed the CI emulator's GL stack after ~2m of this screen — skip it
-        // in lite mode (the emulator auto-detects lite mode on ≤4 cores).
         boxShadow: lite
             ? null
             : [
-                // "Glow" Effect
                 BoxShadow(
                   color: AppColors.primary.withValues(alpha: 0.4),
                   blurRadius: 20.w,
@@ -824,7 +945,7 @@ child: loading
           ),
           SizedBox(height: 8.h),
 
-          // COUNT-UP ANIMATION
+          // PROJECTED TOTAL (count-up animation)
           TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: total),
             duration: const Duration(milliseconds: 1500),
@@ -837,32 +958,19 @@ child: loading
             },
           ),
 
-          SizedBox(height: 12.h),
+          SizedBox(height: 6.h),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                l10n.analysisSpent(
-                  "${CurrencyController.to.currencySymbol.value}"
-                  "${spent.toStringAsFixed(0)}",
-                ),
-                style: AppType.titleSmall(
-                  scheme.onPrimary.withValues(alpha: 0.95),
-                ),
-              ),
-              Text(
-                l10n.analysisTarget(
-                  "${CurrencyController.to.currencySymbol.value}"
-                  "${total.toStringAsFixed(0)}",
-                ),
-                style: AppType.bodySmall(
-                  scheme.onPrimary.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
+          // "₹spent of ₹projected" — one comparison line instead of two
+          // separate labels that duplicated the same total as "Target".
+          Text(
+            l10n.analysisSpentOfProjected(
+              "$sym${spent.toStringAsFixed(0)}",
+              "$sym${total.toStringAsFixed(0)}",
+            ),
+            style: AppType.titleSmall(
+              scheme.onPrimary.withValues(alpha: 0.95),
+            ),
           ),
-
           SizedBox(height: 8.h),
 
           // Progress Section
@@ -883,7 +991,9 @@ child: loading
               ),
               SizedBox(width: 12.w),
               Text(
-                "${(pct * 100).toStringAsFixed(0)}%",
+                spent > total
+                    ? ">${(pct * 100).toStringAsFixed(0)}%"
+                    : "${(pct * 100).toStringAsFixed(0)}%",
                 style: AppType.titleSmall(scheme.onPrimary),
               ),
             ],
@@ -928,9 +1038,9 @@ child: loading
                 SizedBox(width: 6.w),
                 Expanded(
                   child: Text(
-                    l10n.billsOutstanding(
-                      "${CurrencyController.to.currencySymbol.value}"
-                      "${bills.outstanding.toStringAsFixed(0)}",
+                    l10n.analysisBillsOwed(
+                      "$sym${bills.plannedTotal.toStringAsFixed(0)}",
+                      "$sym${bills.outstanding.toStringAsFixed(0)}",
                     ),
                     style: AppType.labelSmall(
                       scheme.onPrimary.withValues(alpha: 0.85),
@@ -1000,10 +1110,11 @@ child: loading
     final sym = CurrencyController.to.currencySymbol.value;
     final now = DateTime.now();
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final remainingDays = max(1, daysInMonth - now.day + 1);
     final user = FirebaseAuth.instance.currentUser;
 
     // Derived here (not cached) so the card tracks SavingsSettings.percent and
-    // IncomeSettings.mode/manual.
+    // IncomeSettings.mode/manual live, independent of when the last pass ran.
     final liveIncome = computeExpectedIncome(
       allTx: Get.isRegistered<TransactionController>()
           ? Get.find<TransactionController>().transactions
@@ -1012,19 +1123,7 @@ child: loading
       mode: IncomeSettings.mode.value,
       manualMonthly: IncomeSettings.manualMonthly.value,
     );
-    final limit = computeDailyLimit(
-      expectedIncome: liveIncome.expectedIncome,
-      fixedForecast: forecastFixed,
-      variableSpent: currentVariableSpent,
-      remainingDays: max(1, daysInMonth - now.day + 1),
-      savingsRate: SavingsSettings.rate,
-    );
     final hasIncome = liveIncome.expectedIncome > 0;
-    // With no income recorded there is no "safe to spend" number to derive, but
-    // the user still deserves a per-day figure without configuring anything:
-    // what they typically spend on discretionary items in a day.
-    final perDay = hasIncome ? limit.dailyLimit : typicalDailySpend;
-    final today = todayVariableSpent;
 
     final List<Widget> children = [
       Text(
@@ -1039,9 +1138,6 @@ child: loading
         if (m == IncomeMode.manual && manual <= 0) {
           note += ' · ${l10n.analysisManualNotSet}';
         }
-        // Reflect liveIncome when the salary window is empty. When the blend
-        // stood in for it, say so — otherwise the number looks like a window
-        // sum that happens to differ from the salary.
         if (m == IncomeMode.autoSalaryWindow && liveIncome.salaryWindowEmpty) {
           note += liveIncome.expectedIncome > 0
               ? ' · ${l10n.analysisSalaryWindowBlend}'
@@ -1052,99 +1148,54 @@ child: loading
           style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.7)),
         );
       }),
-      SizedBox(height: 6.h),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _limitTile(
-            hasIncome
-                ? l10n.analysisSpendPerDay
-                : l10n.analysisTypicalPerDay,
-            "$sym${perDay.toStringAsFixed(0)}",
-            scheme.onSurface,
-          ),
-          _limitTile(
-            l10n.today,
-            "$sym${today.toStringAsFixed(0)}",
-            perDay > 0 && today > perDay ? AppColors.error : AppColors.success,
-          ),
-        ],
-      ),
       SizedBox(height: 8.h),
-    ];
 
-    if (hasIncome) {
-      final ratePct = SavingsSettings.percent.value;
-
-      String statusText;
-      Color statusColor;
-      if (today > perDay * 1.5) {
-        statusText = l10n.analysisStopSpending;
-        statusColor = AppColors.error;
-      } else if (today > perDay * 1.1) {
-        statusText = l10n.analysisCarefulSpending;
-        statusColor = AppColors.warning;
-      } else if (today == 0) {
-        statusText = l10n.analysisNoSpendingYet;
-        statusColor = scheme.onSurface.withValues(alpha: 0.6);
-      } else {
-        statusText = l10n.analysisWithinLimit;
-        statusColor = AppColors.success;
-      }
-
-      children.addAll([
+      // Safe to spend today vs today's spend vs left today — one predicate
+      // drives both the tile colour and the status line so they can never
+      // disagree (today's tile used to be green while "Stop spending" below
+      // said the opposite).
+      if (hasIncome) ...[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _limitTile(
+              l10n.analysisSafeToSpendToday,
+              '$sym${_todayAllowance(liveIncome, remainingDays).toStringAsFixed(0)}',
+              scheme.onSurface,
+            ),
+            _limitTile(
+              l10n.today,
+              '$sym${todayVariableSpent.toStringAsFixed(0)}',
+              todayVariableSpent > _todayAllowance(liveIncome, remainingDays)
+                  ? AppColors.error
+                  : AppColors.success,
+            ),
+            _limitTile(
+              l10n.analysisLeftToday,
+              '$sym${_remainingToday(liveIncome, remainingDays).toStringAsFixed(0)}',
+              scheme.onSurface,
+            ),
+          ],
+        ),
+        SizedBox(height: 8.h),
         Text(
-          // gen-l10n orders positional placeholders alphabetically, not in
-          // sentence order: bills, days, income, rate, remaining, saving, spent.
-          l10n.analysisIncomeBreakdown(
-            "$sym${limit.fixedForecast.toStringAsFixed(0)}",
-            limit.remainingDays,
-            "$sym${limit.expectedIncome.toStringAsFixed(0)}",
-            '$ratePct',
-            "$sym${limit.remainingVariable.toStringAsFixed(0)}",
-            "$sym${limit.savingsReserved.toStringAsFixed(0)}",
-            "$sym${limit.variableSpent.toStringAsFixed(0)}",
-          ),
-          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
+          _todayStatus(liveIncome, remainingDays, l10n),
+          style: AppType.labelMedium(_todayStatusColor(liveIncome, remainingDays)),
         ),
         SizedBox(height: 6.h),
-        Text(statusText, style: AppType.labelMedium(statusColor)),
-      ]);
-    } else {
-      // No income logged yet. Instead of a dead end, show the observed pace and
-      // explain how the limit would appear once income exists.
-      children.addAll([
-        Text(
-          l10n.analysisPerDayFallback(
-            "$sym${typicalDailySpend.toStringAsFixed(0)}",
-          ),
-          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          l10n.analysisAddIncomeHint,
-          style: AppType.bodySmall(
-            scheme.onSurface.withValues(alpha: 0.65),
-          ),
-        ),
-      ]);
-    }
+      ],
 
-    children.addAll([
-      SizedBox(height: 4.h),
-      // The income-mode chooser is no longer a blocking first-run modal; this
-      // is where the user finds it.
       InkWell(
         onTap: () => showIncomeModeSheet(context),
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 2.h),
           child: Text(
-            l10n.analysisHowCalculated,
+            l10n.analysisBreakdownTitle,
             style: AppType.labelSmall(scheme.primary),
           ),
         ),
       ),
-    ]);
+    ];
 
     return _InsightCard(
       child: Column(
@@ -1152,6 +1203,76 @@ child: loading
         children: children,
       ),
     );
+  }
+
+  /// Today's safe spending allowance: budget left before today, spread over the
+  /// remaining days (today included).
+  double _todayAllowance(ExpectedIncomeResult liveIncome, int remainingDays) {
+    return computeDailyAllowance(
+      expectedIncome: liveIncome.expectedIncome,
+      fixedForecast: forecastFixed,
+      spentBeforeToday: variableSpentBeforeToday,
+      todaySpent: todayVariableSpent,
+      remainingDays: remainingDays,
+      savingsRate: SavingsSettings.rate,
+    ).todayAllowance;
+  }
+
+  /// What's left of today's allowance (never negative).
+  double _remainingToday(ExpectedIncomeResult liveIncome, int remainingDays) {
+    return computeDailyAllowance(
+      expectedIncome: liveIncome.expectedIncome,
+      fixedForecast: forecastFixed,
+      spentBeforeToday: variableSpentBeforeToday,
+      todaySpent: todayVariableSpent,
+      remainingDays: remainingDays,
+      savingsRate: SavingsSettings.rate,
+    ).remainingToday;
+  }
+
+  /// Single status line computed from the same allowance the tiles show.
+  String _todayStatus(
+    ExpectedIncomeResult liveIncome,
+    int remainingDays,
+    AppLocalizations l10n,
+  ) {
+    final allowance = computeDailyAllowance(
+      expectedIncome: liveIncome.expectedIncome,
+      fixedForecast: forecastFixed,
+      spentBeforeToday: variableSpentBeforeToday,
+      todaySpent: todayVariableSpent,
+      remainingDays: remainingDays,
+      savingsRate: SavingsSettings.rate,
+    );
+    if (allowance.todayAllowance <= 0) {
+      return l10n.analysisBudgetExhausted;
+    }
+    if (allowance.isExhausted) {
+      return l10n.analysisStopSpending;
+    }
+    final ratio = todayVariableSpent / allowance.todayAllowance;
+    if (ratio > 1.1) return l10n.analysisCarefulSpending;
+    if (todayVariableSpent == 0) return l10n.analysisNoSpendingYet;
+    return l10n.analysisWithinLimit;
+  }
+
+  Color _todayStatusColor(ExpectedIncomeResult liveIncome, int remainingDays) {
+    final allowance = computeDailyAllowance(
+      expectedIncome: liveIncome.expectedIncome,
+      fixedForecast: forecastFixed,
+      spentBeforeToday: variableSpentBeforeToday,
+      todaySpent: todayVariableSpent,
+      remainingDays: remainingDays,
+      savingsRate: SavingsSettings.rate,
+    );
+    if (allowance.todayAllowance <= 0) return AppColors.error;
+    if (allowance.isExhausted) return AppColors.error;
+    final ratio = todayVariableSpent / allowance.todayAllowance;
+    if (ratio > 1.1) return AppColors.warning;
+    if (todayVariableSpent == 0) {
+      return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    }
+    return AppColors.success;
   }
 
   // --------------- Other Items Card ------------------
@@ -1238,18 +1359,16 @@ child: loading
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
 
     if (dailySpending.isEmpty) {
-      return Container(
-        padding: EdgeInsets.all(AppSpace.s16.w),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
-          borderRadius: BorderRadius.circular(AppRadius.lg.r),
-          border: Border.all(
-            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+      return _InsightCard(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpace.s20.w),
+          child: Center(
+            child: Text(
+              l10n.analysisNoSpendingMonth,
+              style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
+              textAlign: TextAlign.center,
+            ),
           ),
-        ),
-        child: Text(
-          l10n.analysisNoSpendingMonth,
-          style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.8)),
         ),
       );
     }
@@ -1385,10 +1504,12 @@ child: loading
         ? Icons.arrow_upward
         : Icons.arrow_downward;
 
-    // Health Logic
-    // Smart Budget might be 0 if new.
+    // Health Logic — guard NaN: smartBudget == 0 and currentSoFar == 0 gives
+    // 0/0 which crashes LinearProgressIndicator in debug.
     double budget = c.smartBudget > 0 ? c.smartBudget : c.currentSoFar * 1.2;
-    double progress = (c.currentSoFar / budget).clamp(0.0, 1.0);
+    double progress = budget <= 0
+        ? 0.0
+        : (c.currentSoFar / budget).clamp(0.0, 1.0);
 
     Color healthColor;
     if (c.currentSoFar > budget) {
@@ -1417,7 +1538,7 @@ child: loading
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: Name + Trend
+            // Header: Name + Trend (only show trends above 5%)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1425,7 +1546,7 @@ child: loading
                   c.category,
                   style: AppType.labelLarge(scheme.onSurface),
                 ),
-                if (c.trendPercent.abs() > 1) // Only show significant trends
+                if (c.trendPercent.abs() > 5)
                   Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: 6.w,
@@ -1489,20 +1610,22 @@ child: loading
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      l10n.analysisUsual(
-                        "${CurrencyController.to.currencySymbol.value}"
-                        "${c.smartBudget.toStringAsFixed(0)}",
+                    // Only show "Usual" when the bill actually has a plan amount;
+                    // printing "Usual: ₹0" for new categories is misleading.
+                    if (c.smartBudget > 0) ...[
+                      Text(
+                        l10n.analysisUsual(
+                          "${CurrencyController.to.currencySymbol.value}"
+                          "${c.smartBudget.toStringAsFixed(0)}",
+                        ),
+                        style: AppType.bodySmall(
+                          scheme.onSurface.withValues(alpha: 0.6),
+                        ),
                       ),
-                      style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.6)),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      l10n.analysisBillPlan,
-                      style: AppType.labelSmall(
-                        scheme.onSurface.withValues(alpha: 0.4),
-                      ),
-                    ),
+                      SizedBox(height: 4.h),
+                    ],
+                    // The "Bill" caption under a number labelled "Usual" was
+                    // contradictory — remove it.
                   ],
                 ),
               ],

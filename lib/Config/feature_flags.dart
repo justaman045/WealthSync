@@ -227,6 +227,12 @@ class FeatureFlag {
       icon: Icons.speed_rounded,
     ),
     FeatureFlag(
+      key: 'ai_other_items',
+      title: 'Other Items Breakdown',
+      description: 'Discretionary spend breakdown card inside AI Insights',
+      icon: Icons.list_alt_rounded,
+    ),
+    FeatureFlag(
       key: 'monthly_heatmap',
       title: 'Monthly Spend Heatmap',
       description: 'Calendar heatmap of daily spending inside AI Insights',
@@ -450,6 +456,7 @@ class FeatureFlag {
         'ai_insights',
         'ai_monthly_forecast',
         'ai_daily_limit',
+        'ai_other_items',
         'monthly_heatmap',
         'category_insights',
       ],

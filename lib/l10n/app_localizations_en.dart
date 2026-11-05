@@ -443,7 +443,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analysisSmartDailyLimit => 'Smart Daily Limit';
 
   @override
-  String get analysisSpendPerDay => 'Spend per day';
+  String get analysisSpendPerDay => 'Safe to spend today';
 
   @override
   String analysisSpendingFaster(Object category) {
@@ -486,6 +486,116 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analysisWithinLimit => 'You\'re within today\'s safe limit.';
+
+  @override
+  String analysisBillsOwed(Object amount, Object owed) {
+    return 'Bills $amount · $owed owed · View';
+  }
+
+  @override
+  String get analysisBreakdownBills => 'Bills (committed)';
+
+  @override
+  String get analysisBreakdownIncome => 'Expected income';
+
+  @override
+  String analysisBreakdownLeft(num days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return 'Left for $_temp0';
+  }
+
+  @override
+  String analysisBreakdownSavings(Object rate) {
+    return 'Savings ($rate%)';
+  }
+
+  @override
+  String get analysisBreakdownSpent => 'Other items spent';
+
+  @override
+  String get analysisBreakdownTitle => 'How is this calculated?';
+
+  @override
+  String get analysisBudgetExhausted =>
+      'Bills and savings use up this month\'s income — no discretionary budget left.';
+
+  @override
+  String get analysisLeftToday => 'Left today';
+
+  @override
+  String get analysisNoCategoryInsights =>
+      'No category spending recorded this month yet.';
+
+  @override
+  String get analysisProjected => 'Projected';
+
+  @override
+  String get analysisRetry => 'Try again';
+
+  @override
+  String get analysisSafeToSpendToday => 'Safe to spend today';
+
+  @override
+  String analysisSpentOfProjected(Object projected, Object spent) {
+    return '$spent spent of $projected';
+  }
+
+  @override
+  String get otherItemsCounted => 'Counted as other items';
+
+  @override
+  String get otherItemsCountedEmpty =>
+      'No other items this month. Every expense so far is a fixed bill or EMI.';
+
+  @override
+  String get otherItemsExcluded => 'Excluded (bills & fixed)';
+
+  @override
+  String get otherItemsExcludedEmpty =>
+      'No fixed bills recorded this month yet.';
+
+  @override
+  String get otherItemsExcludedToggle => 'Excluded: bills & fixed';
+
+  @override
+  String get otherItemsIgnored => 'Ignored (not counted in limit)';
+
+  @override
+  String get otherItemsIgnoredEmpty =>
+      'No ignored categories this month. Mark a category as \"Ignore in limit\" to keep investments/SIPs out of your daily limit.';
+
+  @override
+  String get otherItemsIgnoredToggle => 'Ignored: not counted in limit';
+
+  @override
+  String otherItemsTitle(Object month) {
+    return 'Other items · $month';
+  }
+
+  @override
+  String otherItemsTransactionCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions this month',
+      one: '1 transaction this month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get recurringFrequencyMonthly => 'Monthly';
+
+  @override
+  String get recurringFrequencyWeekly => 'Weekly';
+
+  @override
+  String get recurringFrequencyYearly => 'Yearly';
 
   @override
   String get analyticsAdvanced => 'Advanced Analytics';

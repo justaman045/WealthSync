@@ -654,6 +654,85 @@ DailyLimit computeDailyLimit({
   );
 }
 
+/// The daily allowance split shown by the Smart Daily Limit card.
+///
+/// [computeDailyLimit] answers "how much may I spend per remaining day from
+/// now?" after subtracting everything already spent, **including today**. That
+/// is the right budget number, but comparing today's total spend against it is
+/// apples-to-oranges: the divisor already counts today. This splits the same
+/// budget into "what today may cost" ([todayAllowance]) and "what is left of
+/// that" ([remainingToday]), so the card compares like with like.
+class DailyAllowance {
+  /// Income left after savings and committed bills, before any spending.
+  final double disposableBudget;
+
+  /// Discretionary spend recorded before today. Today's spend is deliberately
+  /// excluded — it is what [todayAllowance] is meant to be compared against.
+  final double spentBeforeToday;
+
+  /// Days left in the month, today included.
+  final int remainingDays;
+
+  /// What today may cost: the budget left before today, spread over the
+  /// remaining days.
+  final double todayAllowance;
+
+  /// Discretionary spend recorded today.
+  final double todaySpent;
+
+  /// What is still available today (never negative).
+  final double remainingToday;
+
+  const DailyAllowance({
+    required this.disposableBudget,
+    required this.spentBeforeToday,
+    required this.remainingDays,
+    required this.todayAllowance,
+    required this.todaySpent,
+    required this.remainingToday,
+  });
+
+  /// True when there is no discretionary money left for today.
+  bool get isExhausted => todayAllowance <= 0 || remainingToday <= 0;
+}
+
+/// Splits this month's disposable budget into a per-day allowance for today.
+///
+/// [spentBeforeToday] must exclude today's transactions (otherwise today is
+/// charged twice: once as spend and once as a day in [remainingDays]).
+/// [todaySpent] is today's discretionary total. Every result is clamped so an
+/// overspent month never reports a phantom allowance.
+DailyAllowance computeDailyAllowance({
+  required double expectedIncome,
+  required double fixedForecast,
+  required double spentBeforeToday,
+  required double todaySpent,
+  required int remainingDays,
+  double savingsRate = kDefaultSavingsRate,
+}) {
+  final income = expectedIncome > 0 ? expectedIncome : 0.0;
+  final rate = savingsRate.clamp(0.0, 1.0);
+  final fixed = fixedForecast > 0 ? fixedForecast : 0.0;
+  final before = spentBeforeToday > 0 ? spentBeforeToday : 0.0;
+  final today = todaySpent > 0 ? todaySpent : 0.0;
+  final days = remainingDays < 1 ? 1 : remainingDays;
+
+  final savingsReserved = income * rate;
+  final disposableBudget = math.max(0.0, income - savingsReserved - fixed);
+  final remainingBeforeToday = math.max(0.0, disposableBudget - before);
+  final todayAllowance = remainingBeforeToday / days;
+  final remainingToday = math.max(0.0, todayAllowance - today);
+
+  return DailyAllowance(
+    disposableBudget: disposableBudget,
+    spentBeforeToday: before,
+    remainingDays: days,
+    todayAllowance: todayAllowance,
+    todaySpent: today,
+    remainingToday: remainingToday,
+  );
+}
+
 /// Rounds a percentage [percent] (e.g. 1.3361) **up** to [decimals] places and
 /// trims trailing zeros. Takes the percent itself — it does NOT multiply by 100
 /// (the caller passes `ratio * 100`). 0.5643 -> "0.57", 1.3361 -> "1.34",

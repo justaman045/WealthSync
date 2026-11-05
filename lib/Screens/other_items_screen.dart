@@ -64,7 +64,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
           onPressed: () => Navigator.of(context).maybePop(),
         ),
         title: Text(
-          "Other items · ${DateFormat('MMMM yyyy').format(now)}",
+          AppLocalizations.of(context)!.otherItemsTitle(DateFormat('MMMM yyyy', Localizations.localeOf(context).toLanguageTag()).format(now)),
           style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
         ),
       ),
@@ -103,7 +103,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                           _customizeLink(context, isDark: isDark),
                           SizedBox(height: 20.h),
                           _sectionTitle(
-                            "Counted as other items",
+                            AppLocalizations.of(context)!.otherItemsCounted,
                             isDark: isDark,
                           ),
                           SizedBox(height: 10.h),
@@ -111,8 +111,8 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                             _emptyCard(
                               isDark: isDark,
                               message:
-                                  "No other items this month. Every expense so "
-                                  "far is a fixed bill or EMI.",
+                                  AppLocalizations.of(context)!
+                                      .otherItemsCountedEmpty,
                             )
                           else
                             ...discretionary.map(
@@ -128,7 +128,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                           if (_showExcluded) ...[
                             SizedBox(height: 6.h),
                             _sectionTitle(
-                              "Excluded (bills & fixed)",
+                              AppLocalizations.of(context)!.otherItemsExcluded,
                               isDark: isDark,
                             ),
                             SizedBox(height: 10.h),
@@ -136,7 +136,8 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                               _emptyCard(
                                 isDark: isDark,
                                 message:
-                                    "No fixed bills recorded this month yet.",
+                                    AppLocalizations.of(context)!
+                                        .otherItemsExcludedEmpty,
                               )
                             else
                               ...fixed.map(
@@ -154,7 +155,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                           if (_showIgnored) ...[
                             SizedBox(height: 6.h),
                             _sectionTitle(
-                              "Ignored (not counted in limit)",
+                              AppLocalizations.of(context)!.otherItemsIgnored,
                               isDark: isDark,
                             ),
                             SizedBox(height: 10.h),
@@ -162,9 +163,8 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
                               _emptyCard(
                                 isDark: isDark,
                                 message:
-                                    "No ignored categories this month. Mark a "
-                                    "category as \"Ignore in limit\" to keep "
-                                    "investments/SIPs out of your daily limit.",
+                                    AppLocalizations.of(context)!
+                                        .otherItemsIgnoredEmpty,
                               )
                             else
                               ...ignored.map(
@@ -214,7 +214,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
           ),
           SizedBox(height: 2.h),
           Text(
-            "$count transaction${count == 1 ? '' : 's'} this month",
+            AppLocalizations.of(context)!.otherItemsTransactionCount(count),
             style: AppType.bodySmall(isDark ? Colors.white54 : AppColors.lightTextTertiary),
           ),
           SizedBox(height: 12.h),
@@ -301,7 +301,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
       sym: sym,
       count: count,
       total: total,
-      label: "Excluded: bills & fixed",
+      label: AppLocalizations.of(context)!.otherItemsExcludedToggle,
       icon: Icons.receipt_long_rounded,
       expanded: _showExcluded,
       onTap: () => setState(() => _showExcluded = !_showExcluded),
@@ -319,7 +319,7 @@ class _OtherItemsScreenState extends State<OtherItemsScreen> {
       sym: sym,
       count: count,
       total: total,
-      label: "Ignored: not counted in limit",
+      label: AppLocalizations.of(context)!.otherItemsIgnoredToggle,
       icon: Icons.visibility_off_rounded,
       expanded: _showIgnored,
       onTap: () => setState(() => _showIgnored = !_showIgnored),

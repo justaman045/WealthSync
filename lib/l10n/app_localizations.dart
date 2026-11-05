@@ -849,7 +849,7 @@ abstract class AppLocalizations {
   /// No description provided for @analysisSpendPerDay.
   ///
   /// In en, this message translates to:
-  /// **'Spend per day'**
+  /// **'Safe to spend today'**
   String get analysisSpendPerDay;
 
   /// No description provided for @analysisSpendingFaster.
@@ -905,6 +905,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'re within today\'s safe limit.'**
   String get analysisWithinLimit;
+
+  /// No description provided for @analysisBillsOwed.
+  ///
+  /// In en, this message translates to:
+  /// **'Bills {amount} · {owed} owed · View'**
+  String analysisBillsOwed(Object amount, Object owed);
+
+  /// No description provided for @analysisBreakdownBills.
+  ///
+  /// In en, this message translates to:
+  /// **'Bills (committed)'**
+  String get analysisBreakdownBills;
+
+  /// No description provided for @analysisBreakdownIncome.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected income'**
+  String get analysisBreakdownIncome;
+
+  /// No description provided for @analysisBreakdownLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left for {days, plural, =1{1 day} other{{days} days}}'**
+  String analysisBreakdownLeft(num days);
+
+  /// No description provided for @analysisBreakdownSavings.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings ({rate}%)'**
+  String analysisBreakdownSavings(Object rate);
+
+  /// No description provided for @analysisBreakdownSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Other items spent'**
+  String get analysisBreakdownSpent;
+
+  /// No description provided for @analysisBreakdownTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How is this calculated?'**
+  String get analysisBreakdownTitle;
+
+  /// No description provided for @analysisBudgetExhausted.
+  ///
+  /// In en, this message translates to:
+  /// **'Bills and savings use up this month\'s income — no discretionary budget left.'**
+  String get analysisBudgetExhausted;
+
+  /// No description provided for @analysisLeftToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Left today'**
+  String get analysisLeftToday;
+
+  /// No description provided for @analysisNoCategoryInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'No category spending recorded this month yet.'**
+  String get analysisNoCategoryInsights;
+
+  /// No description provided for @analysisProjected.
+  ///
+  /// In en, this message translates to:
+  /// **'Projected'**
+  String get analysisProjected;
+
+  /// No description provided for @analysisRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get analysisRetry;
+
+  /// No description provided for @analysisSafeToSpendToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Safe to spend today'**
+  String get analysisSafeToSpendToday;
+
+  /// No description provided for @analysisSpentOfProjected.
+  ///
+  /// In en, this message translates to:
+  /// **'{spent} spent of {projected}'**
+  String analysisSpentOfProjected(Object projected, Object spent);
+
+  /// No description provided for @otherItemsCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted as other items'**
+  String get otherItemsCounted;
+
+  /// No description provided for @otherItemsCountedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No other items this month. Every expense so far is a fixed bill or EMI.'**
+  String get otherItemsCountedEmpty;
+
+  /// No description provided for @otherItemsExcluded.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded (bills & fixed)'**
+  String get otherItemsExcluded;
+
+  /// No description provided for @otherItemsExcludedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No fixed bills recorded this month yet.'**
+  String get otherItemsExcludedEmpty;
+
+  /// No description provided for @otherItemsExcludedToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded: bills & fixed'**
+  String get otherItemsExcludedToggle;
+
+  /// No description provided for @otherItemsIgnored.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignored (not counted in limit)'**
+  String get otherItemsIgnored;
+
+  /// No description provided for @otherItemsIgnoredEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No ignored categories this month. Mark a category as \"Ignore in limit\" to keep investments/SIPs out of your daily limit.'**
+  String get otherItemsIgnoredEmpty;
+
+  /// No description provided for @otherItemsIgnoredToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignored: not counted in limit'**
+  String get otherItemsIgnoredToggle;
+
+  /// No description provided for @otherItemsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Other items · {month}'**
+  String otherItemsTitle(Object month);
+
+  /// No description provided for @otherItemsTransactionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 transaction this month} other{{count} transactions this month}}'**
+  String otherItemsTransactionCount(num count);
+
+  /// No description provided for @recurringFrequencyMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get recurringFrequencyMonthly;
+
+  /// No description provided for @recurringFrequencyWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get recurringFrequencyWeekly;
+
+  /// No description provided for @recurringFrequencyYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly'**
+  String get recurringFrequencyYearly;
 
   /// No description provided for @analyticsAdvanced.
   ///
