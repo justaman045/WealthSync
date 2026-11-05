@@ -14,10 +14,7 @@ import 'package:money_control/l10n/app_localizations.dart';
 import 'package:money_control/Screens/add_transaction.dart';
 
 class QuickSendRow extends StatefulWidget {
-  final Color? cardColor;
-  final Color? textColor;
-
-  const QuickSendRow({super.key, this.cardColor, this.textColor});
+  const QuickSendRow({super.key});
 
   @override
   State<QuickSendRow> createState() => _QuickSendRowState();
@@ -43,7 +40,7 @@ class _QuickSendRowState extends State<QuickSendRow> {
         : Colors.white.withValues(alpha: 0.8);
 
     return Obx(() {
-      if (_controller.isLoading.value) {
+      if (_controller.isLoading.value || !_controller.hasLoadedOnce.value) {
         if (PerformanceController.to.liteMode.value) {
           // Lite mode: static placeholder — no shimmer animation.
           return _buildShimmer(isDark, containerColor, animated: false);
@@ -62,7 +59,7 @@ class _QuickSendRowState extends State<QuickSendRow> {
           ),
           child: Center(
             child: Text(
-              "No categories found",
+              AppLocalizations.of(context)!.noCategoriesFound,
               style: AppType.bodySmall(scheme.onSurface.withValues(alpha: 0.6)),
             ),
           ),

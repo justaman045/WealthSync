@@ -21,6 +21,7 @@ import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Utils/num_parse.dart';
+import 'package:money_control/Utils/home_math.dart';
 import 'package:money_control/Services/app_analytics.dart';
 
 class TransactionController extends GetxController {
@@ -43,6 +44,23 @@ class TransactionController extends GetxController {
   var sortedCategoryNames = <String>[].obs;
   final totalBalanceRx = 0.0.obs;
 
+  // ── Home overview, derived once per transaction change ──────────────────
+  // The home widgets read these instead of re-scanning `transactions` inside
+  // their build methods. `hasLoadedOnce` distinguishes "stream has not emitted
+  // yet" from "the user really has no transactions", so the home screen never
+  // claims an empty account on a cold start.
+  final monthSpendRx = 0.0.obs;
+  final monthIncomeRx = 0.0.obs;
+  final RxnDouble momPercentRx = RxnDouble();
+  final recentTransactions = <TransactionModel>[].obs;
+  final hasLoadedOnce = false.obs;
+  final isStreamDead = false.obs;
+
+  /// Pull-to-refresh in progress. Deliberately separate from [isLoading]:
+  /// [isLoading] means "nothing to show yet" and blanks the cards, which is
+  /// the wrong signal when a refresh already has data on screen.
+  final isRefreshing = false.obs;
+
   late final Worker _categoriesWorker;
   late final Worker _transactionsWorker;
   late final Worker _balanceWorker;
@@ -54,39 +72,109 @@ class TransactionController extends GetxController {
     super.onInit();
     _subscriptionController = Get.find<SubscriptionController>();
     _loadFromCache();
+    // `isLoading` means "no data yet", never "refreshing": the pull-to-refresh
+    // path must not blank the cards. A warm cache means there is something to
+    // show immediately.
+    isLoading.value = transactions.isEmpty;
     bindTransactions();
     bindCategories();
-    // Single debounce on transactions handles both sorting and widget updates.
+    // Categories change rarely: only the quick-send ordering depends on them.
     _categoriesWorker = debounce(
       categories,
       (_) => fetchSortedCategories(),
       time: const Duration(milliseconds: 300),
     );
+    // A transaction changes the usage ranking too (it used to be recomputed
+    // only when *categories* changed, so an import/SMS/restore/recurring write
+    // left the quick-send order stale for the whole session) plus the OS
+    // widget. Both are debounced so a bulk import does not thrash them.
     _transactionsWorker = debounce(
       transactions,
-      (_) => _updateHomeWidget(),
+      (_) {
+        fetchSortedCategories();
+        _updateHomeWidget();
+      },
       time: const Duration(milliseconds: 500),
     );
-    _recomputeBalance();
-    _balanceWorker = ever(transactions, (_) => _recomputeBalance());
+    _recomputeDerived();
+    _balanceWorker = ever(transactions, (_) => _recomputeDerived());
+    // Hydrate the streak the write path stores on the user doc; without this
+    // the 🔥 row stayed invisible until the next transaction was saved.
+    unawaited(_hydrateStreak());
   }
 
-  void _recomputeBalance() {
-    double balance = 0.0;
+  /// Recomputes every value the home screen shows in one pass.
+  ///
+  /// Single owner of the transaction stream means this is the one place that
+  /// scans the list; widgets read the cached Rx values.
+  void _recomputeDerived() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) {
       totalBalanceRx.value = 0.0;
+      monthSpendRx.value = 0.0;
+      monthIncomeRx.value = 0.0;
+      momPercentRx.value = null;
+      recentTransactions.clear();
       return;
     }
+
+    // Matches WealthService.calculateBankBalance: `total` (amount - tax) and a
+    // self-transfer counted once. The previous sender/recipient branches
+    // disagreed with the wealth builder on any taxed transaction.
+    double balance = 0.0;
     for (final tx in transactions) {
-      if (tx.senderId == uid) {
-        balance -= tx.amount.abs();
-        if (tx.tax > 0 && tx.amount < 0) balance -= tx.tax;
-      } else if (tx.recipientId == uid) {
-        balance += tx.amount.abs();
+      if (tx.senderId == uid || tx.recipientId == uid) {
+        balance += tx.total;
       }
     }
     totalBalanceRx.value = balance;
+
+    final summary = summarizeHomeMonth(transactions, uid: uid);
+    monthSpendRx.value = summary.spend;
+    monthIncomeRx.value = summary.income;
+    momPercentRx.value = summary.momPercent;
+    recentTransactions.assignAll(
+      selectRecentTransactions(transactions, uid: uid),
+    );
+  }
+
+  /// Reads the streak the write path persists on `users/{email}`.
+  ///
+  /// A streak older than yesterday is already broken: `_updateStreak` resets
+  /// it on the next save, but the home card must not keep advertising a stale
+  /// "12 day streak" in the meantime.
+  Future<void> _hydrateStreak() async {
+    final email = _userEmail;
+    if (email == null) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(email)
+          .get();
+      final data = doc.data();
+      if (data == null) return;
+      final count = safeToInt(data['streakCount']);
+      final rawTs = data['lastStreakDate'];
+      final lastTs = rawTs is Timestamp ? rawTs : null;
+      if (lastTs == null) {
+        streakCount.value = 0;
+        return;
+      }
+      final today = DateTime.now();
+      final lastDay = DateTime(
+        lastTs.toDate().year,
+        lastTs.toDate().month,
+        lastTs.toDate().day,
+      );
+      final yesterday = DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ).subtract(const Duration(days: 1));
+      streakCount.value = lastDay.isBefore(yesterday) ? 0 : count;
+    } catch (e) {
+      debugPrint('Streak hydrate error: $e');
+    }
   }
 
   void _loadFromCache() {
@@ -97,6 +185,10 @@ class TransactionController extends GetxController {
         final id = map.remove('_id') as String? ?? '';
         return TransactionModel.fromMap(id, map);
       }).toList();
+      // Cached rows are renderable immediately; the live snapshot replaces
+      // them. Marking this here is what keeps a cold/offline launch from
+      // flashing "You haven't made any transactions yet".
+      if (transactions.isNotEmpty) hasLoadedOnce.value = true;
     }
     LocalCacheService.invalidate(_cacheKey);
   }
@@ -116,18 +208,47 @@ class TransactionController extends GetxController {
   // Derived State
   double get totalBalance => totalBalanceRx.value;
 
+  /// Pull-to-refresh.
+  ///
+  /// It used to sleep 1.5 s to "show the shimmer" and then re-sort categories,
+  /// which is why a pull could not fix a dead stream, an offline queue or a
+  /// stale streak. It now re-binds a stream that gave up, re-reads the streak
+  /// and recomputes the cached overview — without flipping [isLoading], so the
+  /// cards keep showing the data the user already has.
   Future<void> refreshData() async {
-    isLoading.value = true;
+    if (isRefreshing.value) return;
+    isRefreshing.value = true;
     try {
-      // 1. Simulate network fetch delay for UX (shimmer visibility)
-      await Future.delayed(const Duration(milliseconds: 1500));
-
-      // 2. Re-fetch sorted categories (or any other non-stream data)
+      refreshStreamsIfDead();
       fetchSortedCategories();
-
-      // Note: Transactions/Categories are streams, so they update automatically.
+      _recomputeDerived();
+      await _hydrateStreak();
+    } catch (e) {
+      debugPrint('TransactionController.refreshData error: $e');
     } finally {
-      isLoading.value = false;
+      isRefreshing.value = false;
+    }
+  }
+
+  /// Re-opens the transaction/category listeners after the retry budget ran
+  /// out (or the subscription was never created). Called from pull-to-refresh,
+  /// app resume and reconnect — the three moments where recovery is possible.
+  void refreshStreamsIfDead() {
+    try {
+      if (isStreamDead.value || _txSub == null) {
+        _txRetryCount = 0;
+        isStreamDead.value = false;
+        bindTransactions();
+      }
+      if (_catSub == null) {
+        _catRetryCount = 0;
+        bindCategories();
+      }
+    } catch (e) {
+      // Called from reconnect, resume and pull-to-refresh — an escaping error
+      // there would take down an app-lifecycle callback.
+      debugPrint('TransactionController.refreshStreamsIfDead error: $e');
+      isStreamDead.value = true;
     }
   }
 
@@ -141,6 +262,11 @@ class TransactionController extends GetxController {
     _txSub = _repository.getTransactionsStream().listen(
       (txList) async {
         transactions.value = txList;
+        isStreamDead.value = false;
+        hasLoadedOnce.value = true;
+        // The first snapshot (even an empty one) is a real answer: the account
+        // is loaded and the loading placeholders must come down.
+        isLoading.value = false;
         _txRetryCount = 0;
         if (_userEmail != null) {
           final cacheData = txList.map((t) {
@@ -170,15 +296,23 @@ class TransactionController extends GetxController {
 
   void _scheduleTxRetry() {
     _txRetryTimer?.cancel();
-    if (_txRetryCount >= _txMaxRetries) return;
+    if (_txRetryCount >= _txMaxRetries) {
+      // Out of retries: stop hammering and let the UI offer a manual retry.
+      // Without this flag the home screen shimmered forever.
+      isStreamDead.value = true;
+      isLoading.value = false;
+      return;
+    }
     _txRetryCount++;
     _txRetryTimer = Timer(Duration(seconds: kIsWeb ? 5 : 3), bindTransactions);
   }
 
   void _updateHomeWidget() {
     try {
-      // Kill-switch: a `hidden` home_widget flag must never push the live
-      // balance to the OS widget (it reads like the feature never existed).
+      // The portfolio doc is authoritative for background workers, so it is
+      // written regardless of any UI feature flag. The OS widget push is the
+      // only part a `hidden` home_widget kill-switch removes.
+      WealthService.updateBalance(totalBalance);
       if (Get.isRegistered<FeatureFlagService>() &&
           FeatureFlagService.to.isHidden('home_widget')) {
         return;
@@ -187,9 +321,6 @@ class TransactionController extends GetxController {
       final masked = Get.isRegistered<PrivacyController>() &&
           Get.find<PrivacyController>().isPrivacyMode.value;
       WidgetService.updateBalance(totalBalance, sym, masked: masked);
-      // Persist the authoritative balance so background workers and the
-      // widget can read it from the portfolio doc without a full scan.
-      WealthService.updateBalance(totalBalance);
     } catch (e) {
       debugPrint('TransactionController._updateHomeWidget error: $e');
     }

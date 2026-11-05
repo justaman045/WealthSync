@@ -124,6 +124,48 @@ abstract class AppLocalizations {
   /// **'Recent Transactions'**
   String get recentTransactions;
 
+  /// No description provided for @homeThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This month'**
+  String get homeThisMonth;
+
+  /// No description provided for @homeMoneyIn.
+  ///
+  /// In en, this message translates to:
+  /// **'In'**
+  String get homeMoneyIn;
+
+  /// No description provided for @homeMoneyOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Out'**
+  String get homeMoneyOut;
+
+  /// No description provided for @homeLeftOver.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get homeLeftOver;
+
+  /// No description provided for @homeDataUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load transactions'**
+  String get homeDataUnavailableTitle;
+
+  /// No description provided for @homeDataUnavailableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get homeDataUnavailableSubtitle;
+
+  /// No description provided for @noCategoriesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories found'**
+  String get noCategoriesFound;
+
   /// No description provided for @noTransactions.
   ///
   /// In en, this message translates to:
@@ -1275,7 +1317,7 @@ abstract class AppLocalizations {
   /// No description provided for @balanceVersusLastMonth.
   ///
   /// In en, this message translates to:
-  /// **'{percent}% vs last month'**
+  /// **'{percent}% vs same time last month'**
   String balanceVersusLastMonth(String percent);
 
   /// No description provided for @bankTransactionsFound.
@@ -3034,6 +3076,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Received'**
   String get received;
+
+  /// No description provided for @sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get sent;
 
   /// No description provided for @recordPayment.
   ///

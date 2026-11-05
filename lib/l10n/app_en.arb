@@ -5,6 +5,13 @@
   "transactions": "Transactions",
   "settings": "Settings",
   "recentTransactions": "Recent Transactions",
+  "homeThisMonth": "This month",
+  "homeMoneyIn": "In",
+  "homeMoneyOut": "Out",
+  "homeLeftOver": "Left",
+  "homeDataUnavailableTitle": "Couldn't load transactions",
+  "homeDataUnavailableSubtitle": "Check your connection and try again.",
+  "noCategoriesFound": "No categories found",
   "noTransactions": "No Transactions",
   "noTransactionsSubtitle": "You haven't made any transactions yet.",
   "sendMoney": "Send Money",
@@ -223,7 +230,7 @@
       }
     }
   },
-  "balanceVersusLastMonth": "{percent}% vs last month",
+  "balanceVersusLastMonth": "{percent}% vs same time last month",
   "@balanceVersusLastMonth": {
     "placeholders": {
       "percent": {
@@ -629,6 +636,7 @@
   "realEstate": "Real Estate",
   "receiptScanner": "Receipt Scanner",
   "received": "Received",
+  "sent": "Sent",
   "recordPayment": "Record Payment",
   "recurringAutoPayHint": "When due, a transaction is created automatically.",
   "recurringCategoryLabel": "Category",

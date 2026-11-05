@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter/rendering.dart' as rendering;
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -13,6 +14,7 @@ import 'package:money_control/Components/profile_avatar.dart';
 import 'package:money_control/Services/performance_controller.dart';
 
 import 'package:money_control/Controllers/profile_controller.dart';
+import 'package:money_control/Components/home_month_summary.dart';
 import 'package:money_control/Components/quick_send.dart';
 import 'package:money_control/Components/recent_payment_list.dart';
 import 'package:money_control/Components/section_title.dart';
@@ -33,6 +35,7 @@ import 'package:money_control/Services/background_worker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:money_control/Controllers/tutorial_controller.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
+import 'package:money_control/Controllers/lent_money_controller.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
@@ -100,21 +103,66 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
 
   /// Save last time the home screen was opened AND user email for background tasks
   Future<void> _updateLastOpenedLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt("lastOpened", DateTime.now().millisecondsSinceEpoch);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt("lastOpened", DateTime.now().millisecondsSinceEpoch);
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final email = user.email;
-      if (email != null) await prefs.setString("user_email", email);
-      await prefs.setString("user_uid", user.uid);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final email = user.email;
+        if (email != null) await prefs.setString("user_email", email);
+        await prefs.setString("user_uid", user.uid);
+      }
+    } catch (e) {
+      // Best-effort bookkeeping for background reminders — never let it
+      // throw out of `_onRefresh`, which used to leave the indicator spinning.
+      debugPrint('Home: lastOpened not persisted: $e');
     }
   }
 
+  /// Pull-to-refresh.
+  ///
+  /// Every value on this screen has a different owner, so a refresh has to ask
+  /// all of them: the transaction controller (streams + derived overview +
+  /// streak), the profile (greeting name/photo), the lent-money tracker (the
+  /// balance overlay) and the subscription (Pro pill). Offline writes are
+  /// replayed here too — a queued "Saved locally" add used to wait for the next
+  /// app launch.
   Future<void> _onRefresh() async {
     HapticFeedback.mediumImpact();
-    await _updateLastOpenedLocal();
-    await _transactionController.refreshData();
+
+    try {
+      if (Get.isRegistered<TransactionController>()) {
+        // Flushes the offline queue and then refreshes the transaction stream.
+        unawaited(
+          syncPendingTransactions().catchError((Object e) {
+            debugPrint('Home: offline queue flush failed: $e');
+          }),
+        );
+      }
+      if (Get.isRegistered<SubscriptionController>()) {
+        SubscriptionController.to.checkSubscriptionStatus();
+      }
+      if (Get.isRegistered<LentMoneyController>()) {
+        // Fire-and-forget for the same reason as the profile: one slow owner
+        // must not hold the indicator until its timeout.
+        unawaited(
+          Get.find<LentMoneyController>().fetchEntries().catchError((Object e) {
+            debugPrint('Home: lent entries refresh failed: $e');
+          }),
+        );
+      }
+
+      await Future.wait([
+        _updateLastOpenedLocal(),
+        _transactionController.refreshData(),
+        _profileController.refreshFromFirestore(),
+      ]);
+    } catch (e) {
+      // This screen has no other recovery path: an escaping error leaves the
+      // indicator spinning forever. Every step above is best-effort.
+      debugPrint('Home: refresh failed: $e');
+    }
   }
 
   @override
@@ -122,12 +170,6 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    // Lite mode: skip entrance animations entirely (reduced jank + battery).
-    final liteMode = PerformanceController.to.liteMode.value;
-    // Shared translucent card fill for the home sections.
-    final cardTint = isDark
-        ? AppColors.darkSurface.withValues(alpha: 0.5)
-        : AppColors.lightSurface.withValues(alpha: 0.6);
 
     return AdaptiveScaffold(
       currentTab: 'home',
@@ -180,44 +222,44 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
         title: Semantics(
           header: true,
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              AppLocalizations.of(context)!.welcomeBack,
-              style: theme.textTheme.bodySmall?.copyWith(letterSpacing: 0.3),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: AppSpace.s2.h),
-            Obx(() {
-              final userModel = _profileController.userProfile.value;
-              if (userModel == null) {
-                return shimmerText(theme);
-              }
-              final displayName =
-                  FirebaseAuth.instance.currentUser?.displayName;
-              final name =
-                  (userModel.firstName != null &&
-                      userModel.firstName!.isNotEmpty)
-                  ? userModel.firstName!
-                  : (displayName != null && displayName.isNotEmpty
-                        ? displayName
-                        : 'User');
-              // No ShaderMask: it renders the child through an offscreen layer
-              // on every frame. A solid on-surface colour is the same visual
-              // hierarchy for a name that never animates.
-              return Text(
-                name,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.welcomeBack,
+                style: theme.textTheme.bodySmall?.copyWith(letterSpacing: 0.3),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-              );
-            }),
-          ],
+              ),
+              SizedBox(height: AppSpace.s2.h),
+              Obx(() {
+                final userModel = _profileController.userProfile.value;
+                if (userModel == null) {
+                  return _namePlaceholder(theme);
+                }
+                final displayName =
+                    FirebaseAuth.instance.currentUser?.displayName;
+                final name =
+                    (userModel.firstName != null &&
+                        userModel.firstName!.isNotEmpty)
+                    ? userModel.firstName!
+                    : (displayName != null && displayName.isNotEmpty
+                          ? displayName
+                          : 'User');
+                // No ShaderMask: it renders the child through an offscreen layer
+                // on every frame. A solid on-surface colour is the same visual
+                // hierarchy for a name that never animates.
+                return Text(
+                  name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                );
+              }),
+            ],
           ),
         ),
         actions: [
@@ -255,8 +297,9 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
               },
               theme: theme,
               heroTag: 'search_bar',
-              semanticLabel: AppLocalizations.of(context)!
-                  .a11ySearchTransactions,
+              semanticLabel: AppLocalizations.of(
+                context,
+              )!.a11ySearchTransactions,
             ),
           ),
 
@@ -292,86 +335,100 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
           bottom: false,
           child: RefreshIndicator(
             onRefresh: _onRefresh,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: Responsive.contentMaxWidth(context),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _entrance(
-                        liteMode: liteMode,
-                        duration: const Duration(milliseconds: 600),
-                        begin: const Offset(0, -0.1),
-                        curve: Curves.easeOutBack,
-                        child: BalanceCard(),
-                      ),
-                      SizedBox(height: AppSpace.s12.h),
-                      FeatureVisible(
-                        flagKey: 'category',
-                        child: _entrance(
+            // Lite mode is read inside an Obx so toggling it in Settings
+            // rebuilds the entrance animations immediately (it used to be read
+            // once in build(), so the switch did nothing until a rebuild).
+            child: Obx(() {
+              final liteMode = PerformanceController.to.liteMode.value;
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 100.h),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: Responsive.contentMaxWidth(context),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _entrance(
                           liteMode: liteMode,
-                          delay: const Duration(milliseconds: 200),
-                          begin: const Offset(-0.1, 0),
+                          duration: const Duration(milliseconds: 600),
+                          begin: const Offset(0, -0.1),
+                          curve: Curves.easeOutBack,
+                          child: BalanceCard(),
+                        ),
+                        SizedBox(height: AppSpace.s12.h),
+                        _entrance(
+                          liteMode: liteMode,
+                          delay: const Duration(milliseconds: 100),
+                          begin: const Offset(0, 0.1),
+                          child: const FeatureVisible(
+                            flagKey: 'home_month_summary',
+                            child: HomeMonthSummaryCard(),
+                          ),
+                        ),
+                        // No SizedBox after the summary: it owns its own bottom
+                        // margin so an inactive month collapses completely
+                        // instead of leaving a doubled gap.
+                        FeatureVisible(
+                          flagKey: 'category',
+                          child: _entrance(
+                            liteMode: liteMode,
+                            delay: const Duration(milliseconds: 200),
+                            begin: const Offset(-0.1, 0),
+                            child: SectionTitle(
+                              title: AppStrings.categoryHistoryTitle,
+                              color: scheme.onSurface,
+                              accentColor: AppColors.primary,
+                              onTap: () =>
+                                  gotoPage(const CategoriesHistoryScreen()),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: AppSpace.s12.h),
+                        FeatureVisible(
+                          flagKey: 'upi_pay',
+                          child: _entrance(
+                            liteMode: liteMode,
+                            delay: const Duration(milliseconds: 300),
+                            begin: const Offset(0.1, 0),
+                            child: const QuickSendRow(),
+                          ),
+                        ),
+                        SizedBox(height: AppSpace.s20.h),
+                        _entrance(
+                          liteMode: liteMode,
+                          delay: const Duration(milliseconds: 400),
+                          begin: const Offset(0, 0.2),
                           child: SectionTitle(
-                            title: AppStrings.categoryHistoryTitle,
+                            title: AppLocalizations.of(
+                              context,
+                            )!.recentTransactions,
                             color: scheme.onSurface,
                             accentColor: AppColors.primary,
-                            onTap: () =>
-                                gotoPage(const CategoriesHistoryScreen()),
+                            onTap: () => gotoPage(TransactionHistoryScreen()),
                           ),
                         ),
-                      ),
-                      SizedBox(height: AppSpace.s12.h),
-                      FeatureVisible(
-                        flagKey: 'upi_pay',
-                        child: _entrance(
+                        SizedBox(height: AppSpace.s12.h),
+                        _entrance(
                           liteMode: liteMode,
-                          delay: const Duration(milliseconds: 300),
-                          begin: const Offset(0.1, 0),
-                          child: QuickSendRow(
-                            cardColor: cardTint,
+                          delay: const Duration(milliseconds: 500),
+                          duration: const Duration(milliseconds: 600),
+                          begin: const Offset(0, 0.1),
+                          child: RecentPaymentList(
+                            key: _keyTransactionList,
                             textColor: scheme.onSurface,
+                            receivedColor: AppColors.success,
+                            sentColor: AppColors.error,
                           ),
                         ),
-                      ),
-                      SizedBox(height: AppSpace.s20.h),
-                      _entrance(
-                        liteMode: liteMode,
-                        delay: const Duration(milliseconds: 400),
-                        begin: const Offset(0, 0.2),
-                        child: SectionTitle(
-                          title: AppLocalizations.of(
-                            context,
-                          )!.recentTransactions,
-                          color: scheme.onSurface,
-                          accentColor: AppColors.primary,
-                          onTap: () => gotoPage(TransactionHistoryScreen()),
-                        ),
-                      ),
-                      SizedBox(height: AppSpace.s12.h),
-                      _entrance(
-                        liteMode: liteMode,
-                        delay: const Duration(milliseconds: 500),
-                        duration: const Duration(milliseconds: 600),
-                        begin: const Offset(0, 0.1),
-                        child: RecentPaymentList(
-                          key: _keyTransactionList,
-                          cardColor: cardTint,
-                          textColor: scheme.onSurface,
-                          receivedColor: AppColors.success,
-                          sentColor: AppColors.error,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ),
         ),
       ),
@@ -659,11 +716,17 @@ class _BankingHomeScreenState extends State<BankingHomeScreen> {
     }
   }
 
-  Widget shimmerText(ThemeData theme) => Text(
-    '...',
-    style: theme.textTheme.bodyLarge?.copyWith(
-      fontWeight: FontWeight.bold,
-      fontSize: 16.sp,
+  /// Placeholder for the greeting name while the profile doc loads.
+  ///
+  /// Used to render a literal "..." — which read as a broken name rather than
+  /// a loading state. A neutral bar keeps the line height stable so the title
+  /// does not jump when the name arrives.
+  Widget _namePlaceholder(ThemeData theme) => Container(
+    width: 96,
+    height: 16,
+    decoration: BoxDecoration(
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(AppRadius.xs.r),
     ),
   );
 }

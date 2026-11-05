@@ -298,62 +298,24 @@ class _BalanceCardState extends State<BalanceCard> {
                         ),
                         );
                       })
-                    else
-                      _balanceLabel(
-                        '--',
-                        Theme.of(context).colorScheme,
-                      ),
+                    else _balanceLabel('--'),
+                    // Spending delta. Every value comes from the controller's
+                    // cached overview: this block used to scan all
+                    // transactions on every rebuild, compared month-to-date
+                    // against a whole previous month and painted a spending
+                    // *increase* green.
                     Obx(() {
-                      if (_transactionController.isLoading.value) return const SizedBox.shrink();
-                      if (_privacyController.isPrivacyMode.value) return const SizedBox.shrink();
-                      final now = DateTime.now();
-                      final uid = FirebaseAuth.instance.currentUser?.uid;
-                      if (uid == null) return const SizedBox.shrink();
-                      final txs = _transactionController.transactions;
-
-                      double thisMonth = 0;
-                      double lastMonth = 0;
-                      final startThis = DateTime(now.year, now.month, 1);
-                      final startLast = DateTime(now.year, now.month - 1, 1);
-                      final endLast = startThis;
-
-                      for (final tx in txs) {
-                        final isSend = tx.senderId == uid;
-                        if (!isSend) continue;
-                        final amount = tx.amount.abs();
-                        if (!tx.date.isBefore(startThis)) {
-                          thisMonth += amount;
-                        } else if (!tx.date.isBefore(startLast) && tx.date.isBefore(endLast)) {
-                          lastMonth += amount;
-                        }
+                      if (_transactionController.isLoading.value) {
+                        return const SizedBox.shrink();
                       }
-
-                      if (lastMonth == 0) return const SizedBox.shrink();
-                      final pct = ((thisMonth - lastMonth) / lastMonth.abs() * 100);
-                      final isUp = pct >= 0;
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: AppSpace.s4.h),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isUp ? Icons.trending_up : Icons.trending_down,
-                              color: isUp
-                                  ? AppColors.success
-                                  : AppColors.error,
-                              size: 14.sp,
-                            ),
-                            SizedBox(width: AppSpace.s4.w),
-                            Text(
-                              l10n.balanceVersusLastMonth(
-                                '${isUp ? '+' : ''}${pct.toStringAsFixed(1)}',
-                              ),
-                              style: AppType.labelMedium(
-                                isUp ? AppColors.success : AppColors.error,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+                      if (_privacyController.isPrivacyMode.value) {
+                        return const SizedBox.shrink();
+                      }
+                      final pct = _transactionController.momPercentRx.value;
+                      if (pct == null || !pct.isFinite) {
+                        return const SizedBox.shrink();
+                      }
+                      return _monthDelta(pct, l10n);
                     }),
                     Obx(() {
                       final streak = _transactionController.streakCount.value;
@@ -513,8 +475,36 @@ class _BalanceCardState extends State<BalanceCard> {
     );
   }
 
+  /// Spending delta versus the same day range last month.
+  ///
+  /// More spending is the *bad* direction, so it is red and the arrow points
+  /// up; the colour follows meaning, not the sign.
+  Widget _monthDelta(double pct, AppLocalizations l10n) {
+    final spendingMore = pct >= 0;
+    final color = spendingMore ? AppColors.error : AppColors.success;
+    return Padding(
+      padding: EdgeInsets.only(bottom: AppSpace.s4.h),
+      child: Row(
+        children: [
+          Icon(
+            spendingMore ? Icons.trending_up : Icons.trending_down,
+            color: color,
+            size: 14.sp,
+          ),
+          SizedBox(width: AppSpace.s4.w),
+          Text(
+            l10n.balanceVersusLastMonth(
+              '${spendingMore ? '+' : ''}${pct.toStringAsFixed(1)}',
+            ),
+            style: AppType.labelMedium(color),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Keep helpers but ensure they return valid widgets for new style
-  Widget _balanceLabel(String text, ColorScheme scheme) {
+  Widget _balanceLabel(String text) {
     return Text(text, style: AppType.money(color: Colors.white, size: 36.sp));
   }
 

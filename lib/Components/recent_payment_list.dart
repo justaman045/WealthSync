@@ -1,7 +1,7 @@
 import 'package:money_control/l10n/app_localizations.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:money_control/Components/tx_tile.dart';
 import 'package:get/get.dart';
@@ -14,14 +14,12 @@ import 'package:money_control/Components/shimmer_loading.dart';
 import 'package:money_control/Utils/animation.dart';
 
 class RecentPaymentList extends StatefulWidget {
-  final Color? cardColor;
   final Color? textColor;
   final Color? receivedColor;
   final Color? sentColor;
 
   const RecentPaymentList({
     super.key,
-    this.cardColor,
     this.textColor,
     this.receivedColor,
     this.sentColor,
@@ -33,14 +31,24 @@ class RecentPaymentList extends StatefulWidget {
 
 class _RecentPaymentListState extends State<RecentPaymentList> {
   bool _entranceAnimationDone = false;
+  Timer? _entranceTimer;
+
+  @override
+  void dispose() {
+    _entranceTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final l10n = AppLocalizations.of(context)!;
     if (user == null) {
       return Center(
-        child: Text(AppLocalizations.of(context)!.logged,
-            style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        child: Text(
+          l10n.logged,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       );
     }
 
@@ -53,52 +61,47 @@ class _RecentPaymentListState extends State<RecentPaymentList> {
     final controller = Get.find<TransactionController>();
 
     return Obx(() {
-      if (controller.isLoading.value) {
+      // `transactions.isEmpty` is true on every cold start, which used to make
+      // the home screen claim "You haven't made any transactions yet" before
+      // the first snapshot arrived. Only trust emptiness after a load.
+      if (!controller.hasLoadedOnce.value) {
+        if (controller.isStreamDead.value) {
+          return EmptyStateWidget(
+            title: l10n.homeDataUnavailableTitle,
+            subtitle: l10n.homeDataUnavailableSubtitle,
+            icon: Icons.cloud_off_rounded,
+            actionLabel: l10n.retry,
+            onAction: () => controller.refreshData(),
+          );
+        }
         return const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),
           child: TransactionListShimmer(),
         );
       }
 
-      if (controller.transactions.isEmpty) {
-        return EmptyStateWidget(
-          title: "No Transactions",
-          subtitle: kIsWeb
-              ? "Could not load transactions. Tap retry to try again."
-              : "You haven't made any transactions yet.",
-          icon: Icons.receipt_long_outlined,
-          actionLabel: kIsWeb ? "Retry" : null,
-          onAction: kIsWeb
-              ? () {
-                  controller.bindTransactions();
-                  controller.bindCategories();
-                }
-              : null,
-        );
-      }
-
-      final recentTxs = controller.transactions
-          .where(
-            (txn) => txn.senderId == user.uid || txn.recipientId == user.uid,
-          )
-          .take(8)
-          .toList();
-
+      final recentTxs = controller.recentTransactions;
       if (recentTxs.isEmpty) {
-        return const EmptyStateWidget(
-          title: "No Transactions",
-          subtitle: "You haven't made any transactions yet.",
+        return EmptyStateWidget(
+          title: l10n.noTransactions,
+          subtitle: l10n.noTransactionsSubtitle,
           icon: Icons.receipt_long_outlined,
         );
       }
 
       final isDark = Theme.of(context).brightness == Brightness.dark;
-      final txTextColor = isDark ? Colors.white : Colors.black87;
+      final txTextColor =
+          widget.textColor ?? (isDark ? Colors.white : Colors.black87);
 
       final shouldAnimate = !_entranceAnimationDone;
       if (shouldAnimate) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _entranceAnimationDone = true);
+        // Flip the flag only after the stagger + fade has finished. Flipping
+        // it in a post-frame callback tore the wrappers down on the very next
+        // frame, so the entrance animation never actually played.
+        _entranceTimer?.cancel();
+        _entranceTimer = Timer(const Duration(milliseconds: 800), () {
+          if (!mounted) return;
+          setState(() => _entranceAnimationDone = true);
         });
       }
 
@@ -116,8 +119,8 @@ class _RecentPaymentListState extends State<RecentPaymentList> {
               tx: tx,
               received: received,
               textColor: txTextColor,
-              receivedColor: AppColors.success,
-              sentColor: AppColors.error,
+              receivedColor: widget.receivedColor ?? AppColors.success,
+              sentColor: widget.sentColor ?? AppColors.error,
             );
 
             if (!shouldAnimate) return tile;

@@ -6,7 +6,10 @@ import 'package:money_control/Models/transaction.dart';
 
 import 'package:money_control/Screens/transaction_details.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Components/colors.dart';
+import 'package:money_control/l10n/app_localizations.dart';
+import 'package:get/get.dart';
 
 class TxTile extends StatelessWidget {
   final TransactionModel tx;
@@ -83,13 +86,23 @@ class TxTile extends StatelessWidget {
                   SizedBox(height: 4.h),
                   Row(
                     children: [
-                      PrivacyText(
-                        "${received ? "+" : "-"}${tx.amount.abs().toStringAsFixed(2)}",
-                        style: AppType.labelMedium(amtColor),
-                      ),
+                      Obx(() {
+                        // Currency changes live in their own controller; the
+                        // tile is not rebuilt by a transaction stream, so the
+                        // symbol is read reactively here (it used to render a
+                        // bare "-123.00" with no currency at all).
+                        final symbol =
+                            CurrencyController.to.currencySymbol.value;
+                        return PrivacyText(
+                          "${received ? "+" : "-"}$symbol${tx.amount.abs().toStringAsFixed(2)}",
+                          style: AppType.labelMedium(amtColor),
+                        );
+                      }),
                       SizedBox(width: 6.w),
                       Text(
-                        received ? "Received" : "Sent",
+                        received
+                            ? AppLocalizations.of(context)!.received
+                            : AppLocalizations.of(context)!.sent,
                         style: TextStyle(
                           color: (textColor ?? scheme.onSurface).withValues(
                             alpha: 0.7,

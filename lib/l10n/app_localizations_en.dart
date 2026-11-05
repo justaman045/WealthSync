@@ -24,6 +24,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recentTransactions => 'Recent Transactions';
 
   @override
+  String get homeThisMonth => 'This month';
+
+  @override
+  String get homeMoneyIn => 'In';
+
+  @override
+  String get homeMoneyOut => 'Out';
+
+  @override
+  String get homeLeftOver => 'Left';
+
+  @override
+  String get homeDataUnavailableTitle => 'Couldn\'t load transactions';
+
+  @override
+  String get homeDataUnavailableSubtitle =>
+      'Check your connection and try again.';
+
+  @override
+  String get noCategoriesFound => 'No categories found';
+
+  @override
   String get noTransactions => 'No Transactions';
 
   @override
@@ -717,7 +739,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String balanceVersusLastMonth(String percent) {
-    return '$percent% vs last month';
+    return '$percent% vs same time last month';
   }
 
   @override
@@ -1724,6 +1746,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get received => 'Received';
+
+  @override
+  String get sent => 'Sent';
 
   @override
   String get recordPayment => 'Record Payment';

@@ -385,6 +385,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
   Worker? _widgetPendingWorker;
   Worker? _widgetReadyWorker;
   Worker? _widgetUnlockWorker;
+  Worker? _reconnectWorker;
 
   @override
   void initState() {
@@ -392,6 +393,25 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
     _bioService = Get.find<BiometricService>();
     WidgetsBinding.instance.addObserver(this);
     _initWidgetClickHandling();
+    _initReconnectHandling();
+  }
+
+  /// Reconnect handling: the offline banner promises "changes will sync when
+  /// you reconnect", but the queued writes were only replayed at startup and
+  /// sign-in. A stream that exhausted its retries also stayed dead for the
+  /// rest of the session. Both are recoverable the moment the device is back
+  /// online, so that is when we do it.
+  void _initReconnectHandling() {
+    if (!Get.isRegistered<ConnectivityController>()) return;
+    _reconnectWorker = ever<bool>(ConnectivityController.to.isOnline, (online) {
+      if (!online) return;
+      unawaited(syncPendingTransactions().catchError((Object e) {
+        debugPrint('Reconnect: offline queue flush failed: $e');
+      }));
+      if (Get.isRegistered<TransactionController>()) {
+        Get.find<TransactionController>().refreshStreamsIfDead();
+      }
+    });
   }
 
   void _initWidgetClickHandling() {
@@ -453,6 +473,7 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
     _widgetPendingWorker?.dispose();
     _widgetReadyWorker?.dispose();
     _widgetUnlockWorker?.dispose();
+    _reconnectWorker?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -473,6 +494,11 @@ class _RootAppState extends State<RootApp> with WidgetsBindingObserver {
       // Check subscription on resume (skip on web — Firestore 12.7.0 SDK bug
       // corrupts internal state when listeners re-open into a broken session)
       if (!kIsWeb) SubscriptionController.to.checkSubscriptionStatus();
+      // A stream that gave up retrying while the app was backgrounded can be
+      // re-opened now; nothing else recovers it until the app restarts.
+      if (Get.isRegistered<TransactionController>()) {
+        Get.find<TransactionController>().refreshStreamsIfDead();
+      }
     }
   }
 

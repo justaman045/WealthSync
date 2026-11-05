@@ -119,6 +119,12 @@ class FeatureFlag {
       icon: Icons.trending_up_rounded,
     ),
     FeatureFlag(
+      key: 'home_month_summary',
+      title: 'Monthly Summary Strip',
+      description: 'Money in, money out and left over on the home screen',
+      icon: Icons.calendar_month_rounded,
+    ),
+    FeatureFlag(
       key: 'analytics',
       title: 'Analytics & Reports',
       description: 'Spending analytics dashboard',
@@ -404,6 +410,7 @@ class FeatureFlag {
         'upi_pay',
         'qr_scan',
         'forecast',
+        'home_month_summary',
       ],
     ),
     FeatureFlagGroup(
