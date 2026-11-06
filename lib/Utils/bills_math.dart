@@ -275,11 +275,13 @@ MonthlyBills buildMonthlyBills({
   final bills = <MonthlyBill>[];
   // Canonical name per lowercased key: keeps the first-seen original casing
   // so "EMI" (recurring) and "emi" (transactions) don't create duplicate bills.
+  // Sort names for deterministic iteration order (Set iteration is unspecified).
   final canonicalNames = <String, String>{};
-  for (final name in names) {
+  for (final name in names.toList()..sort()) {
     final key = name.toLowerCase().trim();
     canonicalNames.putIfAbsent(key, () => name.trim());
-    final canonicalName = canonicalNames[key]!;
+    // Title-case for display: "groceries" → "Groceries", "EMI" → "Emi".
+    final canonicalName = _titleCase(canonicalNames[key]!);
     // Try the original name first (tests construct maps with original casing),
     // then the lowercased key (analysis.dart builds categoryMonthly with
     // _categoryKey which lowercases).
@@ -350,4 +352,16 @@ MonthlyBills buildMonthlyBills({
     categories: bills,
     outstanding: liabilityOutstanding(recurring),
   );
+}
+
+/// Title-cases a category name for display: "groceries" → "Groceries",
+/// "EMI" → "Emi", "credit card bill" → "Credit Card Bill".
+String _titleCase(String name) {
+  if (name.isEmpty) return '';
+  return name
+      .trim()
+      .split(' ')
+      .where((w) => w.isNotEmpty)
+      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
 }

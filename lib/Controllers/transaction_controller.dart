@@ -294,6 +294,29 @@ class TransactionController extends GetxController {
     );
   }
 
+  /// Force a fresh fetch of transactions from Firestore, bypassing the
+  /// "stream is alive" check in [refreshData]. Used by AI Insights so the
+  /// refresh button always re-reads the latest data instead of recomputing
+  /// from a potentially stale cache.
+  Future<void> forceRefreshTransactions() async {
+    bindTransactions();
+    // Wait for the new stream to emit at least once so the caller can
+    // recompute with fresh data. Cap the wait at 8 seconds.
+    final completer = Completer<void>();
+    late final StreamSubscription<List<TransactionModel>> sub;
+    sub = transactions.stream.listen(
+      (_) {
+        if (!completer.isCompleted) completer.complete();
+        sub.cancel();
+      },
+      onError: (_) {
+        if (!completer.isCompleted) completer.complete();
+        sub.cancel();
+      },
+    );
+    await completer.future.timeout(const Duration(seconds: 8), onTimeout: () {});
+  }
+
   void _scheduleTxRetry() {
     _txRetryTimer?.cancel();
     if (_txRetryCount >= _txMaxRetries) {

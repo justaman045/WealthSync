@@ -55,6 +55,19 @@ String _categoryKey(String? category) {
   return name == null || name.isEmpty ? _kUncategorizedCategory : name.toLowerCase();
 }
 
+/// Title-cases a category name for display: "groceries" → "Groceries",
+/// "EMI" → "Emi", "credit card bill" → "Credit Card Bill".
+/// Aggregation keys stay lowercased; only the display text is title-cased.
+String _titleCase(String? name) {
+  if (name == null || name.isEmpty) return '';
+  return name
+      .trim()
+      .split(' ')
+      .where((w) => w.isNotEmpty)
+      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
+}
+
 class _AIInsightsScreenState extends State<AIInsightsScreen>
     with WidgetsBindingObserver {
   bool loading = true;
@@ -184,6 +197,18 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
       }
       _runInsights();
     });
+  }
+
+  /// Force-refresh: re-fetch transactions from Firestore, then recompute
+  /// all insights with the fresh data. This is what the refresh button uses
+  /// so it never recomputes from a stale cache.
+  Future<void> _forceRefresh() async {
+    if (!mounted) return;
+    if (Get.isRegistered<TransactionController>()) {
+      await Get.find<TransactionController>().forceRefreshTransactions();
+    }
+    if (!mounted) return;
+    _runInsights();
   }
 
   /// Recompute just after midnight while the screen is open, so "today" never
@@ -543,10 +568,10 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
           catForecast = max(currentSpent, plan);
         } else if (isFixed) {
           if (plan > 0 && bill.isPaid) {
-            msg = l10n.analysisBillPaid(bill.category);
+            msg = l10n.analysisBillPaid(_titleCase(bill.category));
             catForecast = currentSpent;
           } else if (currentSpent > 0) {
-            msg = l10n.analysisBillPartial(bill.category);
+            msg = l10n.analysisBillPartial(_titleCase(bill.category));
             catForecast = max(currentSpent, plan);
           } else if (plan > 0) {
             msg = l10n.analysisBillPending(
@@ -554,7 +579,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
             );
             catForecast = plan;
           } else {
-            msg = l10n.analysisBillPartial(bill.category);
+            msg = l10n.analysisBillPartial(_titleCase(bill.category));
             catForecast = currentSpent;
           }
         } else {
@@ -583,13 +608,13 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
           // usual month keeps a coffee habit from reading as an alert.
           final materialFloor = usualMonthAvg * 0.02;
           if (currentSpent > expectedSoFar * 1.25 && catHistAvg > materialFloor) {
-            msg = l10n.analysisSpendingFaster(bill.category);
+            msg = l10n.analysisSpendingFaster(_titleCase(bill.category));
           } else if (currentSpent < expectedSoFar * 0.75 && currentSpent > 0) {
-            msg = l10n.analysisSpendingLower(bill.category);
+            msg = l10n.analysisSpendingLower(_titleCase(bill.category));
           } else if (currentSpent == 0) {
-            msg = l10n.analysisSpendingNone(bill.category);
+            msg = l10n.analysisSpendingNone(_titleCase(bill.category));
           } else {
-            msg = l10n.analysisSpendingOnTrack(bill.category);
+            msg = l10n.analysisSpendingOnTrack(_titleCase(bill.category));
           }
         }
 
@@ -607,7 +632,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
 
         localInsights.add(
           CategoryInsight(
-            category: bill.category,
+            category: _titleCase(bill.category),
             currentSoFar: currentSpent,
             forecastMonthTotal: catForecast,
             prevMonthTotal: lastMonthVal,
@@ -684,7 +709,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _runInsights,
+            onPressed: _forceRefresh,
             tooltip: AppLocalizations.of(context)!.analysisRetry,
           ),
         ],
