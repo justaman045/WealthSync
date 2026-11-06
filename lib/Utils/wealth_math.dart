@@ -780,3 +780,16 @@ String formatPercent(
   if (capBelowHundred && roundedUp >= 100) roundedUp = 100 - 1 / scale;
   return NumberFormat('#,##0.##').format(roundedUp);
 }
+
+/// Title-cases a category name for display: "groceries" → "Groceries",
+/// "EMI" → "Emi", "credit card bill" → "Credit Card Bill".
+/// Aggregation keys stay lowercased; only the display text is title-cased.
+String titleCaseCategory(String? name) {
+  if (name == null || name.isEmpty) return '';
+  return name
+      .trim()
+      .split(' ')
+      .where((w) => w.isNotEmpty)
+      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
+}

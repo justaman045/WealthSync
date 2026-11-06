@@ -8,6 +8,7 @@ import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Services/category_service.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class AutoTagRulesScreen extends StatefulWidget {
   const AutoTagRulesScreen({super.key});
@@ -193,11 +194,21 @@ class _AutoTagRulesScreenState extends State<AutoTagRulesScreen> {
           TextButton(
             onPressed: () {
               final name = ctrl.text.trim();
-              if (name.isEmpty || _rules.containsKey(name)) return;
+              if (name.isEmpty) return;
+              // Case-insensitive dedup: don't create if a variant already exists.
+              final existing = _rules.keys.firstWhere(
+                (k) => k.toLowerCase() == name.toLowerCase(),
+                orElse: () => '',
+              );
+              if (existing.isNotEmpty) {
+                Navigator.pop(context);
+                return;
+              }
+              final canonicalName = titleCaseCategory(name);
               Navigator.pop(context);
               setState(() {
-                _rules[name] = [];
-                _userRules[name] = [];
+                _rules[canonicalName] = [];
+                _userRules[canonicalName] = [];
               });
               _save();
             },

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:money_control/Models/cateogary.dart';
@@ -16,13 +17,16 @@ import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
+import 'package:money_control/Services/category_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Screens/subscription_screen.dart';
 import 'package:money_control/Utils/num_parse.dart';
 import 'package:money_control/Utils/home_math.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 import 'package:money_control/Services/app_analytics.dart';
+import 'package:money_control/Components/colors.dart';
 
 class TransactionController extends GetxController {
   final TransactionRepository _repository = TransactionRepository();
@@ -422,8 +426,9 @@ class TransactionController extends GetxController {
     // Guard against double-taps creating duplicate categories.
     if (_addingCategory) return false;
     _addingCategory = true;
+
+    // Check PRO limit against the in-memory category count.
     try {
-      // 1. Check PRO Limit (Categories)
       if (!_subscriptionController.isPro && categories.length >= 10) {
         Get.to(() => const SubscriptionScreen());
         return false;
@@ -434,14 +439,25 @@ class TransactionController extends GetxController {
         return false;
       }
 
-      if (categories.any((c) => c.name.toLowerCase() == name.toLowerCase())) {
+      // Case-insensitive dedup against Firestore (source of truth), not just
+      // the in-memory list which may be empty before the stream loads.
+      final existingId = await CategoryService().addCategory(
+        CategoryModel(
+          id: '',
+          name: name,
+          color: AppColors.primary.toARGB32(),
+          iconCode: Icons.category.codePoint,
+        ),
+      );
+      if (existingId == null) {
         ErrorHandler.showError("Category already exists");
         return false;
       }
 
-      final doc = await _repository.addCategory(name);
-      categories.add(CategoryModel(id: doc.id, name: name));
-      sortedCategoryNames.add(name); // Ensure it appears in QuickSend
+      // Re-fetch categories so the in-memory list reflects the canonical
+      // (possibly title-cased) name from Firestore.
+      await _fetchCategories();
+
       return true;
     } catch (e) {
       _handleFirestoreError(e, "Failed to add category");
@@ -451,8 +467,18 @@ class TransactionController extends GetxController {
     }
   }
 
+  /// Fetch categories from Firestore via CategoryService and refresh the
+  /// in-memory list so it stays in sync with the canonical stored names.
+  Future<void> _fetchCategories() async {
+    final cats = await CategoryService().getCategoriesOnce();
+    categories.assignAll(cats);
+  }
+
   int getCategoryUsageCount(String categoryName) {
-    return transactions.where((t) => t.category == categoryName).length;
+    final key = categoryName.toLowerCase().trim();
+    return transactions
+        .where((t) => (t.category ?? '').toLowerCase().trim() == key)
+        .length;
   }
 
   Future<void> migrateTransactions(
@@ -599,6 +625,10 @@ class TransactionController extends GetxController {
     final isSend = type == 'send';
     final finalAmount = isSend ? -amount : amount;
 
+    // Normalize category to title case so "emi", "EMI", "Emi" all store as "Emi"
+    // and never create duplicate casing variants in Firestore.
+    final canonicalCategory = titleCaseCategory(category);
+
     final tx = TransactionModel(
       id: "",
       senderId: isSend ? user.uid : "",
@@ -608,7 +638,7 @@ class TransactionController extends GetxController {
       currency: currency,
       tax: 0.0,
       note: note,
-      category: category,
+      category: canonicalCategory,
       date: date,
       status: "success",
       createdAt: DateTime.now(),

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Services/category_service.dart';
 import 'package:money_control/Utils/icon_helper.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/subscription_controller.dart';
 import 'package:money_control/Components/pro_lock_widget.dart';
@@ -321,7 +322,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             ),
             SizedBox(height: 8.h),
             Text(
-              cat.name,
+              titleCaseCategory(cat.name),
               textAlign: TextAlign.center,
               style: AppType.labelMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
               maxLines: 2,
@@ -571,7 +572,7 @@ class _CategoryDialogState extends State<_CategoryDialog> {
 
                 final finalModel = CategoryModel(
                   id: widget.category?.id ?? '',
-                  name: _nameController.text.trim(),
+                  name: titleCaseCategory(_nameController.text.trim()),
                   color: _selectedColor,
                   iconCode: _selectedIconCode,
                   treatmentOverride: _treatmentOverride,

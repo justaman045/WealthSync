@@ -53,6 +53,7 @@ import 'package:money_control/Utils/widget_action.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
 import 'package:money_control/Services/feature_flag_service.dart';
+import 'package:money_control/Services/category_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:money_control/Platform/widget_platform.dart';
 import 'package:money_control/Screens/add_transaction.dart';
@@ -747,6 +748,16 @@ class _AuthCheckerState extends State<AuthChecker> {
           FeatureFlagService.to.startPolling();
         }
         final email = user.email;
+        // One-time migration: deduplicate categories that differ only in casing
+        // (emi/EMI/Emi → Emi) and title-case the canonical name. Runs once per
+        // app version via a SharedPreferences flag inside the service.
+        if (email != null) {
+          await CategoryService().migrateDuplicateCategories(
+            txCtrl: Get.isRegistered<TransactionController>()
+                ? Get.find<TransactionController>()
+                : null,
+          );
+        }
         if (!_didInitialBackup && email != null) {
           _didInitialBackup = true;
           unawaited(

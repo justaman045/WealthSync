@@ -24,6 +24,7 @@ import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Components/responsive_form_row.dart';
 import 'package:money_control/Utils/num_parse.dart';
 import 'package:money_control/Utils/platform_support.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 enum PaymentType { send, receive }
 
@@ -175,12 +176,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   FilledButton(
                     onPressed: () async {
                       final success = await _transactionController.addCategory(
-                        _newCategory.text.trim(),
+                        titleCaseCategory(_newCategory.text.trim()),
                       );
                       if (success) {
                         if (!mounted) return;
                         setState(() {
-                          selectedCategory = _newCategory.text.trim();
+                          selectedCategory = titleCaseCategory(_newCategory.text.trim());
                         });
                         if (mounted) Navigator.pop(context);
                       }

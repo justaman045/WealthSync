@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Repositories/category_rules_repository.dart';
 import 'package:money_control/Services/sms_service.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CategoryService {
@@ -182,16 +183,59 @@ class CategoryService {
         });
   }
 
-  // Add category
-  Future<void> addCategory(CategoryModel category) async {
+  /// One-shot fetch of categories (no listener). Used after writing a new
+  /// category so the in-memory list reflects the canonical stored name.
+  Future<List<CategoryModel>> getCategoriesOnce() async {
     final email = _userEmail;
-    if (email == null) return;
-
-    await _firestore
+    if (email == null) return [];
+    final snap = await _firestore
         .collection('users')
         .doc(email)
         .collection('categories')
-        .add(category.toMap());
+        .get();
+    return snap.docs
+        .map((doc) => CategoryModel.fromMap(doc.id, doc.data()))
+        .toList();
+  }
+
+  // Add category
+  /// Adds a category only when no category with the same name (case-insensitive)
+  /// already exists. Returns the id of the existing or newly created doc.
+  /// The stored name is title-cased so all devices show one canonical form.
+  Future<String?> addCategory(CategoryModel category) async {
+    final email = _userEmail;
+    if (email == null) return null;
+
+    final normalizedName = titleCaseCategory(category.name);
+    final key = normalizedName.toLowerCase().trim();
+
+    // Check for an existing category with the same name (case-insensitive).
+    final existing = await _firestore
+        .collection('users')
+        .doc(email)
+        .collection('categories')
+        .get();
+
+    final matches = existing.docs.where((doc) {
+      final data = doc.data();
+      final storedName = (data['name'] as String? ?? '').trim();
+      return storedName.toLowerCase() == key;
+    }).toList();
+
+    if (matches.isNotEmpty) {
+      // Existing category found — return its id instead of creating a duplicate.
+      return matches.first.id;
+    }
+
+    final docData = category.toMap();
+    docData['name'] = normalizedName;
+
+    final docRef = await _firestore
+        .collection('users')
+        .doc(email)
+        .collection('categories')
+        .add(docData);
+    return docRef.id;
   }
 
   // Update category
@@ -218,5 +262,109 @@ class CategoryService {
         .collection('categories')
         .doc(categoryId)
         .delete();
+  }
+
+  /// One-time migration: deduplicate category documents that differ only in
+  /// casing (e.g. "emi" / "EMI" / "Emi").
+  ///
+  /// Groups category docs by lowercased name, keeps the one with the most
+  /// transactions, title-cases its stored name, deletes the duplicates, and
+  /// re-points any transaction rows that referenced a deleted variant to the
+  /// canonical title-cased name. Guarded by a SharedPreferences flag so it runs
+  /// once per app version.
+  ///
+  /// [txCtrl] is the transaction controller (registered after sign-in); pass
+  /// null if not available — transaction re-pointing is skipped in that case.
+  /// Typed as dynamic to avoid a circular import with transaction_controller.dart.
+  Future<void> migrateDuplicateCategories({dynamic txCtrl}) async {
+    final email = _userEmail;
+    if (email == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final migrationKey = 'cat_dedup_v1';
+    if (prefs.getBool(migrationKey) == true) return;
+
+    final snap = await _firestore
+        .collection('users')
+        .doc(email)
+        .collection('categories')
+        .get();
+
+    // Group docs by lowercased name.
+    final byKey = <String, List<QueryDocumentSnapshot<Object?>>>{};
+    for (final doc in snap.docs) {
+      final data = doc.data() as Map<String, dynamic>?;
+      final storedName = (data?['name'] as String? ?? '').trim();
+      final k = storedName.toLowerCase();
+      if (k.isEmpty) continue;
+      byKey.putIfAbsent(k, () => []).add(doc);
+    }
+
+    final batch = _firestore.batch();
+    int deletes = 0;
+
+    for (final entries in byKey.values) {
+      if (entries.length <= 1) continue;
+
+      // Pick the doc whose name matches the most transactions.
+      String? bestId;
+      int bestCount = -1;
+      for (final doc in entries) {
+        final data = doc.data() as Map<String, dynamic>?;
+        final storedName = (data?['name'] as String? ?? '').trim();
+        int count = 0;
+        if (txCtrl != null) {
+          count = txCtrl.transactions
+              .where((t) => (t.category ?? '').toLowerCase().trim() ==
+                  storedName.toLowerCase().trim())
+              .length;
+        }
+        if (count > bestCount) {
+          bestCount = count;
+          bestId = doc.id;
+        }
+      }
+      bestId ??= entries.first.id;
+
+      // Title-case the kept doc's name.
+      final bestDoc = entries.firstWhere((d) => d.id == bestId);
+      final bestData = bestDoc.data() as Map<String, dynamic>?;
+      final bestStored = (bestData?['name'] as String? ?? '').trim();
+      final canonical = titleCaseCategory(bestStored);
+
+      if (bestStored != canonical) {
+        batch.update(bestDoc.reference, {'name': canonical});
+      }
+
+      // Delete duplicates and re-point their transactions.
+      for (final doc in entries) {
+        if (doc.id == bestId) continue;
+        final data = doc.data() as Map<String, dynamic>?;
+        final storedName = ((data?['name'] as String? ?? '').trim());
+        batch.delete(doc.reference);
+        deletes++;
+
+        if (txCtrl != null && storedName.toLowerCase() != canonical.toLowerCase()) {
+          // Re-point transaction rows that used this exact casing.
+          for (final tx in txCtrl.transactions) {
+            if ((tx.category ?? '').trim() == storedName) {
+              // Update via repository: set category to canonical name.
+              await _firestore
+                  .collection('users')
+                  .doc(email)
+                  .collection('transactions')
+                  .doc(tx.id)
+                  .update({'category': canonical});
+            }
+          }
+        }
+      }
+    }
+
+    if (deletes > 0) {
+      await batch.commit();
+    }
+
+    await prefs.setBool(migrationKey, true);
   }
 }
