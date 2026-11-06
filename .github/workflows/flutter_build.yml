@@ -94,7 +94,7 @@ jobs:
       # error can never reach master, instead of only surfacing after merge in
       # the deploy job.
       - name: Web release compile check (dart2js)
-        run: flutter build web --release --base-href /WealthSync/
+        run: flutter build web --release --base-href /WealthSync/ --dart-define=FIREBASE_API_KEY_WEB=${{ secrets.FIREBASE_API_KEY_WEB }} --dart-define=FIREBASE_API_KEY_ANDROID=${{ secrets.FIREBASE_API_KEY_ANDROID }} --dart-define=FIREBASE_API_KEY_IOS=${{ secrets.FIREBASE_API_KEY_IOS }}
 
       - name: Upload unit test report
         if: always()
@@ -425,7 +425,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --dart-define=FIREBASE_API_KEY_WEB=${{ secrets.FIREBASE_API_KEY_WEB }} --dart-define=FIREBASE_API_KEY_ANDROID=${{ secrets.FIREBASE_API_KEY_ANDROID }} --dart-define=FIREBASE_API_KEY_IOS=${{ secrets.FIREBASE_API_KEY_IOS }}
 
       # ONE universal APK, deliberately.
       #
@@ -445,7 +445,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=FIREBASE_API_KEY_WEB=${{ secrets.FIREBASE_API_KEY_WEB }} --dart-define=FIREBASE_API_KEY_ANDROID=${{ secrets.FIREBASE_API_KEY_ANDROID }} --dart-define=FIREBASE_API_KEY_IOS=${{ secrets.FIREBASE_API_KEY_IOS }}
 
       # apksigner exits non-zero on any signature problem, so a broken/partial
       # signature fails here instead of shipping an APK that Android rejects
@@ -689,7 +689,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web (Release)
-        run: flutter build web --release --base-href /WealthSync/
+        run: flutter build web --release --base-href /WealthSync/ --dart-define=FIREBASE_API_KEY_WEB=${{ secrets.FIREBASE_API_KEY_WEB }} --dart-define=FIREBASE_API_KEY_ANDROID=${{ secrets.FIREBASE_API_KEY_ANDROID }} --dart-define=FIREBASE_API_KEY_IOS=${{ secrets.FIREBASE_API_KEY_IOS }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

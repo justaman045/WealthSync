@@ -228,6 +228,9 @@ run_file() {
     --dart-define=PRO_TEST_EMAIL="$PRO_TEST_EMAIL" \
     --dart-define=PRO_TEST_PASSWORD="$PRO_TEST_PASSWORD" \
     --dart-define=E2E_ALLOW_WIPE="${E2E_ALLOW_WIPE:-false}" \
+    --dart-define=FIREBASE_API_KEY_WEB="${FIREBASE_API_KEY_WEB:-}" \
+    --dart-define=FIREBASE_API_KEY_ANDROID="${FIREBASE_API_KEY_ANDROID:-}" \
+    --dart-define=FIREBASE_API_KEY_IOS="${FIREBASE_API_KEY_IOS:-}" \
     --file-reporter "json:build/report/parts/$name.json"
 }
 

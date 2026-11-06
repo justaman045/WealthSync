@@ -4,6 +4,20 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+/// Firebase options are sourced from dart-define so real keys never live in
+/// version control (secret scanning flagged the previous hardcoded literals).
+///
+/// CI passes the real values from repository secrets; local runs pass the same
+/// defines:
+///
+///   flutter run \
+///     --dart-define=FIREBASE_API_KEY_WEB=<web-key> \
+///     --dart-define=FIREBASE_API_KEY_ANDROID=<android-key> \
+///     --dart-define=FIREBASE_API_KEY_IOS=<ios-key>
+///
+/// `FIREBASE_API_KEY_WEB` covers web + windows; `FIREBASE_API_KEY_IOS` covers
+/// ios + macos; `FIREBASE_API_KEY_ANDROID` is android-only.
+
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
 /// Example:
@@ -40,7 +54,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDEEGl0rzR27OYrE9J--lcoQs3UolZMVlY',
+    apiKey: const String.fromEnvironment(
+      'FIREBASE_API_KEY_WEB',
+      defaultValue: '',
+    ),
     appId: '1:823109031805:web:bf79f0a10db08009295e14',
     messagingSenderId: '823109031805',
     projectId: 'moneycontroljustaman045',
@@ -51,7 +68,10 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBKlfOviJ6JFLW2BaLDlVblHqcqbDgIaUc',
+    apiKey: const String.fromEnvironment(
+      'FIREBASE_API_KEY_ANDROID',
+      defaultValue: '',
+    ),
     appId: '1:823109031805:android:9fb6d047fc753301295e14',
     messagingSenderId: '823109031805',
     projectId: 'moneycontroljustaman045',
@@ -59,32 +79,45 @@ class DefaultFirebaseOptions {
     storageBucket: 'moneycontroljustaman045.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDaxiqIIIk47tzp1IuKhJMTZaals3FR1DU',
+    apiKey: const String.fromEnvironment(
+      'FIREBASE_API_KEY_IOS',
+      defaultValue: '',
+    ),
     appId: '1:823109031805:ios:b4d3c7df3af6e83f295e14',
     messagingSenderId: '823109031805',
     projectId: 'moneycontroljustaman045',
     databaseURL: 'https://moneycontroljustaman045-default-rtdb.firebaseio.com',
     storageBucket: 'moneycontroljustaman045.firebasestorage.app',
-    androidClientId: '823109031805-69u2dk0vbdtjgvuk9nvo6a3dsri4mbp8.apps.googleusercontent.com',
-    iosClientId: '823109031805-2a1nhfu6anoe1q2em3bda8qeu961g5ck.apps.googleusercontent.com',
+    androidClientId:
+        '823109031805-69u2dk0vbdtjgvuk9nvo6a3dsri4mbp8.apps.googleusercontent.com',
+    iosClientId:
+        '823109031805-2a1nhfu6anoe1q2em3bda8qeu961g5ck.apps.googleusercontent.com',
     iosBundleId: 'app.vercel.justaman045.moneyControl',
   );
   // TODO: Register a dedicated macOS app in Firebase Console and replace this with macOS-specific values.
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDaxiqIIIk47tzp1IuKhJMTZaals3FR1DU',
+    apiKey: const String.fromEnvironment(
+      'FIREBASE_API_KEY_IOS',
+      defaultValue: '',
+    ),
     appId: '1:823109031805:ios:b4d3c7df3af6e83f295e14',
     messagingSenderId: '823109031805',
     projectId: 'moneycontroljustaman045',
     databaseURL: 'https://moneycontroljustaman045-default-rtdb.firebaseio.com',
     storageBucket: 'moneycontroljustaman045.firebasestorage.app',
-    androidClientId: '823109031805-69u2dk0vbdtjgvuk9nvo6a3dsri4mbp8.apps.googleusercontent.com',
-    iosClientId: '823109031805-2a1nhfu6anoe1q2em3bda8qeu961g5ck.apps.googleusercontent.com',
+    androidClientId:
+        '823109031805-69u2dk0vbdtjgvuk9nvo6a3dsri4mbp8.apps.googleusercontent.com',
+    iosClientId:
+        '823109031805-2a1nhfu6anoe1q2em3bda8qeu961g5ck.apps.googleusercontent.com',
     iosBundleId: 'app.vercel.justaman045.moneyControl',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDEEGl0rzR27OYrE9J--lcoQs3UolZMVlY',
+    apiKey: const String.fromEnvironment(
+      'FIREBASE_API_KEY_WEB',
+      defaultValue: '',
+    ),
     appId: '1:823109031805:web:170738853189d013295e14',
     messagingSenderId: '823109031805',
     projectId: 'moneycontroljustaman045',
