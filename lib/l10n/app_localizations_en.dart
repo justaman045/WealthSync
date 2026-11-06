@@ -551,6 +551,29 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get analysisIncomeLabel => 'Income';
+
+  @override
+  String get analysisSavingsReserved => 'Savings reserved';
+
+  @override
+  String get analysisFixedBills => 'Fixed bills';
+
+  @override
+  String get analysisDisposableBudget => 'Disposable budget';
+
+  @override
+  String get analysisAlreadySpent => 'Already spent today';
+
+  @override
+  String get analysisRemainingToday => 'Remaining today';
+
+  @override
+  String analysisForecastRemaining(Object remaining) {
+    return '$remaining left of forecast';
+  }
+
+  @override
   String get otherItemsCounted => 'Counted as other items';
 
   @override
@@ -2396,6 +2419,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wealthMonthlyExpenseBasis => 'Monthly Expense Basis';
+
+  @override
+  String get wealthFdProjected1Yr => 'FD 1yr @7%';
+
+  @override
+  String get wealthPfProjected1Yr => 'PF 1yr @7.1%';
+
+  @override
+  String get wealthCcMonthlyInterest => 'CC interest/mo @36%';
 
   @override
   String wealthPhaseHeading(Object name, Object phase) {

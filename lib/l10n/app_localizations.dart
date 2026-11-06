@@ -996,6 +996,48 @@ abstract class AppLocalizations {
   /// **'{scheduled} scheduled, not yet due'**
   String analysisScheduledNotDue(Object scheduled);
 
+  /// No description provided for @analysisIncomeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Income'**
+  String get analysisIncomeLabel;
+
+  /// No description provided for @analysisSavingsReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings reserved'**
+  String get analysisSavingsReserved;
+
+  /// No description provided for @analysisFixedBills.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixed bills'**
+  String get analysisFixedBills;
+
+  /// No description provided for @analysisDisposableBudget.
+  ///
+  /// In en, this message translates to:
+  /// **'Disposable budget'**
+  String get analysisDisposableBudget;
+
+  /// No description provided for @analysisAlreadySpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Already spent today'**
+  String get analysisAlreadySpent;
+
+  /// No description provided for @analysisRemainingToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining today'**
+  String get analysisRemainingToday;
+
+  /// No description provided for @analysisForecastRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{remaining} left of forecast'**
+  String analysisForecastRemaining(Object remaining);
+
   /// No description provided for @otherItemsCounted.
   ///
   /// In en, this message translates to:
@@ -4222,6 +4264,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Monthly Expense Basis'**
   String get wealthMonthlyExpenseBasis;
+
+  /// No description provided for @wealthFdProjected1Yr.
+  ///
+  /// In en, this message translates to:
+  /// **'FD 1yr @7%'**
+  String get wealthFdProjected1Yr;
+
+  /// No description provided for @wealthPfProjected1Yr.
+  ///
+  /// In en, this message translates to:
+  /// **'PF 1yr @7.1%'**
+  String get wealthPfProjected1Yr;
+
+  /// No description provided for @wealthCcMonthlyInterest.
+  ///
+  /// In en, this message translates to:
+  /// **'CC interest/mo @36%'**
+  String get wealthCcMonthlyInterest;
 
   /// No description provided for @wealthPhaseHeading.
   ///

@@ -273,9 +273,18 @@ MonthlyBills buildMonthlyBills({
   }
 
   final bills = <MonthlyBill>[];
+  // Canonical name per lowercased key: keeps the first-seen original casing
+  // so "EMI" (recurring) and "emi" (transactions) don't create duplicate bills.
+  final canonicalNames = <String, String>{};
   for (final name in names) {
     final key = name.toLowerCase().trim();
-    final months = categoryMonthly[name] ?? const <int, double>{};
+    canonicalNames.putIfAbsent(key, () => name.trim());
+    final canonicalName = canonicalNames[key]!;
+    // Try the original name first (tests construct maps with original casing),
+    // then the lowercased key (analysis.dart builds categoryMonthly with
+    // _categoryKey which lowercases).
+    final months =
+        categoryMonthly[name.trim()] ?? categoryMonthly[key] ?? const <int, double>{};
 
     final history = <double>[];
     for (final entry in months.entries) {
@@ -288,7 +297,7 @@ MonthlyBills buildMonthlyBills({
     final due = dueByCategory[key];
     final override = fixedAmountOverrides[key] ?? 0;
     final role = resolveDailyLimitRole(
-      name,
+      canonicalName,
       treatmentOverrides: treatmentOverrides,
     );
 
@@ -301,9 +310,9 @@ MonthlyBills buildMonthlyBills({
       orElse: () => RecurringPayment(
         id: '',
         userId: '',
-        title: name,
+        title: canonicalName,
         amount: 0,
-        category: name,
+        category: canonicalName,
         frequency: RecurringFrequency.monthly,
         startDate: DateTime.now(),
         nextDueDate: DateTime.now(),
@@ -318,7 +327,7 @@ MonthlyBills buildMonthlyBills({
 
     bills.add(
       MonthlyBill(
-        category: name,
+        category: canonicalName,
         autoAmount: auto,
         overrideAmount: override,
         recurringDue: due?.amount ?? 0,

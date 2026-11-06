@@ -318,3 +318,46 @@ double principalAmountPaid(double principal, double remaining) {
   final paid = principal - remaining;
   return paid.clamp(0, principal);
 }
+
+/// Project an asset's future value with compound interest.
+///
+/// [principal] is the current value, [annualRatePercent] is the annual
+/// interest rate (e.g. 7 for 7%), [years] is the projection horizon.
+/// Compounds annually like a bank FD.
+///
+/// Returns the projected future value and the interest earned.
+double compoundInterestProjection({
+  required double principal,
+  required double annualRatePercent,
+  required int years,
+}) {
+  if (principal <= 0 || years <= 0 || annualRatePercent == 0) return principal;
+  final r = annualRatePercent / 100.0;
+  final future = principal * math.pow(1 + r, years);
+  return future.clamp(0, double.infinity).toDouble();
+}
+
+/// Interest earned on an asset over [years] at [annualRatePercent].
+double compoundInterestEarned({
+  required double principal,
+  required double annualRatePercent,
+  required int years,
+}) {
+  final future = compoundInterestProjection(
+    principal: principal,
+    annualRatePercent: annualRatePercent,
+    years: years,
+  );
+  return (future - principal).clamp(0, double.infinity).toDouble();
+}
+
+/// Monthly interest on a credit card outstanding balance at [aprPercent]
+/// (annual percentage rate). Credit cards typically compound monthly.
+double creditCardMonthlyInterest({
+  required double outstanding,
+  required double aprPercent,
+}) {
+  if (outstanding <= 0 || aprPercent == 0) return 0.0;
+  final monthlyRate = aprPercent / 12 / 100.0;
+  return (outstanding * monthlyRate).clamp(0, double.infinity).toDouble();
+}

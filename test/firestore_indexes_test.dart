@@ -36,8 +36,6 @@ class IndexEntry {
 const List<IndexEntry> requiredIndexes = [
   IndexEntry('challenges', ['isActive ASC', 'createdAt DESC']),
   IndexEntry('loans', ['isActive ASC', 'createdAt DESC']),
-  // Category history: equality on category, ordered by date.
-  IndexEntry('transactions', ['category ASC', 'date DESC']),
   // Budget month range: equality on category, range on date. Firestore allows
   // only one range field per query, so both `date` bounds share this index.
   IndexEntry('transactions', ['category ASC', 'date ASC']),
@@ -51,8 +49,6 @@ final Map<IndexEntry, String> querySources = {
       'lib/Repositories/challenge_repository.dart',
   IndexEntry('loans', ['isActive ASC', 'createdAt DESC']):
       'lib/Repositories/loan_repository.dart',
-  IndexEntry('transactions', ['category ASC', 'date DESC']):
-      'lib/Screens/cateogary_history.dart',
   IndexEntry('transactions', ['category ASC', 'date ASC']):
       'lib/Services/budget_service.dart',
 };
@@ -176,12 +172,8 @@ void main() {
             .contains(".where('isActive', isEqualTo: true)"),
         isTrue,
       );
-      expect(
-        File('lib/Screens/cateogary_history.dart')
-            .readAsStringSync()
-            .contains(".where('category', isEqualTo: widget.categoryName)"),
-        isTrue,
-      );
+      // Category history now filters client-side for case-insensitive matching;
+      // no composite index needed on transactions.category anymore.
       expect(
         File('lib/Services/budget_service.dart')
             .readAsStringSync()

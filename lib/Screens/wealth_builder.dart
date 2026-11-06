@@ -1017,6 +1017,32 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
       secondaryValue = monthlyExpense;
     } else if (asset.key == 'loans' && loanCount > 0) {
       secondaryLabel = l10n.wealthLoanCount(loanCount);
+    } else if (asset.key == 'fd' && amount > 0) {
+      // FD interest projection at 7% p.a. compounded annually
+      final projected = compoundInterestProjection(
+        principal: amount,
+        annualRatePercent: 7.0,
+        years: 1,
+      );
+      secondaryLabel = l10n.wealthFdProjected1Yr;
+      secondaryValue = projected;
+    } else if (asset.key == 'pf' && amount > 0) {
+      // PF interest projection at 7.1% p.a. compounded annually
+      final projected = compoundInterestProjection(
+        principal: amount,
+        annualRatePercent: 7.1,
+        years: 1,
+      );
+      secondaryLabel = l10n.wealthPfProjected1Yr;
+      secondaryValue = projected;
+    } else if (asset.key == 'creditCard' && amount > 0) {
+      // Credit card monthly interest at 36% APR
+      final monthlyInterest = creditCardMonthlyInterest(
+        outstanding: amount,
+        aprPercent: 36.0,
+      );
+      secondaryLabel = l10n.wealthCcMonthlyInterest;
+      secondaryValue = monthlyInterest;
     }
 
     final card = _assetCard(

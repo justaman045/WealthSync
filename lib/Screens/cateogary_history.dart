@@ -31,14 +31,17 @@ class _CategoryTransactionsScreenState
     extends State<CategoryTransactionsScreen> {
 
   Stream<QuerySnapshot> _buildQuery(User user) {
-    final query = FirebaseFirestore.instance
+    // Fetch all transactions for the user (ordered by date) and filter by
+    // category case-insensitively in Dart. Firestore's `isEqualTo` is
+    // case-sensitive, so "EMI" and "emi" would not match — this guarantees
+    // the category history screen always shows every transaction for the
+    // chosen category regardless of casing.
+    return FirebaseFirestore.instance
         .collection('users')
         .doc(user.email)
         .collection('transactions')
-        .where('category', isEqualTo: widget.categoryName)
-        .orderBy('date', descending: true);
-
-    return query.snapshots();
+        .orderBy('date', descending: true)
+        .snapshots();
   }
 
   static String _formatDateRange(DateTime start, DateTime end) {
@@ -126,14 +129,17 @@ class _CategoryTransactionsScreenState
             final now = DateTime.now();
             final startDate = widget.startDate ?? DateTime(now.year, now.month, 1);
             final endDate = widget.endDate ?? DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+            final targetCategory = widget.categoryName.toLowerCase().trim();
 
             final filteredDocs = docs.where((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final ts = data['date'] as Timestamp?;
               if (ts == null) return false;
               final d = ts.toDate();
-              return (d.isAtSameMomentAs(startDate) || d.isAfter(startDate)) &&
+              final inDateRange = (d.isAtSameMomentAs(startDate) || d.isAfter(startDate)) &&
                   (d.isAtSameMomentAs(endDate) || d.isBefore(endDate));
+              final cat = (data['category'] as String? ?? '').toLowerCase().trim();
+              return inDateRange && cat == targetCategory;
             }).toList();
 
             if (filteredDocs.isEmpty) {

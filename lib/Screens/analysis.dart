@@ -909,10 +909,14 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
     final l10n = AppLocalizations.of(context)!;
     final lite = PerformanceController.to.liteMode.value;
     final sym = CurrencyController.to.currencySymbol.value;
-    final total = forecastTotal;
+
+    // The projected total must never be less than what's already been spent,
+    // otherwise "spent of projected" shows spent > projected which is confusing.
+    final projectedTotal = max(forecastTotal, currentMonthSpent);
     final spent = currentMonthSpent;
     final scheduled = currentMonthScheduled;
-    final pct = total > 0 ? (spent / total).clamp(0.0, 1.0) : 0.0;
+    final remaining = projectedTotal - spent;
+    final pct = projectedTotal > 0 ? (spent / projectedTotal).clamp(0.0, 1.0) : 0.0;
 
     // Status Logic
     String warningText;
@@ -984,7 +988,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
 
           // PROJECTED TOTAL (count-up animation)
           TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: total),
+            tween: Tween<double>(begin: 0, end: projectedTotal),
             duration: const Duration(milliseconds: 1500),
             curve: Curves.easeOutExpo,
             builder: (context, value, child) {
@@ -997,18 +1001,28 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
 
           SizedBox(height: 6.h),
 
-          // "₹spent of ₹projected" — one comparison line plus a separate
-          // scheduled line so future money is never read as "already spent".
+          // "₹spent of ₹projected" — projectedTotal is always >= spent so the
+          // comparison is never confusing. A separate "remaining" line shows
+          // what's left of the forecast.
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 l10n.analysisSpentOfProjected(
                   "$sym${spent.toStringAsFixed(0)}",
-                  "$sym${total.toStringAsFixed(0)}",
+                  "$sym${projectedTotal.toStringAsFixed(0)}",
                 ),
                 style: AppType.titleSmall(
                   scheme.onPrimary.withValues(alpha: 0.95),
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                l10n.analysisForecastRemaining(
+                  "$sym${remaining.toStringAsFixed(0)}",
+                ),
+                style: AppType.labelSmall(
+                  scheme.onPrimary.withValues(alpha: 0.8),
                 ),
               ),
               if (scheduled > 0) ...[
@@ -1057,7 +1071,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
               ),
               SizedBox(width: 12.w),
               Text(
-                spent > total
+                spent > projectedTotal
                     ? ">${(pct * 100).toStringAsFixed(0)}%"
                     : "${(pct * 100).toStringAsFixed(0)}%",
                 style: AppType.titleSmall(scheme.onPrimary),
@@ -1191,6 +1205,23 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
     );
     final hasIncome = liveIncome.expectedIncome > 0;
 
+    // Compute the allowance ONCE so the tiles, status line and colour can never
+    // disagree (the old code recomputed it three times per build).
+    final allowance = computeDailyAllowance(
+      expectedIncome: liveIncome.expectedIncome,
+      fixedForecast: forecastFixed,
+      spentBeforeToday: variableSpentBeforeToday,
+      todaySpent: todayVariableSpent,
+      remainingDays: remainingDays,
+      savingsRate: SavingsSettings.rate,
+    );
+
+    final disposable = allowance.disposableBudget;
+    final fixed = forecastFixed;
+    final saved = allowance.disposableBudget > 0
+        ? (liveIncome.expectedIncome * SavingsSettings.rate).clamp(0, liveIncome.expectedIncome)
+        : 0.0;
+
     final List<Widget> children = [
       Text(
         l10n.analysisSmartDailyLimit,
@@ -1216,6 +1247,47 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
       }),
       SizedBox(height: 8.h),
 
+      // Breakdown: Income → −Savings → −Fixed Bills = Disposable → −Spent = Remaining
+      if (hasIncome) ...[
+        _breakdownRow(
+          l10n.analysisIncomeLabel,
+          '$sym${liveIncome.expectedIncome.toStringAsFixed(0)}',
+          scheme.onSurface,
+        ),
+        _breakdownRow(
+          l10n.analysisSavingsReserved,
+          '-$sym${saved.toStringAsFixed(0)}',
+          AppColors.success,
+        ),
+        _breakdownRow(
+          l10n.analysisFixedBills,
+          '-$sym${fixed.toStringAsFixed(0)}',
+          AppColors.warning,
+        ),
+        _breakdownRow(
+          l10n.analysisDisposableBudget,
+          '$sym${disposable.toStringAsFixed(0)}',
+          scheme.primary,
+          isBold: true,
+        ),
+        Divider(
+          height: 16.h,
+          color: scheme.onSurface.withValues(alpha: 0.08),
+        ),
+        _breakdownRow(
+          l10n.analysisAlreadySpent,
+          '-$sym${todayVariableSpent.toStringAsFixed(0)}',
+          todayVariableSpent > allowance.todayAllowance ? AppColors.error : AppColors.success,
+        ),
+        _breakdownRow(
+          l10n.analysisRemainingToday,
+          '$sym${allowance.remainingToday.toStringAsFixed(0)}',
+          allowance.remainingToday <= 0 ? AppColors.error : AppColors.success,
+          isBold: true,
+        ),
+        SizedBox(height: 8.h),
+      ],
+
       // Safe to spend today vs today's spend vs left today — one predicate
       // drives both the tile colour and the status line so they can never
       // disagree (today's tile used to be green while "Stop spending" below
@@ -1226,27 +1298,27 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
           children: [
             _limitTile(
               l10n.analysisSafeToSpendToday,
-              '$sym${_todayAllowance(liveIncome, remainingDays).toStringAsFixed(0)}',
+              '$sym${allowance.todayAllowance.toStringAsFixed(0)}',
               scheme.onSurface,
             ),
             _limitTile(
               l10n.today,
               '$sym${todayVariableSpent.toStringAsFixed(0)}',
-              todayVariableSpent > _todayAllowance(liveIncome, remainingDays)
+              todayVariableSpent > allowance.todayAllowance
                   ? AppColors.error
                   : AppColors.success,
             ),
             _limitTile(
               l10n.analysisLeftToday,
-              '$sym${_remainingToday(liveIncome, remainingDays).toStringAsFixed(0)}',
+              '$sym${allowance.remainingToday.toStringAsFixed(0)}',
               scheme.onSurface,
             ),
           ],
         ),
         SizedBox(height: 8.h),
         Text(
-          _todayStatus(liveIncome, remainingDays, l10n),
-          style: AppType.labelMedium(_todayStatusColor(liveIncome, remainingDays)),
+          _todayStatus(allowance, todayVariableSpent, l10n),
+          style: AppType.labelMedium(_todayStatusColor(allowance, todayVariableSpent)),
         ),
         SizedBox(height: 6.h),
       ],
@@ -1271,71 +1343,53 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
     );
   }
 
-  /// Today's safe spending allowance: budget left before today, spread over the
-  /// remaining days (today included).
-  double _todayAllowance(ExpectedIncomeResult liveIncome, int remainingDays) {
-    return computeDailyAllowance(
-      expectedIncome: liveIncome.expectedIncome,
-      fixedForecast: forecastFixed,
-      spentBeforeToday: variableSpentBeforeToday,
-      todaySpent: todayVariableSpent,
-      remainingDays: remainingDays,
-      savingsRate: SavingsSettings.rate,
-    ).todayAllowance;
-  }
-
-  /// What's left of today's allowance (never negative).
-  double _remainingToday(ExpectedIncomeResult liveIncome, int remainingDays) {
-    return computeDailyAllowance(
-      expectedIncome: liveIncome.expectedIncome,
-      fixedForecast: forecastFixed,
-      spentBeforeToday: variableSpentBeforeToday,
-      todaySpent: todayVariableSpent,
-      remainingDays: remainingDays,
-      savingsRate: SavingsSettings.rate,
-    ).remainingToday;
+  /// One row of the daily-limit breakdown: label, value, colour.
+  Widget _breakdownRow(String label, String value, Color color,
+      {bool isBold = false}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppType.labelSmall(scheme.onSurface.withValues(alpha: 0.7)),
+          ),
+          Text(
+            value,
+            style: AppType.labelMedium(color).merge(
+              TextStyle(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// Single status line computed from the same allowance the tiles show.
-  String _todayStatus(
-    ExpectedIncomeResult liveIncome,
-    int remainingDays,
-    AppLocalizations l10n,
-  ) {
-    final allowance = computeDailyAllowance(
-      expectedIncome: liveIncome.expectedIncome,
-      fixedForecast: forecastFixed,
-      spentBeforeToday: variableSpentBeforeToday,
-      todaySpent: todayVariableSpent,
-      remainingDays: remainingDays,
-      savingsRate: SavingsSettings.rate,
-    );
+  String _todayStatus(DailyAllowance allowance, double todaySpent,
+      AppLocalizations l10n) {
     if (allowance.todayAllowance <= 0) {
       return l10n.analysisBudgetExhausted;
     }
     if (allowance.isExhausted) {
       return l10n.analysisStopSpending;
     }
-    final ratio = todayVariableSpent / allowance.todayAllowance;
+    final ratio = todaySpent / allowance.todayAllowance;
     if (ratio > 1.1) return l10n.analysisCarefulSpending;
-    if (todayVariableSpent == 0) return l10n.analysisNoSpendingYet;
+    if (todaySpent == 0) return l10n.analysisNoSpendingYet;
     return l10n.analysisWithinLimit;
   }
 
-  Color _todayStatusColor(ExpectedIncomeResult liveIncome, int remainingDays) {
-    final allowance = computeDailyAllowance(
-      expectedIncome: liveIncome.expectedIncome,
-      fixedForecast: forecastFixed,
-      spentBeforeToday: variableSpentBeforeToday,
-      todaySpent: todayVariableSpent,
-      remainingDays: remainingDays,
-      savingsRate: SavingsSettings.rate,
-    );
+  Color _todayStatusColor(DailyAllowance allowance, double todaySpent) {
     if (allowance.todayAllowance <= 0) return AppColors.error;
     if (allowance.isExhausted) return AppColors.error;
-    final ratio = todayVariableSpent / allowance.todayAllowance;
+    final ratio = todaySpent / allowance.todayAllowance;
     if (ratio > 1.1) return AppColors.warning;
-    if (todayVariableSpent == 0) {
+    if (todaySpent == 0) {
       return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
     }
     return AppColors.success;
