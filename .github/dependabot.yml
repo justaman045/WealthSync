@@ -5,7 +5,7 @@ version: 2
 updates:
   # The emulator harness (`tool/rules_tests/`) is the only npm manifest. Its
   # dependency tree belongs to firebase-tools, which is a CI tool and never
-  # ships to a user. Four transitive packages carry advisories with no
+  # ships to a user. Five transitive packages carry advisories with no
   # resolvable fix in that tree:
   #
   #   uuid                 firebase-tools -> gaxios@6.7.1 requires uuid@^9.0.1,
@@ -18,11 +18,15 @@ updates:
   #                        resolvable path through firebase-tools@15.34.1
   #                        (glob@10.5.0 -> minimatch@^9.0.4) tops out at 9.0.9, so
   #                        Dependabot reports `security_update_not_possible`.
+  #   glob                 the resolvable path through firebase-tools@15.34.1
+  #                        (glob@10.5.0) tops out at an unpatched line (earliest
+  #                        fixed 14.0.2), so Dependabot reports
+  #                        `security_update_not_possible`.
   #
   # Dependabot's security-update jobs for them fail on the default branch with
   # `security_update_not_possible` and turn every push red for a dependency that
   # has no user-facing exposure. They are ignored here (alerts stay visible in
-  # the Security tab) until firebase-tools moves to a patched minimatch line.
+  # the Security tab) until firebase-tools moves to a patched line.
   #
   # Do NOT ignore their *direct* equivalents: if any of these ever becomes a
   # first-party dependency of the app, delete the matching ignore entry.
@@ -43,6 +47,7 @@ updates:
       - dependency-name: "@grpc/grpc-js"
       - dependency-name: "@opentelemetry/core"
       - dependency-name: minimatch
+      - dependency-name: glob
 
   # Workflow actions are pinned by tag (`actions/checkout@v5`, etc.); an action
   # major can change the runner contract, so Dependabot proposes those bumps and
