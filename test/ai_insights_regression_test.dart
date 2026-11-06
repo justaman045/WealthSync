@@ -9,31 +9,11 @@ TransactionModel _expenseTx({
   String uid = 'me',
 }) {
   return TransactionModel(
-    id: '$category-${amount}-${date.millisecondsSinceEpoch}',
+    id: '$category-$amount-${date.millisecondsSinceEpoch}',
     senderId: uid,
     recipientId: '',
     recipientName: category,
     amount: -amount.abs(),
-    currency: 'INR',
-    tax: 0,
-    category: category,
-    date: date,
-    createdAt: date,
-  );
-}
-
-TransactionModel _incomeTx({
-  required double amount,
-  required DateTime date,
-  String category = 'Salary',
-  String uid = 'me',
-}) {
-  return TransactionModel(
-    id: '$category-${amount}-${date.millisecondsSinceEpoch}',
-    senderId: '',
-    recipientId: uid,
-    recipientName: category,
-    amount: amount.abs(),
     currency: 'INR',
     tax: 0,
     category: category,
@@ -175,8 +155,6 @@ void main() {
   });
 
   group('Income detection excludes refunds and transfers (issue 8)', () {
-    final now = DateTime(2026, 11, 15);
-
     test('refund category is not income', () {
       expect(isNonIncomeCategory('Refund'), true);
       expect(isNonIncomeCategory('REFUND'), true);
