@@ -52,7 +52,7 @@ const String _kUncategorizedCategory = '__uncategorized__';
 
 String _categoryKey(String? category) {
   final name = category?.trim();
-  return name == null || name.isEmpty ? _kUncategorizedCategory : name;
+  return name == null || name.isEmpty ? _kUncategorizedCategory : name.toLowerCase();
 }
 
 class _AIInsightsScreenState extends State<AIInsightsScreen>
@@ -78,6 +78,11 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
   /// same scope as [forecastTotal], so the progress bar and the overshoot
   /// comparison are not comparing different things.
   double currentMonthSpent = 0;
+
+  /// Scheduled-but-not-yet-due spend: future-dated expense transactions this
+  /// month. Kept separate from [currentMonthSpent] so the UI never shows
+  /// future money as "already spent".
+  double currentMonthScheduled = 0;
 
   /// Today's discretionary spend (fixed/ignored excluded).
   double todayVariableSpent = 0;
@@ -249,6 +254,26 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
           .where((tx) => tx.senderId == user.uid)
           .toList();
 
+      // Reset every derived total before recomputing. These are instance
+      // fields so a repeated refresh (tap, app resume, midnight rollover)
+      // never accumulates on the previous pass's numbers — that was the
+      // "spend doubles every time refresh is tapped" bug.
+      forecastTotal = 0;
+      forecastFixed = 0;
+      forecastVariable = 0;
+      currentMonthSpent = 0;
+      currentMonthScheduled = 0;
+      todayVariableSpent = 0;
+      variableSpentBeforeToday = 0;
+      currentVariableSpent = 0;
+      currentVariableTxCount = 0;
+      usualMonthAvg = 0;
+      overshootPercent = 0;
+      insights = [];
+      dailySpending.clear();
+      bills = const MonthlyBills(categories: [], outstanding: 0);
+      typicalDailySpend = 0;
+
       // Income: precedence — manual > 0 wins; else selected auto mode (blend or salary window).
       // Salary window = union of (days 1–7 OR last working day). If empty and mode is salary window, result.salaryWindowEmpty=true.
       await IncomeSettings.load();
@@ -323,6 +348,17 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
         );
         final absAmt = tx.amount.abs();
 
+        // Future-dated rows are scheduled spending, not history: they must not
+        // inflate category averages, the monthly total baseline, the forecast,
+        // variable spend, or the daily limit. They are tracked separately as
+        // currentMonthScheduled so the UI can show "scheduled but not yet due"
+        // without showing future money as "already spent".
+        final isFuture = !d.isBefore(now) && !d.isAtSameMomentAs(now);
+        if (monthKey == currentKey && isFuture) {
+          currentMonthScheduled += absAmt;
+          continue;
+        }
+
         // Category Aggregation (uses sentinel key)
         categoryMonthly.putIfAbsent(catKey, () => {});
         categoryMonthly[catKey]![monthKey] =
@@ -339,8 +375,8 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
               (monthlyVariable[monthKey] ?? 0) + absAmt;
         }
 
-        // Current Month Specifics — exclude future-dated transactions
-        if (monthKey == currentKey && !d.isAfter(now)) {
+        // Current Month Specifics — past and present transactions only
+        if (monthKey == currentKey) {
           currentMonthSpent += absAmt;
           final dayKey = DateTime(d.year, d.month, d.day);
           dailySpending[dayKey] =
@@ -875,6 +911,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
     final sym = CurrencyController.to.currencySymbol.value;
     final total = forecastTotal;
     final spent = currentMonthSpent;
+    final scheduled = currentMonthScheduled;
     final pct = total > 0 ? (spent / total).clamp(0.0, 1.0) : 0.0;
 
     // Status Logic
@@ -960,16 +997,45 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
 
           SizedBox(height: 6.h),
 
-          // "₹spent of ₹projected" — one comparison line instead of two
-          // separate labels that duplicated the same total as "Target".
-          Text(
-            l10n.analysisSpentOfProjected(
-              "$sym${spent.toStringAsFixed(0)}",
-              "$sym${total.toStringAsFixed(0)}",
-            ),
-            style: AppType.titleSmall(
-              scheme.onPrimary.withValues(alpha: 0.95),
-            ),
+          // "₹spent of ₹projected" — one comparison line plus a separate
+          // scheduled line so future money is never read as "already spent".
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.analysisSpentOfProjected(
+                  "$sym${spent.toStringAsFixed(0)}",
+                  "$sym${total.toStringAsFixed(0)}",
+                ),
+                style: AppType.titleSmall(
+                  scheme.onPrimary.withValues(alpha: 0.95),
+                ),
+              ),
+              if (scheduled > 0) ...[
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.schedule_outlined,
+                      color: scheme.onPrimary.withValues(alpha: 0.8),
+                      size: 14.sp,
+                    ),
+                    SizedBox(width: 6.w),
+                    Expanded(
+                      child: Text(
+                        l10n.analysisScheduledNotDue(
+                          "$sym${scheduled.toStringAsFixed(0)}",
+                        ),
+                        style: AppType.labelSmall(
+                          scheme.onPrimary.withValues(alpha: 0.85),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
           SizedBox(height: 8.h),
 

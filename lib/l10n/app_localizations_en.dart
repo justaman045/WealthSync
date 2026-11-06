@@ -546,6 +546,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String analysisScheduledNotDue(Object scheduled) {
+    return '$scheduled scheduled, not yet due';
+  }
+
+  @override
   String get otherItemsCounted => 'Counted as other items';
 
   @override
@@ -1002,6 +1007,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creditCards => 'Credit Cards';
+
+  @override
+  String get creditCardAvailableBalance => 'Available balance';
+
+  @override
+  String get creditCardSpentBalance => 'Spent';
+
+  @override
+  String get creditCardBalanceInputHint =>
+      'Enter the amount shown by your bank app';
 
   @override
   String get creditCardsAdded => 'No credit cards added';

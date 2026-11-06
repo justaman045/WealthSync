@@ -7,6 +7,7 @@ import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Repositories/challenge_repository.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class ChallengesController extends GetxController {
   static ChallengesController get to => Get.find();
@@ -79,12 +80,25 @@ class ChallengesController extends GetxController {
       return spent;
     }
 
-    // 'savings' type: net savings = income - expenses
+    // 'savings' type: net savings = income - expenses.
+    //
+    // Only genuine income counts: refunds, transfers, cashbacks and
+    // loan/EMIs arrive shaped like income credits but are the user's own
+    // money coming back or a liability disbursement. Counting them as income
+    // inflates progress and lets a challenge complete on money that was never
+    // earned (issue 8). The same shape rules as the rest of the app:
+    // recipientId == uid, positive amount, not a non-income category.
     double income = 0;
     double expenses = 0;
     for (final tx in relevant) {
-      if (tx.recipientId == uid) income += tx.amount.abs();
-      if (tx.senderId == uid) expenses += tx.amount.abs();
+      if (tx.recipientId == uid &&
+          tx.amount > 0 &&
+          !isNonIncomeCategory(tx.category)) {
+        income += tx.amount;
+      }
+      if (tx.senderId == uid && tx.amount < 0) {
+        expenses += tx.amount.abs();
+      }
     }
     return (income - expenses).clamp(0, double.infinity);
   }

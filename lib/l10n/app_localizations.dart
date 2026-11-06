@@ -990,6 +990,12 @@ abstract class AppLocalizations {
   /// **'{spent} spent of {projected}'**
   String analysisSpentOfProjected(Object projected, Object spent);
 
+  /// No description provided for @analysisScheduledNotDue.
+  ///
+  /// In en, this message translates to:
+  /// **'{scheduled} scheduled, not yet due'**
+  String analysisScheduledNotDue(Object scheduled);
+
   /// No description provided for @otherItemsCounted.
   ///
   /// In en, this message translates to:
@@ -1739,6 +1745,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Credit Cards'**
   String get creditCards;
+
+  /// No description provided for @creditCardAvailableBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Available balance'**
+  String get creditCardAvailableBalance;
+
+  /// No description provided for @creditCardSpentBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent'**
+  String get creditCardSpentBalance;
+
+  /// No description provided for @creditCardBalanceInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the amount shown by your bank app'**
+  String get creditCardBalanceInputHint;
 
   /// No description provided for @creditCardsAdded.
   ///

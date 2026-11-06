@@ -28,11 +28,47 @@ service cloud.firestore {
           && d.purchaseToken.size() > 0;
     }
 
+    // --- Transaction validation: ownership + amount-sign rules ---------------
+    //
+    // Money contract (AGENTS.md):
+    //   Expense: amount < 0, senderId = uid, recipientId = ""
+    //   Income:  amount > 0, senderId = "",  recipientId = uid
+    // Every transaction write must satisfy exactly one of these two shapes; a
+    // row that is positive but sent *by* the user, or negative but received
+    // *by* the user, breaks budget aggregation and the daily-limit split.
+    //
+    // `d.senderId == ''` is the empty-string sentinel the client writes, so an
+    // absent/mismatched id fails here. `request.auth.uid` is the ownership half:
+    // no account may write another's rows. senderId/recipientId store UIDs
+    // (not emails), so they are compared against request.auth.uid, while the
+    // document-path ownership (users/{email}) still uses request.auth.token.email.
+    function isExpenseShape(d) {
+      return d.amount is number
+          && d.amount < 0
+          && d.senderId is string
+          && d.senderId.size() > 0
+          && d.senderId == request.auth.uid
+          && d.recipientId is string
+          && d.recipientId.size() == 0;
+    }
+
+    function isIncomeShape(d) {
+      return d.amount is number
+          && d.amount > 0
+          && d.senderId is string
+          && d.senderId.size() == 0
+          && d.recipientId is string
+          && d.recipientId.size() > 0
+          && d.recipientId == request.auth.uid;
+    }
+
     function validTransaction() {
       let d = request.resource.data;
       return d.keys().hasAll(['amount', 'date', 'senderId', 'recipientId'])
           && d.amount is number
-          && d.date is timestamp;
+          && d.amount != 0
+          && d.date is timestamp
+          && (isExpenseShape(d) || isIncomeShape(d));
     }
 
     // The explicit "delete all my data" reset. The profile is rewritten with

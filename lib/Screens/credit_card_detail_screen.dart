@@ -10,6 +10,7 @@ import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/responsive.dart';
+import 'package:money_control/Utils/liability_engine.dart';
 
 class CreditCardDetailScreen extends StatefulWidget {
   const CreditCardDetailScreen({super.key});
@@ -19,15 +20,13 @@ class CreditCardDetailScreen extends StatefulWidget {
 }
 
 class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
-
   /// Held across rebuilds: building the stream inside build() re-issues the
   /// query on every rebuild, and a 25-doc cap disagreed with the persisted
   /// portfolio total that the sync writes back.
   Stream<QuerySnapshot<Object?>>? _entryStream;
 
   Stream<QuerySnapshot<Object?>> get _entries =>
-      _entryStream ??=
-          _col.orderBy('createdAt', descending: true).snapshots();
+      _entryStream ??= _col.orderBy('createdAt', descending: true).snapshots();
 
   CollectionReference get _col {
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
@@ -48,46 +47,75 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
     await _showSheet(id: id, existingData: data);
   }
 
-  Future<void> _showSheet({String? id, Map<String, dynamic>? existingData}) async {
+  Future<void> _showSheet({
+    String? id,
+    Map<String, dynamic>? existingData,
+  }) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Responsive.wrapSheetContent(ctx, _AddSheet(
-        title: id != null ? "Edit Credit Card" : "Add Credit Card",
-        fields: const [
-          _FieldDef("Card / Bank name", TextInputType.text),
-          _FieldDef("Credit limit", TextInputType.number),
-          _FieldDef("Outstanding balance", TextInputType.number),
-          _FieldDef("Payment due date (optional)", TextInputType.datetime),
-        ],
-        existingData: existingData,
-        onSave: (values, dateValues) async {
-          final name = values["Card / Bank name"] ?? '';
-          final outstanding = double.tryParse(values["Outstanding balance"] ?? '') ?? 0;
-          if (name.isEmpty || outstanding <= 0) return;
-          final limit = double.tryParse(values["Credit limit"] ?? '') ?? 0;
-          final dueDate = dateValues["Payment due date (optional)"];
-          setState(() => _saving = true);
-          try {
-            final docData = {
-              'name': name,
-              'limit': limit,
-              'outstanding': outstanding,
-              'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null,
-            };
-            if (id != null) {
-              await _col.doc(id).update(docData);
-            } else {
-              docData['createdAt'] = Timestamp.now();
-              await _col.add(docData);
+      builder: (ctx) => Responsive.wrapSheetContent(
+        ctx,
+        _AddSheet(
+          title: id != null ? "Edit Credit Card" : "Add Credit Card",
+          fields: const [
+            _FieldDef("Card / Bank name", TextInputType.text),
+            _FieldDef("Credit limit", TextInputType.number),
+            _FieldDef("Outstanding balance", TextInputType.number),
+            _FieldDef("Payment due date (optional)", TextInputType.datetime),
+          ],
+          existingData: existingData,
+          onSave: (values, dateValues) async {
+            final name = values["Card / Bank name"] ?? '';
+            final limit = double.tryParse(values["Credit limit"] ?? '') ?? 0;
+            final enteredBalance =
+                double.tryParse(values["Outstanding balance"] ?? '') ?? 0;
+            final entersAvailable = values['balanceInputMode'] == 'available';
+
+            // Use the unified credit-card entry so limit / outstanding /
+            // available balance stay mutually consistent (issue 17). Backward
+            // compatible: existing records that only set outstanding keep
+            // working because availableBalance is derived from limit.
+            final entry = CreditCardEntry.fromInput(
+              creditLimit: limit,
+              value: enteredBalance,
+              enterAvailable: entersAvailable,
+            );
+            if (entry.isOverLimit) {
+              // Over-limit entries are rejected (issue 18 validation).
+              return;
             }
-            await _syncTotal();
-          } finally {
-            if (mounted) setState(() => _saving = false);
-          }
-        },
-      )),
+
+            final outstanding = entry.spentOrOutstanding;
+            final availableBalance = entry.availableBalance;
+            if (name.isEmpty || limit <= 0 || enteredBalance < 0) {
+              return;
+            }
+            final dueDate = dateValues["Payment due date (optional)"];
+            setState(() => _saving = true);
+            try {
+              final docData = {
+                'name': name,
+                'limit': limit,
+                'outstanding': outstanding,
+                'availableBalance': availableBalance,
+                'balanceInputMode': entersAvailable ? 'available' : 'spent',
+                'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null,
+              };
+              if (id != null) {
+                await _col.doc(id).update(docData);
+              } else {
+                docData['createdAt'] = Timestamp.now();
+                await _col.add(docData);
+              }
+              await _syncTotal();
+            } finally {
+              if (mounted) setState(() => _saving = false);
+            }
+          },
+        ),
+      ),
     );
   }
 
@@ -142,7 +170,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
                 icon: const Icon(Icons.add, color: Colors.white),
                 label: Text(
                   AppLocalizations.of(context)!.addCard,
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
         body: StreamBuilder<QuerySnapshot>(
@@ -171,34 +202,46 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
             _syncedEmpty = false;
             double totalOutstanding = 0;
             for (final d in docs) {
-              totalOutstanding += (d.data() as Map<String, dynamic>)['outstanding'] as num? ?? 0;
+              totalOutstanding +=
+                  (d.data() as Map<String, dynamic>)['outstanding'] as num? ??
+                  0;
             }
             return Center(
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: Responsive.contentMaxWidth(context)),
+                constraints: BoxConstraints(
+                  maxWidth: Responsive.contentMaxWidth(context),
+                ),
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
-              children: [
-                _buildSummary(totalOutstanding, symbol, isDark),
-                SizedBox(height: 20.h),
-                Text(
-                  AppLocalizations.of(context)!.cards,
-                  style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary),
-                ),
-                SizedBox(height: 12.h),
-                ...docs.map((d) {
-                  final data = d.data() as Map<String, dynamic>;
-                  final dueTs = data['dueDate'] as Timestamp?;
-                  return _buildCard(
-                    id: d.id,
-                    name: data['name'] ?? '',
-                    limit: (data['limit'] as num?)?.toDouble() ?? 0,
-                    outstanding: (data['outstanding'] as num?)?.toDouble() ?? 0,
-                    dueDate: dueTs?.toDate(),
-                    symbol: symbol,
-                    isDark: isDark,
-                  );
-                }),
+                  children: [
+                    _buildSummary(totalOutstanding, symbol, isDark),
+                    SizedBox(height: 20.h),
+                    Text(
+                      AppLocalizations.of(context)!.cards,
+                      style: AppType.titleMedium(
+                        isDark ? Colors.white : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 12.h),
+                    ...docs.map((d) {
+                      final data = d.data() as Map<String, dynamic>;
+                      final dueTs = data['dueDate'] as Timestamp?;
+                      return _buildCard(
+                        id: d.id,
+                        name: data['name'] ?? '',
+                        limit: (data['limit'] as num?)?.toDouble() ?? 0,
+                        outstanding:
+                            (data['outstanding'] as num?)?.toDouble() ?? 0,
+                        availableBalance:
+                            (data['availableBalance'] as num?)?.toDouble() ??
+                            (((data['limit'] as num?)?.toDouble() ?? 0) -
+                                ((data['outstanding'] as num?)?.toDouble() ??
+                                    0)),
+                        dueDate: dueTs?.toDate(),
+                        symbol: symbol,
+                        isDark: isDark,
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -221,8 +264,10 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(AppLocalizations.of(context)!.totalOutstanding,
-              style: AppType.bodySmall(Colors.white70)),
+          Text(
+            AppLocalizations.of(context)!.totalOutstanding,
+            style: AppType.bodySmall(Colors.white70),
+          ),
           SizedBox(height: 8.h),
           Text(
             "$symbol${total.toStringAsFixed(0)}",
@@ -238,6 +283,7 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
     required String name,
     required double limit,
     required double outstanding,
+    required double availableBalance,
     required DateTime? dueDate,
     required String symbol,
     required bool isDark,
@@ -245,102 +291,143 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
     final usage = limit > 0 ? (outstanding / limit).clamp(0.0, 1.0) : 0.0;
     final formatter = DateFormat('dd MMM');
     return GestureDetector(
-      onTap: () => _edit(id, {'name': name, 'limit': limit, 'outstanding': outstanding, 'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null}),
+      onTap: () => _edit(id, {
+        'name': name,
+        'limit': limit,
+        'outstanding': outstanding,
+        'availableBalance': availableBalance,
+        'balanceInputMode': 'spent',
+        'dueDate': dueDate != null ? Timestamp.fromDate(dueDate) : null,
+      }),
       child: Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: Colors.red.shade700.withValues(alpha: 0.3),
+        margin: EdgeInsets.only(bottom: 12.h),
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: Colors.red.shade700.withValues(alpha: 0.3)),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.credit_card, color: Colors.red.shade700, size: 20.sp),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Text(
-                  name,
-                  style: AppType.labelLarge(isDark ? Colors.white : AppColors.lightTextPrimary),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.credit_card,
+                  color: Colors.red.shade700,
+                  size: 20.sp,
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                onPressed: () => _delete(id, outstanding),
-                iconSize: 20.sp,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(AppLocalizations.of(context)!.outstanding,
-                      style: AppType.labelSmall(Colors.grey)),
-                  Text(
-                    "$symbol${outstanding.toStringAsFixed(0)}",
-                    style: AppType.titleMedium(Colors.red.shade700),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: AppType.labelLarge(
+                      isDark ? Colors.white : AppColors.lightTextPrimary,
+                    ),
                   ),
-                ],
-              ),
-              if (limit > 0)
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.error,
+                  ),
+                  onPressed: () => _delete(id, outstanding),
+                  iconSize: 20.sp,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(AppLocalizations.of(context)!.limit,
-                        style: AppType.labelSmall(Colors.grey)),
                     Text(
-                      "$symbol${limit.toStringAsFixed(0)}",
-                      style: AppType.bodyMedium(Colors.grey),
+                      AppLocalizations.of(context)!.outstanding,
+                      style: AppType.labelSmall(Colors.grey),
+                    ),
+                    Text(
+                      "$symbol${outstanding.toStringAsFixed(0)}",
+                      style: AppType.titleMedium(Colors.red.shade700),
                     ),
                   ],
                 ),
-              if (dueDate != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(AppLocalizations.of(context)!.due, style: AppType.labelSmall(Colors.grey)),
-                    Text(
-                      formatter.format(dueDate),
-                      style: AppType.bodyMedium(dueDate.isBefore(DateTime.now().add(const Duration(days: 3)))
+                if (limit > 0)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.creditCardAvailableBalance,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      Text(
+                        "$symbol${availableBalance.toStringAsFixed(0)}",
+                        style: AppType.bodyMedium(AppColors.success),
+                      ),
+                    ],
+                  ),
+                if (limit > 0)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.limit,
+                        style: AppType.labelSmall(Colors.grey),
+                      ),
+                      Text(
+                        "$symbol${limit.toStringAsFixed(0)}",
+                        style: AppType.bodyMedium(Colors.grey),
+                      ),
+                    ],
+                  ),
+                if (dueDate != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.due,
+                        style: AppType.labelSmall(Colors.grey),
+                      ),
+                      Text(
+                        formatter.format(dueDate),
+                        style: AppType.bodyMedium(
+                          dueDate.isBefore(
+                                DateTime.now().add(const Duration(days: 3)),
+                              )
                               ? AppColors.error
-                              : Colors.grey),
-                    ),
-                  ],
+                              : Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            if (limit > 0) ...[
+              SizedBox(height: 10.h),
+              LinearProgressIndicator(
+                value: usage,
+                backgroundColor: Colors.red.shade100,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  usage > 0.8 ? AppColors.error : AppColors.warning,
                 ),
-            ],
-          ),
-          if (limit > 0) ...[
-            SizedBox(height: 10.h),
-            LinearProgressIndicator(
-              value: usage,
-              backgroundColor: Colors.red.shade100,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                usage > 0.8 ? AppColors.error : AppColors.warning,
+                borderRadius: BorderRadius.circular(2.r),
+                minHeight: 4.h,
               ),
-              borderRadius: BorderRadius.circular(2.r),
-              minHeight: 4.h,
-            ),
-            SizedBox(height: 4.h),
-            Text(
-              "${(usage * 100).toStringAsFixed(0)}% used",
-              style: AppType.labelSmall(Colors.grey),
-            ),
+              SizedBox(height: 4.h),
+              Text(
+                "${(usage * 100).toStringAsFixed(0)}% used",
+                style: AppType.labelSmall(Colors.grey),
+              ),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -350,18 +437,24 @@ class _CreditCardDetailScreenState extends State<CreditCardDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.credit_card_off_outlined,
-              size: 72.sp,
-              color: isDark ? Colors.white24 : AppColors.lightBorder),
+          Icon(
+            Icons.credit_card_off_outlined,
+            size: 72.sp,
+            color: isDark ? Colors.white24 : AppColors.lightBorder,
+          ),
           SizedBox(height: 16.h),
           Text(
             AppLocalizations.of(context)!.creditCardsAdded,
-            style: AppType.bodyLarge(isDark ? Colors.white54 : AppColors.lightTextSecondary),
+            style: AppType.bodyLarge(
+              isDark ? Colors.white54 : AppColors.lightTextSecondary,
+            ),
           ),
           SizedBox(height: 8.h),
           Text(
             AppLocalizations.of(context)!.tapTrackCardOutstanding,
-            style: AppType.bodySmall(isDark ? Colors.white38 : AppColors.lightTextTertiary),
+            style: AppType.bodySmall(
+              isDark ? Colors.white38 : AppColors.lightTextTertiary,
+            ),
           ),
         ],
       ),
@@ -376,7 +469,10 @@ Future<bool> _confirmDelete(BuildContext context) async {
       title: Text(AppLocalizations.of(context)!.delete2),
       content: Text(AppLocalizations.of(context)!.removeEntry2),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: Text(AppLocalizations.of(context)!.cancel),
+        ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
           child: const Text("Delete", style: TextStyle(color: AppColors.error)),
@@ -397,7 +493,11 @@ class _AddSheet extends StatefulWidget {
   final String title;
   final List<_FieldDef> fields;
   final Map<String, dynamic>? existingData;
-  final Future<void> Function(Map<String, String> values, Map<String, DateTime?> dateValues) onSave;
+  final Future<void> Function(
+    Map<String, String> values,
+    Map<String, DateTime?> dateValues,
+  )
+  onSave;
 
   const _AddSheet({
     required this.title,
@@ -412,12 +512,15 @@ class _AddSheet extends StatefulWidget {
 
 class _AddSheetState extends State<_AddSheet> {
   bool _saving = false;
+  bool _enterAvailableBalance = false;
   late final List<TextEditingController> _ctrls;
   final _dateValues = <String, DateTime?>{};
 
   @override
   void initState() {
     super.initState();
+    _enterAvailableBalance =
+        widget.existingData?['balanceInputMode'] == 'available';
     _ctrls = widget.fields.map((f) {
       final existing = widget.existingData;
       if (existing != null) {
@@ -426,7 +529,9 @@ class _AddSheetState extends State<_AddSheet> {
           final d = (existing['dueDate'] as Timestamp?)?.toDate();
           if (d == null) return TextEditingController();
           _dateValues[f.label] = d;
-          return TextEditingController(text: DateFormat('dd MMM yyyy').format(d));
+          return TextEditingController(
+            text: DateFormat('dd MMM yyyy').format(d),
+          );
         }
         final raw = existing[key];
         if (raw != null) return TextEditingController(text: raw.toString());
@@ -472,6 +577,11 @@ class _AddSheetState extends State<_AddSheet> {
     for (int i = 0; i < widget.fields.length; i++) {
       values[widget.fields[i].label] = _ctrls[i].text.trim();
     }
+    if (widget.fields.any((f) => f.label == 'Outstanding balance')) {
+      values['balanceInputMode'] = _enterAvailableBalance
+          ? 'available'
+          : 'spent';
+    }
     setState(() => _saving = true);
     try {
       await widget.onSave(values, _dateValues);
@@ -485,7 +595,9 @@ class _AddSheetState extends State<_AddSheet> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -496,12 +608,17 @@ class _AddSheetState extends State<_AddSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.title,
-                style: AppType.titleMedium(isDark ? Colors.white : AppColors.lightTextPrimary)),
+            Text(
+              widget.title,
+              style: AppType.titleMedium(
+                isDark ? Colors.white : AppColors.lightTextPrimary,
+              ),
+            ),
             SizedBox(height: 16.h),
             ...List.generate(widget.fields.length, (i) {
               final f = widget.fields[i];
               final isDate = f.keyboardType == TextInputType.datetime;
+              final isBalance = f.label == 'Outstanding balance';
               return Padding(
                 padding: EdgeInsets.only(bottom: 12.h),
                 child: TextField(
@@ -513,11 +630,19 @@ class _AddSheetState extends State<_AddSheet> {
                       ? [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]
                       : null,
                   style: TextStyle(
-                      color: isDark ? Colors.white : AppColors.lightTextPrimary),
+                    color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                  ),
                   decoration: InputDecoration(
-                    labelText: f.label,
+                    labelText: isBalance && _enterAvailableBalance
+                        ? AppLocalizations.of(
+                            context,
+                          )!.creditCardAvailableBalance
+                        : f.label,
                     labelStyle: TextStyle(
-                        color: isDark ? Colors.white54 : AppColors.lightTextSecondary),
+                      color: isDark
+                          ? Colors.white54
+                          : AppColors.lightTextSecondary,
+                    ),
                     filled: true,
                     fillColor: isDark
                         ? Colors.white.withValues(alpha: 0.08)
@@ -530,6 +655,34 @@ class _AddSheetState extends State<_AddSheet> {
                 ),
               );
             }),
+            if (widget.fields.any((f) => f.label == 'Outstanding balance')) ...[
+              Text(
+                AppLocalizations.of(context)!.creditCardBalanceInputHint,
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(
+                    value: false,
+                    label: Text(
+                      AppLocalizations.of(context)!.creditCardSpentBalance,
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: true,
+                    label: Text(
+                      AppLocalizations.of(context)!.creditCardAvailableBalance,
+                    ),
+                  ),
+                ],
+                selected: {_enterAvailableBalance},
+                onSelectionChanged: (value) =>
+                    setState(() => _enterAvailableBalance = value.first),
+              ),
+            ],
             SizedBox(height: 8.h),
             SizedBox(
               width: double.infinity,
@@ -544,9 +697,13 @@ class _AddSheetState extends State<_AddSheet> {
                 ),
                 child: _saving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(AppStrings.save,
+                    : const Text(
+                        AppStrings.save,
                         style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],

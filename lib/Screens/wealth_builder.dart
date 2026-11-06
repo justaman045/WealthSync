@@ -12,6 +12,7 @@ import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Services/wealth_service.dart';
 import 'package:money_control/Utils/wealth_math.dart';
+import 'package:money_control/Utils/liability_engine.dart';
 import 'package:money_control/Components/skeleton_loader.dart';
 import 'package:money_control/Services/wealth_age_recommendations.dart';
 
@@ -25,7 +26,6 @@ import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Models/user_model.dart';
 import 'package:money_control/Controllers/loan_controller.dart';
 import 'package:money_control/Controllers/recurring_payment_controller.dart';
-import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Screens/loan_tracker_screen.dart';
 import 'package:money_control/Screens/credit_card_detail_screen.dart';
 import 'package:money_control/Screens/insurance_policy_screen.dart';
@@ -164,17 +164,16 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   /// Outstanding credit-card debt across both entry points: the manually
   /// tracked portfolio total plus any credit-card-kind recurring liabilities
   /// added through the recurring-payments flow, so both land in one figure.
-  /// Before this, cards added as recurring payments never reached the Wealth
-  /// Builder credit-card card (which only read the portfolio total).
+  /// Delegates to the unified liability engine so Wealth Builder, AI Insights
+  /// and the net-worth card all agree on the same number.
   double _creditCardOutstandingFor(WealthPortfolio p) {
     final tracked = p.creditCard;
     if (!Get.isRegistered<RecurringPaymentController>()) return tracked;
     final payments = Get.find<RecurringPaymentController>().payments;
-    final recurring = payments
-        .where((x) => x.kind == RecurringKind.creditCard)
-        .where((x) => x.outstanding != null && x.outstanding! > 0)
-        .fold(0.0, (sum, x) => sum + x.outstanding!);
-    return tracked + recurring;
+    return creditCardOutstandingUnified(
+      portfolioCreditCard: tracked,
+      recurringPayments: payments,
+    );
   }
 
   Future<void> _loadData() async {

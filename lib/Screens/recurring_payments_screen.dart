@@ -672,11 +672,13 @@ class _AddSubscriptionSheetState extends State<_AddSubscriptionSheet> {
       final numberOfPayments =
           _termCtrl.text.isNotEmpty ? int.tryParse(_termCtrl.text) : null;
       final interestRate = double.tryParse(_interestRateCtrl.text);
-      // Auto-calculate is enabled only when the user explicitly has provided term
-      // details (number of payments) and interest rate.
+      // Respect the user's toggle. Previously the switch was only visual:
+      // saving a liability silently enabled auto-calculation whenever a term
+      // and interest field happened to be filled in.
       final autoCalculate = _kind.isLiability &&
-          _termCtrl.text.isNotEmpty &&
-          _interestRateCtrl.text.isNotEmpty;
+          _autoCalculate &&
+          numberOfPayments != null &&
+          numberOfPayments > 0;
       // Build the new payment with all the new fields.
       final newPayment = RecurringPayment(
         id: widget.payment?.id ?? const Uuid().v4(),
