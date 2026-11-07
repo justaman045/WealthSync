@@ -133,9 +133,10 @@ registering them in phase 1 crashes. Screens self-register with
   asset type means adding it there **and** to the `firestore.rules` wildcard (or writes
   are denied), plus a `WealthAssetRegistry` descriptor and either an `AssetConfigs` entry
   or a hand-written screen.
-- `firestore.indexes.json` is the **required** set, not a mirror of production. 4 composite
-  indexes, each pinned to its querying file by `test/firestore_indexes_test.dart`. Live
-  orphan indexes are expected — do not paste them in. Never `--force`.
+- `firestore.indexes.json` is the **required** set, not a mirror of production. 3 composite
+  indexes (`challenges`, `loans`, `transactions`), each pinned to its querying file by
+  `test/firestore_indexes_test.dart`. Live orphan indexes are expected — do not paste them
+  in. Never `--force`.
 - Rules deploy is manual/dispatch-only (`deploy_firebase`), Firestore only: Storage cannot
   be provisioned on Spark, and `--only storage` aborts the Firestore deploy with it.
   `--dry-run` proves the file *compiles*, never that it is complete.

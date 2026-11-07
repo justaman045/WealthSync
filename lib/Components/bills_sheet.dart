@@ -252,14 +252,26 @@ class _BillsSheetState extends State<_BillsSheet> {
                         SizedBox(width: 6.w),
                         _chip(l10n.billsLiability, AppColors.warning),
                       ],
+                      if (bill.isExcludedFromLimit) ...[
+                        SizedBox(width: 6.w),
+                        _chip(l10n.billsExcludedFromLimit, AppColors.lightTextTertiary),
+                      ],
                     ],
                   ),
                   SizedBox(height: 3.h),
                   Text(
                     due == null
-                        ? l10n.billsAutoAmount(
-                            "$sym${bill.autoAmount.toStringAsFixed(0)}",
-                          )
+                        ? bill.autoAmount > 0
+                            ? l10n.billsAutoAmount(
+                                "$sym${bill.autoAmount.toStringAsFixed(0)}",
+                              )
+                            : bill.spentThisMonth > 0
+                                ? l10n.billsAutoAmountSpent(
+                                    "$sym${bill.spentThisMonth.toStringAsFixed(0)}",
+                                  )
+                                : l10n.billsAutoAmount(
+                                    "$sym${bill.autoAmount.toStringAsFixed(0)}",
+                                  )
                         : l10n.billsDueOn(DateFormat.MMMd().format(due)),
                     style: AppType.labelSmall(
                       scheme.onSurface.withValues(alpha: 0.6),

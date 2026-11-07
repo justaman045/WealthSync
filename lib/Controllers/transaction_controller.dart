@@ -551,7 +551,15 @@ class TransactionController extends GetxController {
         final doc = await _repository.addCategory(name);
         await _repository.updateCategory(doc.id, {'fixedAmount': value});
         categories.add(
-          CategoryModel(id: doc.id, name: name, fixedAmount: value),
+          CategoryModel(
+            id: doc.id,
+            name: name,
+            icon: null,
+            iconCode: null,
+            color: null,
+            treatmentOverride: 'fixed',
+            fixedAmount: value,
+          ),
         );
         sortedCategoryNames.add(name);
       } else {

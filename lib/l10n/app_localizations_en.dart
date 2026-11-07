@@ -827,6 +827,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String billsAutoAmountSpent(String amount) {
+    return 'Auto: $amount (spent this month)';
+  }
+
+  @override
   String billsDueOn(String date) {
     return 'Due $date';
   }
@@ -853,6 +858,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get billsManual => 'Manual';
+
+  @override
+  String get billsExcludedFromLimit => 'Excluded from limit';
 
   @override
   String get billsMonthlyAmount => 'Monthly amount';

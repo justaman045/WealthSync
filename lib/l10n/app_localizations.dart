@@ -1385,6 +1385,12 @@ abstract class AppLocalizations {
   /// **'Auto: {amount}'**
   String billsAutoAmount(String amount);
 
+  /// No description provided for @billsAutoAmountSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto: {amount} (spent this month)'**
+  String billsAutoAmountSpent(String amount);
+
   /// No description provided for @billsDueOn.
   ///
   /// In en, this message translates to:
@@ -1426,6 +1432,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Manual'**
   String get billsManual;
+
+  /// No description provided for @billsExcludedFromLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Excluded from limit'**
+  String get billsExcludedFromLimit;
 
   /// No description provided for @billsMonthlyAmount.
   ///

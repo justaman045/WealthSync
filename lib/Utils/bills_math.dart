@@ -141,6 +141,10 @@ class MonthlyBill {
   /// The due recurring payment is a credit card / loan EMI.
   final bool isLiability;
 
+  /// Whether this bill's category is excluded from the daily limit
+  /// (DailyLimitRole.ignored). Planned > 0 but reserved = 0.
+  final bool isExcludedFromLimit;
+
   /// Whether this bill's [plan] was derived from the auto-calculated outstanding
   /// rather than a manual entry. Useful for UI badges.
   final bool autoCalculated;
@@ -154,6 +158,7 @@ class MonthlyBill {
     required this.role,
     this.dueDate,
     this.isLiability = false,
+    this.isExcludedFromLimit = false,
     this.autoCalculated = false,
   });
 
@@ -200,6 +205,7 @@ class MonthlyBill {
     role: role,
     dueDate: dueDate,
     isLiability: isLiability,
+    isExcludedFromLimit: isExcludedFromLimit,
     autoCalculated: autoCalculated,
   );
 }
@@ -346,6 +352,7 @@ MonthlyBills buildMonthlyBills({
         role: role,
         dueDate: due?.date,
         isLiability: due?.isLiability ?? false,
+        isExcludedFromLimit: role == DailyLimitRole.ignored,
         // Flag that the outstanding for this category was auto-calculated.
         autoCalculated: useAutoCalc,
       ),

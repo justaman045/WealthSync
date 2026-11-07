@@ -286,6 +286,7 @@ MonthInsights buildMonthInsights({
   required List<TransactionModel> transactions,
   required List<CategoryModel> categories,
   required List<RecurringPayment> recurring,
+  required String uid,
   required IncomeMode incomeMode,
   required double manualIncome,
   double savingsRate = 0.2,
@@ -304,7 +305,7 @@ MonthInsights buildMonthInsights({
   // ------------------------------------------------------
   final incomeResult = computeExpectedIncome(
     allTx: transactions.cast<dynamic>(),
-    uid: '',
+    uid: uid,
     mode: incomeMode,
     manualMonthly: manualIncome,
     now: ref,

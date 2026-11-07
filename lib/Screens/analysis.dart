@@ -235,6 +235,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
         transactions: allTx,
         categories: txController.categories,
         recurring: recurringPayments,
+        uid: user.uid,
         incomeMode: IncomeSettings.mode.value,
         manualIncome: IncomeSettings.manualMonthly.value,
         savingsRate: SavingsSettings.rate,
@@ -891,9 +892,16 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
   /// Builds a MonthlyBills (fixed + recurring only) from the model for the
   /// bills sheet. Variable-category plans are excluded — they appear as
   /// "projected other items" on the forecast card instead.
+  ///
+  /// Ignored categories with a recurring due still appear (so the user sees
+  /// the bill), but their committed/reserved is 0 — the "Excluded" chip in
+  /// the row explains the planned-vs-reserved gap.
   MonthlyBills _billsForSheet(MonthInsights m) {
     final billCats = m.categories.where((c) =>
         c.role == DailyLimitRole.fixed || c.recurringDue > 0).toList();
+    final outstanding = m.categories
+        .where((c) => c.isLiability)
+        .fold<double>(0, (sum, c) => sum + c.recurringDue);
     return MonthlyBills(
       categories: billCats.map((c) => MonthlyBill(
         category: c.displayName,
@@ -904,9 +912,12 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
         role: c.role,
         dueDate: c.dueDate,
         isLiability: c.isLiability,
+        // Flag that this bill is excluded from the daily limit (ignored role)
+        // so the sheet can show an "Excluded from limit" chip.
+        isExcludedFromLimit: c.role == DailyLimitRole.ignored,
         autoCalculated: false,
       )).toList(),
-      outstanding: 0,
+      outstanding: outstanding,
     );
   }
 
@@ -923,7 +934,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
 
     // Income is derived once in the model; recompute here only for the mode
     // note (salary-window-empty flag, manual-not-set flag) which the model
-    // doesn't carry. The dollar value always comes from m.income so the card
+    // doesn't carry. The dollar value always comes from liveIncome so the card
     // can never disagree with the forecast card.
     final liveIncome = computeExpectedIncome(
       allTx: Get.isRegistered<TransactionController>()
@@ -934,7 +945,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
       manualMonthly: IncomeSettings.manualMonthly.value,
       now: now,
     );
-    final hasIncome = m.income > 0;
+    final hasIncome = liveIncome.expectedIncome > 0;
 
     // Savings is always income × rate — never gated on a positive disposable
     // budget, so the line never drops to ₹0 mid-month.
@@ -984,7 +995,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
       if (hasIncome) ...[
         _breakdownRow(
           l10n.analysisIncomeLabel,
-          '$sym${m.income.toStringAsFixed(0)}',
+          '$sym${liveIncome.expectedIncome.toStringAsFixed(0)}',
           scheme.onSurface,
         ),
         _breakdownRow(
