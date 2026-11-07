@@ -224,7 +224,7 @@ void main() {
     });
 
     test('analysis learns only from the recent year of history', () {
-      final analysis = File('lib/Screens/analysis.dart').readAsStringSync();
+      final analysis = File('lib/Utils/insights_math.dart').readAsStringSync();
       expect(analysis, contains('monthKeyFloor'));
       expect(analysis, contains('historyFloor'));
     });

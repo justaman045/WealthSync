@@ -265,28 +265,37 @@ MonthlyBills buildMonthlyBills({
   final ref = now ?? DateTime.now();
   final dueByCategory = recurringDueByCategory(recurring, now: ref);
 
-  final names = <String>{...categoryMonthly.keys};
+  // Canonical name per lowercased key: keeps the first-seen original casing
+  // so "EMI" (recurring) and "emi" (transactions) don't create duplicate bills.
+  // Category docs are not needed here — categoryMonthly keys are already
+  // lowercased by analysis.dart, and recurring payment names carry their own
+  // casing. Sort keys for deterministic iteration order.
+  final canonicalNames = <String, String>{};
+  for (final key in categoryMonthly.keys) {
+    final k = key.toLowerCase().trim();
+    if (k.isNotEmpty) canonicalNames.putIfAbsent(k, () => key.trim());
+  }
   for (final payment in recurring) {
     if (!payment.isActive) continue;
     final name = payment.category.trim();
-    if (name.isNotEmpty) names.add(name);
+    if (name.isNotEmpty) {
+      final k = name.toLowerCase();
+      canonicalNames.putIfAbsent(k, () => name);
+    }
   }
 
   final bills = <MonthlyBill>[];
-  // Canonical name per lowercased key: keeps the first-seen original casing
-  // so "EMI" (recurring) and "emi" (transactions) don't create duplicate bills.
-  // Sort names for deterministic iteration order (Set iteration is unspecified).
-  final canonicalNames = <String, String>{};
-  for (final name in names.toList()..sort()) {
-    final key = name.toLowerCase().trim();
-    canonicalNames.putIfAbsent(key, () => name.trim());
-    // Title-case for display: "groceries" → "Groceries", "EMI" → "Emi".
-    final canonicalName = _titleCase(canonicalNames[key]!);
-    // Try the original name first (tests construct maps with original casing),
-    // then the lowercased key (analysis.dart builds categoryMonthly with
-    // _categoryKey which lowercases).
+  // Iterate unique keys only — one row per category, never one per casing
+  // variant.
+  for (final key in canonicalNames.keys.toList()..sort()) {
+    final canonicalName = canonicalNames[key]!;
+    // Title-case for display: "groceries" → "Groceries", "EMI" → "EMI".
+    final displayName = titleCaseCategory(canonicalName);
+    // Try the preferred raw name first (tests construct maps with original
+    // casing), then the lowercased key (analysis.dart builds categoryMonthly
+    // with _categoryKey which lowercases).
     final months =
-        categoryMonthly[name.trim()] ?? categoryMonthly[key] ?? const <int, double>{};
+        categoryMonthly[canonicalName] ?? categoryMonthly[key] ?? const <int, double>{};
 
     final history = <double>[];
     for (final entry in months.entries) {
@@ -299,7 +308,7 @@ MonthlyBills buildMonthlyBills({
     final due = dueByCategory[key];
     final override = fixedAmountOverrides[key] ?? 0;
     final role = resolveDailyLimitRole(
-      canonicalName,
+      displayName,
       treatmentOverrides: treatmentOverrides,
     );
 
@@ -312,9 +321,9 @@ MonthlyBills buildMonthlyBills({
       orElse: () => RecurringPayment(
         id: '',
         userId: '',
-        title: canonicalName,
+        title: displayName,
         amount: 0,
-        category: canonicalName,
+        category: displayName,
         frequency: RecurringFrequency.monthly,
         startDate: DateTime.now(),
         nextDueDate: DateTime.now(),
@@ -329,7 +338,7 @@ MonthlyBills buildMonthlyBills({
 
     bills.add(
       MonthlyBill(
-        category: canonicalName,
+        category: displayName,
         autoAmount: auto,
         overrideAmount: override,
         recurringDue: due?.amount ?? 0,
@@ -352,16 +361,4 @@ MonthlyBills buildMonthlyBills({
     categories: bills,
     outstanding: liabilityOutstanding(recurring),
   );
-}
-
-/// Title-cases a category name for display: "groceries" → "Groceries",
-/// "EMI" → "Emi", "credit card bill" → "Credit Card Bill".
-String _titleCase(String name) {
-  if (name.isEmpty) return '';
-  return name
-      .trim()
-      .split(' ')
-      .where((w) => w.isNotEmpty)
-      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
-      .join(' ');
 }

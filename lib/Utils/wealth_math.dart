@@ -421,6 +421,8 @@ Map<int, double> incomeByMonth(
     if (!_isIncomeTx(tx, uid)) continue;
     final date = tx.date as DateTime;
     if (date.isBefore(floor) || !date.isBefore(ceiling)) continue;
+    // Future-dated income doesn't count toward this month's expectation.
+    if (date.isAfter(now)) continue;
     final key = date.year * 100 + date.month;
     buckets[key] = (buckets[key] ?? 0) + _incomeAmount(tx);
   }
@@ -781,8 +783,29 @@ String formatPercent(
   return NumberFormat('#,##0.##').format(roundedUp);
 }
 
-/// Title-cases a category name for display: "groceries" → "Groceries",
-/// "EMI" → "Emi", "credit card bill" → "Credit Card Bill".
+/// Short tokens that must stay uppercase no matter how the user typed them.
+///
+/// Matched against the lowercased word so `Emi` (left over from the v278
+/// migration) converges back onto `EMI` instead of spawning a new variant.
+const Set<String> _kAcronymTokens = {
+  'emi', 'sip', 'fd', 'pf', 'ppf', 'nps', 'upi', 'gst', 'tds', 'lic', 'rd',
+  'elss', 'tfsa', 'rrsp', '401k', 'ira', 'hsa', 'vat',
+};
+
+String _titleCaseWord(String w) {
+  final lower = w.toLowerCase();
+  if (_kAcronymTokens.contains(lower)) return w.toUpperCase();
+  // Any other all-caps token of 2-4 characters stays uppercase (ISO codes,
+  // fund tickers, ...). Everything else is sentence-cased per word.
+  if (w.length >= 2 && w.length <= 4 && w == w.toUpperCase()) return w;
+  return w[0].toUpperCase() + w.substring(1).toLowerCase();
+}
+
+/// Title-cases a category name for display, preserving short all-caps tokens so
+/// every spelling of the same word converges on one canonical form:
+///   emi / EMI / Emi → EMI
+///   sip / SIP / Sip → SIP
+///   credit card bill → Credit Card Bill
 /// Aggregation keys stay lowercased; only the display text is title-cased.
 String titleCaseCategory(String? name) {
   if (name == null || name.isEmpty) return '';
@@ -790,6 +813,6 @@ String titleCaseCategory(String? name) {
       .trim()
       .split(' ')
       .where((w) => w.isNotEmpty)
-      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .map(_titleCaseWord)
       .join(' ');
 }

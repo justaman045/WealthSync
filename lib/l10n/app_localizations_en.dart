@@ -9,232 +9,54 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get welcomeBack => 'Welcome back,';
+  String get a11yLentMoney => 'Lent money';
 
   @override
-  String get home => 'Home';
+  String get a11yMoreActions => 'More actions';
 
   @override
-  String get transactions => 'Transactions';
+  String get a11yNextMonth => 'Next month';
 
   @override
-  String get settings => 'Settings';
+  String get a11yPreviousMonth => 'Previous month';
 
   @override
-  String get recentTransactions => 'Recent Transactions';
+  String get a11yProStatus => 'Pro status and subscription';
 
   @override
-  String get homeThisMonth => 'This month';
+  String get a11yProfilePhoto => 'Your profile';
 
   @override
-  String get homeMoneyIn => 'In';
-
-  @override
-  String get homeMoneyOut => 'Out';
-
-  @override
-  String get homeLeftOver => 'Left';
-
-  @override
-  String get homeDataUnavailableTitle => 'Couldn\'t load transactions';
-
-  @override
-  String get homeDataUnavailableSubtitle =>
-      'Check your connection and try again.';
-
-  @override
-  String get noCategoriesFound => 'No categories found';
-
-  @override
-  String get noTransactions => 'No Transactions';
-
-  @override
-  String get noTransactionsSubtitle =>
-      'You haven\'t made any transactions yet.';
-
-  @override
-  String get sendMoney => 'Send Money';
-
-  @override
-  String get receiveMoney => 'Receive Money';
-
-  @override
-  String get activeTab => 'Active';
-
-  @override
-  String get libraryTab => 'Library';
-
-  @override
-  String get aiInsights => 'AI Insights';
-
-  @override
-  String get amount => 'Amount';
-
-  @override
-  String get recipient => 'Recipient';
-
-  @override
-  String get sender => 'Sender';
-
-  @override
-  String get selectCategory => 'Select Category';
-
-  @override
-  String get note => 'Note';
-
-  @override
-  String get date => 'Date';
-
-  @override
-  String get add => 'Add';
-
-  @override
-  String get cancel => 'Cancel';
-
-  @override
-  String get delete => 'Delete';
-
-  @override
-  String get deleteCategoryTitle => 'Delete Category';
-
-  @override
-  String deleteCategoryContent(Object category) {
-    return 'Do you want to delete \'$category\'?\n\n• This will NOT delete existing transactions.\n• Category will simply be removed from your list.';
+  String a11yQuickSendTo(String name) {
+    return 'Send money with UPI to $name';
   }
 
   @override
-  String get error => 'Error';
+  String get a11yQuickSendUpi => 'Send money with UPI';
 
   @override
-  String get success => 'Success';
+  String get a11yReceiveMoney => 'Receive money';
 
   @override
-  String get newCategory => 'New Category';
+  String get a11yRecurringPayments => 'Recurring payments';
 
   @override
-  String get category => 'Category';
+  String get a11ySavingsChallenges => 'Savings challenges';
 
   @override
-  String get categoryNameHint => 'Category Name';
+  String get a11ySavingsGoals => 'Savings goals';
 
   @override
-  String get enterNameHint => 'Enter name';
+  String get a11yScanQrToPay => 'Scan a QR code to pay';
 
   @override
-  String get addNoteHint => 'Add a note...';
+  String get a11ySearchTransactions => 'Search transactions';
 
   @override
-  String get selectCategoryError => 'Select a category';
+  String get a11ySendMoney => 'Send money';
 
   @override
-  String get send => 'Send';
-
-  @override
-  String get receive => 'Receive';
-
-  @override
-  String welcomeUser(Object name) {
-    return 'Welcome, $name';
-  }
-
-  @override
-  String get onboardingSubtitle =>
-      'Let\'s set up your financial goals in 2 steps.';
-
-  @override
-  String get onboardingReferralHint => 'e.g. AMAN05';
-
-  @override
-  String get onboardingReferralOptional => 'Referral Code (Optional)';
-
-  @override
-  String get onboardingReferralPitch =>
-      'Have a friend’s code? Get 1 month free!';
-
-  @override
-  String get chooseCurrencyStep => '1. Choose Currency';
-
-  @override
-  String get setBudgetStep => '2. Set Monthly Budget';
-
-  @override
-  String get budgetProUpsell =>
-      'Create budgets, track spending, and get alerts with Pro.';
-
-  @override
-  String get budgetSetLimit => 'Set Limit';
-
-  @override
-  String get budgetUpdate => 'Update';
-
-  @override
-  String get budgetHint => 'e.g. 20000';
-
-  @override
-  String get startTracking => 'Start Tracking';
-
-  @override
-  String get enterBudgetError => 'Please enter a budget';
-
-  @override
-  String get invalidNumberError => 'Invalid number';
-
-  @override
-  String get transactionId => 'Transaction ID';
-
-  @override
-  String get transactionPdfFooter => 'Generated using Money Control App';
-
-  @override
-  String get transactionReceipt => 'Transaction Receipt';
-
-  @override
-  String get transactionHistoryTitle => 'Transaction History';
-
-  @override
-  String get importSmsTooltip => 'Import from SMS';
-
-  @override
-  String get tabAll => 'All';
-
-  @override
-  String get tabIncome => 'Income';
-
-  @override
-  String get tabOutcome => 'Outcome';
-
-  @override
-  String get today => 'Today';
-
-  @override
-  String get yesterday => 'Yesterday';
-
-  @override
-  String get unknown => 'Unknown';
-
-  @override
-  String get unknownRecipient => 'Unknown';
-
-  @override
-  String get uncategorized => 'Uncategorized';
-
-  @override
-  String get monthlyForecastTitle => 'Monthly Forecast';
-
-  @override
-  String get incomeSectionTitle => 'INCOME';
-
-  @override
-  String get expenseSectionTitle => 'EXPENSES';
-
-  @override
-  String get incomeSoFar => 'Income So Far';
-
-  @override
-  String get projectedRemaining => 'Projected Remaining';
-
-  @override
-  String get expensesSoFar => 'Expenses So Far';
+  String get a11ySpendingForecast => 'Spending forecast';
 
   @override
   String get accessDenied => 'Access Denied';
@@ -246,10 +68,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get activeLoans => 'Active Loans';
 
   @override
+  String get activeTab => 'Active';
+
+  @override
+  String get add => 'Add';
+
+  @override
   String get add2 => '+ Add';
 
   @override
   String get addCard => 'Add Card';
+
+  @override
+  String get addCustomAsset => 'Add Custom Asset';
 
   @override
   String get addFirstGoal => 'Add your first goal';
@@ -263,6 +94,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addLoanTrackEMIsSee =>
       'Add a loan to track EMIs and\\nsee your repayment schedule';
+
+  @override
+  String get addNoteHint => 'Add a note...';
 
   @override
   String get addPerson => 'Add person';
@@ -296,6 +130,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'This will advance the due date to the next cycle without recording a payment.';
 
   @override
+  String get aiInsights => 'AI Insights';
+
+  @override
   String get alignUPIQRCodeWithin => 'Align the UPI QR code within the frame';
 
   @override
@@ -305,8 +142,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadyImported => 'Already Imported';
 
   @override
+  String get amount => 'Amount';
+
+  @override
   String get analysisAddIncomeHint =>
       'Add your income (a received Salary/Income entry) to see how much you can safely spend per day.';
+
+  @override
+  String get analysisAlreadySpent => 'Already spent today';
+
+  @override
+  String analysisBillDue(String amount, String date) {
+    return 'Due $date: $amount';
+  }
 
   @override
   String analysisBillPaid(Object category) {
@@ -324,168 +172,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get analysisCarefulSpending =>
-      'Careful, you\'re slightly above today\'s safe limit.';
+  String get analysisBillPlan => 'Bill';
 
   @override
-  String get analysisCategoryInsightsTitle => 'Category Insights';
-
-  @override
-  String analysisDaySpend(Object amount, Object day) {
-    return 'Day $day: $amount';
+  String analysisBillsDueLink(String amount, String date) {
+    return 'Bills $amount · next $date · View';
   }
 
   @override
-  String get analysisEmpty =>
-      'No expense transactions yet.\nAdd a \'Send\' transaction to see AI insights.';
-
-  @override
-  String analysisError(Object error) {
-    return 'AI Analysis Error: $error';
+  String analysisBillsLink(String amount) {
+    return 'Bills $amount · View';
   }
-
-  @override
-  String get analysisForecastTitle => 'This Month Forecast';
-
-  @override
-  String get analysisHeatmapLegend =>
-      'Darker boxes indicate higher spending days.';
-
-  @override
-  String analysisIncomeBreakdown(
-    Object bills,
-    num days,
-    Object income,
-    Object rate,
-    Object remaining,
-    Object saving,
-    Object spent,
-  ) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days',
-      one: '1 day',
-    );
-    return 'From ~$income income: saving $saving ($rate%) and $bills for bills. Already spent $spent on other items, leaving $remaining over $_temp0.';
-  }
-
-  @override
-  String get analysisItemsSpent => 'Items spent this month';
-
-  @override
-  String analysisItemsSummary(Object amount, num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count transactions',
-      one: 'transaction',
-    );
-    return '$amount · $_temp0';
-  }
-
-  @override
-  String get analysisManualNotSet => 'Manual not set — using Auto – Blend';
-
-  @override
-  String analysisMode(Object mode) {
-    return 'Mode: $mode';
-  }
-
-  @override
-  String get analysisMonthlyHeatmap => 'Monthly Spend Heatmap';
-
-  @override
-  String get analysisNoOtherItems =>
-      'No other items yet — every expense is a bill';
-
-  @override
-  String get analysisNoSalaryWindow =>
-      'No salary credits found in window (current month first week or previous month last working day)';
-
-  @override
-  String get analysisSalaryWindowBlend =>
-      'no salary in window · using your recent average';
-
-  @override
-  String get analysisNoSpendingMonth =>
-      'No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.';
-
-  @override
-  String get analysisNoSpendingYet => 'No spending yet. Great start to saving!';
-
-  @override
-  String get analysisOnTrack => 'On track with usual spending.';
-
-  @override
-  String get analysisOthers => 'Others';
-
-  @override
-  String analysisOvershooting(Object percent) {
-    return 'Overshooting by ~$percent%';
-  }
-
-  @override
-  String analysisPredicted(Object amount) {
-    return 'Predicted: $amount';
-  }
-
-  @override
-  String analysisProjectedOvershoot(Object percent) {
-    return 'Projected +$percent% vs usual.';
-  }
-
-  @override
-  String get analysisSeeOtherItems =>
-      'See which transactions count as other items';
-
-  @override
-  String get analysisSmartDailyLimit => 'Smart Daily Limit';
-
-  @override
-  String get analysisSpendPerDay => 'Safe to spend today';
-
-  @override
-  String analysisSpendingFaster(Object category) {
-    return 'Spending on $category is faster than usual.';
-  }
-
-  @override
-  String analysisSpendingLower(Object category) {
-    return 'Good job! $category spending is lower than usual.';
-  }
-
-  @override
-  String analysisSpendingNone(Object category) {
-    return 'No spending on $category yet.';
-  }
-
-  @override
-  String analysisSpendingOnTrack(Object category) {
-    return '$category spending is on track.';
-  }
-
-  @override
-  String analysisSpent(Object amount) {
-    return 'Spent: $amount';
-  }
-
-  @override
-  String get analysisStopSpending =>
-      'Stop! You\'re well above today\'s safe limit.';
-
-  @override
-  String analysisTarget(Object amount) {
-    return 'Target: $amount';
-  }
-
-  @override
-  String analysisUsual(Object amount) {
-    return 'Usual: $amount';
-  }
-
-  @override
-  String get analysisWithinLimit => 'You\'re within today\'s safe limit.';
 
   @override
   String analysisBillsOwed(Object amount, Object owed) {
@@ -525,14 +222,152 @@ class AppLocalizationsEn extends AppLocalizations {
       'Bills and savings use up this month\'s income — no discretionary budget left.';
 
   @override
+  String get analysisCarefulSpending =>
+      'Careful, you\'re slightly above today\'s safe limit.';
+
+  @override
+  String get analysisCategoryInsightsTitle => 'Category Insights';
+
+  @override
+  String analysisDaySpend(Object amount, Object day) {
+    return 'Day $day: $amount';
+  }
+
+  @override
+  String get analysisDisposableBudget => 'Disposable budget';
+
+  @override
+  String get analysisEmpty =>
+      'No expense transactions yet.\nAdd a \'Send\' transaction to see AI insights.';
+
+  @override
+  String analysisError(Object error) {
+    return 'AI Analysis Error: $error';
+  }
+
+  @override
+  String analysisExcluded(Object amount) {
+    return 'Excluded: $amount';
+  }
+
+  @override
+  String get analysisFixedBills => 'Fixed bills';
+
+  @override
+  String analysisForecastRemaining(Object remaining) {
+    return '$remaining left of forecast';
+  }
+
+  @override
+  String get analysisForecastTitle => 'This Month Forecast';
+
+  @override
+  String get analysisHeatmapLegend =>
+      'Darker boxes indicate higher spending days.';
+
+  @override
+  String get analysisHowCalculated => 'How is this calculated?';
+
+  @override
+  String analysisIncomeBreakdown(
+    Object bills,
+    num days,
+    Object income,
+    Object rate,
+    Object remaining,
+    Object saving,
+    Object spent,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return 'From ~$income income: saving $saving ($rate%) and $bills for bills. Already spent $spent on other items, leaving $remaining over $_temp0.';
+  }
+
+  @override
+  String get analysisIncomeLabel => 'Income';
+
+  @override
+  String get analysisItemsSpent => 'Items spent this month';
+
+  @override
+  String analysisItemsSummary(Object amount, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions',
+      one: 'transaction',
+    );
+    return '$amount · $_temp0';
+  }
+
+  @override
   String get analysisLeftToday => 'Left today';
+
+  @override
+  String get analysisManualNotSet => 'Manual not set — using Auto – Blend';
+
+  @override
+  String analysisMode(Object mode) {
+    return 'Mode: $mode';
+  }
+
+  @override
+  String get analysisMonthlyHeatmap => 'Monthly Spend Heatmap';
 
   @override
   String get analysisNoCategoryInsights =>
       'No category spending recorded this month yet.';
 
   @override
+  String get analysisNoOtherItems =>
+      'No other items yet — every expense is a bill';
+
+  @override
+  String get analysisNoSalaryWindow =>
+      'No salary credits found in window (current month first week or previous month last working day)';
+
+  @override
+  String get analysisNoSpendingMonth =>
+      'No spending recorded this month yet.\nAs you spend, this calendar will light up day by day.';
+
+  @override
+  String get analysisNoSpendingYet => 'No spending yet. Great start to saving!';
+
+  @override
+  String get analysisOnTrack => 'On track with usual spending.';
+
+  @override
+  String get analysisOthers => 'Others';
+
+  @override
+  String analysisOvershooting(Object percent) {
+    return 'Overshooting by ~$percent%';
+  }
+
+  @override
+  String analysisPerDayFallback(String amount) {
+    return 'You spend about $amount a day on other items. Add income to see a safe daily limit.';
+  }
+
+  @override
+  String analysisPredicted(Object amount) {
+    return 'Predicted: $amount';
+  }
+
+  @override
   String get analysisProjected => 'Projected';
+
+  @override
+  String analysisProjectedOvershoot(Object percent) {
+    return 'Projected +$percent% vs usual.';
+  }
+
+  @override
+  String get analysisRemainingToday => 'Remaining today';
 
   @override
   String get analysisRetry => 'Try again';
@@ -541,9 +376,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analysisSafeToSpendToday => 'Safe to spend today';
 
   @override
-  String analysisSpentOfProjected(Object projected, Object spent) {
-    return '$spent spent of $projected';
-  }
+  String get analysisSalaryWindowBlend =>
+      'no salary in window · using your recent average';
+
+  @override
+  String get analysisSavingsReserved => 'Savings reserved';
 
   @override
   String analysisScheduledNotDue(Object scheduled) {
@@ -551,79 +388,64 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get analysisIncomeLabel => 'Income';
+  String get analysisSeeOtherItems =>
+      'See which transactions count as other items';
 
   @override
-  String get analysisSavingsReserved => 'Savings reserved';
+  String get analysisSmartDailyLimit => 'Smart Daily Limit';
 
   @override
-  String get analysisFixedBills => 'Fixed bills';
+  String get analysisSpendPerDay => 'Safe to spend today';
 
   @override
-  String get analysisDisposableBudget => 'Disposable budget';
-
-  @override
-  String get analysisAlreadySpent => 'Already spent today';
-
-  @override
-  String get analysisRemainingToday => 'Remaining today';
-
-  @override
-  String analysisForecastRemaining(Object remaining) {
-    return '$remaining left of forecast';
+  String analysisSpendingFaster(Object category) {
+    return 'Spending on $category is faster than usual.';
   }
 
   @override
-  String get otherItemsCounted => 'Counted as other items';
-
-  @override
-  String get otherItemsCountedEmpty =>
-      'No other items this month. Every expense so far is a fixed bill or EMI.';
-
-  @override
-  String get otherItemsExcluded => 'Excluded (bills & fixed)';
-
-  @override
-  String get otherItemsExcludedEmpty =>
-      'No fixed bills recorded this month yet.';
-
-  @override
-  String get otherItemsExcludedToggle => 'Excluded: bills & fixed';
-
-  @override
-  String get otherItemsIgnored => 'Ignored (not counted in limit)';
-
-  @override
-  String get otherItemsIgnoredEmpty =>
-      'No ignored categories this month. Mark a category as \"Ignore in limit\" to keep investments/SIPs out of your daily limit.';
-
-  @override
-  String get otherItemsIgnoredToggle => 'Ignored: not counted in limit';
-
-  @override
-  String otherItemsTitle(Object month) {
-    return 'Other items · $month';
+  String analysisSpendingLower(Object category) {
+    return 'Good job! $category spending is lower than usual.';
   }
 
   @override
-  String otherItemsTransactionCount(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count transactions this month',
-      one: '1 transaction this month',
-    );
-    return '$_temp0';
+  String analysisSpendingNone(Object category) {
+    return 'No spending on $category yet.';
   }
 
   @override
-  String get recurringFrequencyMonthly => 'Monthly';
+  String analysisSpendingOnTrack(Object category) {
+    return '$category spending is on track.';
+  }
 
   @override
-  String get recurringFrequencyWeekly => 'Weekly';
+  String analysisSpent(Object amount) {
+    return 'Spent: $amount';
+  }
 
   @override
-  String get recurringFrequencyYearly => 'Yearly';
+  String analysisSpentOfProjected(Object projected, Object spent) {
+    return '$spent spent of $projected';
+  }
+
+  @override
+  String get analysisStopSpending =>
+      'Stop! You\'re well above today\'s safe limit.';
+
+  @override
+  String analysisTarget(Object amount) {
+    return 'Target: $amount';
+  }
+
+  @override
+  String get analysisTypicalPerDay => 'Typical per day';
+
+  @override
+  String analysisUsual(Object amount) {
+    return 'Usual: $amount';
+  }
+
+  @override
+  String get analysisWithinLimit => 'You\'re within today\'s safe limit.';
 
   @override
   String get analyticsAdvanced => 'Advanced Analytics';
@@ -667,10 +489,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analyticsIn => 'In';
 
   @override
-  String get analyticsNetBalance => 'Net Balance';
+  String get analyticsInLegend => ' In';
 
   @override
-  String get analyticsInLegend => ' In';
+  String get analyticsNetBalance => 'Net Balance';
 
   @override
   String get analyticsNotEnoughDataForTrend => 'Not enough data for trend.';
@@ -756,6 +578,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'You save over 40% of your income — great financial discipline!';
 
   @override
+  String get analyticsReports => 'Analytics & Reports';
+
+  @override
   String get analyticsShareReportDesc =>
       'Share your monthly report as an image.';
 
@@ -801,9 +626,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Unlock full history and custom date ranges.';
 
   @override
-  String get analyticsReports => 'Analytics & Reports';
-
-  @override
   String get annually => 'annually';
 
   @override
@@ -828,7 +650,117 @@ class AppLocalizationsEn extends AppLocalizations {
   String get back => 'Back';
 
   @override
-  String get bankDataImported => 'No bank data imported';
+  String get backupAndRestore => 'Backup & Restore';
+
+  @override
+  String get backupAndRestoreAllData => 'Backup & Restore All Data';
+
+  @override
+  String get backupDownload => 'Download Backup';
+
+  @override
+  String get backupDownloadExplain =>
+      'Saves a .json file you choose the location for. Keep it somewhere safe (email it to yourself, or a cloud drive) — a backup on the same device is not a backup.';
+
+  @override
+  String backupFailed(String error) {
+    return 'Backup failed: $error';
+  }
+
+  @override
+  String get backupHadNoTransactions => 'Backup had no transactions to restore';
+
+  @override
+  String backupIncompleteWarning(String collections) {
+    return 'Last backup was incomplete — these could not be read: $collections. Try again before relying on that file.';
+  }
+
+  @override
+  String get backupKeepOwnCopy => 'Keep your own copy';
+
+  @override
+  String get backupKeepOwnCopyBody =>
+      'A backup is a single file holding every transaction, category, budget, goal, loan and asset, plus your profile. It downloads to your device and works without the app — so even a deleted account can be rebuilt from it.';
+
+  @override
+  String get backupNoDeviceSnapshot =>
+      'No snapshot is stored on this device yet. One is taken automatically once a day.';
+
+  @override
+  String get backupNotSignedIn => 'You are not signed in.';
+
+  @override
+  String get backupRestoreCancel => 'Cancel';
+
+  @override
+  String get backupRestoreConfirm => 'Restore';
+
+  @override
+  String backupRestoreConfirmItems(int count) {
+    return '$count items will be written back.';
+  }
+
+  @override
+  String get backupRestoreConfirmTitle => 'Restore this backup?';
+
+  @override
+  String get backupRestoreExistingKept =>
+      'Existing items are kept — restoring adds anything missing and updates items that are already there. Nothing is deleted.';
+
+  @override
+  String get backupRestoreExplain =>
+      'Pick a backup file to restore. Existing items are kept; nothing is deleted.';
+
+  @override
+  String backupRestoreFailed(String error) {
+    return 'Restore failed: $error';
+  }
+
+  @override
+  String get backupRestoreFromDeviceSnapshot => 'Restore From Device Snapshot';
+
+  @override
+  String get backupRestoreFromDeviceSnapshotExplain =>
+      'Your app keeps an automatic copy of the whole account on this device, refreshed once a day. Use it if something was deleted by accident.';
+
+  @override
+  String get backupRestoreFromFile => 'Restore From Backup File';
+
+  @override
+  String backupRestorePartial(
+    int count,
+    int failed,
+    String names,
+    String details,
+  ) {
+    return 'Restored $count items, but $failed collection(s) failed: $names. $details';
+  }
+
+  @override
+  String backupRestoreSuccess(int count) {
+    return 'Restored $count items.';
+  }
+
+  @override
+  String backupRestoreTaken(String when) {
+    return 'Backup taken $when';
+  }
+
+  @override
+  String backupRestoreWrongAccount(String backupEmail, String currentEmail) {
+    return 'Warning: this backup was made for $backupEmail, but you are signed in as $currentEmail.';
+  }
+
+  @override
+  String backupSaved(int count, int collections) {
+    return 'Backup saved: $count items across $collections collections';
+  }
+
+  @override
+  String get backupSectionTitle => 'Backup';
+
+  @override
+  String get backupWorking => 'Working…';
 
   @override
   String get balanceAddLent => '+ Add Lent';
@@ -881,10 +813,76 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get bankDataImported => 'No bank data imported';
+
+  @override
   String get bankTransactionsFound => 'No bank transactions found.';
 
   @override
   String get bestVALUE => 'BEST VALUE';
+
+  @override
+  String billsAutoAmount(String amount) {
+    return 'Auto: $amount';
+  }
+
+  @override
+  String billsDueOn(String date) {
+    return 'Due $date';
+  }
+
+  @override
+  String get billsEmpty =>
+      'No bills yet. Add spending or a recurring payment and they will appear here.';
+
+  @override
+  String get billsInvalidAmount =>
+      'Enter an amount greater than 0, or leave it blank for Auto.';
+
+  @override
+  String get billsLeaveBlank =>
+      'Leave it blank to go back to the automatic average.';
+
+  @override
+  String billsLeft(String amount) {
+    return '$amount left';
+  }
+
+  @override
+  String get billsLiability => 'Liability';
+
+  @override
+  String get billsManual => 'Manual';
+
+  @override
+  String get billsMonthlyAmount => 'Monthly amount';
+
+  @override
+  String billsOutstanding(String amount) {
+    return 'Outstanding $amount';
+  }
+
+  @override
+  String get billsPlanned => 'Planned';
+
+  @override
+  String get billsReserved => 'Reserved';
+
+  @override
+  String get billsSaveFailed => 'Could not save the bill amount. Try again.';
+
+  @override
+  String get billsSubtitle =>
+      'Each bill is the average of the months with spending. A recurring payment counts as soon as it is due.';
+
+  @override
+  String get billsTapToEdit => 'Tap a category to set your own amount.';
+
+  @override
+  String get billsTitle => 'Bills this month';
+
+  @override
+  String get billsUseAuto => 'Use auto';
 
   @override
   String get borrowedFriend => 'Borrowed from Friend';
@@ -894,7 +892,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Browse the Library tab or tap + Custom';
 
   @override
+  String get budgetHint => 'e.g. 20000';
+
+  @override
+  String get budgetProUpsell =>
+      'Create budgets, track spending, and get alerts with Pro.';
+
+  @override
+  String get budgetSetLimit => 'Set Limit';
+
+  @override
+  String get budgetUpdate => 'Update';
+
+  @override
   String get cameraPermissionRequired => 'Camera permission required';
+
+  @override
+  String get cancel => 'Cancel';
 
   @override
   String get cancelAnytimeQuestionsAsked =>
@@ -916,13 +930,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoriesFound => 'No categories found';
 
   @override
+  String get category => 'Category';
+
+  @override
+  String get categoryNameHint => 'Category Name';
+
+  @override
   String get categoryUse => 'Category in Use';
 
   @override
-  String get challengeCustomDescription => 'Custom challenge';
+  String get challengeCustomDaysHint => 'Or enter custom days';
 
   @override
-  String get challengeCustomDaysHint => 'Or enter custom days';
+  String get challengeCustomDescription => 'Custom challenge';
 
   @override
   String get challengeCustomTitle => 'Custom Challenge';
@@ -979,6 +999,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changePassword => 'Change Password';
 
   @override
+  String get chooseCurrencyStep => '1. Choose Currency';
+
+  @override
   String get chooseUPIApp => 'Choose UPI App';
 
   @override
@@ -1029,26 +1052,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createSplitEntries => 'Create Split Entries';
 
   @override
-  String get creditCards => 'Credit Cards';
-
-  @override
   String get creditCardAvailableBalance => 'Available balance';
-
-  @override
-  String get creditCardSpentBalance => 'Spent';
 
   @override
   String get creditCardBalanceInputHint =>
       'Enter the amount shown by your bank app';
 
   @override
+  String get creditCardSpentBalance => 'Spent';
+
+  @override
+  String get creditCards => 'Credit Cards';
+
+  @override
   String get creditCardsAdded => 'No credit cards added';
 
   @override
-  String get currentPlan => 'Current Plan';
+  String get currency => 'Currency';
 
   @override
-  String get currency => 'Currency';
+  String get currentPlan => 'Current Plan';
 
   @override
   String get custom => 'Custom';
@@ -1070,16 +1093,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dataSupport => 'Data & Support';
 
   @override
+  String get date => 'Date';
+
+  @override
   String get debugForceExpiry => 'Debug: Force Expiry';
 
   @override
   String get defaultRulesCanTDeleted => 'Default rules can\'t be deleted';
 
   @override
+  String get delete => 'Delete';
+
+  @override
   String get delete2 => 'Delete?';
 
   @override
   String get deleteAnyway => 'Delete Anyway';
+
+  @override
+  String deleteCategoryContent(Object category) {
+    return 'Do you want to delete \'$category\'?\n\n• This will NOT delete existing transactions.\n• Category will simply be removed from your list.';
+  }
+
+  @override
+  String get deleteCategoryTitle => 'Delete Category';
 
   @override
   String get deleteGoal => 'Delete Goal?';
@@ -1096,6 +1133,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteTransaction => 'Delete Transaction';
+
+  @override
+  String get dismiss => 'Dismiss';
 
   @override
   String get done => 'Done!';
@@ -1126,8 +1166,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enjoy unlimited access to all premium features.';
 
   @override
+  String get enterBudgetError => 'Please enter a budget';
+
+  @override
   String get enterEmailForceExpiryDate =>
       'Enter email to force expiry date to yesterday.';
+
+  @override
+  String get enterNameHint => 'Enter name';
 
   @override
   String get enterTransactionID => 'Enter Transaction ID';
@@ -1139,6 +1185,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get entries => 'Entries';
 
   @override
+  String get error => 'Error';
+
+  @override
   String get errorLoadingCategories => 'Error loading categories';
 
   @override
@@ -1146,6 +1195,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get evenSplit => 'Even split';
+
+  @override
+  String get expenseSectionTitle => 'EXPENSES';
+
+  @override
+  String get expensesSoFar => 'Expenses So Far';
 
   @override
   String get expireNow => 'Expire Now';
@@ -1230,238 +1285,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get grantPermission => 'Grant Permission';
 
   @override
-  String get backupAndRestore => 'Backup & Restore';
-
-  @override
-  String get backupAndRestoreAllData => 'Backup & Restore All Data';
-
-  @override
-  String get backupDownload => 'Download Backup';
-
-  @override
-  String get backupDownloadExplain =>
-      'Saves a .json file you choose the location for. Keep it somewhere safe (email it to yourself, or a cloud drive) — a backup on the same device is not a backup.';
-
-  @override
-  String backupFailed(String error) {
-    return 'Backup failed: $error';
-  }
-
-  @override
-  String backupIncompleteWarning(String collections) {
-    return 'Last backup was incomplete — these could not be read: $collections. Try again before relying on that file.';
-  }
-
-  @override
-  String get backupKeepOwnCopy => 'Keep your own copy';
-
-  @override
-  String get backupKeepOwnCopyBody =>
-      'A backup is a single file holding every transaction, category, budget, goal, loan and asset, plus your profile. It downloads to your device and works without the app — so even a deleted account can be rebuilt from it.';
-
-  @override
-  String get backupRestoreCancel => 'Cancel';
-
-  @override
-  String get backupRestoreConfirm => 'Restore';
-
-  @override
-  String backupRestoreConfirmItems(int count) {
-    return '$count items will be written back.';
-  }
-
-  @override
-  String get backupRestoreConfirmTitle => 'Restore this backup?';
-
-  @override
-  String get backupRestoreExistingKept =>
-      'Existing items are kept — restoring adds anything missing and updates items that are already there. Nothing is deleted.';
-
-  @override
-  String get backupRestoreExplain =>
-      'Pick a backup file to restore. Existing items are kept; nothing is deleted.';
-
-  @override
-  String backupRestoreFailed(String error) {
-    return 'Restore failed: $error';
-  }
-
-  @override
-  String get backupRestoreFromFile => 'Restore From Backup File';
-
-  @override
-  String backupRestorePartial(
-    int count,
-    int failed,
-    String names,
-    String details,
-  ) {
-    return 'Restored $count items, but $failed collection(s) failed: $names. $details';
-  }
-
-  @override
-  String backupRestoreSuccess(int count) {
-    return 'Restored $count items.';
-  }
-
-  @override
-  String backupRestoreTaken(String when) {
-    return 'Backup taken $when';
-  }
-
-  @override
-  String backupRestoreWrongAccount(String backupEmail, String currentEmail) {
-    return 'Warning: this backup was made for $backupEmail, but you are signed in as $currentEmail.';
-  }
-
-  @override
-  String backupSaved(int count, int collections) {
-    return 'Backup saved: $count items across $collections collections';
-  }
-
-  @override
-  String get backupSectionTitle => 'Backup';
-
-  @override
-  String get backupWorking => 'Working…';
-
-  @override
-  String get a11yProfilePhoto => 'Your profile';
-
-  @override
-  String get a11yPreviousMonth => 'Previous month';
-
-  @override
-  String get a11yNextMonth => 'Next month';
-
-  @override
-  String get addCustomAsset => 'Add Custom Asset';
-
-  @override
-  String get updateValueOrTarget => 'Update Value / Target';
-
-  @override
-  String get a11yProStatus => 'Pro status and subscription';
-
-  @override
-  String get a11ySearchTransactions => 'Search transactions';
-
-  @override
-  String get a11yRecurringPayments => 'Recurring payments';
-
-  @override
-  String get a11yLentMoney => 'Lent money';
-
-  @override
-  String get a11ySpendingForecast => 'Spending forecast';
-
-  @override
-  String get a11ySavingsGoals => 'Savings goals';
-
-  @override
-  String get a11ySavingsChallenges => 'Savings challenges';
-
-  @override
-  String get a11yMoreActions => 'More actions';
-
-  @override
-  String get a11yScanQrToPay => 'Scan a QR code to pay';
-
-  @override
-  String get a11yQuickSendUpi => 'Send money with UPI';
-
-  @override
-  String a11yQuickSendTo(String name) {
-    return 'Send money with UPI to $name';
-  }
-
-  @override
-  String get a11ySendMoney => 'Send money';
-
-  @override
-  String get a11yReceiveMoney => 'Receive money';
-
-  @override
-  String get backupNotSignedIn => 'You are not signed in.';
-
-  @override
-  String get backupNoDeviceSnapshot =>
-      'No snapshot is stored on this device yet. One is taken automatically once a day.';
-
-  @override
-  String get backupRestoreFromDeviceSnapshot => 'Restore From Device Snapshot';
-
-  @override
-  String get backupRestoreFromDeviceSnapshotExplain =>
-      'Your app keeps an automatic copy of the whole account on this device, refreshed once a day. Use it if something was deleted by accident.';
-
-  @override
-  String get backupHadNoTransactions => 'Backup had no transactions to restore';
-
-  @override
-  String restoreFailed(String error) {
-    return 'Restore failed: $error';
-  }
-
-  @override
-  String restoredFromBackup(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Restored $count transactions',
-      one: 'Restored 1 transaction',
-    );
-    return '$_temp0 from backup';
-  }
-
-  @override
-  String restoredFromPreservedBackup(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Restored $count transactions',
-      one: 'Restored 1 transaction',
-    );
-    return '$_temp0 from backup — the preserved pre-deletion copy';
-  }
-
-  @override
   String get handlesRestoringLocalCacheMerge =>
       'This handles restoring from local cache. Merge restored transactions with current data?';
 
   @override
-  String get homeWidget => 'Home Widget';
+  String get home => 'Home';
 
   @override
-  String get homeWidgetQuickAddTitle => 'Quick add shortcut';
+  String get homeDataUnavailableSubtitle =>
+      'Check your connection and try again.';
+
+  @override
+  String get homeDataUnavailableTitle => 'Couldn\'t load transactions';
+
+  @override
+  String get homeLeftOver => 'Left';
+
+  @override
+  String get homeMoneyIn => 'In';
+
+  @override
+  String get homeMoneyOut => 'Out';
+
+  @override
+  String get homeThisMonth => 'This month';
+
+  @override
+  String get homeWidget => 'Home Widget';
 
   @override
   String get homeWidgetQuickAddSubtitle =>
       'Show “+ Add” on the widget so one tap starts a new transaction.';
 
   @override
-  String get homeWidgetTotalBalance => 'Total Balance';
-
-  @override
-  String get homeWidgetStepAddTitle => 'Add the widget';
+  String get homeWidgetQuickAddTitle => 'Quick add shortcut';
 
   @override
   String get homeWidgetStepAddBody =>
       'Long-press your home screen, tap Widgets, search for “WealthSync”, then drag it onto your home screen.';
 
   @override
-  String get homeWidgetStepTapTitle => 'Tap to open';
+  String get homeWidgetStepAddTitle => 'Add the widget';
+
+  @override
+  String get homeWidgetStepRefreshBody =>
+      'Your balance refreshes every time you add, import or edit a transaction — no manual setup needed.';
+
+  @override
+  String get homeWidgetStepRefreshTitle => 'Always up to date';
 
   @override
   String get homeWidgetStepTapBody =>
       'Tapping the widget opens WealthSync. Tap “+ Add” to start a new transaction straight away.';
 
   @override
-  String get homeWidgetStepRefreshTitle => 'Always up to date';
+  String get homeWidgetStepTapTitle => 'Tap to open';
 
   @override
-  String get homeWidgetStepRefreshBody =>
-      'Your balance refreshes every time you add, import or edit a transaction — no manual setup needed.';
+  String get homeWidgetTotalBalance => 'Total Balance';
 
   @override
   String get howCategoryCountsTowardSmart =>
@@ -1486,46 +1367,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importData => 'Import Data';
 
   @override
+  String get importSmsTooltip => 'Import from SMS';
+
+  @override
   String get imported => 'Imported';
 
   @override
   String get incomeModeBlend => 'Auto – Blend (3-month average)';
 
   @override
-  String get incomeModeManual => 'Manual';
-
-  @override
-  String get incomeModeSalaryWindow =>
-      'Auto – Salary window (current month first week or previous month last working day)';
-
-  @override
-  String get incomeSource => 'Income Source';
+  String get incomeModeBlendHint =>
+      'Averages your recent months of income, weighted toward the current month.';
 
   @override
   String get incomeModeChooserIntro =>
       'How should we estimate your monthly income? You can change this any time in Settings.';
 
   @override
-  String get incomeModeManualHint =>
-      'You enter the amount yourself; nothing is inferred from your transactions.';
-
-  @override
-  String get incomeModeBlendHint =>
-      'Averages your recent months of income, weighted toward the current month.';
-
-  @override
-  String get incomeModeSalaryWindowHint =>
-      'Counts income added in the first week of the month or on the last working day as salary.';
+  String get incomeModeManual => 'Manual';
 
   @override
   String get incomeModeManualAmountLabel => 'Monthly income';
+
+  @override
+  String get incomeModeManualHint =>
+      'You enter the amount yourself; nothing is inferred from your transactions.';
 
   @override
   String get incomeModeManualRequired =>
       'Enter your monthly income to use Manual.';
 
   @override
+  String get incomeModeSalaryWindow =>
+      'Auto – Salary window (current month first week or previous month last working day)';
+
+  @override
+  String get incomeModeSalaryWindowHint =>
+      'Counts income added in the first week of the month or on the last working day as salary.';
+
+  @override
+  String get incomeSectionTitle => 'INCOME';
+
+  @override
+  String get incomeSoFar => 'Income So Far';
+
+  @override
+  String get incomeSource => 'Income Source';
+
+  @override
   String get insurancePolicies => 'Insurance Policies';
+
+  @override
+  String get invalidNumberError => 'Invalid number';
 
   @override
   String get invalidSubscriptionDataFormat =>
@@ -1556,22 +1449,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ledgerEntries => 'No ledger entries';
 
   @override
-  String get limit => 'Limit';
+  String get lentAddTopUp => 'Add top-up';
 
   @override
-  String get link => 'Link';
-
-  @override
-  String get linkTransaction => 'Link Transaction';
-
-  @override
-  String get linkTransaction2 => 'Link Transaction?';
-
-  @override
-  String get linked => 'LINKED';
-
-  @override
-  String get loading => 'Loading...';
+  String get lentAlreadySettled => 'Already Settled';
 
   @override
   String lentAmountLeft(Object amount) {
@@ -1579,19 +1460,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get lentAlreadySettled => 'Already Settled';
+  String get lentBorrowedFrom => 'Borrowed from';
 
   @override
-  String get lentBorrowedFrom => 'Borrowed from';
+  String get lentEmptySubtitle =>
+      'Track what you lend to friends and what you borrow from them, and settle up in one tap.';
 
   @override
   String lentGrandSum(Object label) {
     return 'Grand Sum ($label)';
   }
-
-  @override
-  String get lentEmptySubtitle =>
-      'Track what you lend to friends and what you borrow from them, and settle up in one tap.';
 
   @override
   String get lentLentTo => 'Lent to';
@@ -1612,12 +1490,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lentPending => 'Pending';
 
   @override
-  String get lentRepay => 'Repay';
+  String get lentRemoveTopUp => 'Remove top-up';
 
   @override
   String lentRepaid(Object amount) {
     return 'Repaid $amount';
   }
+
+  @override
+  String get lentRepay => 'Repay';
 
   @override
   String get lentSelectEntryDetails => 'Select an entry to view details';
@@ -1629,10 +1510,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lentSettled => 'Settled';
 
   @override
-  String get lentYouOwe => 'You Owe';
+  String get lentTopUps => 'Top-ups';
 
   @override
-  String get lentTopUps => 'Top-ups';
+  String get lentTopUpsEmpty => 'No top-ups recorded.';
+
+  @override
+  String get lentTopUpsHint =>
+      'Money you lent this person after the original entry.';
 
   @override
   String lentTopUpsTotal(Object amount) {
@@ -1640,17 +1525,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get lentTopUpsHint =>
-      'Money you lent this person after the original entry.';
+  String get lentYouOwe => 'You Owe';
 
   @override
-  String get lentTopUpsEmpty => 'No top-ups recorded.';
+  String get libraryTab => 'Library';
 
   @override
-  String get lentAddTopUp => 'Add top-up';
+  String get limit => 'Limit';
 
   @override
-  String get lentRemoveTopUp => 'Remove top-up';
+  String get link => 'Link';
+
+  @override
+  String get linkTransaction => 'Link Transaction';
+
+  @override
+  String get linkTransaction2 => 'Link Transaction?';
+
+  @override
+  String get linked => 'LINKED';
+
+  @override
+  String get loading => 'Loading...';
 
   @override
   String get loanBalanceCol => 'Balance';
@@ -1759,19 +1655,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missingRecurringPayment => 'Missing Recurring Payment';
 
   @override
+  String get moneyReceived => 'Money Received!';
+
+  @override
+  String get moneyReceivedSuccess => 'You received money successfully.';
+
+  @override
+  String get moneySent => 'Money Sent!';
+
+  @override
+  String get moneySentSuccess => 'Your payment has been sent successfully.';
+
+  @override
   String get monthlyCommitment => 'Monthly Commitment';
 
   @override
   String get monthlyEMI => 'Monthly EMI';
 
   @override
+  String get monthlyForecastTitle => 'Monthly Forecast';
+
+  @override
+  String get name => 'Name';
+
+  @override
+  String get newCategory => 'New Category';
+
+  @override
   String get newCategory2 => 'New category';
+
+  @override
+  String get noCategoriesFound => 'No categories found';
+
+  @override
+  String get noTransactions => 'No Transactions';
+
+  @override
+  String get noTransactionsSubtitle =>
+      'You haven\'t made any transactions yet.';
+
+  @override
+  String get notRecommended => 'Not recommended';
+
+  @override
+  String get note => 'Note';
 
   @override
   String get notifications => 'Notifications';
 
   @override
   String get notificationsYet => 'No notifications yet';
+
+  @override
+  String get onboardingReferralHint => 'e.g. AMAN05';
+
+  @override
+  String get onboardingReferralOptional => 'Referral Code (Optional)';
+
+  @override
+  String get onboardingReferralPitch =>
+      'Have a friend’s code? Get 1 month free!';
+
+  @override
+  String get onboardingSubtitle =>
+      'Let\'s set up your financial goals in 2 steps.';
 
   @override
   String get openSettings => 'Open Settings';
@@ -1784,6 +1731,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get other => 'Other';
+
+  @override
+  String get otherItemsCounted => 'Counted as other items';
+
+  @override
+  String get otherItemsCountedEmpty =>
+      'No other items this month. Every expense so far is a fixed bill or EMI.';
+
+  @override
+  String get otherItemsExcluded => 'Excluded (bills & fixed)';
+
+  @override
+  String get otherItemsExcludedEmpty =>
+      'No fixed bills recorded this month yet.';
+
+  @override
+  String get otherItemsExcludedToggle => 'Excluded: bills & fixed';
+
+  @override
+  String get otherItemsIgnored => 'Ignored (not counted in limit)';
+
+  @override
+  String get otherItemsIgnoredEmpty =>
+      'No ignored categories this month. Mark a category as \"Ignore in limit\" to keep investments/SIPs out of your daily limit.';
+
+  @override
+  String get otherItemsIgnoredToggle => 'Ignored: not counted in limit';
+
+  @override
+  String otherItemsTitle(Object month) {
+    return 'Other items · $month';
+  }
+
+  @override
+  String otherItemsTransactionCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions this month',
+      one: '1 transaction this month',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get out => ' Out';
@@ -1801,25 +1791,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get payViaUPI => 'Pay via UPI';
 
   @override
-  String get moneyReceived => 'Money Received!';
-
-  @override
-  String get moneyReceivedSuccess => 'You received money successfully.';
-
-  @override
-  String get moneySent => 'Money Sent!';
-
-  @override
-  String get moneySentSuccess => 'Your payment has been sent successfully.';
-
-  @override
   String get paymentCouldNotComplete => 'Payment could not be completed.';
-
-  @override
-  String get paymentProcessing => 'Your payment is being processed.';
-
-  @override
-  String get processingTransaction => 'Processing Transaction';
 
   @override
   String get paymentHistory => 'Payment History';
@@ -1831,6 +1803,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paymentMode => 'Payment Mode';
 
   @override
+  String get paymentProcessing => 'Your payment is being processed.';
+
+  @override
   String get paymentSettings => 'Payment Settings';
 
   @override
@@ -1839,9 +1814,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentSettingsLastUpdated => 'Last updated';
-
-  @override
-  String get reload => 'Reload';
 
   @override
   String get pendingRequests => 'No Pending Requests';
@@ -1869,7 +1841,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your Pro subscription has been cancelled.';
 
   @override
+  String get processingTransaction => 'Processing Transaction';
+
+  @override
   String get progress => 'In Progress';
+
+  @override
+  String get projectedRemaining => 'Projected Remaining';
 
   @override
   String get properties => 'Properties';
@@ -1893,23 +1871,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receiptScanner => 'Receipt Scanner';
 
   @override
+  String get receive => 'Receive';
+
+  @override
+  String get receiveMoney => 'Receive Money';
+
+  @override
   String get received => 'Received';
 
   @override
-  String get sent => 'Sent';
+  String get recentTransactions => 'Recent Transactions';
+
+  @override
+  String get recipient => 'Recipient';
+
+  @override
+  String get recommended => 'Recommended';
 
   @override
   String get recordPayment => 'Record Payment';
+
+  @override
+  String get recurringAutoCalcToggle => 'Auto-calculate outstanding';
 
   @override
   String get recurringAutoPayHint =>
       'When due, a transaction is created automatically.';
 
   @override
+  String get recurringCarryForwardToggle => 'Carry forward missed payments';
+
+  @override
   String get recurringCategoryLabel => 'Category';
 
   @override
+  String get recurringEditSubscription => 'Edit Subscription';
+
+  @override
+  String get recurringEditTooltip => 'Edit subscription';
+
+  @override
   String get recurringFrequencyLabel => 'Frequency';
+
+  @override
+  String get recurringFrequencyMonthly => 'Monthly';
+
+  @override
+  String get recurringFrequencyWeekly => 'Weekly';
+
+  @override
+  String get recurringFrequencyYearly => 'Yearly';
+
+  @override
+  String get recurringInterestLabel => 'Interest rate';
+
+  @override
+  String get recurringInterestRate => 'Interest rate';
+
+  @override
+  String get recurringInterestRateHint => 'e.g. 12 for 12% annual';
+
+  @override
+  String get recurringKindBill => 'Bill';
+
+  @override
+  String get recurringKindCreditCard => 'Credit card';
+
+  @override
+  String get recurringKindLoanEmi => 'Loan EMI';
+
+  @override
+  String recurringLiabilityDue(String amount) {
+    return '$amount in liability payments due';
+  }
 
   @override
   String get recurringManualPayHint =>
@@ -1919,22 +1953,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recurringNameLabel => 'Name (e.g. Netflix)';
 
   @override
-  String get recurringRequired => 'Required';
-
-  @override
-  String get recurringSaveFailed => 'Failed to save. Please try again.';
-
-  @override
-  String get recurringEditSubscription => 'Edit Subscription';
-
-  @override
-  String get recurringEditTooltip => 'Edit subscription';
-
-  @override
   String get recurringNewSubscription => 'New Subscription';
 
   @override
   String get recurringNextPaymentLabel => 'Next Payment:';
+
+  @override
+  String get recurringOutstandingHint =>
+      'What you still owe. Shown separately; it is not an expense this month.';
+
+  @override
+  String get recurringOutstandingLabel => 'Outstanding balance';
 
   @override
   String get recurringPaidLabel => 'PAID';
@@ -1946,10 +1975,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recurringPendingLabel => 'PENDING';
 
   @override
+  String get recurringRequired => 'Required';
+
+  @override
+  String get recurringSaveFailed => 'Failed to save. Please try again.';
+
+  @override
+  String get recurringTermLabel => 'Term (months)';
+
+  @override
+  String get recurringTypeLabel => 'Type';
+
+  @override
   String get referralCODE => 'YOUR REFERRAL CODE';
 
   @override
   String get reject => 'Reject';
+
+  @override
+  String get reload => 'Reload';
 
   @override
   String get remove => 'Remove';
@@ -1993,7 +2037,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreData => 'Restore Data';
 
   @override
+  String restoreFailed(String error) {
+    return 'Restore failed: $error';
+  }
+
+  @override
   String get restorePurchases => 'Restore Purchases';
+
+  @override
+  String restoredFromBackup(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restored $count transactions',
+      one: 'Restored 1 transaction',
+    );
+    return '$_temp0 from backup';
+  }
+
+  @override
+  String restoredFromPreservedBackup(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Restored $count transactions',
+      one: 'Restored 1 transaction',
+    );
+    return '$_temp0 from backup — the preserved pre-deletion copy';
+  }
 
   @override
   String get retry => 'Retry';
@@ -2002,7 +2073,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get salaryDetected => 'Salary Detected';
 
   @override
+  String get save => 'Save';
+
+  @override
   String get save33 => 'SAVE 33%';
+
+  @override
+  String get saveChanges => 'Save Changes';
 
   @override
   String get savePdf => 'Save PDF';
@@ -2038,7 +2115,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityPrivacy => 'Security & Privacy';
 
   @override
+  String get selectCategory => 'Select Category';
+
+  @override
   String get selectCategory2 => 'Select category';
+
+  @override
+  String get selectCategoryError => 'Select a category';
 
   @override
   String get selectColumn => 'Select Column';
@@ -2058,22 +2141,40 @@ class AppLocalizationsEn extends AppLocalizations {
       'Select a transaction to view details';
 
   @override
+  String get send => 'Send';
+
+  @override
+  String get sendMoney => 'Send Money';
+
+  @override
+  String get sender => 'Sender';
+
+  @override
+  String get sent => 'Sent';
+
+  @override
   String get setAgeFirst => 'Set Your Age First';
+
+  @override
+  String get setBudgetStep => '2. Set Monthly Budget';
 
   @override
   String get setSavingsPurchaseGoalTrack =>
       'Set a savings or purchase goal\\nand track your progress.';
 
   @override
+  String get settings => 'Settings';
+
+  @override
   String get share => 'Share';
+
+  @override
+  String get shareReport => 'Share Report';
 
   @override
   String shareScreenshotFailed(Object error) {
     return 'Failed to share screenshot: $error';
   }
-
-  @override
-  String get shareReport => 'Share Report';
 
   @override
   String get shareSetAsideBeforeAI =>
@@ -2125,9 +2226,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get spentOtherItems => 'Spent on other items';
 
   @override
-  String get splitBill => 'Split a Bill';
-
-  @override
   String get splashContinue => 'Continue';
 
   @override
@@ -2158,6 +2256,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Monitor your spending habits effortlessly and take control of your financial goals in real time.';
 
   @override
+  String get splitBill => 'Split a Bill';
+
+  @override
   String get start => 'Start';
 
   @override
@@ -2165,6 +2266,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startFirstChallenge => 'Start your first challenge 🎯';
+
+  @override
+  String get startTracking => 'Start Tracking';
+
+  @override
+  String get status => 'Status';
 
   @override
   String get submitVerification => 'Submit for Verification';
@@ -2180,6 +2287,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get subscriptionsYet => 'No subscriptions yet';
+
+  @override
+  String get success => 'Success';
 
   @override
   String get suggestedRules => 'Suggested Rules';
@@ -2205,6 +2315,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this transaction?';
 
   @override
+  String get tabAll => 'All';
+
+  @override
+  String get tabIncome => 'Income';
+
+  @override
+  String get tabOutcome => 'Outcome';
+
+  @override
   String get tapAddFirstEntry => 'Tap + to add your first entry';
 
   @override
@@ -2224,9 +2343,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapTrackVehicles => 'Tap + to track your vehicles';
 
   @override
-  String get status => 'Status';
-
-  @override
   String get tax => 'Tax';
 
   @override
@@ -2237,13 +2353,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'These are your non-bill expenses. Rent, EMIs, bills, subscriptions and other fixed payments are excluded — open the excluded list below to see them.';
 
   @override
+  String get today => 'Today';
+
+  @override
   String get topMerchants => 'Top Merchants';
 
   @override
   String get total => 'Total';
-
-  @override
-  String get transactionFailed => 'Transaction Failed!';
 
   @override
   String get totalNetWorth => 'Total Net Worth';
@@ -2268,8 +2384,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionDetails => 'Transaction Details';
 
   @override
+  String get transactionFailed => 'Transaction Failed!';
+
+  @override
+  String get transactionHistoryTitle => 'Transaction History';
+
+  @override
   String get transactionIDShownUPIApp =>
       'The transaction ID is shown in your UPI app after payment.';
+
+  @override
+  String get transactionId => 'Transaction ID';
+
+  @override
+  String get transactionPdfFooter => 'Generated using Money Control App';
+
+  @override
+  String get transactionReceipt => 'Transaction Receipt';
+
+  @override
+  String get transactions => 'Transactions';
 
   @override
   String get transactionsFound => 'No transactions found.';
@@ -2278,11 +2412,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typeUPIIDInstead => 'Type UPI ID instead';
 
   @override
+  String get uncategorized => 'Uncategorized';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get unknownRecipient => 'Unknown';
+
+  @override
   String get unlockProAccess => 'Unlock Pro Access';
 
   @override
   String get updateDueDateCreatingTransaction =>
       'This will update the due date and creating a transaction record.';
+
+  @override
+  String get updateValueOrTarget => 'Update Value / Target';
 
   @override
   String get upgradeProNow => 'Upgrade to Pro Now';
@@ -2332,7 +2478,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wealthAutoCalculated => 'Auto-calculated';
 
   @override
+  String get wealthBuilder => 'Wealth Builder';
+
+  @override
+  String get wealthBuilderPersonalisesEveryTarget =>
+      'Wealth Builder personalises every target — emergency fund, equity allocation, retirement corpus — based on your age.\\n\\nAdd your date of birth in your profile to get started.';
+
+  @override
   String get wealthCalculatedBasis => 'Calculated based on expenses & age';
+
+  @override
+  String get wealthCcMonthlyInterest => 'CC interest/mo @36%';
 
   @override
   String wealthCoverage(Object amount) {
@@ -2361,6 +2517,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wealthEnterExpense => 'Enter expense';
+
+  @override
+  String get wealthFdProjected1Yr => 'FD 1yr @7%';
 
   @override
   String get wealthGroupAlternativeAssets => 'Alternative Assets';
@@ -2399,11 +2558,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Leave empty to use auto-calculated average';
 
   @override
-  String wealthManualTarget(Object amount) {
-    return 'Manual target: $amount';
-  }
-
-  @override
   String wealthLoanCount(num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2415,19 +2569,32 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String wealthManualTarget(Object amount) {
+    return 'Manual target: $amount';
+  }
+
+  @override
   String get wealthMonthlyExpense => 'Monthly Expense';
 
   @override
   String get wealthMonthlyExpenseBasis => 'Monthly Expense Basis';
 
   @override
-  String get wealthFdProjected1Yr => 'FD 1yr @7%';
-
-  @override
   String get wealthPfProjected1Yr => 'PF 1yr @7.1%';
 
   @override
-  String get wealthCcMonthlyInterest => 'CC interest/mo @36%';
+  String get wealthPhaseAdvanced => 'Advanced';
+
+  @override
+  String get wealthPhaseAdvancedSubtitle =>
+      'Diversifiers for when your foundation is solid.';
+
+  @override
+  String get wealthPhaseBuildWealth => 'Build wealth';
+
+  @override
+  String get wealthPhaseBuildWealthSubtitle =>
+      'Long-term growth and retirement accumulation for the long run.';
 
   @override
   String wealthPhaseHeading(Object name, Object phase) {
@@ -2435,25 +2602,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get wealthPhaseAdvanced => 'Advanced';
-
-  @override
-  String get wealthPhaseBuildWealth => 'Build wealth';
-
-  @override
   String get wealthPhaseStartHere => 'Start here';
 
   @override
   String get wealthPhaseStartHereSubtitle =>
       'Emergency fund, protection and paying off debt come first.';
-
-  @override
-  String get wealthPhaseBuildWealthSubtitle =>
-      'Long-term growth and retirement accumulation for the long run.';
-
-  @override
-  String get wealthPhaseAdvancedSubtitle =>
-      'Diversifiers for when your foundation is solid.';
 
   @override
   String get wealthRecommendedForYou => 'Recommended for You';
@@ -2477,6 +2630,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get wealthTapToManage => 'Tap to manage';
+
+  @override
+  String get wealthTapToUpdate => 'Tap to update';
+
+  @override
   String wealthTarget(Object amount) {
     return 'Target: $amount';
   }
@@ -2486,12 +2645,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wealthTargetGoalManual => 'Target Goal (Manual)';
-
-  @override
-  String get wealthTapToManage => 'Tap to manage';
-
-  @override
-  String get wealthTapToUpdate => 'Tap to update';
 
   @override
   String get wealthTypicalIncomeArea => 'Typical income in your area';
@@ -2517,31 +2670,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wealthYourAssets => 'Your Assets';
 
   @override
-  String get saveChanges => 'Save Changes';
-
-  @override
-  String get recommended => 'Recommended';
-
-  @override
-  String get notRecommended => 'Not recommended';
-
-  @override
-  String get name => 'Name';
-
-  @override
-  String get save => 'Save';
-
-  @override
-  String get dismiss => 'Dismiss';
-
-  @override
-  String get wealthBuilder => 'Wealth Builder';
-
-  @override
-  String get wealthBuilderPersonalisesEveryTarget =>
-      'Wealth Builder personalises every target — emergency fund, equity allocation, retirement corpus — based on your age.\\n\\nAdd your date of birth in your profile to get started.';
-
-  @override
   String get wealthsync => '💰 WealthSync';
 
   @override
@@ -2552,6 +2680,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wealthsyncWeb => 'WealthSync Web';
 
   @override
+  String get welcomeBack => 'Welcome back,';
+
+  @override
+  String welcomeUser(Object name) {
+    return 'Welcome, $name';
+  }
+
+  @override
   String get whatShouldEarnStayTrack => 'What you should earn to stay on track';
 
   @override
@@ -2559,136 +2695,5 @@ class AppLocalizationsEn extends AppLocalizations {
       'When a friend signs up with your code, you both get +30 days of Pro — and every additional friend adds 30 more.';
 
   @override
-  String analysisBillDue(String amount, String date) {
-    return 'Due $date: $amount';
-  }
-
-  @override
-  String get analysisBillPlan => 'Bill';
-
-  @override
-  String analysisBillsDueLink(String amount, String date) {
-    return 'Bills $amount · next $date · View';
-  }
-
-  @override
-  String analysisBillsLink(String amount) {
-    return 'Bills $amount · View';
-  }
-
-  @override
-  String get analysisHowCalculated => 'How is this calculated?';
-
-  @override
-  String analysisPerDayFallback(String amount) {
-    return 'You spend about $amount a day on other items. Add income to see a safe daily limit.';
-  }
-
-  @override
-  String get analysisTypicalPerDay => 'Typical per day';
-
-  @override
-  String billsAutoAmount(String amount) {
-    return 'Auto: $amount';
-  }
-
-  @override
-  String billsDueOn(String date) {
-    return 'Due $date';
-  }
-
-  @override
-  String get billsEmpty =>
-      'No bills yet. Add spending or a recurring payment and they will appear here.';
-
-  @override
-  String get billsInvalidAmount =>
-      'Enter an amount greater than 0, or leave it blank for Auto.';
-
-  @override
-  String get billsLeaveBlank =>
-      'Leave it blank to go back to the automatic average.';
-
-  @override
-  String billsLeft(String amount) {
-    return '$amount left';
-  }
-
-  @override
-  String get billsLiability => 'Liability';
-
-  @override
-  String get billsManual => 'Manual';
-
-  @override
-  String get billsMonthlyAmount => 'Monthly amount';
-
-  @override
-  String billsOutstanding(String amount) {
-    return 'Outstanding $amount';
-  }
-
-  @override
-  String get billsPlanned => 'Planned';
-
-  @override
-  String get billsReserved => 'Reserved';
-
-  @override
-  String get billsSaveFailed => 'Could not save the bill amount. Try again.';
-
-  @override
-  String get billsSubtitle =>
-      'Each bill is the average of the months with spending. A recurring payment counts as soon as it is due.';
-
-  @override
-  String get billsTapToEdit => 'Tap a category to set your own amount.';
-
-  @override
-  String get billsTitle => 'Bills this month';
-
-  @override
-  String get billsUseAuto => 'Use auto';
-
-  @override
-  String get recurringKindBill => 'Bill';
-
-  @override
-  String get recurringKindCreditCard => 'Credit card';
-
-  @override
-  String get recurringKindLoanEmi => 'Loan EMI';
-
-  @override
-  String recurringLiabilityDue(String amount) {
-    return '$amount in liability payments due';
-  }
-
-  @override
-  String get recurringOutstandingHint =>
-      'What you still owe. Shown separately; it is not an expense this month.';
-
-  @override
-  String get recurringOutstandingLabel => 'Outstanding balance';
-
-  @override
-  String get recurringTypeLabel => 'Type';
-
-  @override
-  String get recurringTermLabel => 'Term (months)';
-
-  @override
-  String get recurringInterestLabel => 'Interest rate';
-
-  @override
-  String get recurringInterestRate => 'Interest rate';
-
-  @override
-  String get recurringInterestRateHint => 'e.g. 12 for 12% annual';
-
-  @override
-  String get recurringAutoCalcToggle => 'Auto-calculate outstanding';
-
-  @override
-  String get recurringCarryForwardToggle => 'Carry forward missed payments';
+  String get yesterday => 'Yesterday';
 }
