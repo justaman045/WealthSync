@@ -17,7 +17,7 @@ flutter gen-l10n                            # after editing lib/l10n/*.arb
 flutter build web --release --base-href /WealthSync/
 flutter build apk --release
 
-bash tool/rules_tests/run.sh          # Firestore+Storage rules vs emulators (Node >=24.12, JDK; npm ci on first run)
+bash tool/rules_tests/run.sh          # Firestore+Storage rules vs emulators (Node >=24.12, JDK 21; npm ci on first run)
 bash tool/run_integration_tests.sh    # E2E: fresh emulator per file; needs creds + emulator-5554
 bash tool/smoke_release_apk.sh build/app/outputs/flutter-apk/app-release.apk
 ```
@@ -27,11 +27,12 @@ bash tool/smoke_release_apk.sh build/app/outputs/flutter-apk/app-release.apk
 Pro file missing from it silently runs on the free account and fails on paywall copy.
 
 **Pre-push gate, in order:** `flutter analyze --no-fatal-infos` → `check_ui_strings.sh
---strict` → `flutter test` → `flutter build web --release`. All four are CI's `test` job.
-dart2js is stricter than the analyzer: touching a shared signature or a web-compiled
-service requires the web build, or CI fails where analyze passed. The `rules` job is
-required before a release. Integration tests are **disabled in CI** (`if: false`) by
-design until features are manually verified.
+--strict` → `flutter test` → `flutter build web --release --base-href /WealthSync/`. All
+four are CI's `test` job. dart2js is stricter than the analyzer: touching a shared
+signature or a web-compiled service requires the web build, or CI fails where analyze
+passed. The `rules` job is required before a release. Integration tests are **disabled
+in CI** (`if: false`) by design until features are manually verified. The default branch
+is `master`; release and Pages jobs run only there.
 
 CI pins Flutter **3.47.7**. Android NDK is env-overridable (`ANDROID_NDK_VERSION`,
 default `28.2.13676358`); any job that compiles Android needs the pin.
@@ -46,7 +47,7 @@ default `28.2.13676358`); any job that compiles Android needs the pin.
 | `lib/Services/` | business logic; also `PerformanceController`/`ConnectivityController` |
 | `lib/Repositories/` | Firestore access only |
 | `lib/Models/` | `fromMap`/`toMap` data classes |
-| `lib/Config/` | `asset_screen_configs.dart` (22 generic asset screens), `feature_flags.dart` (source of truth), `tab_destinations.dart`, `app_strings.dart` |
+| `lib/Config/` | `asset_screen_configs.dart` (22 generic asset screens), `wealth_asset_registry.dart` (26 asset types), `feature_flags.dart` (source of truth), `tab_destinations.dart`, `app_strings.dart` |
 | `lib/Platform/` | 9 `*_platform.dart` + `*_platform_stub.dart` pairs |
 | `lib/Utils/` | pure helpers (`wealth_math.dart`, `spending_filter.dart`, `profile_update.dart`, …) |
 | `test/`, `integration_test/` | unit/widget vs emulator E2E (read `test_helpers.dart` first) |
@@ -109,9 +110,10 @@ registering them in phase 1 crashes. Screens self-register with
   this month and the 3-month average. Persisted as `income_mode`/`income_manual_monthly`.
 - **Daily-limit category role has exactly one resolver**: `resolveDailyLimitRole(...)`
   (`fixed`/`variable`/`ignored`). Every classification site must call it —
-  `analysis.dart` (4 sites) and `splitMonthlyExpenses()` — kept in sync by
-  `test/analysis_fixed_classification_test.dart`. Today's variable spend subtracts both
-  fixed and ignored; Category Insights renders an `ignored` category as nothing.
+  `analysis.dart` (2 sites), `bills_math.dart`, and `splitMonthlyExpenses()` — kept in
+  sync by `test/analysis_fixed_classification_test.dart`. Today's variable spend
+  subtracts both fixed and ignored; Category Insights renders an `ignored` category as
+  nothing.
 - `insurance.sumAssured` is **not** an asset: excluded from `totalAssets`, allocation and
   net worth. Changing that is a product decision.
 - Dashboard must use `streamPortfolio()`, not `getPortfolio()`; transaction-derived wealth
@@ -126,10 +128,11 @@ registering them in phase 1 crashes. Screens self-register with
   cached snapshots are not billed as server reads. One listener per collection:
   `TransactionController` owns transactions, `RecurringPaymentController` owns
   recurring payments; a screen must never call a repository stream directly.
-- Asset types live one subcollection per type under `users/{email}/`. The registry is
-  `UserService.subcollections` (26 asset collections + core/aux). Adding an asset type
-  means adding it to that list **and** to the `firestore.rules` wildcard, or writes are
-  denied.
+- Asset types live one subcollection per type under `users/{email}/`. The deletion/export
+  registry is `UserService.subcollections` (26 asset collections + core/aux). Adding an
+  asset type means adding it there **and** to the `firestore.rules` wildcard (or writes
+  are denied), plus a `WealthAssetRegistry` descriptor and either an `AssetConfigs` entry
+  or a hand-written screen.
 - `firestore.indexes.json` is the **required** set, not a mirror of production. 4 composite
   indexes, each pinned to its querying file by `test/firestore_indexes_test.dart`. Live
   orphan indexes are expected — do not paste them in. Never `--force`.
@@ -148,26 +151,30 @@ registering them in phase 1 crashes. Screens self-register with
   the throttle makes extras free. Both on-device copies are AES-GCM sealed
   (`backup_cipher.dart`); a missing keystore falls back to plaintext deliberately, and an
   unauthenticated payload reads as "no backup", never a crash.
-- **A smaller backup must never overwrite the larger one**: it goes to the
-  `backup preserved_<email>` slot, and `restoreUserTransactions`/`hasUserBackup` consider
-  both. This is the sequence that lost 791 live transactions.
+- **A smaller backup must never overwrite the larger one**: it goes to the separate
+  preserved slot (`backup preserved <email>` / `txprev_<email>.json`), and
+  `restoreUserTransactions`/`hasUserBackup` consider both. This is the sequence that lost
+  791 live transactions.
 - `FullBackupService` captures `UserService.subcollections` + profile + wealth summary.
   Restore is merge-only, into the **currently signed-in** account, with identity remapped
   (`remapIdentityForRestore`); the profile restore strips
   `serverAuthoritativeProfileFields` and the file redacts `purchaseToken`. Format is
-  version 2 — a newer build refuses an older-version file rather than restoring history it
-  cannot re-identify. Daily snapshot keeps a 7-day `safetyCopyTtl` copy and rejects
-  shrinkage (`shouldRunDailySnapshot`).
-- Account deletion writes a `users/{email}/meta/deletion` tombstone *after* the wipe;
-  `AuthController.resumeInterruptedDeletion` finishes an interrupted delete on next
-  sign-in. `meta` is deliberately **not** in `subcollections`.
+  version 2 (records the source uid for identity remap); a build older than the file
+  refuses it rather than restoring an account whose uid-filtered queries miss history.
+  Daily snapshot keeps a 7-day `safetyCopyTtl` copy and rejects shrinkage
+  (`shouldRunDailySnapshot`).
+- Account deletion writes a `users/{email}/meta/deletion` tombstone *before* wiping data,
+  so `AuthController.resumeInterruptedDeletion` can finish an interrupted delete on the
+  next sign-in. (`main.dart`'s "writes its marker last" comment is stale.)
+  `meta` is deliberately **not** in `subcollections`.
 
 ## Auth and session teardown
 
 - `AuthController.disposeUserScopedState()` is the **one** teardown list: nine user-scoped
-  controllers + `AuditController`, SMS/recurring caches, `AppAnalytics` user id, and an
-  **awaited** `LocalCacheService.clearAll()`. Both sign-out paths call it. A second list
-  already drifted and leaked audit state.
+  controllers + `AuditController`, SMS/recurring caches, `IncomeSettings`/`SavingsSettings`,
+  `OfflineQueueService.clearPending()`, `WidgetActionQueue.reset()`, `AppAnalytics` user
+  id, and an **awaited** `LocalCacheService.clearAll()`. Both sign-out paths call it. A
+  second list already drifted and leaked audit state.
 - A failed `signOut()` must abort teardown; a Firestore failure *after* a successful
   sign-in must sign back out. A throw in `_handleAuthChange` resets `_handledUid` so the
   next emission retries.
@@ -190,9 +197,9 @@ Registry is `lib/Config/feature_flags.dart` (`all` + `groups`); global doc
 - `test/feature_flags_test.dart` scans `lib/` and fails if a registered key is never gated
   or a gate key is unregistered — register **and** wire the gate in the same change.
 - Gate tiers: `ensureFeatureVisible(context, key)` before navigation;
-  `ensureFeatureUsable` when the surface stays but taps die; `FeatureGate(key:, child:)` on
-  bodies; `FeatureVisible`/`SliverFeatureVisible` for sub-components (a plain box inside a
-  sliver crashes); `FeatureSection(flagKeys: [...])` for settings groups.
+  `ensureFeatureUsable` when the surface stays but taps die; `FeatureGate(flagKey:, child:)`
+  on bodies; `FeatureVisible`/`SliverFeatureVisible` for sub-components (a plain box inside
+  a sliver crashes); `FeatureSection(flagKeys: [...])` for settings groups.
 - Bottom nav is **name-keyed** via `tab_destinations.dart`, not index.
 - Background flags read `app_config/feature_flags` per tick and are **fail-closed** via the
   `bg_feature_flags` mirror; only `hidden` halts work.
@@ -242,7 +249,8 @@ the `debugPrint`. `feature_gate_hit` fires from tap guards only, never `visibleT
   `export PATH="$HOME/Android/Sdk/platform-tools:$HOME/.sdks/flutter/bin:$PATH"`.
 - `android/` uses Gradle 9.3.1 / AGP 9.1.0 / KGP 2.4.0, with
   `android.builtInKotlin=false` + `android.newDsl=false` (Flutter's escape hatch for
-  KGP-applying plugins). Don't lower Firebase/geocoding versions.
+  KGP-applying plugins). Android CI pins JDK 17; a newer local JBR (Java 25) has broken the
+  Gradle build. Don't lower Firebase/geocoding versions.
 - iOS: the Workmanager `uniqueName` must equal the identifier in
   `BGTaskSchedulerPermittedIdentifiers` (`Info.plist`) or every schedule fails with Code 3.
 
@@ -278,7 +286,9 @@ in `testWidgetsWithScreenshots`. Credentials come from `--dart-define=TEST_EMAIL
   before suspecting auth code.
 - Let a human session boot the emulator; agent-initiated `-avd` starts segfault and leave
   stale locks in `/run/user/1000/avd/running/`. `run_integration_tests.sh` restarts the
-  emulator between files because host-GL accumulation kills the second app launch.
+  emulator between files because host-GL accumulation kills the second app launch. On a
+  hardware-accelerated local AVD set `E2E_NO_RESTART=1` (otherwise the runner kills your
+  booted device); `E2E_AVD_NAME` overrides the AVD name, which defaults to `test`.
 
 ## When in doubt
 

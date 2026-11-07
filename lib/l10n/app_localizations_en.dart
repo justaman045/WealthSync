@@ -424,7 +424,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String analysisSpentOfProjected(Object projected, Object spent) {
-    return '$spent spent of $projected';
+    return '$projected spent of $spent';
   }
 
   @override
