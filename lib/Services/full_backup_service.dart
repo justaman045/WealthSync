@@ -14,6 +14,22 @@ import 'package:money_control/Services/user_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:universal_io/io.dart';
 
+/// Result of [FullBackupService.download].
+///
+/// On web `FilePicker.saveFile()` returns `null` even when the browser
+/// successfully downloaded the file, so `saved` is true whenever the picker
+/// did not report an explicit cancellation: a non-null path on mobile/desktop,
+/// or any result on web.
+class DownloadResult {
+  /// True when the archive was handed to the platform for saving.
+  final bool saved;
+
+  /// The saved file path (mobile/desktop), or null on web / cancellation.
+  final String? path;
+
+  const DownloadResult({required this.saved, required this.path});
+}
+
 /// Complete account backup: capture every collection, hand the user a file, and
 /// rebuild the account from that file.
 ///
@@ -231,21 +247,42 @@ class FullBackupService {
 
   /// Writes [archive] to a user-chosen file via the platform picker.
   ///
-  /// Returns the saved path, or null when the user cancelled. Passing `bytes:`
-  /// (not a path) is required: on Android `FilePicker.saveFile()` hands back a
-  /// `content://` URI that cannot be opened with `dart:io`.
-  static Future<String?> download(
+  /// Returns a [DownloadResult]. On web `FilePicker.saveFile()` returns `null`
+  /// even when the browser successfully downloaded the file, so `saved` is
+  /// true whenever the platform accepted the bytes: a non-null path on
+  /// mobile/desktop, or any result on web. `saved` is false only when the
+  /// user cancelled the picker.
+  ///
+  /// Passing `bytes:` (not a path) is required: on Android
+  /// `FilePicker.saveFile()` hands back a `content://` URI that cannot be
+  /// opened with `dart:io`.
+  static Future<DownloadResult> download(
     BackupArchive archive, {
     String? fileName,
   }) async {
     final name = fileName ?? suggestedFileName(archive.createdAt);
     final bytes = Uint8List.fromList(utf8.encode(archive.toJson()));
-    return FilePicker.platform.saveFile(
+
+    // Warn when the archive is large enough that file_picker may refuse it
+    // on some platforms, rather than failing silently.
+    if (bytes.length >= largeArchiveWarningBytes) {
+      debugPrint(
+          '[FullBackupService] archive is ${(bytes.length / 1024 / 1024).toStringAsFixed(1)} MB, '
+          'above the large-archive warning threshold');
+    }
+
+    final path = await FilePicker.platform.saveFile(
       fileName: name,
       type: FileType.custom,
       allowedExtensions: ['json'],
       bytes: bytes,
     );
+
+    // On web the picker always returns null on success (browser handles the
+    // download via blob URL), so treat any web result as saved. On other
+    // platforms a null path means the user cancelled.
+    final saved = kIsWeb || path != null;
+    return DownloadResult(saved: saved, path: path);
   }
 
   /// Opens a file picker and parses the chosen file as an archive.

@@ -299,7 +299,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
         email,
         onCollectionError: (collection, _) => failed.add(collection),
       );
-      final path = await FullBackupService.download(archive);
+      final result = await FullBackupService.download(archive);
 
       AppAnalytics.log(AnalyticsEvent.dataExportDownloaded, {
         'documents': archive.documentCount,
@@ -311,7 +311,7 @@ class _LegalTrustPageState extends State<LegalTrustPage> {
       setState(() => downloadingData = false);
 
       // Cancelled at the picker is not a failure — say nothing.
-      if (path == null) return;
+      if (!result.saved) return;
 
       if (failed.isEmpty) {
         ErrorHandler.showSuccess(

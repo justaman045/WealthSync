@@ -423,7 +423,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String analysisSpentOfProjected(Object spent, Object projected) {
+  String analysisSpentOfProjected(Object projected, Object spent) {
     return '$spent spent of $projected';
   }
 
@@ -827,7 +827,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String billsAutoAmountSpent(String amount) {
+  String billsAutoAmountSpent(Object amount) {
     return 'Auto: $amount (spent this month)';
   }
 

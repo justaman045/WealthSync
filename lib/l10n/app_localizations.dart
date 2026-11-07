@@ -1389,7 +1389,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Auto: {amount} (spent this month)'**
-  String billsAutoAmountSpent(String amount);
+  String billsAutoAmountSpent(Object amount);
 
   /// No description provided for @billsDueOn.
   ///

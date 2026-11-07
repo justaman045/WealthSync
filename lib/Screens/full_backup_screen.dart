@@ -85,7 +85,7 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
       );
 
       if (!mounted) return;
-      final path = await FullBackupService.download(archive);
+      final result = await FullBackupService.download(archive);
 
       AppAnalytics.log(AnalyticsEvent.fullBackupDownloaded, {
         'documents': archive.documentCount,
@@ -94,7 +94,7 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
       });
 
       if (!mounted) return;
-      if (path == null) {
+      if (!result.saved) {
         // Cancelled at the picker — not a failure, say nothing.
         setState(() => _busy = false);
         return;
