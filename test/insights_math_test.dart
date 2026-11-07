@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:money_control/Models/cateogary.dart';
 import 'package:money_control/Models/recurring_payment_model.dart';
 import 'package:money_control/Models/transaction.dart';
 import 'package:money_control/Utils/insights_math.dart';
