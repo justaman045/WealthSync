@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy – Money Control</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      line-height: 1.7;
+      padding: 32px 16px 64px;
+    }
+    .container { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 2rem; font-weight: 700; color: #00e5ff; margin-bottom: 4px; }
+    .meta { font-size: 0.85rem; color: #64748b; margin-bottom: 40px; }
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 36px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #1e293b;
+    }
+    p { margin-bottom: 12px; }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    .highlight {
+      background: #1e293b;
+      border-left: 3px solid #00e5ff;
+      padding: 14px 18px;
+      border-radius: 4px;
+      margin: 16px 0;
+    }
+    a { color: #00e5ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .badge {
+      display: inline-block;
+      background: #1e3a5f;
+      color: #60a5fa;
+      font-size: 0.78rem;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    footer { margin-top: 60px; font-size: 0.82rem; color: #475569; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Privacy Policy</h1>
+  <p class="meta">Money Control &nbsp;·&nbsp; Last updated: April 25, 2026</p>
+
+  <p>
+    Money Control ("we", "our", or "us") is a personal finance application developed by Aman
+    (<a href="mailto:developerlife69@gmail.com">developerlife69@gmail.com</a>).
+    This policy explains what data we collect, why we collect it, and how it is protected.
+  </p>
+
+  <h2>Data We Collect</h2>
+  <ul>
+    <li><strong>Account information</strong> — email address used to sign in (Google, Apple, or email/password).</li>
+    <li><strong>Financial transactions</strong> — amounts, categories, notes, and dates that <em>you</em> manually enter or import.</li>
+    <li><strong>Budgets &amp; recurring payments</strong> — budget limits and subscription schedules you configure.</li>
+    <li><strong>Lent/borrowed money records</strong> — entries you create to track money lent to or borrowed from others.</li>
+    <li><strong>Categories &amp; rules</strong> — custom categories and SMS auto-categorisation rules you define.</li>
+    <li><strong>App settings</strong> — theme preference, currency, onboarding state, stored locally via SharedPreferences.</li>
+    <li>
+      <strong>SMS messages</strong> <span class="badge">Pro feature</span> — bank notification SMS on your device,
+      accessed only with your explicit permission (see SMS section below).
+    </li>
+  </ul>
+
+  <h2>SMS Data Collection &amp; Use</h2>
+  <div class="highlight">
+    <strong>READ_SMS permission is used exclusively to import bank transaction notifications.</strong>
+  </div>
+  <p>
+    When you grant the SMS permission, the app scans your inbox for messages from recognised bank sender IDs
+    (e.g. "HDFCBK", "ICICIB"). It extracts only:
+  </p>
+  <ul>
+    <li>Transaction amount</li>
+    <li>Merchant or payee name</li>
+    <li>Transaction date and reference number</li>
+  </ul>
+  <p>
+    <strong>All SMS processing happens entirely on your device.</strong>
+    No SMS body text, phone numbers, or contact names are transmitted to our servers or any third party.
+    The extracted transaction fields are stored only in your personal Firestore document, which is protected
+    by per-user security rules and is never shared.
+  </p>
+  <p>
+    You can revoke this permission at any time from <em>Android Settings → Apps → Money Control → Permissions</em>.
+    Revoking the permission disables automatic SMS import but does not affect any data already imported.
+  </p>
+
+  <h2>How Your Data Is Used</h2>
+  <ul>
+    <li>To display your transaction history, budgets, and analytics inside the app.</li>
+    <li>To send you local notifications for recurring payments, subscription status changes, and budget alerts.</li>
+    <li>To generate PDF/CSV exports at your request.</li>
+    <li>To restore your data when you reinstall or sign in on a new device.</li>
+  </ul>
+  <p>We do <strong>not</strong> use your data for advertising, profiling, or any purpose beyond operating the app features described above.</p>
+
+  <h2>Data Storage &amp; Security</h2>
+  <p>
+    Your data is stored in <strong>Google Firebase Firestore</strong>, protected by per-user security rules —
+    each user can only read and write their own documents. Data at rest and in transit is encrypted by Firebase/Google infrastructure.
+    We apply the principle of least privilege: no server-side code reads your data except during admin-triggered
+    subscription approval (which accesses only subscription status fields).
+  </p>
+
+  <h2>Third-Party Services</h2>
+  <ul>
+    <li><strong>Firebase (Google)</strong> — authentication, database, crash reporting, and push notifications.</li>
+    <li><strong>Google Play Billing</strong> — processes in-app subscription payments. We store only the purchase token and order ID returned by Google; your payment card details are never visible to us.</li>
+    <li><strong>Google ML Kit</strong> — on-device OCR for receipt scanning. No image data leaves your device.</li>
+  </ul>
+  <p>Each third-party service is governed by its own privacy policy. We do not sell your data to any party.</p>
+
+  <h2>Biometric Authentication</h2>
+  <p>
+    If you enable app lock, biometric data (fingerprint or face) is processed entirely by your device's
+    operating system via the Android BiometricPrompt API. We never access, store, or transmit biometric data.
+  </p>
+
+  <h2>Data Retention &amp; Deletion</h2>
+  <p>
+    Your data is retained for as long as your account is active. You can delete your account and all associated
+    data from <em>Settings → Data Management → Delete Account</em> inside the app, or by emailing
+    <a href="mailto:developerlife69@gmail.com">developerlife69@gmail.com</a>.
+    Deletion is permanent and irreversible.
+  </p>
+
+  <h2>Children</h2>
+  <p>Money Control is not directed at children under 13. We do not knowingly collect data from children.</p>
+
+  <h2>Your Rights</h2>
+  <ul>
+    <li>Access a copy of your data.</li>
+    <li>Correct inaccurate data.</li>
+    <li>Request deletion of your data.</li>
+    <li>Withdraw consent for optional permissions (SMS, camera, notifications) at any time.</li>
+  </ul>
+  <p>To exercise any of these rights, contact us at <a href="mailto:developerlife69@gmail.com">developerlife69@gmail.com</a>.</p>
+
+  <h2>Changes to This Policy</h2>
+  <p>
+    We may update this policy as the app evolves. Material changes will be announced via an in-app notification.
+    The "Last updated" date at the top of this page reflects the most recent revision.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Aman<br />
+    <a href="mailto:developerlife69@gmail.com">developerlife69@gmail.com</a><br />
+    <a href="https://github.com/justaman045/Money_Control" target="_blank" rel="noopener">
+      github.com/justaman045/Money_Control
+    </a>
+  </p>
+
+  <footer>
+    &copy; 2024–2026 Money Control. All rights reserved.
+  </footer>
+
+</div>
+</body>
+</html>
