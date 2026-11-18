@@ -89,7 +89,9 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _runInsights();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _runInsights();
+    });
     _watchSources();
   }
 
@@ -244,8 +246,6 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
 
       // Income: precedence — manual > 0 wins; else selected auto mode (blend or salary window).
       // Salary window = union of (days 1–7 OR last working day). If empty and mode is salary window, result.salaryWindowEmpty=true.
-      await IncomeSettings.load();
-      await SavingsSettings.load();
       if (!mounted) return;
 
       // The income-mode chooser used to block the first visit, hiding the
@@ -391,7 +391,7 @@ class _AIInsightsScreenState extends State<AIInsightsScreen>
         },
                 child: SafeArea(
           bottom: false,
-          child: loading
+          child: loading || insights == null
               ? const InsightsSkeleton()
               : _empty
                   ? _buildEmptyState(scheme)

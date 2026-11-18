@@ -8,8 +8,10 @@ import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Config/app_strings.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/Controllers/goals_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Screens/add_goal_screen.dart';
+import 'package:money_control/Services/emergency_fund_service.dart';
 import 'package:money_control/Utils/responsive.dart';
 import 'package:money_control/Utils/wealth_math.dart';
 import 'package:money_control/Components/empty_state.dart';
@@ -23,12 +25,74 @@ class GoalsScreen extends StatefulWidget {
 
 class _GoalsScreenState extends State<GoalsScreen> {
   late final GoalsController ctrl;
+  late final EmergencyFundService _efService;
+  bool _offeredHandled = false;
 
   @override
   void initState() {
     super.initState();
     if (!Get.isRegistered<GoalsController>()) Get.put(GoalsController());
+    if (!Get.isRegistered<EmergencyFundService>()) {
+      Get.put(EmergencyFundService());
+    }
     ctrl = Get.find<GoalsController>();
+    _efService = EmergencyFundService.to;
+
+    // Show the emergency fund confirmation when eligibility is established
+    // after sign-in. Use post-frame so the dialog doesn't interrupt the build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _checkOffered();
+    });
+    ever(_efService.offered, (_) => _checkOffered());
+  }
+
+  void _checkOffered() {
+    if (!_efService.offered.value || _offeredHandled) return;
+    _offeredHandled = true;
+    _showCreateConfirm(context);
+  }
+
+  Future<void> _showCreateConfirm(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final target = _efService.getTargetAmount(
+      allTx: Get.find<TransactionController>().transactions,
+    );
+    final sym = CurrencyController.to.currencySymbol.value;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l10n.emergencyFundCreatePrompt),
+        content: Text(
+          '${l10n.emergencyFundCreateBody}\n\n'
+          'Target: $sym${target.toStringAsFixed(0)} (6 × monthly income)',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.emergencyFundCreateSkip),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.emergencyFundCreateConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _efService.createGoal(
+        allTx: Get.find<TransactionController>().transactions,
+      );
+    }
+    // Mark as handled so we don't re-ask within this screen session, and reset
+    // offered so it doesn't re-trigger on screen revisit or transaction change.
+    _offeredHandled = true;
+    _efService.offered.value = false;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override

@@ -75,6 +75,17 @@ class LocalBackupService {
     minInterval = const Duration(seconds: 30);
   }
 
+  /// Clears scheduling state for the given email on sign-out, so a trailing
+  /// timer or in-flight backup cannot fire against the previous account.
+  static void resetScheduling(String email) {
+    final key = _sanitizeEmail(email);
+    _trailing[key]?.cancel();
+    _trailing.remove(key);
+    _inFlight.remove(key);
+    _dirty.remove(key);
+    _lastSuccess.remove(key);
+  }
+
   // ============================
   // PUBLIC API
   // ============================
@@ -741,9 +752,8 @@ class LocalBackupService {
     return dir;
   }
 
-  static String _sanitizeEmail(String email) {
-    return email.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_');
-  }
+  static String _sanitizeEmail(String email) =>
+      email.replaceAll('.', '_').replaceAll('@', '_');
 
   static Future<File> _transactionsFile(String email) async {
     final dir = await _backupDir();

@@ -657,9 +657,9 @@ class TransactionController extends GetxController {
       await _repository.addTransaction(tx).timeout(const Duration(seconds: 5));
       AppAnalytics.log(AnalyticsEvent.transactionAdded, {
         'type': type,
-        'has_category': category.isNotEmpty,
-        'has_note': note.isNotEmpty,
-        'has_attachment': (tx.attachmentUrl ?? '').isNotEmpty,
+        'has_category': category.isNotEmpty.toString(),
+        'has_note': note.isNotEmpty.toString(),
+        'has_attachment': (tx.attachmentUrl ?? '').isNotEmpty.toString(),
       });
     } on TimeoutException catch (e) {
       debugPrint("Firebase timeout: $e");

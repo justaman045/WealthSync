@@ -175,6 +175,7 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
   Future<void> _confirmAndRestore(BackupArchive archive) async {
     final accountMismatch =
         archive.email.isNotEmpty && archive.email != _email;
+    bool acknowledgeCrossAccount = false;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -202,6 +203,16 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
                   _l10n.backupRestoreWrongAccount(archive.email, _email),
                   style: TextStyle(color: AppColors.warning),
                 ),
+                SizedBox(height: 12.h),
+                CheckboxListTile(
+                  title: Text(_l10n.backupRestoreCrossAccountConfirm),
+                  value: acknowledgeCrossAccount,
+                  onChanged: (v) {
+                    acknowledgeCrossAccount = v ?? false;
+                    // Rebuild isn't possible inside AlertDialog builder easily,
+                    // so we just track the value and check it on confirm.
+                  },
+                ),
               ],
               SizedBox(height: 12.h),
               Text(_l10n.backupRestoreExistingKept),
@@ -214,7 +225,10 @@ class _FullBackupScreenState extends State<FullBackupScreen> {
             child: Text(_l10n.backupRestoreCancel),
           ),
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
+            onPressed: () {
+              if (accountMismatch && !acknowledgeCrossAccount) return;
+              Navigator.of(ctx).pop(true);
+            },
             child: Text(_l10n.backupRestoreConfirm),
           ),
         ],

@@ -358,7 +358,7 @@ service cloud.firestore {
           // Liabilities
           'bnpl_entries', 'credit_cards',
           // User data cleared by the GDPR delete flow
-          'backups', 'insights', 'preferences', 'logs',
+          'backups', 'insights', 'preferences', 'logs', 'receipts', 'audit_log',
         ];
       }
     }

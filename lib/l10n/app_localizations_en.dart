@@ -752,6 +752,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get backupRestoreCrossAccountConfirm =>
+      'I understand this backup is for a different account and will be imported into my current account.';
+
+  @override
   String backupSaved(int count, int collections) {
     return 'Backup saved: $count items across $collections collections';
   }
@@ -2704,4 +2708,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get yesterday => 'Yesterday';
+
+  @override
+  String get emergencyFundTitle => 'Emergency Fund';
+
+  @override
+  String get emergencyFundSubtitle => 'Six months of income as a safety net';
+
+  @override
+  String get emergencyFundCreatePrompt => 'Create Emergency Fund?';
+
+  @override
+  String get emergencyFundCreateBody =>
+      'Your balance is below 6× your monthly income. Create an emergency fund goal to reserve this money?';
+
+  @override
+  String get emergencyFundCreateConfirm => 'Create';
+
+  @override
+  String get emergencyFundCreateSkip => 'Not now';
+
+  @override
+  String get emergencyFundOptIn => 'Emergency Fund';
+
+  @override
+  String get emergencyFundOptInSubtitle =>
+      'Auto-create a 6-month income savings goal';
+
+  @override
+  String get emergencyFundReserved => 'Reserved for emergency fund';
+
+  @override
+  String get emergencyFundReached => 'Emergency fund target reached';
 }

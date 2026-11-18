@@ -417,6 +417,7 @@
   "backupRestoreSuccess": "Restored {count} items.",
   "backupRestoreTaken": "Backup taken {when}",
   "backupRestoreWrongAccount": "Warning: this backup was made for {backupEmail}, but you are signed in as {currentEmail}.",
+  "backupRestoreCrossAccountConfirm": "I understand this backup is for a different account and will be imported into my current account.",
   "backupSaved": "Backup saved: {count} items across {collections} collections",
   "backupSectionTitle": "Backup",
   "backupWorking": "Working…",
@@ -996,5 +997,15 @@
   "welcomeUser": "Welcome, {name}",
   "whatShouldEarnStayTrack": "What you should earn to stay on track",
   "whenFriendSignsUpCode": "When a friend signs up with your code, you both get +30 days of Pro — and every additional friend adds 30 more.",
-  "yesterday": "Yesterday"
+  "yesterday": "Yesterday",
+  "emergencyFundTitle": "Emergency Fund",
+  "emergencyFundSubtitle": "Six months of income as a safety net",
+  "emergencyFundCreatePrompt": "Create Emergency Fund?",
+  "emergencyFundCreateBody": "Your balance is below 6× your monthly income. Create an emergency fund goal to reserve this money?",
+  "emergencyFundCreateConfirm": "Create",
+  "emergencyFundCreateSkip": "Not now",
+  "emergencyFundOptIn": "Emergency Fund",
+  "emergencyFundOptInSubtitle": "Auto-create a 6-month income savings goal",
+  "emergencyFundReserved": "Reserved for emergency fund",
+  "emergencyFundReached": "Emergency fund target reached"
 }

@@ -300,6 +300,13 @@ class AuthController extends GetxController {
     }
     await SmsService.resetCache();
     RecurringService.resetCache();
+    // Clear LocalBackupService scheduling state for the signing-out account so
+    // a trailing timer or in-flight backup cannot fire against the previous
+    // account's data.
+    final email = FirebaseAuth.instance.currentUser?.email;
+    if (email != null) {
+      LocalBackupService.resetScheduling(email);
+    }
     // Device-global financial preferences (static Rx + prefs) that a shared
     // device must not carry into the next account.
     await IncomeSettings.reset();

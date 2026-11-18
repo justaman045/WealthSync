@@ -49,6 +49,7 @@ import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Controllers/profile_controller.dart';
 import 'package:money_control/Services/widget_service.dart';
 import 'package:money_control/Services/widget_action_queue.dart';
+import 'package:money_control/Services/emergency_fund_service.dart';
 import 'package:money_control/Utils/widget_action.dart';
 import 'package:money_control/Services/iap_service.dart';
 import 'package:money_control/Services/payment_config_service.dart';
@@ -190,7 +191,23 @@ Future<void> mainCommon({bool isTest = false}) async {
   // authStateChanges() immediately on native (previously the app crashed on
   // cold start with `[core/no-app] No Firebase App '[DEFAULT]' has been
   // created`).
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Android may already create the default Firebase app through the native
+  // Firebase initialization provider. Avoid attempting to create it twice,
+  // which throws [core/duplicate-app] before runApp() and leaves the native
+  // splash screen visible indefinitely.
+  if (Firebase.apps.isEmpty) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } on FirebaseException catch (e) {
+      // FirebaseInitProvider may create the Android default app before the
+      // Dart Firebase plugin can see it. In that case initializeApp reports
+      // duplicate-app even though the existing default app is usable.
+      if (e.code != 'duplicate-app') rethrow;
+      debugPrint('Firebase default app already initialized natively.');
+    }
+  }
   // Must be registered after ensureInitialized so GetX platform channels work.
   themeController = Get.put(ThemeController());
   TutorialController.isTestMode = isTest;
@@ -720,6 +737,11 @@ class _AuthCheckerState extends State<AuthChecker> {
         }
         if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
         if (authStale()) return;
+        if (!Get.isRegistered<EmergencyFundService>()) {
+          Get.put(EmergencyFundService(), permanent: true);
+        }
+        if (kIsWeb) await Future.delayed(const Duration(milliseconds: 500));
+        if (authStale()) return;
         if (!Get.isRegistered<LoanController>()) {
           Get.put(LoanController(), permanent: true);
         }
@@ -762,6 +784,14 @@ class _AuthCheckerState extends State<AuthChecker> {
           _didInitialBackup = true;
           unawaited(
             LocalBackupService.backupUserTransactions(email, reportErrors: false),
+          );
+        }
+        // Offer the emergency fund goal when balance < 6× income. The
+        // confirmation dialog is shown by the Goals screen, which observes
+        // EmergencyFundService.to.offered.
+        if (Get.isRegistered<EmergencyFundService>()) {
+          unawaited(
+            EmergencyFundService.to.checkEligibility(),
           );
         }
       } else {

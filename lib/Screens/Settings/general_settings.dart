@@ -15,6 +15,7 @@ import 'package:money_control/Services/background_worker.dart';
 import 'package:money_control/Services/performance_controller.dart';
 import 'package:money_control/Services/income_settings.dart';
 import 'package:money_control/Services/savings_settings.dart';
+import 'package:money_control/Services/emergency_fund_settings.dart';
 import 'package:money_control/Services/sms_service.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
 import 'package:money_control/main.dart'; // For ThemeController
@@ -132,6 +133,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   bool _autoImport = false;
   bool _expenseReminder = true;
   int _savingsPercent = 20;
+  bool _emergencyFundEnabled = true;
 
   @override
   void initState() {
@@ -143,12 +145,14 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await SavingsSettings.load();
     await IncomeSettings.load();
+    await EmergencyFundSettings.load();
     if (!mounted) return;
     setState(() {
       _autoImport =
           prefs.getBool(SmsService.autoImportEnabledKey) == true;
       _expenseReminder = prefs.getBool(transactionReminderEnabledKey) ?? true;
       _savingsPercent = SavingsSettings.percent.value;
+      _emergencyFundEnabled = EmergencyFundSettings.enabled.value;
     });
   }
 
@@ -163,6 +167,12 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
     await prefs.setBool(transactionReminderEnabledKey, val);
     if (!mounted) return;
     setState(() => _expenseReminder = val);
+  }
+
+  Future<void> _toggleEmergencyFund(bool val) async {
+    await EmergencyFundSettings.setEnabled(val);
+    if (!mounted) return;
+    setState(() => _emergencyFundEnabled = val);
   }
 
   @override
@@ -237,6 +247,18 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                           "Reserve $_savingsPercent% of income before your daily limit",
                       onTap: () => _showSavingsDialog(context),
                     ),
+                    FeatureVisible(
+                          flagKey: 'emergency_fund',
+                          child: SettingsTile(
+                            icon: Icons.shield_outlined,
+                            title: AppStrings.emergencyFundOptIn,
+                            subtitle: AppStrings.emergencyFundOptInSubtitle,
+                            trailing: Switch(
+                              value: _emergencyFundEnabled,
+                              onChanged: _toggleEmergencyFund,
+                            ),
+                          ),
+                        ),
                     const SectionHeader("Income"),
                     Obx(() => SettingsTile(
                           icon: Icons.attach_money_outlined,

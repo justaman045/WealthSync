@@ -57,6 +57,11 @@ class AppStrings {
   static const String lentToFriend = 'Lent to Friend';
   static const String subscriptions = 'Subscriptions';
 
+  // ---- Emergency Fund ----
+  static const String emergencyFundOptIn = 'Emergency Fund';
+  static const String emergencyFundOptInSubtitle =
+      'Auto-create a 6-month income savings goal';
+
   // ---- Subscription / Pro ----
   static const String upgradeToPro = 'Upgrade to Pro';
   static const String monthly = 'Monthly';

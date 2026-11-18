@@ -166,8 +166,8 @@ class ImportService {
         }
         final tx = TransactionModel(
           id: '',
-          senderId: isExpense ? currentUserId : 'csv_import',
-          recipientId: isExpense ? 'csv_import' : currentUserId,
+          senderId: isExpense ? currentUserId : '',
+          recipientId: isExpense ? '' : currentUserId,
           recipientName: merchant,
           amount: amount,
           currency: currency,
@@ -301,7 +301,7 @@ class ImportService {
       for (final doc in snap.docs) {
         final d = doc.data();
         existing.add(
-          _fingerprint(d['date'], d['recipientName'], d['amount']),
+          _fingerprint(d['date'], d['recipientName'], d['amount'], d['note']),
         );
       }
     } catch (e) {
@@ -310,7 +310,7 @@ class ImportService {
 
     final toSave = transactions
         .where((tx) =>
-            !existing.contains(_fingerprint(tx.date, tx.recipientName, tx.amount)))
+            !existing.contains(_fingerprint(tx.date, tx.recipientName, tx.amount, tx.note)))
         .toList();
     if (toSave.isEmpty) return 0;
 
@@ -352,7 +352,8 @@ class ImportService {
     return toSave.length;
   }
 
-  static String _fingerprint(dynamic date, dynamic merchant, dynamic amount) {
+  static String _fingerprint(dynamic date, dynamic merchant, dynamic amount,
+      [dynamic note]) {
     DateTime dt;
     if (date is DateTime) {
       dt = date;
@@ -365,6 +366,7 @@ class ImportService {
         '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
     final amt = amount is num ? amount.toDouble().toStringAsFixed(2) : '0.00';
     final name = merchant?.toString().trim().toLowerCase() ?? '';
-    return '$day|$name|$amt';
+    final n = note?.toString().trim().toLowerCase() ?? '';
+    return '$day|$name|$amt|$n';
   }
 }

@@ -401,6 +401,12 @@ class FeatureFlag {
       description: 'Check and install app updates',
       icon: Icons.system_update_alt_rounded,
     ),
+    FeatureFlag(
+      key: 'emergency_fund',
+      title: 'Emergency Fund',
+      description: 'Auto-create a 6-month income savings goal',
+      icon: Icons.shield_outlined,
+    ),
   ];
 
   /// Groups flags by the screen/place their gate lives, in the order shown on
@@ -427,7 +433,7 @@ class FeatureFlag {
     FeatureFlagGroup(
       title: 'Budget, Goals & Loans',
       icon: Icons.savings_outlined,
-      keys: ['budget', 'category', 'goals', 'challenges', 'loan_tracker'],
+      keys: ['budget', 'category', 'goals', 'challenges', 'loan_tracker', 'emergency_fund'],
     ),
     FeatureFlagGroup(
       title: 'Analytics Dashboard',

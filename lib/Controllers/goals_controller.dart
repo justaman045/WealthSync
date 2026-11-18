@@ -25,6 +25,9 @@ class GoalsController extends GetxController {
   int get activeGoalCount => summary.activeCount;
   int get completedGoalCount => summary.completedCount;
 
+  /// Returns the emergency fund goal if one exists, otherwise null.
+  GoalModel? get emergencyFundGoal => goals.firstWhereOrNull((g) => g.isEmergencyFund);
+
   @override
   void onInit() {
     super.onInit();
@@ -70,6 +73,7 @@ class GoalsController extends GetxController {
     String? description,
     DateTime? targetDate,
     String emoji = '🎯',
+    bool isEmergencyFund = false,
   }) async {
     if (name.trim().isEmpty || targetAmount <= 0) return false;
     if (isSaving.value) return false;
@@ -82,6 +86,7 @@ class GoalsController extends GetxController {
         description: description?.trim().isEmpty == true ? null : description?.trim(),
         targetDate: targetDate,
         emoji: emoji,
+        isEmergencyFund: isEmergencyFund,
       );
       await _repo.addGoal(goal);
       LocalCacheService.invalidate(_cacheKey);
@@ -143,6 +148,35 @@ class GoalsController extends GetxController {
         goals[idx] = updated;
         goals.refresh();
       }
+      LocalCacheService.invalidate(_cacheKey);
+      if (updated.isCompleted) {
+        ErrorHandler.showSuccess("Goal achieved! 🎉");
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Goal error: $e');
+      ErrorHandler.showError("Failed to update progress.");
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
+  /// Sets [currentAmount] directly to [amount], clamped at [targetAmount].
+  /// Used by the emergency fund to sync progress against total balance, which
+  /// can decrease as well as increase.
+  Future<bool> setProgress(String id, double amount) async {
+    if (isSaving.value) return false;
+    isSaving.value = true;
+    try {
+      final idx = goals.indexWhere((g) => g.id == id);
+      if (idx == -1) return false;
+      final goal = goals[idx];
+      final clamped = amount.clamp(0.0, goal.targetAmount);
+      final updated = goal.copyWith(currentAmount: clamped);
+      await _repo.updateGoal(updated);
+      goals[idx] = updated;
+      goals.refresh();
       LocalCacheService.invalidate(_cacheKey);
       if (updated.isCompleted) {
         ErrorHandler.showSuccess("Goal achieved! 🎉");

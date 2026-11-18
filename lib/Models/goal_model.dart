@@ -11,6 +11,7 @@ class GoalModel {
   final bool isCompleted;
   final String emoji;
   final DateTime? createdAt;
+  final bool isEmergencyFund;
 
   const GoalModel({
     required this.id,
@@ -22,6 +23,7 @@ class GoalModel {
     this.isCompleted = false,
     this.emoji = '🎯',
     this.createdAt,
+    this.isEmergencyFund = false,
   });
 
   double get progress =>
@@ -41,6 +43,7 @@ class GoalModel {
   GoalModel copyWith({
     double? currentAmount,
     bool? isCompleted,
+    bool? isEmergencyFund,
   }) {
     return GoalModel(
       id: id,
@@ -52,6 +55,7 @@ class GoalModel {
       isCompleted: isCompleted ?? this.isCompleted,
       emoji: emoji,
       createdAt: createdAt,
+      isEmergencyFund: isEmergencyFund ?? this.isEmergencyFund,
     );
   }
 
@@ -65,6 +69,7 @@ class GoalModel {
     String? description,
     DateTime? targetDate,
     String emoji = '🎯',
+    bool? isEmergencyFund,
   }) {
     return GoalModel(
       id: id,
@@ -76,6 +81,7 @@ class GoalModel {
       isCompleted: currentAmount >= targetAmount,
       emoji: emoji,
       createdAt: createdAt,
+      isEmergencyFund: isEmergencyFund ?? this.isEmergencyFund,
     );
   }
 
@@ -100,6 +106,7 @@ class GoalModel {
       isCompleted: map['isCompleted'] ?? false,
       emoji: map['emoji'] ?? '🎯',
       createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
+      isEmergencyFund: map['isEmergencyFund'] ?? false,
     );
   }
 
@@ -115,6 +122,7 @@ class GoalModel {
       'isCompleted': isCompleted,
       'emoji': emoji,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
+      'isEmergencyFund': isEmergencyFund,
     };
   }
 }

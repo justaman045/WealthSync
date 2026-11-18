@@ -1265,6 +1265,12 @@ abstract class AppLocalizations {
   /// **'Warning: this backup was made for {backupEmail}, but you are signed in as {currentEmail}.'**
   String backupRestoreWrongAccount(String backupEmail, String currentEmail);
 
+  /// No description provided for @backupRestoreCrossAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'I understand this backup is for a different account and will be imported into my current account.'**
+  String get backupRestoreCrossAccountConfirm;
+
   /// No description provided for @backupSaved.
   ///
   /// In en, this message translates to:
@@ -4744,6 +4750,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yesterday'**
   String get yesterday;
+
+  /// No description provided for @emergencyFundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency Fund'**
+  String get emergencyFundTitle;
+
+  /// No description provided for @emergencyFundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Six months of income as a safety net'**
+  String get emergencyFundSubtitle;
+
+  /// No description provided for @emergencyFundCreatePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Emergency Fund?'**
+  String get emergencyFundCreatePrompt;
+
+  /// No description provided for @emergencyFundCreateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your balance is below 6× your monthly income. Create an emergency fund goal to reserve this money?'**
+  String get emergencyFundCreateBody;
+
+  /// No description provided for @emergencyFundCreateConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get emergencyFundCreateConfirm;
+
+  /// No description provided for @emergencyFundCreateSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get emergencyFundCreateSkip;
+
+  /// No description provided for @emergencyFundOptIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency Fund'**
+  String get emergencyFundOptIn;
+
+  /// No description provided for @emergencyFundOptInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-create a 6-month income savings goal'**
+  String get emergencyFundOptInSubtitle;
+
+  /// No description provided for @emergencyFundReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved for emergency fund'**
+  String get emergencyFundReserved;
+
+  /// No description provided for @emergencyFundReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency fund target reached'**
+  String get emergencyFundReached;
 }
 
 class _AppLocalizationsDelegate
