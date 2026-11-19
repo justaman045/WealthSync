@@ -168,65 +168,118 @@ void main() {
       expect(plan.unallocated, 0);
     });
 
-    group('manual monthly allocation', () {
-      test('hard reserve amount is honored and tracked', () {
+    group('already-allotted goals drop out of suggestions', () {
+      test('allotting exactly the suggested amount removes the goal', () {
         final plan = computeGoalSavingsPlan(
           monthlyIncome: 50000,
           savingsRate: 0.2, // pot = 10000
           goals: [
-            goal(id: 'g1', target: 50000, current: 0, monthlyAllocation: 3000),
+            // Simulate Add Progress: current already includes the 5000 deposit.
+            goal(id: 'g1', target: 50000, current: 5000, monthlyAllocation: 5000),
             goal(id: 'g2', target: 50000, current: 0),
           ],
           emergencyFundGoalId: null,
         );
-        // g1 gets exactly its requested 3000; g2 gets the remaining 7000.
-        expect(plan.allocation['g1'], 3000);
-        expect(plan.manualAllocation['g1'], 3000);
-        expect(plan.allocation['g2'], 7000);
-        expect(plan.manualAllocation.containsKey('g2'), isFalse);
+        expect(plan.allocation.containsKey('g1'), isFalse);
+        expect(plan.allocation['g2'], closeTo(5000, 1));
+        expect(plan.totalAllocated, closeTo(5000, 1));
         expect(plan.overAllocated, isFalse);
+        expect(plan.reason, isNull);
       });
 
-      test('allocation is capped at remaining need', () {
+      test('allotting more than suggested removes the goal and shrinks other suggestions', () {
         final plan = computeGoalSavingsPlan(
           monthlyIncome: 50000,
           savingsRate: 0.2, // pot = 10000
           goals: [
-            goal(id: 'g1', target: 1000, current: 0, monthlyAllocation: 5000),
+            goal(id: 'g1', target: 50000, current: 8000, monthlyAllocation: 8000),
+            goal(id: 'g2', target: 50000, current: 0),
           ],
           emergencyFundGoalId: null,
         );
-        // Need is only 1000, so the 5000 request is capped at 1000.
-        expect(plan.allocation['g1'], 1000);
-        expect(plan.manualAllocation['g1'], 1000);
-        expect(plan.unallocated, closeTo(9000, 1));
-        expect(plan.overAllocated, isFalse);
+        expect(plan.allocation.containsKey('g1'), isFalse);
+        expect(plan.allocation['g2'], closeTo(2000, 1));
+        expect(plan.totalAllocated, closeTo(2000, 1));
       });
 
-      test('over-pot allocations are scaled down proportionally with notice', () {
+      test('partial allotment keeps the goal but reduces suggestions to the remaining pot', () {
         final plan = computeGoalSavingsPlan(
           monthlyIncome: 50000,
           savingsRate: 0.2, // pot = 10000
           goals: [
-            goal(id: 'g1', target: 50000, current: 0, monthlyAllocation: 8000),
-            goal(id: 'g2', target: 50000, current: 0, monthlyAllocation: 6000),
+            goal(id: 'g1', target: 50000, current: 2000, monthlyAllocation: 2000),
+            goal(id: 'g2', target: 50000, current: 0),
           ],
           emergencyFundGoalId: null,
         );
-        // Total requested 14000 > pot 10000, scaled by 10000/14000 ≈ 0.714.
-        expect(plan.allocation['g1']!, closeTo(5714.29, 1));
-        expect(plan.allocation['g2']!, closeTo(4285.71, 1));
-        expect(plan.totalAllocated, closeTo(10000, 1));
-        expect(plan.overAllocated, isTrue);
+        expect(plan.allocation.containsKey('g1'), isTrue);
+        expect(plan.allocation.containsKey('g2'), isTrue);
+        expect(plan.totalAllocated, closeTo(8000, 1));
+        expect(plan.unallocated, closeTo(0, 1));
       });
 
-      test('mixed allocated and unallocated goals split remainder by urgency', () {
+      test('suggestions always sum to the amount still available to allot', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000, 4000 already allotted
+          goals: [
+            goal(id: 'g1', target: 50000, current: 3000, monthlyAllocation: 3000),
+            goal(id: 'g2', target: 50000, current: 1000, monthlyAllocation: 1000),
+            goal(id: 'g3', target: 50000, current: 0),
+          ],
+          emergencyFundGoalId: null,
+        );
+        final remaining = computeRemainingToAllocate(
+          savingsPot: plan.savingsPot,
+          allotted: 4000,
+        );
+        expect(plan.totalAllocated, closeTo(remaining, 1));
+      });
+
+      test('emergency fund drops out once its suggested share is allotted', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000, EF baseline 6000
+          goals: [
+            goal(
+              id: 'ef',
+              target: 100000,
+              current: 6000,
+              isEmergencyFund: true,
+              monthlyAllocation: 6000,
+            ),
+            goal(id: 'g1', target: 50000, current: 0),
+          ],
+          emergencyFundGoalId: 'ef',
+        );
+        expect(plan.efAllocation, 0);
+        expect(plan.allocation.containsKey('ef'), isFalse);
+        expect(plan.allocation['g1'], closeTo(4000, 1));
+      });
+
+      test('EF keeps 60% priority of the remaining pot while goals still need suggestions', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000
+          goals: [
+            goal(id: 'ef', target: 100000, current: 0, isEmergencyFund: true),
+            goal(id: 'g1', target: 50000, current: 2000, monthlyAllocation: 2000),
+          ],
+          emergencyFundGoalId: 'ef',
+        );
+        // 2000 is below g1's 4000 baseline, so both stay. EF gets 60% of the
+        // 8000 that is left: 4800; g1 gets the other 3200.
+        expect(plan.efAllocation, closeTo(4800, 1));
+        expect(plan.allocation['g1'], closeTo(3200, 1));
+        expect(plan.totalAllocated, closeTo(8000, 1));
+      });
+
+      test('deadline urgency still drives the remaining pot', () {
         final now = DateTime(2026, 11, 19);
         final plan = computeGoalSavingsPlan(
           monthlyIncome: 50000,
           savingsRate: 0.2, // pot = 10000
           goals: [
-            goal(id: 'fixed', target: 50000, current: 0, monthlyAllocation: 2000),
             goal(
               id: 'soon',
               target: 10000,
@@ -243,53 +296,37 @@ void main() {
           emergencyFundGoalId: null,
           now: now,
         );
-        // fixed gets 2000; remaining 8000 split by urgency between soon/later.
-        expect(plan.allocation['fixed'], 2000);
         expect(plan.allocation['soon']!, greaterThan(plan.allocation['later']!));
-        expect(
-          plan.allocation['fixed']! +
-              plan.allocation['soon']! +
-              plan.allocation['later']!,
-          closeTo(10000, 1),
-        );
+        expect(plan.totalAllocated, closeTo(10000, 1));
       });
 
-      test('EF keeps 60% priority while other goals honor manual allocations', () {
+      test('all goals satisfied yields an empty plan with a reason', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2,
+          goals: [
+            goal(id: 'g1', target: 10000, current: 5000, monthlyAllocation: 5000),
+            goal(id: 'g2', target: 10000, current: 5000, monthlyAllocation: 5000),
+          ],
+          emergencyFundGoalId: null,
+        );
+        expect(plan.allocation, isEmpty);
+        expect(plan.reason, 'allAllottedThisMonth');
+      });
+
+      test('over-allotting the pot flags the notice and leaves nothing to suggest', () {
         final plan = computeGoalSavingsPlan(
           monthlyIncome: 50000,
           savingsRate: 0.2, // pot = 10000
           goals: [
-            goal(id: 'ef', target: 100000, current: 0, isEmergencyFund: true),
-            goal(id: 'g1', target: 50000, current: 0, monthlyAllocation: 3000),
+            goal(id: 'g1', target: 100000, current: 12000, monthlyAllocation: 12000),
+            goal(id: 'g2', target: 100000, current: 0),
           ],
-          emergencyFundGoalId: 'ef',
+          emergencyFundGoalId: null,
         );
-        // EF default 60% = 6000; g1 manual 3000 fits in remaining 4000.
-        expect(plan.efAllocation, 6000);
-        expect(plan.allocation['g1'], 3000);
-        expect(plan.unallocated, closeTo(1000, 1));
-        expect(plan.overAllocated, isFalse);
-      });
-
-      test('manual allocation for EF overrides the 60% default', () {
-        final plan = computeGoalSavingsPlan(
-          monthlyIncome: 50000,
-          savingsRate: 0.2, // pot = 10000
-          goals: [
-            goal(
-              id: 'ef',
-              target: 100000,
-              current: 0,
-              isEmergencyFund: true,
-              monthlyAllocation: 8000,
-            ),
-            goal(id: 'g1', target: 50000, current: 0),
-          ],
-          emergencyFundGoalId: 'ef',
-        );
-        expect(plan.efAllocation, 8000);
-        expect(plan.manualAllocation['ef'], 8000);
-        expect(plan.allocation['g1'], 2000);
+        expect(plan.overAllocated, isTrue);
+        expect(plan.allocation, isEmpty);
+        expect(plan.totalAllocated, 0);
       });
     });
   });

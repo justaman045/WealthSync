@@ -55,7 +55,9 @@ class AppStrings {
   static const String target = 'Target';
   static const String remainingToAllocate = 'Available to allot';
   static const String allocationExceedsPot =
-      'Allocations exceed your monthly savings pot. Amounts have been scaled down.';
+      'You have allotted more than this month\'s savings pot. Consider reducing a goal allotment.';
+  static const String allAllottedThisMonth =
+      'You have allotted each goal its suggested amount for this month. New suggestions appear next month.';
   static const String withdrawProgress = 'Withdraw';
   static String withdrawFromGoal(String name) => 'Withdraw from $name';
   static String withdrawFromGoalSubtitle(String balance) =>

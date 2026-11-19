@@ -553,7 +553,17 @@ class _GoalsScreenState extends State<GoalsScreen> {
         icon: Icons.info_outline,
       );
     }
-    if (plan.reason == 'noActiveGoals' || plan.totalAllocated == 0) {
+    // Keep the over-allocation notice visible even when every goal is handled.
+    if (plan.reason == 'allAllottedThisMonth' && !plan.overAllocated) {
+      return _savingsPlanEmptyCard(
+        isDark: isDark,
+        title: AppStrings.monthlySavingsPlan,
+        subtitle: AppStrings.allAllottedThisMonth,
+        icon: Icons.check_circle_outline,
+      );
+    }
+    if ((plan.reason == 'noActiveGoals' || plan.totalAllocated == 0) &&
+        !plan.overAllocated) {
       return _savingsPlanEmptyCard(
         isDark: isDark,
         title: AppStrings.goalsFullyFunded,

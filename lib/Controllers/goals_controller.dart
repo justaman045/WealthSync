@@ -76,7 +76,9 @@ class GoalsController extends GetxController {
     _savingsPlan.value = computeGoalSavingsPlan(
       monthlyIncome: result.expectedIncome,
       savingsRate: SavingsSettings.rate,
-      goals: goals.where((g) => !g.isCompleted).map((g) {
+      // Include completed goals: their Add Progress deposits still consumed
+      // this month's pot, so "Available to allot" and the plan stay in sync.
+      goals: goals.map((g) {
         return GoalSavingsInput(
           id: g.id,
           target: g.targetAmount,
