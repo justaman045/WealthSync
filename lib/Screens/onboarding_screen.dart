@@ -28,7 +28,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _budgetController = TextEditingController();
   final _referralController = TextEditingController();
   late ConfettiController _confettiController;
-  String _selectedCurrency = '₹';
+  late String _selectedCurrency;
   String? _userName;
   bool _isLoading = false;
 
@@ -44,6 +44,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void initState() {
     super.initState();
     _fetchUserName();
+    _selectedCurrency = _currencies.first['symbol']!;
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 2),
     );

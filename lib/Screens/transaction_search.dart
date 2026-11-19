@@ -259,12 +259,10 @@ class _TransactionSearchPageState extends State<TransactionSearchPage> {
                                     padding: EdgeInsets.all(10.w),
                                     decoration: BoxDecoration(
                                       color: isIncome
-                                          ? const Color(
-                                              0xFF00E676,
-                                            ).withValues(alpha: 0.2)
-                                          : const Color(
-                                              0xFFFF1744,
-                                            ).withValues(alpha: 0.2),
+                                          ? AppColors.success.withValues(
+                                              alpha: 0.2)
+                                          : AppColors.error.withValues(
+                                              alpha: 0.2),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(

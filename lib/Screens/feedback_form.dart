@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:universal_io/io.dart';
 import 'package:money_control/Services/error_handler.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Utils/responsive.dart';
@@ -87,9 +88,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         _entryFeedback: _feedbackCtrl.text.trim(),
         _entryAppVersion: _appVersionCtrl.text.trim(),
         _entryDeviceModel:
-            "${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}",
+            "${Platform.operatingSystem} ${Platform.operatingSystemVersion}",
         _entryOsVersion:
-            "${DateTime.now().day} - ${DateTime.now().month} - ${DateTime.now().year}",
+            "${Platform.operatingSystem} ${Platform.operatingSystemVersion}",
         // Optional extra fields like "fvv", "pageHistory" are not required
       };
 

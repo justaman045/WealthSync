@@ -29,6 +29,9 @@ class CategoryTransactionsScreen extends StatefulWidget {
 
 class _CategoryTransactionsScreenState
     extends State<CategoryTransactionsScreen> {
+  /// Hoisted out of build(): a stream built inline re-registers its listener on
+  /// every rebuild.
+  Stream<QuerySnapshot>? _txStream;
 
   Stream<QuerySnapshot> _buildQuery(User user) {
     // Fetch all transactions for the user (ordered by date) and filter by
@@ -111,7 +114,7 @@ class _CategoryTransactionsScreenState
           ),
         ),
         child: StreamBuilder<QuerySnapshot>(
-          stream: _buildQuery(user),
+          stream: _txStream ??= _buildQuery(user),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(

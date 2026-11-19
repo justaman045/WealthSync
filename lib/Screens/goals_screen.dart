@@ -49,6 +49,12 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   void _checkOffered() {
     if (!_efService.offered.value || _offeredHandled) return;
+    // Double-check: if the goal already exists (e.g. created on another screen
+    // or loaded after the eligibility check ran), don't offer again.
+    if (ctrl.emergencyFundGoal != null) {
+      _efService.offered.value = false;
+      return;
+    }
     _offeredHandled = true;
     _showCreateConfirm(context);
   }
@@ -143,6 +149,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
                         children: [
                           _buildHeader(ctrl, theme),
                           SizedBox(height: 16.h),
+                          _buildSavingsPlan(ctrl, theme),
+                          SizedBox(height: 16.h),
                           GridView.count(
                             crossAxisCount: Responsive.gridColumns(context),
                             shrinkWrap: true,
@@ -159,6 +167,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       padding: EdgeInsets.fromLTRB(20.w, 8.h, 20.w, 100.h),
                       children: [
                         _buildHeader(ctrl, theme),
+                        SizedBox(height: 16.h),
+                        _buildSavingsPlan(ctrl, theme),
                         SizedBox(height: 16.h),
                         ...ctrl.goals.map((goal) => _buildGoalCard(context, goal, ctrl, theme)),
                       ],
@@ -419,10 +429,23 @@ class _GoalsScreenState extends State<GoalsScreen> {
           Get.to(() => AddGoalScreen(goal: goal));
         } else if (value == 'delete') {
           _showDeleteDialog(context, goal, ctrl);
+        } else if (value == 'withdraw') {
+          _showWithdrawProgressSheet(context, goal, ctrl);
         }
       },
-      itemBuilder: (context) => const [
+      itemBuilder: (context) => [
         PopupMenuItem(value: 'edit', child: Text(AppStrings.edit)),
+        if (goal.currentAmount > 0)
+          PopupMenuItem(
+            value: 'withdraw',
+            child: Row(
+              children: [
+                Icon(Icons.remove_circle_outline, size: 18.sp, color: AppColors.warning),
+                SizedBox(width: 12.w),
+                Text(AppStrings.withdrawProgress),
+              ],
+            ),
+          ),
         PopupMenuItem(value: 'delete', child: Text(AppStrings.delete)),
       ],
     );
@@ -438,6 +461,18 @@ class _GoalsScreenState extends State<GoalsScreen> {
       isScrollControlled: true,
       constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
       builder: (_) => _AddProgressSheet(goal: goal, ctrl: ctrl),
+    );
+  }
+
+  void _showWithdrawProgressSheet(BuildContext context, GoalModel goal, GoalsController ctrl) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
+      isScrollControlled: true,
+      constraints: BoxConstraints(maxWidth: Responsive.sheetMaxWidth(context)),
+      builder: (_) => _WithdrawProgressSheet(goal: goal, ctrl: ctrl),
     );
   }
 
@@ -482,6 +517,284 @@ class _GoalsScreenState extends State<GoalsScreen> {
         ],
       ),
     );
+  }
+
+  /// Suggested monthly savings split across active goals, computed from this
+  /// month's expected income × savings rate (20% default).
+  ///
+  /// The emergency fund is shown first with priority styling. The section is
+  /// hidden when there is no income to base the plan on, or when every goal is
+  /// already fully funded.
+  Widget _buildSavingsPlan(GoalsController ctrl, ThemeData theme) {
+    final plan = ctrl.savingsPlan;
+    if (plan == null) return const SizedBox.shrink();
+
+    final isDark = theme.brightness == Brightness.dark;
+    final sym = CurrencyController.to.currencySymbol.value;
+
+    // Edge cases: nothing useful to show.
+    if (plan.reason == 'noIncome') {
+      return _savingsPlanEmptyCard(
+        isDark: isDark,
+        title: AppStrings.noIncomeDetected,
+        subtitle:
+            'Add income transactions this month to see a savings plan.',
+        icon: Icons.info_outline,
+      );
+    }
+    if (plan.reason == 'noActiveGoals' || plan.totalAllocated == 0) {
+      return _savingsPlanEmptyCard(
+        isDark: isDark,
+        title: AppStrings.goalsFullyFunded,
+        subtitle:
+            'Every active goal is fully funded. Add a new goal to start saving toward it.',
+        icon: Icons.check_circle_outline,
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.all(AppSpace.s20.w),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg.r),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  AppStrings.monthlySavingsPlan,
+                  style: AppType.titleSmall(AppColors.primary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                plan.efAllocation > 0
+                    ? AppStrings.emergencyFundPriority
+                    : AppStrings.saveThisMonth,
+                style: AppType.labelSmall(
+                  isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpace.s12.h),
+          // Income + pot row.
+          Row(
+            children: [
+              _savingsPlanStat(
+                label: AppStrings.thisMonthIncome,
+                value: '$sym${plan.monthlyIncome.toStringAsFixed(0)}',
+                color: AppColors.success,
+                isDark: isDark,
+              ),
+              SizedBox(width: 12.w),
+              _savingsPlanStat(
+                label: AppStrings.savingsAt20Percent,
+                value: '$sym${plan.savingsPot.toStringAsFixed(0)}',
+                color: AppColors.primary,
+                isDark: isDark,
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpace.s16.h),
+          // Per-goal allocations. Emergency fund first if present.
+          ...(plan.allocation.entries.map((entry) {
+            final goal = ctrl.goals.firstWhereOrNull((g) => g.id == entry.key);
+            if (goal == null) return const SizedBox.shrink();
+            final isEf = goal.isEmergencyFund;
+            final amount = entry.value;
+            final remaining = goal.targetAmount - goal.currentAmount;
+            final pct = goal.targetAmount > 0
+                ? (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0)
+                : 0.0;
+
+            return Container(
+              margin: EdgeInsets.only(bottom: AppSpace.s8.h),
+              padding: EdgeInsets.all(AppSpace.s12.w),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.white.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(AppRadius.md.r),
+                border: Border.all(
+                  color: isEf
+                      ? AppColors.warning.withValues(alpha: 0.4)
+                      : (isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : AppColors.lightBorder),
+                  width: isEf ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8.w),
+                    decoration: BoxDecoration(
+                      color: isEf
+                          ? AppColors.warning.withValues(alpha: 0.15)
+                          : AppColors.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isEf ? Icons.shield : Icons.savings,
+                      color: isEf ? AppColors.warning : AppColors.primary,
+                      size: 18.sp,
+                    ),
+                  ),
+                  SizedBox(width: AppSpace.s12.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                goal.name,
+                                style: AppType.labelMedium(
+                                  isDark ? Colors.white : AppColors.lightTextPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (isEf)
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6.w,
+                                  vertical: 2.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.warning.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(AppRadius.xs.r),
+                                ),
+                                child: Text(
+                                  AppStrings.emergencyFundPriority,
+                                  style: AppType.labelSmall(AppColors.warning),
+                                ),
+                              ),
+                          ],
+                        ),
+                        SizedBox(height: AppSpace.s4.h),
+                        Row(
+                          children: [
+                            Text(
+                              '$sym${amount.toStringAsFixed(0)}',
+                              style: AppType.titleMedium(
+                                isEf ? AppColors.warning : AppColors.primary,
+                              ),
+                            ),
+                            SizedBox(width: AppSpace.s8.w),
+                            Text(
+                              '(${_pctText(pct, isDark)})',
+                              style: AppType.labelSmall(
+                                isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                              ),
+                            ),
+                            if (remaining > 0)
+                              Text(
+                                ' · $sym${remaining.toStringAsFixed(0)} left',
+                                style: AppType.labelSmall(
+                                  isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          })),
+        ],
+      ),
+    );
+  }
+
+  Widget _savingsPlanEmptyCard({
+    required bool isDark,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(AppSpace.s20.w),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurfaceCard : AppColors.lightSurfaceCard,
+        borderRadius: BorderRadius.circular(AppRadius.lg.r),
+        border: Border.all(
+          color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.warning, size: 20.sp),
+          SizedBox(width: AppSpace.s12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppType.labelMedium(
+                    isDark ? Colors.white : AppColors.lightTextPrimary,
+                  ),
+                ),
+                SizedBox(height: AppSpace.s2.h),
+                Text(
+                  subtitle,
+                  style: AppType.bodySmall(
+                    isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _savingsPlanStat({
+    required String label,
+    required String value,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppType.labelSmall(
+              isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            ),
+          ),
+          SizedBox(height: AppSpace.s2.h),
+          Text(
+            value,
+            style: AppType.titleMedium(
+              isDark ? Colors.white : AppColors.lightTextPrimary,
+            ).copyWith(color: color, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _pctText(double pct, bool isDark) {
+    if (pct >= 1.0) return 'Complete';
+    return '${(pct * 100).toStringAsFixed(0)}%';
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -605,6 +918,139 @@ class _AddProgressSheetState extends State<_AddProgressSheet> {
                           )
                         : Text(AppLocalizations.of(context)!.addProgress),
                   ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Withdraw amount from a goal — reduces currentAmount without changing target.
+/// Owns its TextEditingController so it is disposed with the dialog.
+class _WithdrawProgressSheet extends StatefulWidget {
+  final GoalModel goal;
+  final GoalsController ctrl;
+
+  const _WithdrawProgressSheet({required this.goal, required this.ctrl});
+
+  @override
+  State<_WithdrawProgressSheet> createState() => _WithdrawProgressSheetState();
+}
+
+class _WithdrawProgressSheetState extends State<_WithdrawProgressSheet> {
+  final _amtCtrl = TextEditingController();
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _amtCtrl.text = widget.goal.currentAmount.toStringAsFixed(0);
+  }
+
+  @override
+  void dispose() {
+    _amtCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final val = double.tryParse(_amtCtrl.text);
+    if (val == null || val <= 0) {
+      setState(() => _error = AppStrings.withdrawAmountInvalid);
+      return;
+    }
+    if (val > widget.goal.currentAmount) {
+      setState(() => _error = AppStrings.withdrawAmountExceedsBalance);
+      return;
+    }
+    Navigator.pop(context);
+    await widget.ctrl.reduceProgress(widget.goal.id, val);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sym = CurrencyController.to.currencySymbol.value;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24.w,
+          right: 24.w,
+          top: 24.h,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 32.h,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppStrings.withdrawFromGoal(widget.goal.name),
+                style: AppType.titleMedium(
+                  isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                ),
+              ),
+              SizedBox(height: AppSpace.s8.h),
+              Text(
+                AppStrings.withdrawFromGoalSubtitle(
+                  "$sym${widget.goal.currentAmount.toStringAsFixed(0)}",
+                ),
+                style: AppType.bodySmall(
+                  isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                ),
+              ),
+              SizedBox(height: AppSpace.s20.h),
+              TextField(
+                controller: _amtCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                autofocus: true,
+                style: AppType.titleMedium(
+                  isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                ),
+                decoration: InputDecoration(
+                  prefixText: "$sym ",
+                  prefixStyle: AppType.bodyLarge(
+                    isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                  hintText: AppStrings.withdrawAmountHint,
+                  errorText: _error,
+                  hintStyle: AppType.bodyLarge(
+                    isDark ? AppColors.darkTextTertiary : AppColors.lightTextTertiary,
+                  ),
+                  filled: true,
+                  fillColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm.r),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              SizedBox(height: AppSpace.s20.h),
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: FilledButton(
+                  onPressed: widget.ctrl.isSaving.value ? null : _submit,
+                  child: widget.ctrl.isSaving.value
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(AppStrings.withdrawProgress),
+                ),
+              ),
+              SizedBox(height: AppSpace.s12.h),
+              SizedBox(
+                width: double.infinity,
+                height: 50.h,
+                child: OutlinedButton(
+                  onPressed: widget.ctrl.isSaving.value ? null : () => Navigator.pop(context),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
               ),
             ],

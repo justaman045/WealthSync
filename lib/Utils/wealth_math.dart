@@ -783,6 +783,246 @@ String formatPercent(
   return NumberFormat('#,##0.##').format(roundedUp);
 }
 
+/// One active goal's current state, used as input to
+/// [computeGoalSavingsPlan]. Kept out of [lib/Models/goal_model.dart] so this
+/// file stays a pure, side-effect-free leaf with no Firebase dependency.
+class GoalSavingsInput {
+  final String id;
+  final double target;
+  final double current;
+  final bool isEmergencyFund;
+  final DateTime? targetDate;
+
+  const GoalSavingsInput({
+    required this.id,
+    required this.target,
+    required this.current,
+    this.isEmergencyFund = false,
+    this.targetDate,
+  });
+
+  /// How much more the goal needs to reach its target (never negative).
+  double get remainingNeed => math.max(0.0, target - current);
+
+  /// True when the goal is already fully funded.
+  bool get isComplete => remainingNeed <= 0;
+}
+
+/// Result of [computeGoalSavingsPlan]: how this month's savings pot should be
+/// split across active goals.
+class GoalSavingsPlan {
+  /// This month's expected income (income only — never account balance).
+  final double monthlyIncome;
+
+  /// Savings rate used (0–1), e.g. 0.20 for 20%.
+  final double savingsRate;
+
+  /// Total pot available to split: monthlyIncome × savingsRate.
+  final double savingsPot;
+
+  /// Per-goal recommended amount this month, keyed by goal id.
+  final Map<String, double> allocation;
+
+  /// Amount assigned to the emergency fund goal (included in [allocation]).
+  final double efAllocation;
+
+  /// Pot that could not be absorbed (all goals complete or no weight).
+  final double unallocated;
+
+  /// Edge-case explanation when the plan is empty or degraded, null otherwise.
+  final String? reason;
+
+  const GoalSavingsPlan({
+    required this.monthlyIncome,
+    required this.savingsRate,
+    required this.savingsPot,
+    required this.allocation,
+    required this.efAllocation,
+    required this.unallocated,
+    this.reason,
+  });
+
+  /// Total recommended savings across all goals (equals pot − unallocated).
+  double get totalAllocated =>
+      allocation.values.fold(0.0, (sum, v) => sum + v);
+}
+
+/// Splits this month's savings pot (income × savings rate) across active goals.
+///
+/// The emergency fund is treated as the top priority while unfunded: below
+/// ~30% of its target it consumes the entire pot; above that it takes a modest
+/// ~30% share so other goals are not starved. The remainder is split
+/// proportionally by remaining need across non-EF goals, with a small deadline
+/// urgency boost (max +15%) for goals due within 30 days.
+///
+/// Every allocation is capped at the goal's remaining need so no goal is ever
+/// over-funded; any leftover from capping is redistributed in a waterfall so
+/// the pot is fully used whenever goals can still absorb it.
+///
+/// [now] is injectable so deadline calculations are deterministic in tests.
+GoalSavingsPlan computeGoalSavingsPlan({
+  required double monthlyIncome,
+  required double savingsRate,
+  required List<GoalSavingsInput> goals,
+  required String? emergencyFundGoalId,
+  DateTime? now,
+}) {
+  final ref = now ?? DateTime.now();
+  final income = math.max(0.0, monthlyIncome);
+  final rate = savingsRate.clamp(0.0, 1.0);
+  final pot = income * rate;
+
+  final allocation = <String, double>{};
+  double efAllocation = 0.0;
+
+  // No income → nothing to allocate.
+  if (income <= 0 || !income.isFinite) {
+    return GoalSavingsPlan(
+      monthlyIncome: income,
+      savingsRate: rate,
+      savingsPot: 0.0,
+      allocation: {},
+      efAllocation: 0.0,
+      unallocated: 0.0,
+      reason: 'noIncome',
+    );
+  }
+
+  // No active goals → nothing to allocate.
+  final activeGoals = goals.where((g) => !g.isComplete).toList();
+  if (activeGoals.isEmpty) {
+    return GoalSavingsPlan(
+      monthlyIncome: income,
+      savingsRate: rate,
+      savingsPot: pot,
+      allocation: {},
+      efAllocation: 0.0,
+      unallocated: pot,
+      reason: 'noActiveGoals',
+    );
+  }
+
+  // --- Phase 1: Emergency Fund priority ---
+  // [emergencyFundGoalId] is the authoritative EF identifier. When absent, no
+  // goal receives EF priority even if [isEmergencyFund] is set.
+  //
+  // EF takes a priority share but is capped so other goals aren't starved —
+  // every goal must still be able to meet its deadline.
+  double remainingPot = pot;
+  final efIndex = emergencyFundGoalId != null
+      ? activeGoals.indexWhere((g) => g.id == emergencyFundGoalId)
+      : -1;
+
+  if (efIndex != -1) {
+    final ef = activeGoals[efIndex];
+    final efNeed = ef.remainingNeed;
+    if (efNeed > 0) {
+      // EF gets a priority share (up to 60% of the pot), capped at its need.
+      // This keeps EF growing while leaving room for deadline-urgent goals.
+      final efShare = math.min(pot * 0.6, efNeed);
+      efAllocation = efShare;
+      allocation[ef.id] = efShare;
+      remainingPot = pot - efShare;
+    }
+  }
+
+  // --- Phase 2: Other goals — deadline-aware allocation ---
+  // Each goal's urgency = remainingNeed / daysRemaining. A goal due in 2 days
+  // needing $1000 has urgency 500/day; one due in 60 days needs ~17/day.
+  // Allocate the remaining pot proportionally by urgency so urgent goals
+  // get funded first, then cap each goal at its remaining need and
+  // redistribute any leftover.
+  // Excludes only the emergency fund goal (identified by [emergencyFundGoalId]),
+  // not every goal with [isEmergencyFund] set.
+  final otherGoals = emergencyFundGoalId != null
+      ? activeGoals.where((g) => g.id != emergencyFundGoalId).toList()
+      : activeGoals.toList();
+
+  if (remainingPot > 0 && otherGoals.isNotEmpty) {
+    // Build per-goal need and weight maps for goals that still need funding.
+    final needs = <String, double>{};
+    final weights = <String, double>{};
+    double totalWeight = 0.0;
+    for (final g in otherGoals) {
+      final need = g.remainingNeed;
+      if (need <= 0) continue;
+
+      // Days remaining until deadline; goals without a deadline get a large
+      // default window so they don't crowd out urgent ones.
+      final daysLeft = g.targetDate != null
+          ? g.targetDate!.difference(ref).inDays
+          : 365;
+      final effectiveDays = daysLeft < 1 ? 1 : daysLeft;
+
+      // Urgency: how much per day is needed to meet the deadline.
+      final urgency = need / effectiveDays;
+
+      needs[g.id] = need;
+      weights[g.id] = urgency;
+      totalWeight += urgency;
+    }
+
+    if (totalWeight > 0 && needs.isNotEmpty) {
+      double leftover = remainingPot;
+      final assigned = <String, double>{};
+
+      // First pass: proportional share capped at each goal's remaining need.
+      for (final id in needs.keys) {
+        final share = (weights[id]! / totalWeight) * remainingPot;
+        final capped = math.min(share, needs[id]!);
+        assigned[id] = capped;
+        leftover -= capped;
+      }
+
+      // Waterfall: redistribute leftover from capped goals to uncapped ones.
+      while (leftover > 1e-9) {
+        final uncapped = needs.keys.where(
+          (id) => assigned[id]! < needs[id]! - 1e-9,
+        ).toList();
+        if (uncapped.isEmpty) break;
+
+        final uncappedWeight = uncapped.fold<double>(
+          0.0,
+          (sum, id) => sum + weights[id]!,
+        );
+        if (uncappedWeight <= 0) break;
+
+        double newLeftover = 0.0;
+        for (final id in uncapped) {
+          final share = (weights[id]! / uncappedWeight) * leftover;
+          final remainingNeed = needs[id]! - assigned[id]!;
+          final additional = math.min(share, remainingNeed);
+          assigned[id] = assigned[id]! + additional;
+          newLeftover += share - additional;
+        }
+        leftover = newLeftover;
+
+        // Prevent infinite loop if no progress is being made.
+        if (newLeftover >= leftover) break;
+      }
+
+      // Merge into allocation.
+      for (final entry in assigned.entries) {
+        final current = allocation[entry.key] ?? 0.0;
+        allocation[entry.key] = current + entry.value;
+      }
+    }
+  }
+
+  final unallocated =
+      pot - allocation.values.fold(0.0, (sum, v) => sum + v);
+
+  return GoalSavingsPlan(
+    monthlyIncome: income,
+    savingsRate: rate,
+    savingsPot: pot,
+    allocation: allocation,
+    efAllocation: efAllocation,
+    unallocated: unallocated,
+    reason: null,
+  );
+}
+
 /// Short tokens that must stay uppercase no matter how the user typed them.
 ///
 /// Matched against the lowercased word so `Emi` (left over from the v278

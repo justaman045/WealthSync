@@ -1,12 +1,18 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/transaction_controller.dart';
 import 'package:money_control/Models/goal_model.dart';
 import 'package:money_control/Repositories/goals_repository.dart';
 import 'package:money_control/Services/cache_service.dart';
 import 'package:money_control/Services/error_handler.dart';
+import 'package:money_control/Services/income_settings.dart';
+import 'package:money_control/Services/savings_settings.dart';
+import 'package:money_control/Utils/wealth_math.dart';
 
 class GoalsController extends GetxController {
   static GoalsController get to => Get.find();
@@ -28,11 +34,52 @@ class GoalsController extends GetxController {
   /// Returns the emergency fund goal if one exists, otherwise null.
   GoalModel? get emergencyFundGoal => goals.firstWhereOrNull((g) => g.isEmergencyFund);
 
+  /// Suggested monthly savings split across active goals, computed from this
+  /// month's expected income × savings rate. Null until first computed.
+  GoalSavingsPlan? _savingsPlan;
+  GoalSavingsPlan? get savingsPlan => _savingsPlan;
+
   @override
   void onInit() {
     super.onInit();
     _loadFromCache();
     _fetchFromFirestore();
+    _computeSavingsPlan();
+  }
+
+  Future<void> _computeSavingsPlan() async {
+    await IncomeSettings.load();
+
+    final txCtrl = Get.isRegistered<TransactionController>()
+        ? Get.find<TransactionController>()
+        : null;
+    if (txCtrl == null) return;
+
+    final allTx = txCtrl.transactions;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final result = computeExpectedIncome(
+      allTx: allTx,
+      uid: uid,
+      mode: IncomeSettings.mode.value,
+      manualMonthly: IncomeSettings.manualMonthly.value,
+    );
+
+    _savingsPlan = computeGoalSavingsPlan(
+      monthlyIncome: result.expectedIncome,
+      savingsRate: SavingsSettings.rate,
+      goals: goals.where((g) => !g.isCompleted).map((g) {
+        return GoalSavingsInput(
+          id: g.id,
+          target: g.targetAmount,
+          current: g.currentAmount,
+          isEmergencyFund: g.isEmergencyFund,
+          targetDate: g.targetDate,
+        );
+      }).toList(),
+      emergencyFundGoalId: emergencyFundGoal?.id,
+    );
   }
 
   void _loadFromCache() {
@@ -64,6 +111,7 @@ class GoalsController extends GetxController {
       log('GoalsController._fetchFromFirestore error: $e');
     } finally {
       isLoading.value = false;
+      _computeSavingsPlan();
     }
   }
 
@@ -91,6 +139,7 @@ class GoalsController extends GetxController {
       await _repo.addGoal(goal);
       LocalCacheService.invalidate(_cacheKey);
       _fetchFromFirestore();
+      await _computeSavingsPlan();
       return true;
     } catch (e) {
       debugPrint('Goal error: $e');
@@ -126,6 +175,7 @@ class GoalsController extends GetxController {
       LocalCacheService.invalidate(_cacheKey);
       goals[idx] = updated;
       goals.refresh();
+      await _computeSavingsPlan();
       return true;
     } catch (e) {
       debugPrint('Goal error: $e');
@@ -147,6 +197,7 @@ class GoalsController extends GetxController {
       if (idx != -1) {
         goals[idx] = updated;
         goals.refresh();
+        await _computeSavingsPlan();
       }
       LocalCacheService.invalidate(_cacheKey);
       if (updated.isCompleted) {
@@ -156,6 +207,40 @@ class GoalsController extends GetxController {
     } catch (e) {
       debugPrint('Goal error: $e');
       ErrorHandler.showError("Failed to update progress.");
+      return false;
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
+  /// Reduces [currentAmount] by [subtractAmount] — a withdrawal from the goal.
+  /// Never goes below zero. Returns false if the goal isn't found, is already
+  /// at zero, or the amount is invalid.
+  Future<bool> reduceProgress(String id, double subtractAmount) async {
+    if (isSaving.value || subtractAmount <= 0) return false;
+    isSaving.value = true;
+    try {
+      final idx = goals.indexWhere((g) => g.id == id);
+      if (idx == -1) return false;
+      final goal = goals[idx];
+      final current = goal.currentAmount;
+      if (current <= 0) return false;
+      final newAmount = math.max(0.0, current - subtractAmount);
+      final updated = goal.copyWith(currentAmount: newAmount);
+      await _repo.updateGoal(updated);
+      goals[idx] = updated;
+      goals.refresh();
+      LocalCacheService.invalidate(_cacheKey);
+      await _computeSavingsPlan();
+      if (newAmount == 0) {
+        ErrorHandler.showSuccess("Withdrawn — ${goal.name} is now empty.");
+      } else {
+        ErrorHandler.showSuccess("Withdrawn ${CurrencyController.to.currencySymbol.value}${subtractAmount.toStringAsFixed(0)}.");
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Goal error: $e');
+      ErrorHandler.showError("Failed to withdraw from goal.");
       return false;
     } finally {
       isSaving.value = false;
@@ -177,6 +262,7 @@ class GoalsController extends GetxController {
       await _repo.updateGoal(updated);
       goals[idx] = updated;
       goals.refresh();
+      await _computeSavingsPlan();
       LocalCacheService.invalidate(_cacheKey);
       if (updated.isCompleted) {
         ErrorHandler.showSuccess("Goal achieved! 🎉");
@@ -198,6 +284,7 @@ class GoalsController extends GetxController {
       await _repo.deleteGoal(id);
       LocalCacheService.invalidate(_cacheKey);
       _fetchFromFirestore();
+      await _computeSavingsPlan();
       return true;
     } catch (e) {
       debugPrint('Goal error: $e');

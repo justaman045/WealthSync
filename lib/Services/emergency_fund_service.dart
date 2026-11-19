@@ -75,6 +75,17 @@ class EmergencyFundService extends GetxController {
       offered.value = false;
       return;
     }
+
+    // Wait for goals to finish loading from Firestore so we don't miss an
+    // existing emergency fund goal and incorrectly offer to create one.
+    // GoalsController registers in phase 2 of auth, but its Firestore fetch is
+    // async and may not have completed when this runs right after sign-in.
+    final goalsCtrl = Get.find<GoalsController>();
+    for (var i = 0; i < 50; i++) {
+      if (goalsCtrl.goals.isNotEmpty) break;
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
     final txCtrl = Get.find<TransactionController>();
     final allTx = txCtrl.transactions;
     final eligible = await isEligible(allTx: allTx);

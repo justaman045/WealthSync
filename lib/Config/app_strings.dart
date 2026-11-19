@@ -53,6 +53,14 @@ class AppStrings {
   static const String totalProgress = 'Total Progress';
   static const String saved = 'Saved';
   static const String target = 'Target';
+  static const String withdrawProgress = 'Withdraw';
+  static String withdrawFromGoal(String name) => 'Withdraw from $name';
+  static String withdrawFromGoalSubtitle(String balance) =>
+      'Current balance: $balance';
+  static const String withdrawAmountHint = 'Amount to withdraw';
+  static const String withdrawAmountInvalid = 'Enter a valid amount';
+  static const String withdrawAmountExceedsBalance =
+      'Amount exceeds current balance';
   static const String lentMoneyTracker = 'Lent Money Tracker';
   static const String lentToFriend = 'Lent to Friend';
   static const String subscriptions = 'Subscriptions';
@@ -61,6 +69,15 @@ class AppStrings {
   static const String emergencyFundOptIn = 'Emergency Fund';
   static const String emergencyFundOptInSubtitle =
       'Auto-create a 6-month income savings goal';
+
+  // ---- Goal Savings Plan ----
+  static const String monthlySavingsPlan = 'Suggested Monthly Savings';
+  static const String thisMonthIncome = 'This Month\'s Income';
+  static const String savingsAt20Percent = '20% Savings Pot';
+  static const String saveThisMonth = 'Save this month';
+  static const String emergencyFundPriority = 'Emergency Fund Priority';
+  static const String noIncomeDetected = 'No income detected this month';
+  static const String goalsFullyFunded = 'All goals fully funded';
 
   // ---- Subscription / Pro ----
   static const String upgradeToPro = 'Upgrade to Pro';

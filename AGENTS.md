@@ -10,7 +10,7 @@ flutter pub get
 
 - Android tools are **not** on PATH: `export PATH="$HOME/Android/Sdk/platform-tools:$HOME/.sdks/flutter/bin:$PATH"`.
 - `android/app/google-services.json` is gitignored — download it from the Firebase console locally; CI injects it from a secret. Android builds fail without it.
-- `pubspec.yaml` **and** `pubspec.lock` are both tracked. A dependency edit must regenerate the lock (`flutter pub get`); a bare `version:` bump is skipped by CI's `paths-ignore` (it won't retrench the build).
+- `pubspec.yaml` and `pubspec.lock` are both tracked. A dependency edit must regenerate the lock (`flutter pub get`); a bare `version:` bump is skipped by CI's `paths-ignore` (it won't re-trigger the build).
 - `lib/firebase_options.dart` is committed — it holds the Firebase project config for all platforms and is passed to `Firebase.initializeApp`. Do not treat it as per-install.
 
 ## Commands
@@ -33,7 +33,7 @@ bash tool/smoke_release_apk.sh build/app/outputs/flutter-apk/app-release.apk
 
 **Pre-push gate, in order:** `flutter analyze --no-fatal-infos` → `check_ui_strings.sh --strict` → `flutter test` → `flutter build web --release --base-href /WealthSync/`. CI's `test` job runs all four; the `rules` job is required before a release. Integration tests are disabled in CI (`if: false`) by design; default branch is `master`, release and Pages jobs run only there.
 
-CI pins Flutter **3.47.7** (pubspec only requires `^3.9.2`). Android NDK is env-overridable (`ANDROID_NDK_VERSION`, default `28.2.13676358`); any job that compiles Android needs the pin. Android CI uses JDK 17; the rules job uses JDK 21 — a newer local JBR (Java 25) breaks the Gradle build.
+CI pins Flutter **3.47.7** (pubspec only requires `^3.9.2`). Android NDK is env-overridable (`ANDROID_NDK_VERSION`, default `28.2.13676358`); any job that compiles Android needs the pin. Android CI uses JDK 17; the rules job uses JDK 21 — a newer local JBR (Java 25) breaks the Gradle build. AGP 9.1.0 / Gradle 9.3.1 / KGP 2.4.0; `android.builtInKotlin=false` and `android.newDsl=false` in `android/gradle.properties`.
 
 ## Entry points
 

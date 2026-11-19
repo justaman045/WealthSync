@@ -138,6 +138,7 @@ class _ImportScreenState extends State<ImportScreen> {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       final userEmail = FirebaseAuth.instance.currentUser?.email;
       if (userId == null) throw Exception("User not logged in");
+      if (userEmail == null) throw Exception("User email not available");
 
       final result = await ImportService.processCSVData(
         _csvData!,
@@ -148,7 +149,7 @@ class _ImportScreenState extends State<ImportScreen> {
 
       final saved = await ImportService.saveTransactionsToFirestore(
         result.transactions,
-        userEmail!,
+        userEmail,
       );
 
       // Invalidate the transactions cache so the next cold load is fresh.
