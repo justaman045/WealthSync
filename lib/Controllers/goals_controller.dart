@@ -46,6 +46,13 @@ class GoalsController extends GetxController {
         (sum, g) => sum + g.allotmentFor(DateTime.now()),
       );
 
+  /// Emergency-fund cash sitting outside the transaction-tracked Bank balance
+  /// (e.g. a separate savings account). Safe to add to Bank and Net worth: the
+  /// seed that came from the live balance is excluded so it is not counted
+  /// twice. Zero when there is no emergency-fund goal.
+  double get emergencyFundCashOutsideBank =>
+      emergencyFundGoal?.cashOutsideBank ?? 0.0;
+
   @override
   void onInit() {
     super.onInit();
@@ -260,7 +267,15 @@ class GoalsController extends GetxController {
   /// Sets [currentAmount] directly to [amount], clamped at [targetAmount].
   /// Used by the emergency fund to sync progress against total balance, which
   /// can decrease as well as increase.
-  Future<bool> setProgress(String id, double amount) async {
+  ///
+  /// [seededFromBank] records how much of the new amount came from cash already
+  /// counted in the transaction-derived Bank balance, so it is not added to
+  /// Net worth a second time. Omit it to keep the goal's existing value.
+  Future<bool> setProgress(
+    String id,
+    double amount, {
+    double? seededFromBank,
+  }) async {
     if (isSaving.value) return false;
     isSaving.value = true;
     try {
@@ -268,7 +283,10 @@ class GoalsController extends GetxController {
       if (idx == -1) return false;
       final goal = goals[idx];
       final clamped = amount.clamp(0.0, goal.targetAmount);
-      final updated = goal.copyWith(currentAmount: clamped);
+      final updated = goal.copyWith(
+        currentAmount: clamped,
+        seededFromBank: seededFromBank,
+      );
       await _repo.updateGoal(updated);
       goals[idx] = updated;
       goals.refresh();

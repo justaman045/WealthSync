@@ -14,6 +14,8 @@ void main() {
     DateTime? createdAt,
     double monthlyAllocation = 0,
     String? allocationMonth,
+    bool isEmergencyFund = false,
+    double seededFromBank = 0,
   }) =>
       GoalModel(
         id: id,
@@ -27,6 +29,8 @@ void main() {
         createdAt: createdAt,
         monthlyAllocation: monthlyAllocation,
         allocationMonth: allocationMonth,
+        isEmergencyFund: isEmergencyFund,
+        seededFromBank: seededFromBank,
       );
 
   group('GoalModel.edited', () {
@@ -277,6 +281,88 @@ void main() {
     test('the same deadline yields the same value on a later call', () {
       final g = goal(targetDate: now.add(const Duration(days: 5)));
       expect(g.daysLeftAt(now), g.daysLeftAt(now));
+    });
+  });
+
+  group('GoalModel.cashOutsideBank', () {
+    test('the bank-backed seed is never reported as separate cash', () {
+      final g = goal(
+        target: 100000,
+        saved: 50000,
+        isEmergencyFund: true,
+        seededFromBank: 50000,
+      );
+      // The seed is already in Net worth via the transaction-derived Bank
+      // balance, so adding it again would double count.
+      expect(g.cashOutsideBank, 0);
+    });
+
+    test('only progress beyond the seed counts as separate-account cash', () {
+      final g = goal(
+        target: 100000,
+        saved: 60000,
+        isEmergencyFund: true,
+        seededFromBank: 50000,
+      );
+      expect(g.cashOutsideBank, 10000);
+    });
+
+    test('a legacy seed of zero reports all progress as separate cash', () {
+      final g = goal(
+        target: 100000,
+        saved: 60000,
+        isEmergencyFund: true,
+      );
+      expect(g.cashOutsideBank, 60000);
+    });
+
+    test('never negative when the seed exceeds current amount', () {
+      final g = goal(
+        target: 100000,
+        saved: 30000,
+        isEmergencyFund: true,
+        seededFromBank: 50000,
+      );
+      expect(g.cashOutsideBank, 0);
+    });
+
+    test('ordinary goals contribute nothing even with progress', () {
+      expect(goal(saved: 9000).cashOutsideBank, 0);
+    });
+
+    test('Add Progress preserves the recorded seed', () {
+      final g = goal(
+        target: 100000,
+        saved: 50000,
+        isEmergencyFund: true,
+        seededFromBank: 50000,
+      );
+      final funded = g.withProgress(5000, DateTime(2026, 11, 20));
+      expect(funded.currentAmount, 55000);
+      expect(funded.seededFromBank, 50000);
+      expect(funded.cashOutsideBank, 5000);
+    });
+
+    test('seededFromBank survives a serialization round trip', () {
+      final g = goal(
+        target: 100000,
+        saved: 60000,
+        isEmergencyFund: true,
+        seededFromBank: 50000,
+        createdAt: DateTime(2026, 11, 1),
+      );
+      final restored = GoalModel.fromMap(g.id, g.toMap());
+      expect(restored.seededFromBank, 50000);
+      expect(restored.cashOutsideBank, 10000);
+    });
+
+    test('old documents without the field default to zero', () {
+      final map = goal(
+        isEmergencyFund: true,
+        createdAt: DateTime(2026, 11, 1),
+      ).toMap()
+        ..remove('seededFromBank');
+      expect(GoalModel.fromMap('g1', map).seededFromBank, 0);
     });
   });
 }

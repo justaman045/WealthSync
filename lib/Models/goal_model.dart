@@ -24,6 +24,14 @@ class GoalModel {
   /// the goal has never received a monthly allotment.
   final String? allocationMonth;
 
+  /// Portion of [currentAmount] that came from cash already counted in the
+  /// transaction-derived bank balance (the emergency fund's initial seed).
+  ///
+  /// That seed is already in Net worth via Bank, so it must not be added a
+  /// second time when the emergency fund's separate-account cash is reported.
+  /// Zero for ordinary goals.
+  final double seededFromBank;
+
   const GoalModel({
     required this.id,
     required this.name,
@@ -37,6 +45,7 @@ class GoalModel {
     this.isEmergencyFund = false,
     this.monthlyAllocation = 0,
     this.allocationMonth,
+    this.seededFromBank = 0,
   });
 
   double get progress =>
@@ -67,6 +76,16 @@ class GoalModel {
   /// fresh "Available to allot" allowance.
   double allotmentFor(DateTime now) =>
       allocationMonth == monthKey(now) ? monthlyAllocation : 0.0;
+
+  /// Cash this emergency fund holds **outside** the transaction-tracked bank
+  /// balance — for example money parked in a separate savings account.
+  ///
+  /// The initial seed came from the live bank balance and is therefore already
+  /// in Net worth via Bank; only the amount beyond that seed may be added
+  /// without double counting. Always zero for non-EF goals.
+  double get cashOutsideBank => isEmergencyFund
+      ? math.max(0.0, currentAmount - seededFromBank)
+      : 0.0;
 
   /// Applies an Add Progress deposit of [addAmount] at [now].
   ///
@@ -112,6 +131,7 @@ class GoalModel {
     bool? isEmergencyFund,
     double? monthlyAllocation,
     String? allocationMonth,
+    double? seededFromBank,
   }) {
     return GoalModel(
       id: id,
@@ -126,6 +146,7 @@ class GoalModel {
       isEmergencyFund: isEmergencyFund ?? this.isEmergencyFund,
       monthlyAllocation: monthlyAllocation ?? this.monthlyAllocation,
       allocationMonth: allocationMonth ?? this.allocationMonth,
+      seededFromBank: seededFromBank ?? this.seededFromBank,
     );
   }
 
@@ -155,6 +176,7 @@ class GoalModel {
       // Monthly allotment is earned through Add Progress, never the edit form.
       monthlyAllocation: monthlyAllocation,
       allocationMonth: allocationMonth,
+      seededFromBank: seededFromBank,
     );
   }
 
@@ -182,6 +204,7 @@ class GoalModel {
       isEmergencyFund: map['isEmergencyFund'] ?? false,
       monthlyAllocation: _parseNum(map['monthlyAllocation']),
       allocationMonth: map['allocationMonth'] as String?,
+      seededFromBank: _parseNum(map['seededFromBank']),
     );
   }
 
@@ -200,6 +223,7 @@ class GoalModel {
       'isEmergencyFund': isEmergencyFund,
       'monthlyAllocation': monthlyAllocation,
       'allocationMonth': allocationMonth,
+      'seededFromBank': seededFromBank,
     };
   }
 }

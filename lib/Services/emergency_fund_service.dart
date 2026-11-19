@@ -119,22 +119,66 @@ class EmergencyFundService extends GetxController {
 
   /// Seeds [currentAmount] with min(totalBalance, target) so progress reflects
   /// money already in the account.
+  ///
+  /// The seed is recorded as [GoalModel.seededFromBank]: that cash is already
+  /// in Net worth via the transaction-derived Bank balance, so only progress
+  /// beyond the seed (money set aside in a separate account) may be added to
+  /// those totals. Uses [GoalsController.setProgress] rather than
+  /// `updateProgress` so seeding an existing balance never fakes a monthly
+  /// Add Progress allotment.
   Future<void> _seedProgress(double target) async {
     final balance = Get.find<TransactionController>().totalBalance;
     final seed = balance.clamp(0.0, target);
     if (seed > 0) {
       final goal = GoalsController.to.emergencyFundGoal;
       if (goal != null) {
-        await GoalsController.to.updateProgress(
+        // Keep progress the user added on top of the seed.
+        final newAmount = seed > goal.currentAmount ? seed : goal.currentAmount;
+        await GoalsController.to.setProgress(
           goal.id,
-          seed,
+          newAmount,
+          seededFromBank: seed,
         );
       }
     }
   }
 
+  bool _legacySeedChecked = false;
+
+  /// Legacy emergency-fund goals were seeded from the bank balance before the
+  /// overlap was tracked. On first load, record how much of their progress is
+  /// already inside Bank so the rest can be added to Net worth without
+  /// double counting the original seed.
+  Future<void> migrateLegacySeed() async {
+    if (_legacySeedChecked) return;
+    final goalsCtrl = Get.find<GoalsController>();
+    if (goalsCtrl.goals.isEmpty) return;
+    final goal = goalsCtrl.emergencyFundGoal;
+    if (goal == null || goal.seededFromBank > 0) {
+      _legacySeedChecked = true;
+      return;
+    }
+    final balance = Get.find<TransactionController>().totalBalance;
+    final seeded = balance <= 0
+        ? 0.0
+        : (goal.currentAmount > balance ? balance : goal.currentAmount);
+    _legacySeedChecked = true;
+    if (seeded > 0) {
+      await goalsCtrl.setProgress(
+        goal.id,
+        goal.currentAmount,
+        seededFromBank: seeded,
+      );
+    }
+  }
+
   /// Syncs the emergency fund goal's [currentAmount] to the current balance
-  /// (capped at target). Call whenever the balance changes.
+  /// (capped at target).
+  ///
+  /// Not wired to the transaction watcher on purpose: the fund may hold cash in
+  /// a *different* bank account that the transaction list does not see, so
+  /// overwriting its progress from this account's balance would erase it.
+  /// Kept for callers that explicitly want the earmark-only view.
   Future<void> syncProgress() async {
     final goal = GoalsController.to.emergencyFundGoal;
     if (goal == null) return;
@@ -177,6 +221,16 @@ class EmergencyFundService extends GetxController {
     // manualMonthly/mode before the ever watchers below are registered, in
     // which case they would never fire for the initial value.
     _syncTargetOnIncomeChange();
+    // Goals load asynchronously; wait for them before checking whether an old
+    // EF goal needs its bank-backed seed recorded for the Net worth math.
+    () async {
+      if (!Get.isRegistered<GoalsController>()) return;
+      for (var i = 0; i < 50; i++) {
+        if (Get.find<GoalsController>().goals.isNotEmpty) break;
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      await migrateLegacySeed();
+    }();
     ever(Get.find<TransactionController>().transactions, (_) => checkEligibility());
     ever(IncomeSettings.mode, (_) => _syncTargetOnIncomeChange());
     ever(IncomeSettings.manualMonthly, (_) => _syncTargetOnIncomeChange());

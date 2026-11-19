@@ -8,6 +8,7 @@ import 'package:money_control/Components/feature_gate.dart';
 import 'package:money_control/Components/colors.dart';
 import 'package:money_control/Components/glass_container.dart';
 import 'package:money_control/Controllers/currency_controller.dart';
+import 'package:money_control/Controllers/goals_controller.dart';
 import 'package:money_control/Controllers/privacy_controller.dart';
 import 'package:money_control/Models/wealth_data.dart';
 import 'package:money_control/Services/wealth_service.dart';
@@ -52,6 +53,16 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   bool loading = true;
   WealthPortfolio? portfolio;
   double bankBalance = 0;
+
+  /// Cash to report as "Bank": the transaction-derived balance plus any
+  /// emergency-fund money held outside it (a separate account). The EF's seed
+  /// that came from the live balance is excluded by the controller, so this
+  /// cannot double count cash already in Net worth.
+  double get cashIncludingEmergencyFund {
+    if (!Get.isRegistered<GoalsController>()) return bankBalance;
+    return bankBalance + GoalsController.to.emergencyFundCashOutsideBank;
+  }
+
   Map<String, WealthTarget> assetTargets = {};
   List<Map<String, dynamic>> smartInsights = [];
   int? userAge;
@@ -64,6 +75,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   StreamSubscription<WealthPortfolio>? _portfolioSub;
   StreamSubscription<UserModel?>? _profileSub;
   Worker? _txWorker;
+  Worker? _goalsWorker;
   Timer? _targetDebounce;
 
   @override
@@ -82,6 +94,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     _portfolioSub?.cancel();
     _profileSub?.cancel();
     _txWorker?.dispose();
+    _goalsWorker?.dispose();
     _targetDebounce?.cancel();
     _isBottomBarVisible.dispose();
     super.dispose();
@@ -98,6 +111,13 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
     _txWorker = ever(txController.transactions, (_) {
       _refreshTransactionDerived();
     });
+    // Emergency-fund progress changes when the user funds it from a separate
+    // account, which also changes the Bank/Net worth figures on this tab.
+    if (Get.isRegistered<GoalsController>()) {
+      _goalsWorker = ever(GoalsController.to.goals, (_) {
+        _refreshTransactionDerived();
+      });
+    }
   }
 
   void _refreshTransactionDerived() {
@@ -999,7 +1019,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
   }) {
     final l10n = AppLocalizations.of(context)!;
     final amount = switch (asset.key) {
-      'bank' => bankBalance,
+      'bank' => cashIncludingEmergencyFund,
       'loans' => loanTotal,
       // Credit-card outstanding = manually tracked total + recurring-kind
       // liabilities added via the recurring-payments flow (see
@@ -1899,7 +1919,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
           asset.key,
           (
             asset.key == 'bank'
-                ? bankBalance
+                ? cashIncludingEmergencyFund
                 : wealthAssetValue(p, asset.key),
             asset.color,
             asset.shortLabel,
@@ -1957,7 +1977,7 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         : 0.0;
 
     final current = <String, double>{
-      'bank': bankBalance,
+      'bank': cashIncludingEmergencyFund,
       'fd': portfolio!.fd,
       'postOffice': portfolio!.postOffice,
       'sip': portfolio!.sip,
@@ -2173,9 +2193,9 @@ class _WealthBuilderScreenState extends State<WealthBuilderScreen> {
         if (!hidden.contains(key)) total -= val;
       }
 
-      // The cash balance comes from the transaction stream, not from the
-      // portfolio document.
-      add('bank', bankBalance);
+      // Cash comes from the transaction stream, plus any emergency-fund money
+      // parked in a separate account (its bank-backed seed is excluded).
+      add('bank', cashIncludingEmergencyFund);
 
       // Every asset the allocation chart counts. Insurance is in neither:
       // a policy's sum assured is a cover, not an asset.
