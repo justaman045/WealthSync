@@ -71,6 +71,20 @@ service cloud.firestore {
           && (isExpenseShape(d) || isIncomeShape(d));
     }
 
+    // SMS import transactions: senderId = uid with recipientId = 'External'
+    // (debit), or recipientId = uid with senderId = 'External' (credit).
+    // Always include smsDedupeKey to identify imported rows.
+    function isSmsImport(d) {
+      return d.keys().hasAll(['amount', 'date', 'senderId', 'recipientId', 'smsDedupeKey'])
+          && d.amount is number
+          && d.amount != 0
+          && d.date is timestamp
+          && (
+            (d.senderId == request.auth.uid && d.recipientId == 'External')
+            || (d.recipientId == request.auth.uid && d.senderId == 'External')
+          );
+    }
+
     // The explicit "delete all my data" reset. The profile is rewritten with
     // merge:false, so gated fields (trialEndDate, subscriptionStatus, isPro,
     // referral bookkeeping) disappear. It is the only write allowed to remove
@@ -284,7 +298,7 @@ service cloud.firestore {
 
       match /transactions/{txId} {
         allow read: if isOwner(userEmail) || isAdmin();
-        allow write: if isOwner(userEmail) && (request.method == 'delete' || validTransaction());
+        allow write: if isOwner(userEmail) && (request.method == 'delete' || validTransaction() || isSmsImport(request.resource.data));
       }
 
       match /categories/{catId} {
