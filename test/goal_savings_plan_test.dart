@@ -187,6 +187,48 @@ void main() {
         expect(plan.reason, isNull);
       });
 
+      test('adding the shown suggestion removes the goal even when another '
+          'goal already consumed part of the pot', () {
+        // Regression for the "add 54, then it asks for 45 more" loop. The shown
+        // amount used to be a re-split of the remaining pot while drop-out used
+        // a fixed full-pot baseline. With goal B already holding 4000 of the
+        // 10000 pot, A was shown 3000 (its baseline is 5000), so depositing 3000
+        // left A in the list asking for 1500, then 750, and so on. The amount
+        // shown must be exactly the amount that removes the goal.
+        GoalSavingsPlan planFor(double aAllocation) => computeGoalSavingsPlan(
+              monthlyIncome: 50000,
+              savingsRate: 0.2, // pot = 10000
+              goals: [
+                goal(
+                  id: 'a',
+                  target: 10000,
+                  current: aAllocation,
+                  monthlyAllocation: aAllocation,
+                ),
+                goal(
+                  id: 'b',
+                  target: 14000,
+                  current: 4000,
+                  monthlyAllocation: 4000,
+                ),
+              ],
+              emergencyFundGoalId: null,
+            );
+
+        final first = planFor(0);
+        final shown = first.allocation['a']!;
+        // B's deposit already meets its 3000 share of the 6000 remaining pot,
+        // so B drops and A absorbs the whole 6000.
+        expect(shown, closeTo(6000, 1));
+        expect(first.allocation.containsKey('b'), isFalse);
+
+        // The user adds exactly what was shown: A must disappear, not reappear
+        // with a smaller "one more" request.
+        final second = planFor(shown);
+        expect(second.allocation.containsKey('a'), isFalse);
+        expect(second.reason, 'allAllottedThisMonth');
+      });
+
       test('allotting more than suggested removes the goal and shrinks other suggestions', () {
         final plan = computeGoalSavingsPlan(
           monthlyIncome: 50000,

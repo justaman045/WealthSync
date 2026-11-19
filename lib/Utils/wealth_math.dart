@@ -989,12 +989,18 @@ _PotSplit _splitGoalPot({
 /// Splits this month's savings pot across active goals, accounting for what the
 /// user has **already** deposited via Add Progress this month.
 ///
-/// A goal whose month-scoped [GoalSavingsInput.monthlyAllocation] reaches its
-/// suggested share is considered handled for the month and is dropped from the
-/// suggestions entirely. The remaining pot (`pot − total allotted`) is then
-/// re-split across the goals that still need funding, by EF priority and
-/// deadline urgency. This keeps "Available to allot" and the suggested amounts
-/// in sync: the listed suggestions always sum to what is left to allot.
+/// A goal is considered handled for the month — and dropped from the
+/// suggestions — once its month-scoped [GoalSavingsInput.monthlyAllocation]
+/// reaches the amount **currently shown to the user**. That displayed amount is
+/// a split of the still-available pot (`pot − total allotted`) across the goals
+/// remaining in the list, so it changes as goals drop out. We iterate to a
+/// fixed point: drop every goal whose deposit meets its current suggestion,
+/// re-split the same pot across the rest, and repeat until the list is stable.
+///
+/// This guarantees that adding exactly the suggested amount removes that goal
+/// instead of leaving it in the list asking for a smaller "one more" amount.
+/// It also keeps "Available to allot" in sync: the listed suggestions always
+/// sum to what is left to allot.
 ///
 /// [now] is injectable so deadline calculations are deterministic in tests.
 GoalSavingsPlan computeGoalSavingsPlan({
@@ -1045,39 +1051,42 @@ GoalSavingsPlan computeGoalSavingsPlan({
     );
   }
 
-  // Baseline: the full-pot suggestion defines what "suggested amount" means
-  // for each goal. Compare the month's deposit against this, never against the
-  // (already reduced) remaining need.
-  final baseline = _splitGoalPot(
-    pot: pot,
-    goals: activeGoals,
-    emergencyFundGoalId: emergencyFundGoalId,
-    now: ref,
-  );
-
-  // A goal that received its suggested amount (or more) is done for the month
-  // and disappears from the suggestion list.
-  final remainingGoals = activeGoals.where((g) {
-    final suggested = baseline.allocation[g.id] ?? 0.0;
-    return g.monthlyAllocation < suggested - 1e-9;
-  }).toList();
-
   final availablePot = math.max(0.0, pot - totalAllotted);
   final overAllocated = totalAllotted > pot + 1e-9;
 
-  // If the EF is the last goal standing, drop its 60% cap: there is nobody left
-  // to "leave room" for, so it may absorb the whole remaining pot.
-  final efStillPresent = emergencyFundGoalId != null &&
-      remainingGoals.any((g) => g.id == emergencyFundGoalId);
-  final split = (remainingGoals.isEmpty || availablePot <= 0)
-      ? const _PotSplit(allocation: {}, efAllocation: 0.0)
-      : _splitGoalPot(
-          pot: availablePot,
-          goals: remainingGoals,
-          emergencyFundGoalId:
-              efStillPresent && remainingGoals.length > 1 ? emergencyFundGoalId : null,
-          now: ref,
-        );
+  // A goal is done once its deposit reaches the amount we are *showing* for it.
+  // That amount is a split of the remaining pot across the goals still listed,
+  // so it grows for the survivors whenever a goal drops out. Reaching a fixed
+  // point matters: if we instead compared against a fixed full-pot baseline,
+  // a partially-allotted pot would show (say) 30 for a goal whose baseline is
+  // 50 — the user adds 30, the goal stays and re-splits to 15, and they have to
+  // keep adding until the hidden 50 is reached. Iterating until the list stops
+  // shrinking makes the shown number exactly the amount that removes the goal.
+  var remainingGoals = activeGoals;
+  _PotSplit split = const _PotSplit(allocation: {}, efAllocation: 0.0);
+  while (true) {
+    // If the EF is the last goal standing, drop its 60% cap: there is nobody
+    // left to "leave room" for, so it may absorb the whole remaining pot.
+    final efStillPresent = emergencyFundGoalId != null &&
+        remainingGoals.any((g) => g.id == emergencyFundGoalId);
+    split = (remainingGoals.isEmpty || availablePot <= 0)
+        ? const _PotSplit(allocation: {}, efAllocation: 0.0)
+        : _splitGoalPot(
+            pot: availablePot,
+            goals: remainingGoals,
+            emergencyFundGoalId: efStillPresent && remainingGoals.length > 1
+                ? emergencyFundGoalId
+                : null,
+            now: ref,
+          );
+
+    final stillNeeded = remainingGoals.where((g) {
+      final suggested = split.allocation[g.id] ?? 0.0;
+      return g.monthlyAllocation < suggested - 1e-9;
+    }).toList();
+    if (stillNeeded.length == remainingGoals.length) break;
+    remainingGoals = stillNeeded;
+  }
 
   final allottedByGoal = <String, double>{
     for (final g in goals)
