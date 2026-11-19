@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math' as math;
 import 'package:money_control/Utils/num_parse.dart';
 
 class GoalModel {
@@ -13,6 +14,16 @@ class GoalModel {
   final DateTime? createdAt;
   final bool isEmergencyFund;
 
+  /// Amount allotted to this goal **this month** (from the Add Progress sheet).
+  /// Cumulative [currentAmount] cannot tell which month a deposit belongs to,
+  /// so the month is stamped separately in [allocationMonth] and the amount is
+  /// reset when a deposit lands in a later month.
+  final double monthlyAllocation;
+
+  /// Calendar month (`yyyy-MM`) [monthlyAllocation] belongs to, or null when
+  /// the goal has never received a monthly allotment.
+  final String? allocationMonth;
+
   const GoalModel({
     required this.id,
     required this.name,
@@ -24,6 +35,8 @@ class GoalModel {
     this.emoji = '🎯',
     this.createdAt,
     this.isEmergencyFund = false,
+    this.monthlyAllocation = 0,
+    this.allocationMonth,
   });
 
   double get progress =>
@@ -40,10 +53,65 @@ class GoalModel {
 
   int? get daysLeft => daysLeftAt(DateTime.now());
 
+  /// How much more the goal needs to reach its target (never negative).
+  double get remainingNeed => math.max(0.0, targetAmount - currentAmount);
+
+  /// Calendar month key used to scope monthly allotments (`yyyy-MM`).
+  /// Kept here (not inline at each call site) so the repository, controller and
+  /// screen agree on what "this month" means.
+  static String monthKey(DateTime now) =>
+      '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}';
+
+  /// Allotment belonging to [now]'s month; 0 when the stored allotment is from
+  /// an earlier month. Allotments do not carry over — a new month starts with a
+  /// fresh "Available to allot" allowance.
+  double allotmentFor(DateTime now) =>
+      allocationMonth == monthKey(now) ? monthlyAllocation : 0.0;
+
+  /// Applies an Add Progress deposit of [addAmount] at [now].
+  ///
+  /// [currentAmount] grows but is capped at [targetAmount]; [monthlyAllocation]
+  /// grows by the amount actually applied (so a deposit that overshoots the
+  /// target cannot overstate the month's allotment). A deposit in a new month
+  /// resets the previous month's allotment to zero first.
+  ///
+  /// Pure (no Firestore, no wall clock) so the repository transaction and the
+  /// tests share one implementation.
+  GoalModel withProgress(double addAmount, DateTime now) {
+    final month = monthKey(now);
+    final base = allotmentFor(now);
+    final newAmount = (currentAmount + addAmount).clamp(0.0, targetAmount);
+    final applied = math.max(0.0, newAmount - currentAmount);
+    return copyWith(
+      currentAmount: newAmount,
+      isCompleted: newAmount >= targetAmount,
+      monthlyAllocation: base + applied,
+      allocationMonth: month,
+    );
+  }
+
+  /// Reverses a withdrawal at [now], rolling back this month's allotment by the
+  /// amount actually removed so "Available to allot" recovers. Withdrawing old
+  /// savings in a new month leaves the (already stale) allotment untouched.
+  GoalModel withWithdrawal(double subtractAmount, DateTime now) {
+    final month = monthKey(now);
+    final base = allotmentFor(now);
+    final newAmount = math.max(0.0, currentAmount - subtractAmount);
+    final removed = math.max(0.0, currentAmount - newAmount);
+    return copyWith(
+      currentAmount: newAmount,
+      isCompleted: newAmount >= targetAmount,
+      monthlyAllocation: math.max(0.0, base - removed),
+      allocationMonth: month,
+    );
+  }
+
   GoalModel copyWith({
     double? currentAmount,
     bool? isCompleted,
     bool? isEmergencyFund,
+    double? monthlyAllocation,
+    String? allocationMonth,
   }) {
     return GoalModel(
       id: id,
@@ -56,6 +124,8 @@ class GoalModel {
       emoji: emoji,
       createdAt: createdAt,
       isEmergencyFund: isEmergencyFund ?? this.isEmergencyFund,
+      monthlyAllocation: monthlyAllocation ?? this.monthlyAllocation,
+      allocationMonth: allocationMonth ?? this.allocationMonth,
     );
   }
 
@@ -82,6 +152,9 @@ class GoalModel {
       emoji: emoji,
       createdAt: createdAt,
       isEmergencyFund: isEmergencyFund ?? this.isEmergencyFund,
+      // Monthly allotment is earned through Add Progress, never the edit form.
+      monthlyAllocation: monthlyAllocation,
+      allocationMonth: allocationMonth,
     );
   }
 
@@ -107,6 +180,8 @@ class GoalModel {
       emoji: map['emoji'] ?? '🎯',
       createdAt: (map['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
       isEmergencyFund: map['isEmergencyFund'] ?? false,
+      monthlyAllocation: _parseNum(map['monthlyAllocation']),
+      allocationMonth: map['allocationMonth'] as String?,
     );
   }
 
@@ -123,6 +198,8 @@ class GoalModel {
       'emoji': emoji,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'isEmergencyFund': isEmergencyFund,
+      'monthlyAllocation': monthlyAllocation,
+      'allocationMonth': allocationMonth,
     };
   }
 }

@@ -10,6 +10,7 @@ void main() {
       required double current,
       bool isEmergencyFund = false,
       DateTime? targetDate,
+      double monthlyAllocation = 0,
     }) {
       return GoalSavingsInput(
         id: id,
@@ -17,6 +18,7 @@ void main() {
         current: current,
         isEmergencyFund: isEmergencyFund,
         targetDate: targetDate,
+        monthlyAllocation: monthlyAllocation,
       );
     }
 
@@ -164,6 +166,161 @@ void main() {
       expect(plan.savingsPot, 0);
       expect(plan.allocation['g1'] ?? 0, 0);
       expect(plan.unallocated, 0);
+    });
+
+    group('manual monthly allocation', () {
+      test('hard reserve amount is honored and tracked', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000
+          goals: [
+            goal(id: 'g1', target: 50000, current: 0, monthlyAllocation: 3000),
+            goal(id: 'g2', target: 50000, current: 0),
+          ],
+          emergencyFundGoalId: null,
+        );
+        // g1 gets exactly its requested 3000; g2 gets the remaining 7000.
+        expect(plan.allocation['g1'], 3000);
+        expect(plan.manualAllocation['g1'], 3000);
+        expect(plan.allocation['g2'], 7000);
+        expect(plan.manualAllocation.containsKey('g2'), isFalse);
+        expect(plan.overAllocated, isFalse);
+      });
+
+      test('allocation is capped at remaining need', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000
+          goals: [
+            goal(id: 'g1', target: 1000, current: 0, monthlyAllocation: 5000),
+          ],
+          emergencyFundGoalId: null,
+        );
+        // Need is only 1000, so the 5000 request is capped at 1000.
+        expect(plan.allocation['g1'], 1000);
+        expect(plan.manualAllocation['g1'], 1000);
+        expect(plan.unallocated, closeTo(9000, 1));
+        expect(plan.overAllocated, isFalse);
+      });
+
+      test('over-pot allocations are scaled down proportionally with notice', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000
+          goals: [
+            goal(id: 'g1', target: 50000, current: 0, monthlyAllocation: 8000),
+            goal(id: 'g2', target: 50000, current: 0, monthlyAllocation: 6000),
+          ],
+          emergencyFundGoalId: null,
+        );
+        // Total requested 14000 > pot 10000, scaled by 10000/14000 ≈ 0.714.
+        expect(plan.allocation['g1']!, closeTo(5714.29, 1));
+        expect(plan.allocation['g2']!, closeTo(4285.71, 1));
+        expect(plan.totalAllocated, closeTo(10000, 1));
+        expect(plan.overAllocated, isTrue);
+      });
+
+      test('mixed allocated and unallocated goals split remainder by urgency', () {
+        final now = DateTime(2026, 11, 19);
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000
+          goals: [
+            goal(id: 'fixed', target: 50000, current: 0, monthlyAllocation: 2000),
+            goal(
+              id: 'soon',
+              target: 10000,
+              current: 0,
+              targetDate: DateTime(2026, 11, 29), // 10 days
+            ),
+            goal(
+              id: 'later',
+              target: 10000,
+              current: 0,
+              targetDate: DateTime(2027, 5, 19), // 181 days
+            ),
+          ],
+          emergencyFundGoalId: null,
+          now: now,
+        );
+        // fixed gets 2000; remaining 8000 split by urgency between soon/later.
+        expect(plan.allocation['fixed'], 2000);
+        expect(plan.allocation['soon']!, greaterThan(plan.allocation['later']!));
+        expect(
+          plan.allocation['fixed']! +
+              plan.allocation['soon']! +
+              plan.allocation['later']!,
+          closeTo(10000, 1),
+        );
+      });
+
+      test('EF keeps 60% priority while other goals honor manual allocations', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000
+          goals: [
+            goal(id: 'ef', target: 100000, current: 0, isEmergencyFund: true),
+            goal(id: 'g1', target: 50000, current: 0, monthlyAllocation: 3000),
+          ],
+          emergencyFundGoalId: 'ef',
+        );
+        // EF default 60% = 6000; g1 manual 3000 fits in remaining 4000.
+        expect(plan.efAllocation, 6000);
+        expect(plan.allocation['g1'], 3000);
+        expect(plan.unallocated, closeTo(1000, 1));
+        expect(plan.overAllocated, isFalse);
+      });
+
+      test('manual allocation for EF overrides the 60% default', () {
+        final plan = computeGoalSavingsPlan(
+          monthlyIncome: 50000,
+          savingsRate: 0.2, // pot = 10000
+          goals: [
+            goal(
+              id: 'ef',
+              target: 100000,
+              current: 0,
+              isEmergencyFund: true,
+              monthlyAllocation: 8000,
+            ),
+            goal(id: 'g1', target: 50000, current: 0),
+          ],
+          emergencyFundGoalId: 'ef',
+        );
+        expect(plan.efAllocation, 8000);
+        expect(plan.manualAllocation['ef'], 8000);
+        expect(plan.allocation['g1'], 2000);
+      });
+    });
+  });
+
+  group('computeRemainingToAllocate', () {
+    test('subtracts this month\'s allotments from the pot', () {
+      expect(
+        computeRemainingToAllocate(savingsPot: 10000, allotted: 3000),
+        7000,
+      );
+    });
+
+    test('never reports a negative allowance', () {
+      expect(
+        computeRemainingToAllocate(savingsPot: 10000, allotted: 14000),
+        0,
+      );
+    });
+
+    test('never reports more than the pot', () {
+      expect(
+        computeRemainingToAllocate(savingsPot: 10000, allotted: -500),
+        10000,
+      );
+    });
+
+    test('no income means nothing available to allot', () {
+      expect(
+        computeRemainingToAllocate(savingsPot: 0, allotted: 3000),
+        0,
+      );
     });
   });
 }

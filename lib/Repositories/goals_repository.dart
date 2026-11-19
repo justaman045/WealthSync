@@ -33,10 +33,15 @@ class GoalsRepository {
       final snap = await txn.get(docRef);
       if (!snap.exists) return null;
       final goal = GoalModel.fromMap(snap.id, snap.data() as Map<String, dynamic>);
-      final newAmount = (goal.currentAmount + addAmount).clamp(0.0, goal.targetAmount);
-      final completed = newAmount >= goal.targetAmount;
-      final updated = goal.copyWith(currentAmount: newAmount, isCompleted: completed);
-      txn.update(docRef, {'currentAmount': newAmount, 'isCompleted': completed});
+      // One shared, pure calculation for progress + this month's allotment so
+      // the local list and Firestore can never disagree on what was deposited.
+      final updated = goal.withProgress(addAmount, DateTime.now());
+      txn.update(docRef, {
+        'currentAmount': updated.currentAmount,
+        'isCompleted': updated.isCompleted,
+        'monthlyAllocation': updated.monthlyAllocation,
+        'allocationMonth': updated.allocationMonth,
+      });
       return updated;
     });
   }

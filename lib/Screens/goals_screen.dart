@@ -519,6 +519,17 @@ class _GoalsScreenState extends State<GoalsScreen> {
     );
   }
 
+  /// Portion of this month's pot still available for the user to allot.
+  /// Reads the controller's month-scoped total, which is derived from the
+  /// reactive goals list, so the number updates immediately after an Add
+  /// Progress deposit.
+  double _remainingToAllocate(GoalsController ctrl, GoalSavingsPlan plan) {
+    return computeRemainingToAllocate(
+      savingsPot: plan.savingsPot,
+      allotted: ctrl.monthlyAllotted,
+    );
+  }
+
   /// Suggested monthly savings split across active goals, computed from this
   /// month's expected income × savings rate (20% default).
   ///
@@ -602,6 +613,68 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ),
             ],
           ),
+          SizedBox(height: AppSpace.s12.h),
+          // How much of this month's pot is still available to allot.
+          Container(
+            padding: EdgeInsets.all(AppSpace.s12.w),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(AppRadius.md.r),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.lightBorder,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppStrings.remainingToAllocate,
+                  style: AppType.labelMedium(
+                    isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                  ),
+                ),
+                Text(
+                  '$sym${_remainingToAllocate(ctrl, plan).toStringAsFixed(0)}',
+                  style: AppType.titleSmall(AppColors.primary),
+                ),
+              ],
+            ),
+          ),
+          if (plan.overAllocated) ...[
+            SizedBox(height: AppSpace.s12.h),
+            Container(
+              padding: EdgeInsets.all(AppSpace.s12.w),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.sm.r),
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: AppColors.warning,
+                    size: 16.sp,
+                  ),
+                  SizedBox(width: AppSpace.s8.w),
+                  Expanded(
+                    child: Text(
+                      AppStrings.allocationExceedsPot,
+                      style: AppType.labelSmall(
+                        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           SizedBox(height: AppSpace.s16.h),
           // Per-goal allocations. Emergency fund first if present.
           ...(plan.allocation.entries.map((entry) {

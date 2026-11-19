@@ -53,6 +53,9 @@ class AppStrings {
   static const String totalProgress = 'Total Progress';
   static const String saved = 'Saved';
   static const String target = 'Target';
+  static const String remainingToAllocate = 'Available to allot';
+  static const String allocationExceedsPot =
+      'Allocations exceed your monthly savings pot. Amounts have been scaled down.';
   static const String withdrawProgress = 'Withdraw';
   static String withdrawFromGoal(String name) => 'Withdraw from $name';
   static String withdrawFromGoalSubtitle(String balance) =>

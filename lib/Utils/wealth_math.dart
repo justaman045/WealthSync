@@ -792,6 +792,7 @@ class GoalSavingsInput {
   final double current;
   final bool isEmergencyFund;
   final DateTime? targetDate;
+  final double monthlyAllocation;
 
   const GoalSavingsInput({
     required this.id,
@@ -799,6 +800,7 @@ class GoalSavingsInput {
     required this.current,
     this.isEmergencyFund = false,
     this.targetDate,
+    this.monthlyAllocation = 0,
   });
 
   /// How much more the goal needs to reach its target (never negative).
@@ -826,8 +828,14 @@ class GoalSavingsPlan {
   /// Amount assigned to the emergency fund goal (included in [allocation]).
   final double efAllocation;
 
+  /// Per-goal manual allocation the user set (included in [allocation]).
+  final Map<String, double> manualAllocation;
+
   /// Pot that could not be absorbed (all goals complete or no weight).
   final double unallocated;
+
+  /// True when manual allocations exceeded the pot and were scaled down.
+  final bool overAllocated;
 
   /// Edge-case explanation when the plan is empty or degraded, null otherwise.
   final String? reason;
@@ -838,7 +846,9 @@ class GoalSavingsPlan {
     required this.savingsPot,
     required this.allocation,
     required this.efAllocation,
+    required this.manualAllocation,
     required this.unallocated,
+    this.overAllocated = false,
     this.reason,
   });
 
@@ -847,17 +857,34 @@ class GoalSavingsPlan {
       allocation.values.fold(0.0, (sum, v) => sum + v);
 }
 
+/// Portion of this month's savings pot still available for the user to allot.
+///
+/// [allotted] is the sum of this month's Add Progress deposits. Never negative
+/// and never above [savingsPot], so a goal that has consumed the whole pot reads
+/// as "0 available" and extra deposits cannot show a phantom allowance.
+double computeRemainingToAllocate({
+  required double savingsPot,
+  required double allotted,
+}) {
+  if (savingsPot <= 0) return 0.0;
+  return (savingsPot - allotted).clamp(0.0, savingsPot).toDouble();
+}
+
 /// Splits this month's savings pot (income × savings rate) across active goals.
 ///
-/// The emergency fund is treated as the top priority while unfunded: below
-/// ~30% of its target it consumes the entire pot; above that it takes a modest
-/// ~30% share so other goals are not starved. The remainder is split
-/// proportionally by remaining need across non-EF goals, with a small deadline
-/// urgency boost (max +15%) for goals due within 30 days.
+/// The emergency fund is treated as the top priority while unfunded: it takes
+/// up to 60% of the pot (capped at its remaining need and its manual
+/// allocation if set). The remainder is split between goals that have a manual
+/// monthly allocation (they get their requested amount, capped at remaining
+/// need) and goals without one (they split the leftover proportionally by
+/// deadline urgency: remainingNeed / daysRemaining).
 ///
 /// Every allocation is capped at the goal's remaining need so no goal is ever
 /// over-funded; any leftover from capping is redistributed in a waterfall so
 /// the pot is fully used whenever goals can still absorb it.
+///
+/// If the sum of manual allocations exceeds the pot, all allocations are scaled
+/// down proportionally.
 ///
 /// [now] is injectable so deadline calculations are deterministic in tests.
 GoalSavingsPlan computeGoalSavingsPlan({
@@ -873,7 +900,9 @@ GoalSavingsPlan computeGoalSavingsPlan({
   final pot = income * rate;
 
   final allocation = <String, double>{};
+  final manualAllocation = <String, double>{};
   double efAllocation = 0.0;
+  bool overAllocated = false;
 
   // No income → nothing to allocate.
   if (income <= 0 || !income.isFinite) {
@@ -883,6 +912,7 @@ GoalSavingsPlan computeGoalSavingsPlan({
       savingsPot: 0.0,
       allocation: {},
       efAllocation: 0.0,
+      manualAllocation: {},
       unallocated: 0.0,
       reason: 'noIncome',
     );
@@ -897,6 +927,7 @@ GoalSavingsPlan computeGoalSavingsPlan({
       savingsPot: pot,
       allocation: {},
       efAllocation: 0.0,
+      manualAllocation: {},
       unallocated: pot,
       reason: 'noActiveGoals',
     );
@@ -906,8 +937,9 @@ GoalSavingsPlan computeGoalSavingsPlan({
   // [emergencyFundGoalId] is the authoritative EF identifier. When absent, no
   // goal receives EF priority even if [isEmergencyFund] is set.
   //
-  // EF takes a priority share but is capped so other goals aren't starved —
-  // every goal must still be able to meet its deadline.
+  // EF gets a priority share (up to 60% of the pot), capped at its need and
+  // its manual allocation if set. This keeps EF growing while leaving room for
+  // deadline-urgent goals.
   double remainingPot = pot;
   final efIndex = emergencyFundGoalId != null
       ? activeGoals.indexWhere((g) => g.id == emergencyFundGoalId)
@@ -917,44 +949,83 @@ GoalSavingsPlan computeGoalSavingsPlan({
     final ef = activeGoals[efIndex];
     final efNeed = ef.remainingNeed;
     if (efNeed > 0) {
-      // EF gets a priority share (up to 60% of the pot), capped at its need.
-      // This keeps EF growing while leaving room for deadline-urgent goals.
-      final efShare = math.min(pot * 0.6, efNeed);
+      // EF manual allocation takes priority; otherwise fall back to 60% of pot.
+      final efManual = ef.monthlyAllocation > 0 ? ef.monthlyAllocation : null;
+      final efCap = efManual != null
+          ? math.min(efManual, efNeed)
+          : math.min(pot * 0.6, efNeed);
+      final efShare = math.min(efCap, efNeed);
       efAllocation = efShare;
       allocation[ef.id] = efShare;
+      if (efManual != null) manualAllocation[ef.id] = efShare;
       remainingPot = pot - efShare;
     }
   }
 
-  // --- Phase 2: Other goals — deadline-aware allocation ---
-  // Each goal's urgency = remainingNeed / daysRemaining. A goal due in 2 days
-  // needing $1000 has urgency 500/day; one due in 60 days needs ~17/day.
-  // Allocate the remaining pot proportionally by urgency so urgent goals
-  // get funded first, then cap each goal at its remaining need and
-  // redistribute any leftover.
-  // Excludes only the emergency fund goal (identified by [emergencyFundGoalId]),
-  // not every goal with [isEmergencyFund] set.
+  // --- Phase 2: Other goals ---
+  // Split into manually-allocated goals (user set a monthly amount) and
+  // unallocated goals (split remaining pot by deadline urgency).
   final otherGoals = emergencyFundGoalId != null
       ? activeGoals.where((g) => g.id != emergencyFundGoalId).toList()
       : activeGoals.toList();
 
-  if (remainingPot > 0 && otherGoals.isNotEmpty) {
-    // Build per-goal need and weight maps for goals that still need funding.
+  final allocatedGoals = <GoalSavingsInput>[];
+  final unallocatedGoals = <GoalSavingsInput>[];
+  for (final g in otherGoals) {
+    if (g.remainingNeed <= 0) continue;
+    if (g.monthlyAllocation > 0) {
+      allocatedGoals.add(g);
+    } else {
+      unallocatedGoals.add(g);
+    }
+  }
+
+  double potAfterAllocated = remainingPot;
+
+  // First, satisfy manual allocations (capped at remaining need).
+  for (final g in allocatedGoals) {
+    final share = math.min(g.monthlyAllocation, g.remainingNeed);
+    allocation[g.id] = share;
+    manualAllocation[g.id] = share;
+    potAfterAllocated -= share;
+  }
+
+  // If manual allocations exceed the pot, scale them all down proportionally.
+  if (potAfterAllocated < 0) {
+    overAllocated = true;
+    final totalAllocated = allocatedGoals.fold<double>(
+        0.0, (sum, g) => sum + allocation[g.id]!);
+    if (totalAllocated > 0 && remainingPot > 0) {
+      final scale = remainingPot / totalAllocated;
+      for (final g in allocatedGoals) {
+        final scaled = (allocation[g.id]! * scale).clamp(0.0, g.remainingNeed);
+        allocation[g.id] = scaled;
+        manualAllocation[g.id] = scaled;
+      }
+    } else {
+      // No pot left after EF; zero out the manual allocations.
+      for (final g in allocatedGoals) {
+        allocation[g.id] = 0.0;
+        manualAllocation[g.id] = 0.0;
+      }
+    }
+    potAfterAllocated = 0;
+  }
+
+  // Second, split the remaining pot among unallocated goals by deadline
+  // urgency (remainingNeed / daysRemaining).
+  if (potAfterAllocated > 0 && unallocatedGoals.isNotEmpty) {
     final needs = <String, double>{};
     final weights = <String, double>{};
     double totalWeight = 0.0;
-    for (final g in otherGoals) {
+    for (final g in unallocatedGoals) {
       final need = g.remainingNeed;
       if (need <= 0) continue;
 
-      // Days remaining until deadline; goals without a deadline get a large
-      // default window so they don't crowd out urgent ones.
       final daysLeft = g.targetDate != null
           ? g.targetDate!.difference(ref).inDays
           : 365;
       final effectiveDays = daysLeft < 1 ? 1 : daysLeft;
-
-      // Urgency: how much per day is needed to meet the deadline.
       final urgency = need / effectiveDays;
 
       needs[g.id] = need;
@@ -963,12 +1034,12 @@ GoalSavingsPlan computeGoalSavingsPlan({
     }
 
     if (totalWeight > 0 && needs.isNotEmpty) {
-      double leftover = remainingPot;
+      double leftover = potAfterAllocated;
       final assigned = <String, double>{};
 
       // First pass: proportional share capped at each goal's remaining need.
       for (final id in needs.keys) {
-        final share = (weights[id]! / totalWeight) * remainingPot;
+        final share = (weights[id]! / totalWeight) * potAfterAllocated;
         final capped = math.min(share, needs[id]!);
         assigned[id] = capped;
         leftover -= capped;
@@ -997,14 +1068,12 @@ GoalSavingsPlan computeGoalSavingsPlan({
         }
         leftover = newLeftover;
 
-        // Prevent infinite loop if no progress is being made.
         if (newLeftover >= leftover) break;
       }
 
       // Merge into allocation.
       for (final entry in assigned.entries) {
-        final current = allocation[entry.key] ?? 0.0;
-        allocation[entry.key] = current + entry.value;
+        allocation[entry.key] = entry.value;
       }
     }
   }
@@ -1018,7 +1087,9 @@ GoalSavingsPlan computeGoalSavingsPlan({
     savingsPot: pot,
     allocation: allocation,
     efAllocation: efAllocation,
+    manualAllocation: manualAllocation,
     unallocated: unallocated,
+    overAllocated: overAllocated,
     reason: null,
   );
 }

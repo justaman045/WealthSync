@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -36,8 +35,16 @@ class GoalsController extends GetxController {
 
   /// Suggested monthly savings split across active goals, computed from this
   /// month's expected income × savings rate. Null until first computed.
-  GoalSavingsPlan? _savingsPlan;
-  GoalSavingsPlan? get savingsPlan => _savingsPlan;
+  final Rx<GoalSavingsPlan?> _savingsPlan = Rx<GoalSavingsPlan?>(null);
+  GoalSavingsPlan? get savingsPlan => _savingsPlan.value;
+
+  /// Total the user has allotted to goals through the Add Progress sheet in
+  /// the current calendar month. Backs the "Available to allot" label; reading
+  /// it from the reactive [goals] list keeps that label live after a deposit.
+  double get monthlyAllotted => goals.fold<double>(
+        0.0,
+        (sum, g) => sum + g.allotmentFor(DateTime.now()),
+      );
 
   @override
   void onInit() {
@@ -66,7 +73,7 @@ class GoalsController extends GetxController {
       manualMonthly: IncomeSettings.manualMonthly.value,
     );
 
-    _savingsPlan = computeGoalSavingsPlan(
+    _savingsPlan.value = computeGoalSavingsPlan(
       monthlyIncome: result.expectedIncome,
       savingsRate: SavingsSettings.rate,
       goals: goals.where((g) => !g.isCompleted).map((g) {
@@ -76,6 +83,7 @@ class GoalsController extends GetxController {
           current: g.currentAmount,
           isEmergencyFund: g.isEmergencyFund,
           targetDate: g.targetDate,
+          monthlyAllocation: g.allotmentFor(DateTime.now()),
         );
       }).toList(),
       emergencyFundGoalId: emergencyFundGoal?.id,
@@ -225,8 +233,8 @@ class GoalsController extends GetxController {
       final goal = goals[idx];
       final current = goal.currentAmount;
       if (current <= 0) return false;
-      final newAmount = math.max(0.0, current - subtractAmount);
-      final updated = goal.copyWith(currentAmount: newAmount);
+      final updated = goal.withWithdrawal(subtractAmount, DateTime.now());
+      final newAmount = updated.currentAmount;
       await _repo.updateGoal(updated);
       goals[idx] = updated;
       goals.refresh();
