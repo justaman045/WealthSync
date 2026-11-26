@@ -137,4 +137,4 @@ Every file starts with `launchAndSignIn(account: TestAccount.free|pro)` and wrap
 
 ## When in doubt
 
-Tests are contracts — read the relevant one before changing control flow, CI, rules, or backup code: `early_return_guard_test`, `feature_flags_test`, `feature_gate_test`, `ci_workflow_contract_test`, `firestore_indexes_test`, `platform_contract_test`, `app_analytics_test`, `local_backup_*`, `backup_identity_remap_test`. Security/entitlement reasoning: `docs/THREAT_MODEL_entitlement.md`, `docs/LEARNINGS_security_review.md`.
+Tests are contracts — read the relevant one before changing control flow, CI, rules, or backup code: `early_return_guard_test`, `feature_flags_test`, `feature_gate_test`, `ci_workflow_contract_test`, `firestore_indexes_test`, `platform_contract_test`, `app_analytics_test`, `local_backup_*`, `backup_identity_remap_test`. Security/entitlement reasoning: `docs/THREAT_MODEL_entitlement.md`, `docs/LEARNINGS_security_review.md`. Goal savings / emergency-fund cash / CI green-state reasoning: `docs/LEARNINGS_goal_savings_and_emergency_fund.md`.
